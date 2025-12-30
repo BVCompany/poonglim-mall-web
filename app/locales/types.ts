@@ -55,12 +55,6 @@ export type Translation = {
       findPopup: string;
       altText: string;
     };
-    news: {
-      title: string;
-      subtitle1: string;
-      subtitle2: string;
-      viewAll: string;
-    };
   };
   navigation: {
     en: string;
