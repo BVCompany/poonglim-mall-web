@@ -45,6 +45,16 @@ export type Translation = {
       subtitle2: string;
       follow: string;
     };
+    eventBanner: {
+      title1: string;
+      title2: string;
+      event1: string;
+      event2: string;
+      event3: string;
+      viewEvents: string;
+      findPopup: string;
+      altText: string;
+    };
     news: {
       title: string;
       subtitle1: string;
