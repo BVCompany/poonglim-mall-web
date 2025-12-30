@@ -321,32 +321,61 @@ export default function Component() {
 
 ## 🌐 배포
 
-### Vercel 배포
+### 배포 환경
 
-1. GitHub 저장소와 Vercel 연결
-2. 빌드 설정:
-   - Build Command: `npm run build`
-   - Output Directory: `build`
-3. 환경 변수 설정 (필요시)
-4. 배포!
+이 프로젝트는 **Vercel**을 통해 개발/운영 환경을 분리하여 자동 배포됩니다:
 
-### Netlify 배포
+- **운영 환경** (Production): `main` 브랜치 → `www.poonglim.com`
+- **개발 환경** (Preview): `develop` 브랜치 → `dev.poonglim.com`
+- **PR Preview**: `feature/*` 브랜치 → 자동 생성된 임시 URL
 
-1. GitHub 저장소와 Netlify 연결
-2. 빌드 설정:
-   - Build Command: `npm run build`
-   - Publish Directory: `build`
-3. 환경 변수 설정 (필요시)
-4. 배포!
+### 빠른 시작
 
-### Cloudflare Pages 배포
+```bash
+# 1. develop 브랜치에서 작업
+git checkout develop
 
-1. GitHub 저장소와 Cloudflare Pages 연결
-2. 빌드 설정:
-   - Build Command: `npm run build`
-   - Build Output Directory: `build`
-3. 환경 변수 설정 (필요시)
-4. 배포!
+# 2. 기능 브랜치 생성
+git checkout -b feature/new-feature
+
+# 3. 개발 및 커밋
+git add .
+git commit -m "feat: 새로운 기능 추가"
+
+# 4. Push (Vercel이 자동으로 Preview 배포)
+git push origin feature/new-feature
+
+# 5. GitHub에서 PR 생성 (feature → develop)
+# 6. 리뷰 후 머지 (자동으로 dev.poonglim.com 배포)
+# 7. 테스트 완료 후 develop → main PR 생성 및 머지 (운영 배포)
+```
+
+### 상세 가이드
+
+배포 프로세스, GitHub/Vercel 설정, 환경 변수 구성 등 상세한 내용은 [배포 가이드](./docs/DEPLOYMENT.md)를 참고하세요:
+
+- 🌳 **Branch 전략** - main, develop, feature 브랜치 관리
+- 🔧 **GitHub 설정** - Branch Protection Rules
+- 🚀 **Vercel 설정** - 프로젝트 생성 및 연동
+- 🔄 **배포 워크플로우** - 기능 개발부터 운영 배포까지
+- 🔥 **긴급 수정** - Hotfix 및 Rollback
+- 🛠️ **트러블슈팅** - 일반적인 문제 해결
+
+### 기타 플랫폼 배포
+
+#### Netlify
+
+```bash
+Build Command: npm run build
+Publish Directory: build
+```
+
+#### Cloudflare Pages
+
+```bash
+Build Command: npm run build
+Build Output Directory: build
+```
 
 ## 🤝 기여하기
 
@@ -383,10 +412,14 @@ git commit -m "fix: 네비게이션 바 모바일 뷰 수정"
 
 프로젝트 관련 상세 문서는 `docs` 폴더에서 확인하실 수 있습니다:
 
+### 배포 & 운영
+
+- **[배포 가이드](./docs/DEPLOYMENT.md)** - Vercel 배포, 개발/운영 환경 분리, 배포 워크플로우
+- **[배포 체크리스트](./docs/CHECKLIST.md)** - GitHub 배포 전 확인사항, 단계별 가이드
+
 ### 개발 가이드
 
 - **[기여 가이드](./docs/CONTRIBUTING.md)** - 프로젝트 기여 방법, 커밋 컨벤션, 코딩 스타일
-- **[배포 체크리스트](./docs/CHECKLIST.md)** - GitHub 배포 전 확인사항, 단계별 가이드
 - **[개발 노트](./docs/DEVELOPMENT_NOTES.md)** - 개발 과정 중 주요 사항 및 팁
 - **[이메일 서비스 가이드](./docs/EMAIL_SERVICE_GUIDE.md)** - 이메일 서비스 통합 가이드
 

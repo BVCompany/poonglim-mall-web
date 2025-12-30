@@ -6,6 +6,23 @@
 
 ### 🚀 시작하기
 
+#### [배포 가이드 (DEPLOYMENT.md)](./DEPLOYMENT.md)
+Vercel을 사용한 개발/운영 환경 분리 및 자동 배포 가이드입니다.
+
+**포함 내용:**
+- 🌳 배포 환경 구성 (main, develop, feature 브랜치 전략)
+- 🔧 GitHub Branch Protection Rules 설정
+- 🚀 Vercel 프로젝트 설정 및 연동
+- 🔄 배포 워크플로우 (기능 개발 → PR → 배포)
+- 🔥 긴급 수정 (Hotfix) 및 롤백 가이드
+- 🛠️ 트러블슈팅
+
+**언제 사용하나요?**
+- Vercel 배포를 처음 설정할 때
+- 개발/운영 환경을 분리하고 싶을 때
+- 배포 프로세스를 이해하고 싶을 때
+- 배포 중 문제가 발생했을 때
+
 #### [배포 체크리스트 (CHECKLIST.md)](./CHECKLIST.md)
 GitHub에 프로젝트를 올리기 전 확인해야 할 사항들과 단계별 가이드입니다.
 
@@ -80,6 +97,7 @@ GitHub에 프로젝트를 올리기 전 확인해야 할 사항들과 단계별 
 ```
 docs/
 ├── README.md                    # 📍 이 파일 (문서 인덱스)
+├── DEPLOYMENT.md                # 🚀 배포 가이드
 ├── CHECKLIST.md                 # ✅ 배포 체크리스트
 ├── CONTRIBUTING.md              # 🤝 기여 가이드
 ├── DEVELOPMENT_NOTES.md         # 💻 개발 노트
