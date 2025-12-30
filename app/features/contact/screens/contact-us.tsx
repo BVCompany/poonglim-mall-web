@@ -289,8 +289,8 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
       });
     } 
     // Handle error in submission
-    else if ("error" in actionData && actionData.error) {
-      toast.error(actionData.error.message);
+    else if (actionData && "error" in actionData && actionData.error) {
+      toast.error((actionData.error as { message: string }).message);
     }
   }, [actionData]);
   

@@ -67,9 +67,8 @@ export async function action({ request }: Route.LoaderArgs) {
   // Pop a message from the Postgres message queue (PGMQ)
   // Note: Using admin client is necessary to access the queue
   const { data: message, error } = await adminClient
-    // @ts-expect-error - PGMQ types are not fully defined in the Supabase client
+    // PGMQ types are not fully defined in the Supabase client
     .schema("pgmq_public")
-    // @ts-expect-error - PGMQ types are not fully defined in the Supabase client
     .rpc("pop", {
       queue_name: "mailer", // Queue name in Postgres
     });
@@ -102,7 +101,7 @@ export async function action({ request }: Route.LoaderArgs) {
       // Log any errors that occur during email sending
       if (error) {
         Sentry.captureException(
-          error instanceof Error ? error : new Error(String(error)),
+          error && typeof error === 'object' && 'message' in error ? error : new Error(String(error)),
         );
       }
     }

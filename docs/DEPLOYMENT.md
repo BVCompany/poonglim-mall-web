@@ -1,6 +1,7 @@
 # 🚀 배포 가이드
 
 ## 📋 목차
+
 - [배포 환경 구성](#배포-환경-구성)
 - [GitHub 설정](#github-설정)
 - [Vercel 설정](#vercel-설정)
@@ -54,6 +55,7 @@ Preview Branches: All branches
 #### main 브랜치 보호
 
 1. GitHub 저장소 페이지로 이동
+
    ```
    https://github.com/BVCompany/poonglim-mall-web
    ```
@@ -63,6 +65,7 @@ Preview Branches: All branches
 3. **Branch name pattern**: `main`
 
 4. 다음 옵션 활성화:
+
    - [x] **Require a pull request before merging**
      - [x] Require approvals (최소 1명)
      - [x] Dismiss stale pull request approvals when new commits are pushed
@@ -82,6 +85,7 @@ Preview Branches: All branches
 2. **Branch name pattern**: `develop`
 
 3. 다음 옵션 활성화:
+
    - [x] **Require a pull request before merging**
      - [x] Require approvals (최소 1명) - 선택사항
    - [x] **Require status checks to pass before merging**
@@ -100,6 +104,7 @@ CI/CD 파이프라인을 위한 GitHub Actions 워크플로우는 필요시 추�
 ### 1. Vercel 프로젝트 생성
 
 1. **Vercel 대시보드** 접속
+
    ```
    https://vercel.com/dashboard
    ```
@@ -151,25 +156,25 @@ Development Command: npm run dev
 
 **Settings** > **Environment Variables** > **Add New**
 
-| Name | Value | Environment |
-|------|-------|-------------|
-| `VITE_APP_ENV` | `production` | Production |
-| `VITE_API_URL` | `https://api.poonglim.com` | Production |
-| `VITE_ORDER_SYSTEM_URL` | `https://order.poonglim.com` | Production |
-| `VITE_MALL_URL` | `https://mall.poonglim.com` | Production |
-| `VITE_ENABLE_ANALYTICS` | `true` | Production |
-| `VITE_GOOGLE_ANALYTICS_ID` | `GA_ID` | Production |
+| Name                       | Value                        | Environment |
+| -------------------------- | ---------------------------- | ----------- |
+| `VITE_APP_ENV`             | `production`                 | Production  |
+| `VITE_API_URL`             | `https://api.poonglim.com`   | Production  |
+| `VITE_ORDER_SYSTEM_URL`    | `https://order.poonglim.com` | Production  |
+| `VITE_MALL_URL`            | `https://mall.poonglim.com`  | Production  |
+| `VITE_ENABLE_ANALYTICS`    | `true`                       | Production  |
+| `VITE_GOOGLE_ANALYTICS_ID` | `GA_ID`                      | Production  |
 
-#### Preview 환경 (develop + feature/*)
+#### Preview 환경 (develop + feature/\*)
 
-| Name | Value | Environment |
-|------|-------|-------------|
-| `VITE_APP_ENV` | `development` | Preview |
-| `VITE_API_URL` | `https://dev-api.poonglim.com` | Preview |
-| `VITE_ORDER_SYSTEM_URL` | `https://dev-order.poonglim.com` | Preview |
-| `VITE_MALL_URL` | `https://dev-mall.poonglim.com` | Preview |
-| `VITE_ENABLE_ANALYTICS` | `false` | Preview |
-| `VITE_ENABLE_DEBUG` | `true` | Preview |
+| Name                    | Value                            | Environment |
+| ----------------------- | -------------------------------- | ----------- |
+| `VITE_APP_ENV`          | `development`                    | Preview     |
+| `VITE_API_URL`          | `https://dev-api.poonglim.com`   | Preview     |
+| `VITE_ORDER_SYSTEM_URL` | `https://dev-order.poonglim.com` | Preview     |
+| `VITE_MALL_URL`         | `https://dev-mall.poonglim.com`  | Preview     |
+| `VITE_ENABLE_ANALYTICS` | `false`                          | Preview     |
+| `VITE_ENABLE_DEBUG`     | `true`                           | Preview     |
 
 **참고**: 환경 변수는 `env.example` 파일을 참고하세요.
 
@@ -180,11 +185,13 @@ Development Command: npm run dev
 **Settings** > **Domains** > **Add Domain**
 
 1. 메인 도메인 추가
+
    ```
    www.poonglim.com
    ```
 
 2. DNS 설정 (도메인 등록업체에서)
+
    ```
    Type: CNAME
    Name: www
@@ -201,6 +208,7 @@ Development Command: npm run dev
 **Settings** > **Domains** > **Add Domain**
 
 1. 개발 도메인 추가
+
    ```
    dev.poonglim.com
    ```
@@ -242,14 +250,17 @@ git push origin feature/new-menu
 ### 2️⃣ Pull Request 생성 및 리뷰
 
 1. **GitHub**에서 PR 생성
+
    - Base: `develop`
    - Compare: `feature/new-menu`
 
 2. **Vercel이 자동으로 Preview 배포**
+
    - PR 코멘트에 Preview URL 표시
    - 예: `https://poonglim-mall-web-feature-new-menu-123.vercel.app`
 
 3. **Preview에서 테스트**
+
    - 기능 확인
    - 디자인 확인
    - 크로스 브라우저 테스트
@@ -270,6 +281,7 @@ git pull origin develop
 ```
 
 **자동 배포 확인:**
+
 - Vercel 대시보드에서 배포 상태 확인
 - `dev.poonglim.com`에서 기능 테스트
 
@@ -292,6 +304,7 @@ GitHub > New Pull Request
 ```
 
 **PR 체크리스트:**
+
 - [ ] develop 서버에서 충분히 테스트 완료
 - [ ] 모든 기능이 정상 작동
 - [ ] 성능 이슈 없음
@@ -299,6 +312,7 @@ GitHub > New Pull Request
 - [ ] 모바일 반응형 확인
 
 **승인 및 머지:**
+
 - 팀 리더/시니어 개발자가 리뷰
 - 승인 후 **Merge** 버튼 클릭
 - Vercel이 자동으로 `www.poonglim.com` 배포
@@ -423,6 +437,7 @@ Vercel Dashboard > Deployments > [Failed Deployment] > Build Logs
 ### Preview 배포가 안 됨
 
 1. **GitHub Integration 확인**
+
    - Vercel > Settings > Git > GitHub App 연동 상태
 
 2. **Branch 설정 확인**
@@ -432,10 +447,12 @@ Vercel Dashboard > Deployments > [Failed Deployment] > Build Logs
 ### 도메인 연결 실패
 
 1. **DNS 전파 대기**
+
    - DNS 변경 후 최대 48시간 소요
    - 확인: `nslookup www.poonglim.com`
 
 2. **DNS 설정 확인**
+
    ```
    Type: CNAME
    Name: www
@@ -480,4 +497,3 @@ Vercel Dashboard > Deployments > [Failed Deployment] > Build Logs
 ---
 
 **마지막 업데이트**: 2025-12-30
-

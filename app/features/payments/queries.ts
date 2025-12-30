@@ -6,7 +6,7 @@
  * while handling errors appropriately.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "database.types";
+import type { Database } from "~/database.types";
 
 /**
  * Retrieve all payment records for a specific user

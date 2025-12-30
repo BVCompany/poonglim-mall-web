@@ -15,7 +15,7 @@
  * and other Supabase operations that need to run on the server.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "database.types";
+import type { Database } from "~/database.types";
 
 import {
   createServerClient,
