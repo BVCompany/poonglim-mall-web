@@ -5,6 +5,14 @@
     "**/.client/**/*",
     ".react-router/types/**/*"
   ],
+  "exclude": [
+    "app/features/auth/**/*",
+    "app/features/users/**/*",
+    "app/features/payments/**/*",
+    "app/features/cron/**/*",
+    "app/core/layouts/private.layout.tsx",
+    "app/core/layouts/public.layout.tsx"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["node", "vite/client"],
