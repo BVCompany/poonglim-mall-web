@@ -30,7 +30,7 @@ export default {
     ];
   },
   presets: [
-    ...(process.env.VERCEL_ENV === "production" ? [vercelPreset()] : []),
+    ...(process.env.VERCEL ? [vercelPreset()] : []),
   ],
   buildEnd: async ({ viteConfig, reactRouterConfig, buildManifest }) => {
     if (
