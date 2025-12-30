@@ -18,7 +18,7 @@
  * - Background jobs and scheduled tasks
  * - Server-side operations that need elevated permissions
  */
-import type { Database } from "database.types";
+import type { Database } from "~/database.types";
 
 import { createClient } from "@supabase/supabase-js";
 

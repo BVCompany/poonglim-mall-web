@@ -6,6 +6,38 @@
 
 ### 🚀 시작하기
 
+#### [데이터베이스 설정 가이드 (DATABASE_SETUP.md)](./DATABASE_SETUP.md)
+향후 DB를 활용한 동적 콘텐츠 관리를 위한 Supabase 설정 가이드입니다.
+
+**포함 내용:**
+- 🗄️ Supabase 프로젝트 생성 및 설정
+- 📊 데이터베이스 스키마 (게시판, 이벤트, 채용공고, 제품, 레시피)
+- 🔐 환경 변수 및 보안 설정
+- 👨‍💼 관리자 페이지 개발 가이드
+- 🔨 타입 생성 및 개발 워크플로우
+
+**언제 사용하나요?**
+- DB를 활용한 관리자 페이지 개발 시작 전
+- 게시판, 이벤트, 채용공고 등 동적 콘텐츠 관리 필요 시
+- Supabase 설정 방법을 알고 싶을 때
+
+#### [배포 가이드 (DEPLOYMENT.md)](./DEPLOYMENT.md)
+Vercel을 사용한 개발/운영 환경 분리 및 자동 배포 가이드입니다.
+
+**포함 내용:**
+- 🌳 배포 환경 구성 (main, develop, feature 브랜치 전략)
+- 🔧 GitHub Branch Protection Rules 설정
+- 🚀 Vercel 프로젝트 설정 및 연동
+- 🔄 배포 워크플로우 (기능 개발 → PR → 배포)
+- 🔥 긴급 수정 (Hotfix) 및 롤백 가이드
+- 🛠️ 트러블슈팅
+
+**언제 사용하나요?**
+- Vercel 배포를 처음 설정할 때
+- 개발/운영 환경을 분리하고 싶을 때
+- 배포 프로세스를 이해하고 싶을 때
+- 배포 중 문제가 발생했을 때
+
 #### [배포 체크리스트 (CHECKLIST.md)](./CHECKLIST.md)
 GitHub에 프로젝트를 올리기 전 확인해야 할 사항들과 단계별 가이드입니다.
 
@@ -80,6 +112,8 @@ GitHub에 프로젝트를 올리기 전 확인해야 할 사항들과 단계별 
 ```
 docs/
 ├── README.md                    # 📍 이 파일 (문서 인덱스)
+├── DATABASE_SETUP.md            # 🗄️ 데이터베이스 설정 가이드
+├── DEPLOYMENT.md                # 🚀 배포 가이드
 ├── CHECKLIST.md                 # ✅ 배포 체크리스트
 ├── CONTRIBUTING.md              # 🤝 기여 가이드
 ├── DEVELOPMENT_NOTES.md         # 💻 개발 노트
