@@ -43,7 +43,7 @@ export type Translation = {
       title: string;
       subtitle1: string;
       subtitle2: string;
-      followUs: string;
+      follow: string;
     };
     news: {
       title: string;

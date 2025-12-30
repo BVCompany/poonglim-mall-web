@@ -289,7 +289,7 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
       });
     } 
     // Handle error in submission
-    else if (actionData && "error" in actionData && actionData.error) {
+    else if (actionData && "error" in actionData && actionData.error && typeof actionData.error === 'object' && 'message' in actionData.error) {
       toast.error((actionData.error as { message: string }).message);
     }
   }, [actionData]);
