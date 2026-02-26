@@ -78,8 +78,10 @@ export function BrandPhilosophy() {
 
   const tagBaseClass =
     "absolute rounded-full border border-black bg-white px-3 py-1.5 whitespace-nowrap text-[#111]";
+  const tagBaseClassPC =
+    "absolute rounded-full border border-black bg-white px-4 py-1.5 whitespace-nowrap text-[#111]";
   const tagClassMobile = `${tagBaseClass} text-[12px]`;
-  const tagClassPC = `${tagBaseClass} text-[15px]`;
+  const tagClassPC = `${tagBaseClassPC} text-[15px]`;
 
   return (
     <section
@@ -195,23 +197,28 @@ export function BrandPhilosophy() {
         </div>
       </div>
 
-      {/* ── PC 레이아웃 (별도 구성) ── */}
+      {/* ── PC 레이아웃: Enrich 쪽 좌측, with 쪽 우측 ── */}
       <div className="relative hidden md:block">
-        {sparkle(100, 36, false, { top: "18%", left: "10%" })}
-        {sparkle(250, 48, true, { top: "12%", left: "67%" })}
-        {sparkle(350, 40, false, { top: "58%", left: "38%" })}
-        {sparkle(450, 28, true, { top: "72%", left: "52%" })}
+        {sparkle(100, 36, false, { top: "8%", left: "18%" })}
+        {sparkle(250, 48, true, { top: "12%", right: "22%", left: "auto" })}
+        {sparkle(350, 40, false, { top: "58%", left: "35%" })}
+        {sparkle(450, 28, true, { top: "72%", right: "30%", left: "auto" })}
 
-        <div className="mx-auto w-full max-w-[var(--content-max-width)] px-6 lg:px-8">
-          <div className="pt-6 pb-4" style={slideStyle(500)}>
+        <div className="mx-auto w-full max-w-[1320px] px-6 lg:px-8">
+          {/* 1행: Enrich [캐릭터] Your Day — 좌측 정렬 */}
+          <div className="flex justify-start pt-6 pb-2" style={slideStyle(500)}>
             <h2
-              className="text-left leading-none tracking-tight text-[#111]"
-              style={{ fontSize: "56px", fontWeight: 400 }}
+              className="text-left leading-none text-[#111]"
+              style={{
+                fontSize: "100px",
+                fontWeight: 400,
+                letterSpacing: "-0.02em",
+              }}
             >
               <span className="relative inline-block">
                 Enrich
                 <span
-                  className={`absolute -bottom-2 left-2 ${tagClassPC}`}
+                  className={`absolute bottom-2 left-10 ${tagClassPC}`}
                   style={badgeStyle(1100)}
                 >
                   건강한
@@ -220,7 +227,7 @@ export function BrandPhilosophy() {
               <img
                 src="/home/intro-img.png"
                 alt=""
-                className="inline-block align-middle"
+                className="inline-block align-bottom"
                 style={{
                   width: 145,
                   height: 119,
@@ -233,7 +240,7 @@ export function BrandPhilosophy() {
               <span className="relative inline-block">
                 Your Day
                 <span
-                  className={`absolute -bottom-2 left-4 ${tagClassPC}`}
+                  className={`absolute -top-2 right-36 ${tagClassPC}`}
                   style={badgeStyle(1300)}
                 >
                   간편한
@@ -242,18 +249,22 @@ export function BrandPhilosophy() {
             </h2>
           </div>
 
-          <div className="pt-4 pb-6 text-left" style={slideStyle(700)}>
-            <h2 className="leading-none tracking-tight">
+          {/* 2행: with Good Food. — 우측 정렬 */}
+          <div className="flex justify-end pt-2 pb-6" style={slideStyle(700)}>
+            <h2
+              className="text-right leading-none"
+              style={{ letterSpacing: "-0.02em" }}
+            >
               <span className="relative inline-block">
                 <span
                   className="text-[#005A3D]"
-                  style={{ fontSize: "56px", fontWeight: 800 }}
+                  style={{ fontSize: "100px", fontWeight: 800 }}
                 >
                   {"with "}
                 </span>
                 <span
                   className="text-[#005A3D]"
-                  style={{ fontSize: "56px", fontWeight: 800 }}
+                  style={{ fontSize: "100px", fontWeight: 800 }}
                 >
                   {"Good Fo"}
                   <span className="relative inline-block">
@@ -268,7 +279,7 @@ export function BrandPhilosophy() {
                   {"d."}
                 </span>
                 <span
-                  className={`absolute -top-2 left-2 ${tagClassPC}`}
+                  className={`absolute -top-2 right-60 left-auto ${tagClassPC}`}
                   style={badgeStyle(1500)}
                 >
                   믿을 수 있는
@@ -278,7 +289,7 @@ export function BrandPhilosophy() {
           </div>
 
           <p
-            className="mt-3 text-center text-base text-[#111] lg:text-lg"
+            className="mt-3 text-center text-base text-[#005A3D] lg:text-lg"
             style={slideStyle(900)}
           >
             건강하고 풍요한 일상을 만들다.

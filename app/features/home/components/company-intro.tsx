@@ -40,10 +40,10 @@ export function CompanyIntro() {
   return (
     <section
       ref={sectionRef}
-      className="relative mx-auto my-8 w-full overflow-hidden rounded-2xl px-4 md:my-12 md:px-0 md:w-[calc(100%-6rem)] md:rounded-3xl"
+      className="relative mx-auto my-8 w-full overflow-hidden rounded-2xl px-4 md:my-12 md:w-[calc(100%-5rem)] md:rounded-3xl md:px-0"
     >
       {/* 모바일: 100% - 양쪽 1rem 패딩, 343:460 비율 / PC: 16:6 */}
-      <div className="relative aspect-[343/460] overflow-hidden rounded-2xl md:aspect-[16/6] md:min-h-[360px] md:rounded-3xl">
+      <div className="relative aspect-[343/460] overflow-hidden rounded-2xl md:aspect-[16/6] md:min-h-[360px] md:rounded-[2.5rem]">
         <div
           className={`absolute inset-0 origin-center ${
             visible ? "animate-hero-unfold" : "opacity-0"
@@ -61,7 +61,7 @@ export function CompanyIntro() {
           <div className="absolute inset-0 bg-black/55" />
 
           {/* Content - 모바일: space-between(상단: 카테고리+타이틀, 하단: Learn More) / PC: 기존 */}
-          <div className="absolute inset-0 flex flex-col justify-between p-5 md:justify-start md:p-14 lg:p-16">
+          <div className="absolute inset-0 flex flex-col justify-between p-5 md:justify-start md:p-14 lg:px-30 lg:py-20">
             {/* 상단: 카테고리 + 타이틀 묶음 */}
             <div>
               <p
@@ -72,27 +72,28 @@ export function CompanyIntro() {
                   src="/home/company-intro-star.png"
                   alt=""
                   className="hidden flex-shrink-0 md:block"
-                  width={21}
-                  height={21}
+                  width={14}
+                  height={14}
                 />
                 회사소개
               </p>
               <h2
-                className="max-w-xl break-keep font-bold text-[18px] md:mb-8 md:text-[24px]"
+                className="max-w-md text-[18px] font-bold break-keep md:mb-8 md:text-[24px]"
                 style={{
                   color: "#f1ecdb",
                   lineHeight: "140%",
                   letterSpacing: "-0.04em",
                 }}
               >
-                30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운 일상을 만들어가고 있습니다.
+                30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운
+                일상을 만들어가고 있습니다.
               </h2>
             </div>
 
             {/* 하단: Learn More 버튼 - 모바일 100% / PC w-fit */}
             <Link
               to="/brand/intro"
-              className="flex w-full items-center justify-between gap-4 rounded-full border border-black/20 px-5 py-2.5 text-sm font-medium transition-colors md:w-fit"
+              className="flex w-full items-center justify-between gap-4 rounded-full border border-black/20 px-3 py-2.5 text-sm font-medium transition-colors md:w-[190px]"
               style={{
                 backgroundColor: "#f1ecdb",
                 color: "#1e463a",

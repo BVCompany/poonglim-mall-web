@@ -160,30 +160,32 @@ export function NewsFeed() {
                   style={{ scrollSnapAlign: "start" }}
                 >
                   <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[#1A4736]">
-                    {/* 이미지 카드: 상단 이미지 + 태그 오버레이 */}
+                    {/* 이미지 카드: 상단 이미지 + 여백(inset) + 태그 오버레이 */}
                     {hasImage ? (
-                      <div className="relative aspect-[4/3] overflow-hidden">
-                        <img
-                          src={item.image || item.fallback}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
-                          onError={(e) => {
-                            if (item.fallback) {
-                              (e.target as HTMLImageElement).src =
-                                item.fallback;
-                            }
-                          }}
-                        />
+                      <div className="relative p-3 md:p-4">
+                        <div className="relative aspect-[4/3] overflow-hidden rounded-xl">
+                          <img
+                            src={item.image || item.fallback}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
+                            onError={(e) => {
+                              if (item.fallback) {
+                                (e.target as HTMLImageElement).src =
+                                  item.fallback;
+                              }
+                            }}
+                          />
+                        </div>
                         <span
-                          className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green ${tagStyle[item.category]}`}
+                          className={`absolute top-4 left-4 md:top-5 md:left-5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green ${tagStyle[item.category]}`}
                         >
                           {item.category}
                         </span>
                       </div>
                     ) : null}
 
-                    {/* 콘텐츠 */}
-                    <div className="flex flex-1 flex-col p-5">
+                    {/* 콘텐츠: 하단 텍스트 영역, 좌우하단 여백 적용 */}
+                    <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:px-5 md:pb-6 md:pt-4">
                       {!hasImage && (
                         <span
                           className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green ${tagStyle[item.category]}`}

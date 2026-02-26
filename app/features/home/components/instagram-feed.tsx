@@ -14,10 +14,14 @@ const posts = [
 
 const SLIDE_GROUP_SIZE = 3;
 const IMAGE_GAP = 16;
+const ASPECT_RATIO = "360/450"; // PC 360x450, 모바일 208x260 동일 비율
+const PC_ITEM_WIDTH = 360;
+const MOBILE_ITEM_WIDTH = 208;
+const PC_FEED_MAX_WIDTH = PC_ITEM_WIDTH * SLIDE_GROUP_SIZE + IMAGE_GAP * (SLIDE_GROUP_SIZE - 1); // 1112px
 
 export function InstagramFeed() {
   const [current, setCurrent] = useState(0);
-  const [imageWidth, setImageWidth] = useState(360);
+  const [imageWidth, setImageWidth] = useState(PC_ITEM_WIDTH);
   const [inView, setInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -46,11 +50,26 @@ export function InstagramFeed() {
   }, []);
 
   useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = () => {
+      setImageWidth(mq.matches ? PC_ITEM_WIDTH : MOBILE_ITEM_WIDTH);
+    };
+    handler();
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // PC: 컨테이너 너비에 맞춰 3개가 온전히 보이도록 아이템 너비 동적 계산
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    if (!mq.matches) return;
     const el = containerRef.current;
     if (!el) return;
     const updateWidth = () => {
       const w = el.offsetWidth;
-      setImageWidth(Math.max(200, (w - IMAGE_GAP * 2) / SLIDE_GROUP_SIZE));
+      const totalGap = IMAGE_GAP * (SLIDE_GROUP_SIZE - 1);
+      const itemWidth = Math.floor((w - totalGap) / SLIDE_GROUP_SIZE);
+      setImageWidth(Math.min(PC_ITEM_WIDTH, Math.max(MOBILE_ITEM_WIDTH, itemWidth)));
     };
     updateWidth();
     const ro = new ResizeObserver(updateWidth);
@@ -82,10 +101,7 @@ export function InstagramFeed() {
         @poonglim.official
       </span>
       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white">
-        <ChevronRight
-          className="h-4 w-4 text-[#1e463a]"
-          strokeWidth={2}
-        />
+        <ChevronRight className="h-4 w-4 text-[#1e463a]" strokeWidth={2} />
       </span>
     </a>
   );
@@ -96,7 +112,7 @@ export function InstagramFeed() {
       className="bg-[var(--brand-cream)] py-10 md:py-16 lg:py-20"
     >
       {/* ── 모바일 레이아웃 (이미지 시안 기준) ── */}
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 md:hidden">
+      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-5 px-4 md:hidden">
         {/* 헤더: 카테고리(14px) + 타이틀(18px) */}
         <div className={`${inView ? "animate-insta-left-in" : "opacity-0"}`}>
           <p
@@ -137,8 +153,8 @@ export function InstagramFeed() {
                 rel="noopener noreferrer"
                 className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
                 style={{
-                  width: 200,
-                  aspectRatio: "360/450",
+                  width: MOBILE_ITEM_WIDTH,
+                  aspectRatio: ASPECT_RATIO,
                   scrollSnapAlign: "start",
                 }}
               >
@@ -157,8 +173,8 @@ export function InstagramFeed() {
         {officialButton}
       </div>
 
-      {/* ── PC 레이아웃 ── */}
-      <div className="mx-auto hidden w-full max-w-[1600px] flex-col gap-8 px-4 sm:px-6 md:flex md:flex-row md:items-stretch md:gap-12 lg:gap-16">
+      {/* ── PC 레이아웃 (피그마 프로토타입과 맞추어 가로 확장) ── */}
+      <div className="mx-auto hidden w-full max-w-[1640px] flex-col gap-8 px-4 sm:px-6 md:flex md:flex-row md:items-stretch md:gap-12 lg:gap-16">
         <div
           className={`flex flex-shrink-0 flex-col justify-between md:w-[35%] lg:w-[320px] ${inView ? "animate-insta-left-in" : "opacity-0"}`}
         >
@@ -210,7 +226,8 @@ export function InstagramFeed() {
 
         <div
           ref={containerRef}
-          className={`relative min-w-0 flex-1 overflow-hidden ${inView ? "animate-insta-right-in" : "opacity-0"}`}
+          className={`relative ml-auto min-w-0 flex-1 overflow-hidden ${inView ? "animate-insta-right-in" : "opacity-0"}`}
+          style={{ maxWidth: PC_FEED_MAX_WIDTH }}
         >
           <div
             className="flex gap-4"
@@ -228,7 +245,7 @@ export function InstagramFeed() {
                 className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
                 style={{
                   width: imageWidth,
-                  aspectRatio: "360/450",
+                  aspectRatio: ASPECT_RATIO,
                 }}
               >
                 <img
