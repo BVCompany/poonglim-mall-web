@@ -12,6 +12,7 @@
  * - Support for multiple languages (English, Korean, Spanish)
  * - Translated language names in the current language
  */
+import { GlobeIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
 
@@ -66,15 +67,8 @@ export default function LangSwitcher() {
         className="cursor-pointer"
         data-testid="lang-switcher" // For testing purposes
       >
-        <Button variant="ghost" size="icon" className="text-lg">
-          {/* Conditionally render the appropriate flag based on current language */}
-          {i18n.language === "en"
-            ? "🇬🇧" // UK flag for English
-            : i18n.language === "ko"
-              ? "🇰🇷" // South Korea flag for Korean
-              : i18n.language === "es"
-                ? "🇪🇸" // Spain flag for Spanish
-                : null}
+        <Button variant="ghost" size="icon" className="text-[#444]">
+          <GlobeIcon className="h-[17px] w-[17px]" />
         </Button>
       </DropdownMenuTrigger>
       

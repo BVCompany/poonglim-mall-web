@@ -1,129 +1,247 @@
-import { Instagram } from "lucide-react";
-import { useTranslation } from "react-i18next";
+"use client";
+
+import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const posts = [
+  { id: 1, image: "/home/instar-img-01.png" },
+  { id: 2, image: "/home/instar-img-02.png" },
+  { id: 3, image: "/home/instar-img-03.png" },
+  { id: 4, image: "/home/instar-img-01.png" },
+  { id: 5, image: "/home/instar-img-02.png" },
+  { id: 6, image: "/home/instar-img-03.png" },
+];
+
+const SLIDE_GROUP_SIZE = 3;
+const IMAGE_GAP = 16;
 
 export function InstagramFeed() {
-  const { t } = useTranslation();
+  const [current, setCurrent] = useState(0);
+  const [imageWidth, setImageWidth] = useState(360);
+  const [inView, setInView] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const maxSlide = Math.max(0, Math.ceil(posts.length / SLIDE_GROUP_SIZE) - 1);
 
-  const instagramPosts = [
-    {
-      id: 1,
-      image:
-        "https://images.unsplash.com/photo-1506084868230-bb9d95c24759?w=400&h=500&fit=crop",
-      caption: "건강하고 풍요로운 일상을 만듭니다 🥚",
-      likes: 3421,
-      comments: 156,
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    let triggered = false;
+    const trigger = () => {
+      if (triggered) return;
+      triggered = true;
+      setInView(true);
+      window.removeEventListener("scroll", onScroll);
+    };
+
+    const onScroll = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.5) trigger();
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateWidth = () => {
+      const w = el.offsetWidth;
+      setImageWidth(Math.max(200, (w - IMAGE_GAP * 2) / SLIDE_GROUP_SIZE));
+    };
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const goTo = useCallback(
+    (index: number) => {
+      setCurrent(Math.max(0, Math.min(index, maxSlide)));
     },
-    {
-      id: 2,
-      image:
-        "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=500&fit=crop",
-      caption: "엄격한 품질 관리로 신선함을 지킵니다 ✨",
-      likes: 2890,
-      comments: 94,
-    },
-    {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=500&fit=crop",
-      caption: "풍림푸드의 프리미엄 품질을 경험하세요 🌟",
-      likes: 1654,
-      comments: 53,
-    },
-    {
-      id: 4,
-      image:
-        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400&h=500&fit=crop",
-      caption: "커피 푸딩으로 달콤한 하루 시작 ☕",
-      likes: 1234,
-      comments: 45,
-    },
-    {
-      id: 5,
-      image:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=500&fit=crop",
-      caption: "영양을 가득 채운 한끼구이 신제품 출시! 🥕",
-      likes: 2156,
-      comments: 78,
-    },
-    {
-      id: 6,
-      image:
-        "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&h=500&fit=crop",
-      caption: "든든한 한 끼, 야채치즈 계란구이 🍳",
-      likes: 1876,
-      comments: 62,
-    },
-  ];
+    [maxSlide],
+  );
+
+  const prev = () => goTo(current - 1);
+  const next = () => goTo(current + 1);
+
+  const slideOffset =
+    imageWidth * SLIDE_GROUP_SIZE + IMAGE_GAP * (SLIDE_GROUP_SIZE - 1);
+
+  const officialButton = (
+    <a
+      href="https://www.instagram.com/poonglim_official"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex w-full items-center justify-between gap-4 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 px-4 py-3 transition-opacity hover:opacity-95 md:w-fit"
+    >
+      <span className="text-[14px] font-medium text-white">
+        @poonglim.official
+      </span>
+      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white">
+        <ChevronRight
+          className="h-4 w-4 text-[#1e463a]"
+          strokeWidth={2}
+        />
+      </span>
+    </a>
+  );
 
   return (
-    <section className="py-20 bg-muted/30">
-      <div className="max-w-screen-xl mx-auto px-6">
-        {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <Instagram className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">
-              {t("home.instagram.title")}
-            </h2>
-          </div>
-          <p className="text-lg text-muted-foreground mb-6 text-pretty">
-            {t("home.instagram.subtitle1")}
-            <br className="md:hidden" /> {t("home.instagram.subtitle2")}
-          </p>
-          <a
-            href="https://www.instagram.com/poonglim.official"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+    <section
+      ref={sectionRef}
+      className="bg-[var(--brand-cream)] py-10 md:py-16 lg:py-20"
+    >
+      {/* ── 모바일 레이아웃 (이미지 시안 기준) ── */}
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 md:hidden">
+        {/* 헤더: 카테고리(14px) + 타이틀(18px) */}
+        <div className={`${inView ? "animate-insta-left-in" : "opacity-0"}`}>
+          <p
+            className="mb-2 flex items-center gap-2 text-[14px] font-semibold text-black"
+            style={{ letterSpacing: "-0.04em" }}
           >
-            @poonglim.official
             <Instagram className="h-4 w-4" />
-          </a>
-        </div>
-
-        {/* Instagram Grid */}
-        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
-          {instagramPosts.map((post) => (
-            <a
-              key={post.id}
-              href="https://www.instagram.com/poonglim.official"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative aspect-[3/4] overflow-hidden rounded-lg bg-muted"
-            >
-              <img
-                src={post.image}
-                alt={post.caption}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              {/* Overlay on hover */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="text-white text-center px-4">
-                  <p className="text-sm mb-3 line-clamp-2">{post.caption}</p>
-                  <div className="flex items-center justify-center gap-4 text-xs">
-                    <span>❤️ {post.likes.toLocaleString()}</span>
-                    <span>💬 {post.comments}</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-
-        {/* Follow Button */}
-        <div className="text-center mt-10">
-          <a
-            href="https://www.instagram.com/poonglim.official"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            Instagram
+          </p>
+          <p
+            className="text-black"
+            style={{
+              fontSize: "18px",
+              lineHeight: "150%",
+              letterSpacing: "-0.04em",
+            }}
           >
-            <Instagram className="h-5 w-5" />
-            {t("home.instagram.follow")}
-          </a>
+            풍림푸드의 다양한 소식을
+            <br />
+            인스타그램에서 만나보세요.
+          </p>
+        </div>
+
+        {/* 피드: 터치 슬라이드 - 좌측 여백 유지, scroll-padding으로 스냅 시에도 여백 보존 */}
+        <div
+          className={`scrollbar-hide -mx-4 overflow-x-auto px-4 ${inView ? "animate-insta-left-in" : "opacity-0"}`}
+          style={{
+            scrollSnapType: "x proximity",
+            scrollPaddingLeft: "1rem",
+          }}
+        >
+          <div className="flex gap-3">
+            {posts.map((post) => (
+              <a
+                key={post.id}
+                href="https://www.instagram.com/poonglim_official"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+                style={{
+                  width: 200,
+                  aspectRatio: "360/450",
+                  scrollSnapAlign: "start",
+                }}
+              >
+                <img
+                  src={post.image}
+                  alt={`인스타그램 포스트 ${post.id}`}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* 오피셜 버튼: 피드 아래 */}
+        {officialButton}
+      </div>
+
+      {/* ── PC 레이아웃 ── */}
+      <div className="mx-auto hidden w-full max-w-[1600px] flex-col gap-8 px-4 sm:px-6 md:flex md:flex-row md:items-stretch md:gap-12 lg:gap-16">
+        <div
+          className={`flex flex-shrink-0 flex-col justify-between md:w-[35%] lg:w-[320px] ${inView ? "animate-insta-left-in" : "opacity-0"}`}
+        >
+          <div className="flex flex-col gap-4">
+            <p
+              className="flex items-center gap-2 text-[14px] font-semibold text-black"
+              style={{ letterSpacing: "-0.04em" }}
+            >
+              <Instagram className="h-4 w-4" />
+              Instagram
+            </p>
+            <div className="flex flex-col gap-8">
+              <p
+                className="text-black"
+                style={{
+                  fontSize: 28,
+                  lineHeight: "150%",
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                풍림푸드의 다양한 소식을
+                <br />
+                인스타그램에서 만나보세요.
+              </p>
+              {officialButton}
+            </div>
+          </div>
+          <div className="flex">
+            <div className="flex overflow-hidden rounded-full border border-black/10 bg-white">
+              <button
+                onClick={prev}
+                disabled={current === 0}
+                aria-label="이전"
+                className="flex h-11 w-11 items-center justify-center border-r border-black/10 text-[var(--brand-green)] transition-colors hover:bg-black/5 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--brand-green)]"
+              >
+                <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+              </button>
+              <button
+                onClick={next}
+                disabled={current === maxSlide}
+                aria-label="다음"
+                className="flex h-11 w-11 items-center justify-center text-[var(--brand-green)] transition-colors hover:bg-black/5 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--brand-green)]"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          ref={containerRef}
+          className={`relative min-w-0 flex-1 overflow-hidden ${inView ? "animate-insta-right-in" : "opacity-0"}`}
+        >
+          <div
+            className="flex gap-4"
+            style={{
+              transform: `translateX(-${current * slideOffset}px)`,
+              transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {posts.map((post) => (
+              <a
+                key={post.id}
+                href="https://www.instagram.com/poonglim_official"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+                style={{
+                  width: imageWidth,
+                  aspectRatio: "360/450",
+                }}
+              >
+                <img
+                  src={post.image}
+                  alt={`인스타그램 포스트 ${post.id}`}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
-

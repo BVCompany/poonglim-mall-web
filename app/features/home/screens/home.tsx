@@ -1,23 +1,12 @@
-/**
- * Home Page Component
- * 
- * Main landing page with multiple sections showcasing Poonglim Food's brand,
- * products, recipes, and social media presence.
- */
-
 import type { Route } from "./+types/home";
 
 import i18next from "~/core/lib/i18next.server";
-import { HeroSection } from "../components/hero-section";
 import { BrandPhilosophy } from "../components/brand-philosophy";
+import { CompanyIntro } from "../components/company-intro";
 import { FeaturedProducts } from "../components/featured-products";
-import { RecipeTeaser } from "../components/recipe-teaser";
+import { HeroSection } from "../components/hero-section";
 import { InstagramFeed } from "../components/instagram-feed";
-import { EventBanner } from "../components/event-banner";
-
-/**
- * Meta function for setting page metadata
- */
+import { NewsFeed } from "../components/news-feed";
 export const meta: Route.MetaFunction = ({ data }) => {
   return [
     { title: data?.title },
@@ -25,41 +14,35 @@ export const meta: Route.MetaFunction = ({ data }) => {
   ];
 };
 
-/**
- * Loader function for server-side data fetching
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
-  
+
   return {
     title: t("home.title"),
     subtitle: t("home.hero.subtitle1") + " " + t("home.hero.subtitle2"),
   };
 }
 
-/**
- * Home page component with all main sections
- */
 export default function Home() {
   return (
     <>
-      {/* Hero Section - 히어로 섹션 */}
+      {/* 1. Hero Section - 풀스크린 슬라이더 */}
       <HeroSection />
-      
-      {/* Brand Philosophy - 풍림푸드의 가치 */}
+
+      {/* 2. Brand Philosophy - "Enrich Your Day with Good Food." */}
       <BrandPhilosophy />
-      
-      {/* Featured Products - 대표 제품 */}
+
+      {/* 3. Featured Products - 대표 제품 가로 스크롤 */}
       <FeaturedProducts />
-      
-      {/* Recipe Teaser - 활용법 & 레시피 */}
-      <RecipeTeaser />
-      
-      {/* Instagram Feed - 인스타그램 피드 */}
+
+      {/* 4. Company Intro - 회사 소개 풀와이드 영상/이미지 */}
+      <CompanyIntro />
+
+      {/* 6. Instagram Feed - 인스타그램 피드 */}
       <InstagramFeed />
-      
-      {/* Event Banner - 특별한 이벤트와 소식 */}
-      <EventBanner />
+
+      {/* 7. News Feed - 뉴스/보도자료 슬라이더 */}
+      <NewsFeed />
     </>
   );
 }
