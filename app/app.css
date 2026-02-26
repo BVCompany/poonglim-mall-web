@@ -5,41 +5,45 @@
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
-  font-family: 'NanumSquareRound';
+  font-family: "NanumSquareRound";
   font-weight: 300;
   font-display: swap;
-  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundL.woff2') format('woff2');
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundL.woff2")
+    format("woff2");
 }
 @font-face {
-  font-family: 'NanumSquareRound';
+  font-family: "NanumSquareRound";
   font-weight: 400;
   font-display: swap;
-  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundR.woff2') format('woff2');
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundR.woff2")
+    format("woff2");
 }
 @font-face {
-  font-family: 'NanumSquareRound';
+  font-family: "NanumSquareRound";
   font-weight: 700;
   font-display: swap;
-  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundB.woff2') format('woff2');
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundB.woff2")
+    format("woff2");
 }
 @font-face {
-  font-family: 'NanumSquareRound';
+  font-family: "NanumSquareRound";
   font-weight: 800;
   font-display: swap;
-  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundEB.woff2') format('woff2');
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundEB.woff2")
+    format("woff2");
 }
 
 @theme {
   --font-sans:
-    "NanumSquareRound", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    "NanumSquareRound", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-nanum: "NanumSquareRound", sans-serif;
 }
 
 html,
 body {
   @apply dark:bg-background;
-  background-color: #F4F2E5;
+  background-color: #f4f2e5;
 }
 
 :root {
@@ -60,8 +64,8 @@ body {
   --hero-pc-height: 800px;
 
   /* Brand Colors */
-  --brand-cream: #F4F2E5;
-  --brand-green: oklch(0.32 0.082 155);
+  --brand-cream: #fdfdf5;
+  --brand-green: #003F2B;
   --brand-green-light: oklch(0.42 0.082 155);
   --brand-green-dark: oklch(0.22 0.065 155);
   --secondary: oklch(0.97 0 0);
@@ -218,10 +222,22 @@ body {
 }
 
 @keyframes badge-appear-disappear {
-  0%   { opacity: 0; transform: translateY(8px); }
-  15%  { opacity: 1; transform: translateY(0); }
-  65%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-6px); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 @keyframes slide-up-fade {
@@ -338,8 +354,13 @@ body {
 
 /* 인트로: 캐릭터 바운스 (PC) */
 @keyframes intro-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 @layer utilities {
@@ -347,10 +368,10 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Hide scrollbar for IE, Edge and Firefox */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }

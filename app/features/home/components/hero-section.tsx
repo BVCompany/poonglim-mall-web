@@ -73,18 +73,13 @@ export function HeroSection() {
 
   return (
     /* 모바일: 343×460 비율 / PC: 1840×800 비율로 가로·세로 함께 스케일 */
-    <section
-      className="w-full bg-[var(--brand-cream)] px-4 pt-2 md:px-8 md:pt-4 lg:px-16
-        min-h-[calc(100vw*460/343)] md:min-h-0 md:h-auto"
-    >
+    <section className="min-h-[calc(100vw*460/343)] w-full bg-[var(--brand-cream)] px-4 pt-2 md:h-auto md:min-h-0 md:px-8 md:pt-4 lg:px-2.5">
       <div
-        className="animate-hero-unfold relative mx-auto w-full
-          max-h-[calc(100dvh-var(--header-height)-16px)]
-          md:aspect-[1840/800] md:max-h-[var(--hero-pc-height)] md:max-w-[var(--hero-pc-width)]"
+        className="animate-hero-unfold relative mx-auto max-h-[calc(100dvh-var(--header-height)-16px)] w-full md:aspect-[1840/800] md:max-h-[var(--hero-pc-height)] md:max-w-[var(--hero-pc-width)]"
         style={{ aspectRatio: "343/460" }}
       >
         {/* 슬라이드 카드: 모바일 rounded-2xl, 데스크톱 rounded-3xl */}
-        <div className="absolute inset-0 overflow-hidden rounded-2xl bg-gray-100 md:rounded-3xl">
+        <div className="absolute inset-0 overflow-hidden rounded-3xl bg-gray-100 md:rounded-[2rem]">
           {/* 슬라이드 이미지 */}
           {slides.map((slide, index) => (
             <div
@@ -107,17 +102,17 @@ export function HeroSection() {
           ))}
 
           {/* 좌측 하단: 텍스트 묶음 + 인디케이터 (모바일/PC 분리) */}
-          <div className="absolute bottom-6 left-6 z-10 flex max-w-[85%] flex-col gap-2.5 sm:bottom-6 sm:left-4 sm:max-w-lg md:bottom-8 md:left-8 md:max-w-xl lg:bottom-10 lg:left-14 lg:max-w-2xl">
+          <div className="absolute bottom-6 left-6 z-10 flex max-w-[85%] flex-col gap-2.5 sm:bottom-6 sm:left-4 sm:max-w-lg md:bottom-8 md:left-8 md:max-w-xl lg:bottom-20 lg:left-30 lg:max-w-2xl">
             {/* 텍스트 묶음: 모바일 14/20px, PC 피그마 기준 16/32px */}
-            <div className="flex flex-col gap-2.5 md:gap-3">
+            <div className="flex flex-col gap-2.5">
               <p
-                className="font-medium text-[var(--brand-green)] opacity-80 text-sm md:text-[16px]"
+                className="text-sm font-medium text-[var(--brand-green)] opacity-80 md:text-[16px]"
                 style={{ letterSpacing: "-0.04em" }}
               >
                 {slides[current].category}
               </p>
               <h1
-                className="leading-snug font-bold text-pretty text-[var(--brand-green)] text-xl md:text-[32px] md:break-keep"
+                className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] md:text-[32px] md:break-keep"
                 style={{ letterSpacing: "-0.04em" }}
               >
                 {slides[current].title1} {slides[current].title2}
@@ -125,7 +120,7 @@ export function HeroSection() {
             </div>
 
             {/* 슬라이드 카운터 배지 */}
-            <div className="w-fit">
+            <div className="mt-12 w-fit">
               <div className="inline-flex items-baseline gap-0.5 rounded-lg bg-gray-700/65 px-3 py-1 md:px-4 md:py-1.5">
                 <span className="text-xs font-semibold text-white md:text-sm">
                   {String(current + 1).padStart(2, "0")}

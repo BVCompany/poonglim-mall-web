@@ -106,7 +106,7 @@ function DesktopNavigation() {
   ];
 
   return (
-    <div className="flex items-center gap-9">
+    <div className="flex items-center gap-20">
       {menuItems.map((item) => (
         <div
           key={item.label}
@@ -115,14 +115,14 @@ function DesktopNavigation() {
           onMouseLeave={() => setOpenMenu(null)}
         >
           {item.subItems ? (
-            <button className="text-[20px] font-medium whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]">
+            <button className="text-[20px] font-bold whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]">
               {item.label}
             </button>
           ) : (
             <Link
               to={item.path!}
               viewTransition
-              className="text-[20px] font-medium whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]"
+              className="text-[20px] font-bold whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]"
             >
               {item.label}
             </Link>
@@ -309,7 +309,7 @@ export function NavigationBar({
       className="fixed top-0 left-0 right-0 z-50 w-full"
       style={{ backgroundColor: "rgba(244, 242, 229, 0.95)" }}
     >
-      <div className="mx-auto w-full min-w-0 md:max-w-[1600px]">
+      <div className="mx-auto w-full min-w-0 md:max-w-[1680px]">
         {/* ── TOP BAR — 40px, 데스크톱만 표시 ── */}
         <div className="hidden w-full lg:block" style={{ height: "40px" }}>
           <div className="flex h-full w-full items-center justify-end gap-2 px-6 lg:px-10">
