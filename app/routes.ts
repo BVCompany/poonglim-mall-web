@@ -162,4 +162,29 @@ export default [
       route("/:slug", "features/blog/screens/post.tsx"),
     ]),
   ]),
+
+  // Admin Routes (관리자)
+  ...prefix("/admin", [
+    index("features/admin/screens/index.tsx"),
+    route("/login", "features/admin/screens/login.tsx"),
+    route("/logout", "features/admin/screens/logout.tsx"),
+    route("/dashboard", "features/admin/screens/dashboard.tsx"),
+    route("/products", "features/admin/screens/products.tsx"),
+    route("/events", "features/admin/screens/events.tsx"),
+    route("/recipes", "features/admin/screens/recipes.tsx"),
+    route("/careers", "features/admin/screens/careers.tsx"),
+    route("/applications", "features/admin/screens/applications.tsx"),
+    ...prefix("/inquiries", [
+      route("/consulting", "features/admin/screens/inquiries-consulting.tsx"),
+      route("/tour", "features/admin/screens/inquiries-factory-tours.tsx"),
+    ]),
+    ...prefix("/settings", [
+      route("/banners", "features/admin/screens/settings-banners.tsx"),
+      route("/popups", "features/admin/screens/settings-popups.tsx"),
+      route("/admins", "features/admin/screens/settings-admins.tsx"),
+    ]),
+    // TODO: Add more admin routes as needed
+    // route("/products/new", "features/admin/screens/products/new.tsx"),
+    // route("/products/:id/edit", "features/admin/screens/products/edit.tsx"),
+  ]),
 ] satisfies RouteConfig;

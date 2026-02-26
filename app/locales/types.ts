@@ -100,4 +100,162 @@ export type Translation = {
       talent: string;
     };
   };
+  admin: {
+    login: {
+      title: string;
+      subtitle: string;
+      email: string;
+      password: string;
+      rememberMe: string;
+      loginButton: string;
+      loggingIn: string;
+      testAccount: string;
+      errors: {
+        required: string;
+        invalid: string;
+      };
+    };
+    sidebar: {
+      title: string;
+      dashboard: string;
+      products: string;
+      posts: string;
+      careers: string;
+      inquiries: string;
+      settings: string;
+      logout: string;
+      menu: {
+        eventsNotices: string;
+        recipes: string;
+        positions: string;
+        applicants: string;
+        consulting: string;
+        tour: string;
+        banners: string;
+        popups: string;
+        admins: string;
+      };
+    };
+    dashboard: {
+      title: string;
+      subtitle: string;
+      viewWebsite: string;
+      stats: {
+        unansweredInquiries: string;
+        recentTime: string;
+        urgentApproval: string;
+        approvalNeeded: string;
+        newApplicants: string;
+        reviewNeeded: string;
+      };
+      analytics: {
+        title: string;
+        description: string;
+        openAnalytics: string;
+      };
+      recentActivities: {
+        title: string;
+        subtitle: string;
+      };
+      recentInquiries: {
+        title: string;
+        subtitle: string;
+        viewAll: string;
+      };
+      status: {
+        urgent: string;
+        processing: string;
+        assigned: string;
+      };
+    };
+    products: {
+      title: string;
+      subtitle: string;
+      addProduct: string;
+      searchPlaceholder: string;
+      noResults: string;
+      totalProducts: string;
+      edit: string;
+      delete: string;
+      badges: {
+        best: string;
+        new: string;
+        sale: string;
+        recommended: string;
+      };
+    };
+    events: {
+      title: string;
+      subtitle: string;
+      addEvent: string;
+      searchPlaceholder: string;
+      noResults: string;
+      totalEvents: string;
+      edit: string;
+      delete: string;
+      startDate: string;
+      endDate: string;
+      badges: {
+        hot: string;
+        new: string;
+        endingSoon: string;
+        important: string;
+      };
+    };
+    recipes: {
+      title: string;
+      subtitle: string;
+      addRecipe: string;
+      searchPlaceholder: string;
+      noResults: string;
+      totalRecipes: string;
+      edit: string;
+      delete: string;
+      cookingTime: string;
+      servings: string;
+      categories: {
+        home: string;
+        cafe: string;
+        restaurant: string;
+      };
+      difficulty: {
+        easy: string;
+        medium: string;
+        hard: string;
+      };
+    };
+    careers: {
+      title: string;
+      description: string;
+      addJob: string;
+      searchPlaceholder: string;
+      noResults: string;
+      noSearchResults: string;
+      noJobPostings: string;
+      deadline: string;
+    };
+    applications: {
+      title: string;
+      description: string;
+      searchPlaceholder: string;
+      noResults: string;
+      noSearchResults: string;
+      noApplications: string;
+      stats: {
+        total: string;
+        reviewing: string;
+        accepted: string;
+        rejected: string;
+      };
+      table: {
+        date: string;
+        name: string;
+        position: string;
+        experience: string;
+        education: string;
+        status: string;
+        actions: string;
+      };
+    };
+  };
 };

@@ -4,15 +4,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: 'NanumSquareRound';
+  font-weight: 300;
+  font-display: swap;
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundL.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'NanumSquareRound';
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundR.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'NanumSquareRound';
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundB.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'NanumSquareRound';
+  font-weight: 800;
+  font-display: swap;
+  src: url('https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareRound/NanumSquareRoundEB.woff2') format('woff2');
+}
+
 @theme {
   --font-sans:
-    "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "NanumSquareRound", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-nanum: "NanumSquareRound", sans-serif;
 }
 
 html,
 body {
-  @apply dark:bg-background bg-white;
+  @apply dark:bg-background;
+  background-color: #F4F2E5;
 }
 
 :root {
@@ -25,6 +52,18 @@ body {
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+
+  /* Layout */
+  --content-max-width: 1600px;
+  --header-height: 50px;
+  --hero-pc-width: 1840px;
+  --hero-pc-height: 800px;
+
+  /* Brand Colors */
+  --brand-cream: #F4F2E5;
+  --brand-green: oklch(0.32 0.082 155);
+  --brand-green-light: oklch(0.42 0.082 155);
+  --brand-green-dark: oklch(0.22 0.065 155);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -48,6 +87,18 @@ body {
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: 68px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --header-height: 108px;
+  }
 }
 
 .dark {
@@ -121,6 +172,11 @@ body {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-light: var(--brand-green-light);
+  --color-brand-green-dark: var(--brand-green-dark);
+
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
 
   @keyframes caret-blink {
@@ -159,6 +215,131 @@ body {
   #nprogress .spinner-icon {
     @apply border-t-primary! border-l-primary!;
   }
+}
+
+@keyframes badge-appear-disappear {
+  0%   { opacity: 0; transform: translateY(8px); }
+  15%  { opacity: 1; transform: translateY(0); }
+  65%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    translate: 0 48px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes slide-from-right-fade {
+  from {
+    opacity: 0;
+    translate: 36px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes sparkle-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  70% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes hero-unfold-transform {
+  0% {
+    transform: translateY(80px) scaleX(0.05);
+  }
+  100% {
+    transform: translateY(0) scaleX(1);
+  }
+}
+
+@keyframes hero-unfold-opacity {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 좌우 펼침 시 위→아래 순차 노출 */
+@keyframes hero-unfold-mask {
+  0% {
+    mask-size: 100% 15%;
+    -webkit-mask-size: 100% 15%;
+  }
+  100% {
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+  }
+}
+
+.animate-hero-unfold {
+  animation:
+    hero-unfold-transform 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    hero-unfold-opacity 2.5s cubic-bezier(0.33, 0, 0.83, 0.67) forwards,
+    hero-unfold-mask 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+  mask-image: linear-gradient(to bottom, black, black);
+  mask-position: 0 0;
+  mask-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, black, black);
+  -webkit-mask-position: 0 0;
+  -webkit-mask-repeat: no-repeat;
+}
+
+/* 인스타그램: 좌측 — 아래→위 페이드인 */
+@keyframes insta-left-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 인스타그램: 우측 피드 — 오른쪽→왼쪽 페이드인 */
+@keyframes insta-right-in {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-insta-left-in {
+  animation: insta-left-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-insta-right-in {
+  animation: insta-right-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+/* 인트로: 캐릭터 바운스 (PC) */
+@keyframes intro-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @layer utilities {

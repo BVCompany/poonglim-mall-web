@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Await, Outlet } from "react-router";
 
 import Footer from "../components/footer";
+import FloatingButton from "../components/floating-button";
 import { NavigationBar } from "../components/navigation-bar";
 import makeServerClient from "../lib/supa-client.server";
 
@@ -30,7 +31,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
   const { userPromise } = loaderData;
   return (
-    <div className="flex min-h-screen flex-col justify-between">
+    <div className="flex min-h-screen w-full flex-col justify-between" style={{ backgroundColor: "#F4F2E5" }}>
+      {/* 헤더: max-w 밖에서 풀 너비 (모바일 뷰포트 전체) */}
       <Suspense fallback={<NavigationBar loading={true} />}>
         <Await resolve={userPromise}>
           {({ data: { user } }) =>
@@ -47,11 +49,14 @@ export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
           }
         </Await>
       </Suspense>
-      {/* Add padding-top to account for two-tier fixed header (h-10 + h-16 = 104px) */}
-      <div className="mt-[104px] w-full">
-        <Outlet />
+      {/* 콘텐츠: max-w 적용 */}
+      <div className="mt-[var(--header-height)] w-full flex-1">
+        <div className="mx-auto w-full max-w-[1920px]">
+          <Outlet />
+        </div>
       </div>
       <Footer />
+      <FloatingButton />
     </div>
   );
 }
