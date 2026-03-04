@@ -1,10 +1,32 @@
 import { useState } from "react";
+import type { Route } from "./+types/positions";
 import { Link } from "react-router";
 import { Button } from "~/core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Badge } from "~/core/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/core/components/ui/accordion";
 import { Users, GraduationCap, MapPin, Clock, Search } from "lucide-react";
+import { getOpenJobPostings } from "../lib/queries.server";
+import type { JobPosting as DbJobPosting } from "../lib/queries.server";
+
+const JOB_TYPE_LABEL: Record<string, string> = {
+  full_time: "정규직",
+  part_time: "파트타임",
+  contract: "계약직",
+  intern: "인턴",
+};
+
+const EXPERIENCE_LABEL: Record<string, string> = {
+  entry: "신입",
+  experienced: "경력",
+  senior: "시니어",
+  all: "신입/경력",
+};
+
+export async function loader(_: Route.LoaderArgs) {
+  const dbJobs = await getOpenJobPostings().catch(() => [] as DbJobPosting[]);
+  return { dbJobs };
+}
 
 interface JobPosting {
   id: number;
@@ -19,7 +41,7 @@ interface JobPosting {
   description: string;
 }
 
-const jobPostings: JobPosting[] = [
+const MOCK_JOB_POSTINGS: JobPosting[] = [
   {
     id: 1,
     title: "마케팅 전문가",
@@ -90,8 +112,31 @@ const faqs: FAQ[] = [
   },
 ];
 
-export default function CareersPositionsScreen() {
+export default function CareersPositionsScreen({ loaderData }: Route.ComponentProps) {
+  const { dbJobs } = loaderData;
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  // DB 데이터 → 화면 형식 변환 (없으면 더미 폴백)
+  const jobPostings: JobPosting[] = dbJobs.length > 0
+    ? dbJobs.map((j) => {
+        const now = new Date();
+        const createdAt = new Date(j.created_at);
+        const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / 86400000);
+        return {
+          id: j.job_id,
+          title: j.title,
+          department: j.department,
+          location: j.location,
+          type: JOB_TYPE_LABEL[j.job_type] ?? j.job_type,
+          experience: EXPERIENCE_LABEL[j.experience_level] ?? j.experience_level,
+          deadline: j.deadline
+            ? new Date(j.deadline).toLocaleDateString("ko-KR").replace(/\. /g, ".").replace(".", "")
+            : "채용 시 마감",
+          isNew: daysDiff <= 7,
+          description: j.description,
+        };
+      })
+    : MOCK_JOB_POSTINGS;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

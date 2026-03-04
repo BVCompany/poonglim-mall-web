@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/inquiries-factory-tours";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -20,7 +21,25 @@ import { Search, Eye, CheckCircle, XCircle } from "lucide-react";
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const { default: db } = await import("~/core/db/drizzle-client.server");
+  const { factoryTourApplications } = await import("~/features/brand/schema");
+  const { desc } = await import("drizzle-orm");
+  const dbTours = await db.select().from(factoryTourApplications).orderBy(desc(factoryTourApplications.created_at)).catch(() => []);
+  return { adminUser, dbTours };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const { default: db } = await import("~/core/db/drizzle-client.server");
+  const { factoryTourApplications } = await import("~/features/brand/schema");
+  const { eq } = await import("drizzle-orm");
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+  const id = Number(fd.get("id"));
+  if (intent === "approve" && id) await db.update(factoryTourApplications).set({ status: "approved" }).where(eq(factoryTourApplications.tour_id, id));
+  if (intent === "reject" && id) await db.update(factoryTourApplications).set({ status: "rejected" }).where(eq(factoryTourApplications.tour_id, id));
+  if (intent === "delete" && id) await db.delete(factoryTourApplications).where(eq(factoryTourApplications.tour_id, id));
+  return { success: true };
 }
 
 interface TourApplication {
@@ -68,9 +87,22 @@ const MOCK_APPLICATIONS: TourApplication[] = [
 ];
 
 export default function AdminFactoryToursPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbTours } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
-  const [applications] = useState<TourApplication[]>(MOCK_APPLICATIONS);
+  const fetcher = useFetcher();
+
+  const applications: TourApplication[] = dbTours.length > 0
+    ? dbTours.map((t) => ({
+        id: String(t.tour_id),
+        applicantName: t.applicant_name,
+        phone: t.phone,
+        participants: t.participants,
+        purpose: t.purpose,
+        requestedDate: new Date(t.requested_date).toLocaleString("ko-KR"),
+        appliedDate: t.created_at.toLocaleString("ko-KR"),
+        status: (t.status === "approved" ? "승인완료" : t.status === "rejected" ? "거절" : "승인대기") as TourApplication["status"],
+      }))
+    : MOCK_APPLICATIONS;
 
   const filteredApplications = applications.filter((app) =>
     app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -93,13 +125,17 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
   };
 
   const handleApprove = (id: string) => {
-    console.log("Approve application:", id);
-    alert(`견학 신청 승인: ${id}`);
+    const fd = new FormData();
+    fd.append("intent", "approve");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const handleReject = (id: string) => {
-    console.log("Reject application:", id);
-    alert(`견학 신청 거절: ${id}`);
+    const fd = new FormData();
+    fd.append("intent", "reject");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   return (

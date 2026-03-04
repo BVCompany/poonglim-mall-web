@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/recipes";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -15,23 +16,53 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
 import { Card } from "~/core/components/ui/card";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Clock,
-  Users,
-} from "lucide-react";
+import { Plus, Search, Edit, Trash2, Clock, Users } from "lucide-react";
 import { MOCK_RECIPES } from "../data/recipes";
 import type { AdminRecipe } from "../types/recipe.types";
+import { getRecipes } from "~/features/recipe/lib/queries.server";
+import db from "~/core/db/drizzle-client.server";
+import { recipes } from "~/features/recipe/schema";
+import { eq } from "drizzle-orm";
 
-/**
- * Loader: Require admin authentication
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const dbRecipes = await getRecipes().catch(() => []);
+  return { adminUser, dbRecipes };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+
+  if (intent === "create") {
+    const catRaw = fd.get("category") as string;
+    const catMap: Record<string, "easy" | "dessert" | "restaurant"> = {
+      home: "easy", cafe: "dessert", restaurant: "restaurant",
+    };
+    await db.insert(recipes).values({
+      title: fd.get("name") as string,
+      category: catMap[catRaw] ?? "easy",
+      description: (fd.get("description") as string) || null,
+      cooking_time: fd.get("prepTime") ? parseInt(fd.get("prepTime") as string) || null : null,
+      servings: fd.get("servings") ? parseInt(fd.get("servings") as string) || null : null,
+      difficulty: (fd.get("difficulty") as string) || null,
+      ingredients: (fd.get("ingredients") as string) || null,
+      steps: (fd.get("instructions") as string) || null,
+      thumbnail_url: (fd.get("image") as string) || null,
+      tags: fd.get("tags") ? (fd.get("tags") as string).split(",").map((t) => t.trim()).filter(Boolean) : [],
+      is_active: true,
+    });
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.delete(recipes).where(eq(recipes.recipe_id, id));
+    return { success: true };
+  }
+
+  return { success: false };
 }
 
 /**
@@ -86,29 +117,58 @@ function getDifficultyVariant(difficulty: AdminRecipe["difficulty"]) {
  * Admin Recipes Component
  */
 export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbRecipes } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
 
-  // Filter recipes based on search query
-  const filteredRecipes = MOCK_RECIPES.filter((recipe) =>
+  const sourceRecipes: AdminRecipe[] = dbRecipes.length > 0
+    ? dbRecipes.map((r) => ({
+        id: String(r.recipe_id),
+        title: r.title,
+        description: r.description ?? "",
+        category: (r.category === "dessert" ? "cafe" : r.category === "easy" ? "home" : "restaurant") as AdminRecipe["category"],
+        difficulty: (r.difficulty ?? "easy") as AdminRecipe["difficulty"],
+        cookingTime: r.cooking_time ?? 0,
+        servings: r.servings ?? 0,
+        image: r.thumbnail_url ?? "",
+        tags: r.tags ?? [],
+        created_at: r.created_at.toISOString(),
+        updated_at: r.updated_at.toISOString(),
+      }))
+    : MOCK_RECIPES;
+
+  const filteredRecipes = sourceRecipes.filter((recipe) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddRecipe = (recipeData: RecipeFormData) => {
-    // TODO: Add recipe to database
-    console.log("Add recipe:", recipeData);
-    alert(`레시피가 추가되었습니다: ${recipeData.name}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    fd.append("name", recipeData.name);
+    fd.append("category", recipeData.category);
+    fd.append("difficulty", recipeData.difficulty);
+    fd.append("description", recipeData.description);
+    fd.append("prepTime", recipeData.prepTime);
+    fd.append("servings", recipeData.servings);
+    fd.append("ingredients", recipeData.ingredients);
+    fd.append("instructions", recipeData.instructions);
+    fd.append("tags", recipeData.tags);
+    if (recipeData.image) fd.append("image", recipeData.image);
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
   const handleEdit = (recipeId: string) => {
-    // TODO: Navigate to edit page
     console.log("Edit recipe:", recipeId);
   };
 
   const handleDelete = (recipeId: string) => {
-    // TODO: Show confirmation dialog and delete
-    console.log("Delete recipe:", recipeId);
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", recipeId);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   return (

@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/products";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -23,13 +24,78 @@ import {
 } from "lucide-react";
 import { MOCK_PRODUCTS } from "../data/products";
 import type { AdminProduct } from "../types/product.types";
+import { getProducts } from "~/features/products/lib/queries.server";
+import db from "~/core/db/drizzle-client.server";
+import { products } from "~/features/products/schema";
+import { eq } from "drizzle-orm";
+
+const CATEGORY_MAP: Record<string, "liquid_egg" | "pudding" | "convenience" | "b2b"> = {
+  "liquid-eggs": "liquid_egg",
+  "puddings": "pudding",
+  "convenience": "convenience",
+  "other": "b2b",
+};
+
+const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
+  best: "best",
+  new: "new",
+  sale: "sale",
+  recommended: "best",
+};
 
 /**
- * Loader: Require admin authentication
+ * Loader: 관리자 인증 + DB 제품 목록
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const dbProducts = await getProducts().catch(() => []);
+  return { adminUser, dbProducts };
+}
+
+/**
+ * Action: 제품 추가 / 삭제
+ */
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string;
+
+  if (intent === "create") {
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const categoryRaw = formData.get("category") as string;
+    const priceRaw = formData.get("price") as string;
+    const originalPriceRaw = formData.get("originalPrice") as string;
+    const badgeRaw = formData.get("badge") as string;
+    const imageUrl = formData.get("image") as string;
+    const tagsRaw = formData.get("tags") as string;
+    const isSortOrderSet = formData.get("sort_order") as string;
+
+    await db.insert(products).values({
+      name,
+      description,
+      category: CATEGORY_MAP[categoryRaw] ?? "convenience",
+      price: priceRaw ? Number(priceRaw) : null,
+      original_price: originalPriceRaw ? Number(originalPriceRaw) : null,
+      badge: badgeRaw ? (BADGE_MAP[badgeRaw] ?? null) : null,
+      image_url: imageUrl || null,
+      tags: tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      is_active: true,
+      sort_order: isSortOrderSet ? Number(isSortOrderSet) : 0,
+    });
+
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(formData.get("id"));
+    if (id) {
+      await db.delete(products).where(eq(products.product_id, id));
+    }
+    return { success: true };
+  }
+
+  return { success: false };
 }
 
 /**
@@ -79,30 +145,59 @@ function getBadgeLabel(badge?: AdminProduct["badge"]) {
  * Admin Products Component
  */
 export default function AdminProducts({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbProducts } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
 
-  // Filter products based on search query
-  const filteredProducts = MOCK_PRODUCTS.filter((product) =>
+  // DB 데이터가 있으면 사용, 없으면 더미
+  const sourceProducts = dbProducts.length > 0
+    ? dbProducts.map((p) => ({
+        id: String(p.product_id),
+        name: p.name,
+        description: p.description,
+        category: p.category as AdminProduct["category"],
+        price: p.price ?? 0,
+        originalPrice: p.original_price ?? undefined,
+        image: p.image_url ?? "",
+        tags: p.tags ?? [],
+        badge: p.badge as AdminProduct["badge"],
+        status: (p.is_active ? "active" : "inactive") as AdminProduct["status"],
+        created_at: p.created_at.toISOString(),
+        updated_at: p.updated_at.toISOString(),
+      }))
+    : MOCK_PRODUCTS;
+
+  const filteredProducts = sourceProducts.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddProduct = (productData: ProductFormData) => {
-    // TODO: Add product to database
-    console.log("Add product:", productData);
-    // For now, just log the data
-    alert(`제품이 추가되었습니다: ${productData.name}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    fd.append("name", productData.name);
+    fd.append("description", productData.description);
+    fd.append("category", productData.category);
+    fd.append("price", String(productData.price));
+    if (productData.originalPrice) fd.append("originalPrice", String(productData.originalPrice));
+    if (productData.badges?.[0]) fd.append("badge", productData.badges[0]);
+    fd.append("image", productData.image ?? "");
+    fd.append("tags", productData.tags.join(","));
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
   const handleEdit = (productId: string) => {
-    // TODO: Navigate to edit page
+    // TODO: 수정 모달 또는 페이지
     console.log("Edit product:", productId);
   };
 
   const handleDelete = (productId: string) => {
-    // TODO: Show confirmation dialog and delete
-    console.log("Delete product:", productId);
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", productId);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   return (

@@ -1,7 +1,23 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { Banner } from "~/features/home/lib/queries.server";
 
-const slides = [
+function dbBannerToSlide(b: Banner) {
+  return {
+    image: b.image_url,
+    fallback: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
+    category: b.subtitle ?? "",
+    title1: b.title,
+    title2: b.button_text ?? "",
+    link: b.link_url ?? undefined,
+  };
+}
+
+interface HeroSectionProps {
+  banners?: Banner[];
+}
+
+const MOCK_SLIDES = [
   {
     image: "/home/hero_1.jpg",
     fallback:
@@ -44,7 +60,9 @@ const slides = [
   },
 ];
 
-export function HeroSection() {
+export function HeroSection({ banners = [] }: HeroSectionProps) {
+  const slides = banners.length > 0 ? banners.map(dbBannerToSlide) : MOCK_SLIDES;
+
   const [current, setCurrent] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);

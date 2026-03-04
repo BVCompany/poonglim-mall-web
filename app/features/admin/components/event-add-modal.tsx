@@ -8,6 +8,7 @@ import type { EventCategory, EventStatus } from "../types/event.types";
 import { useEffect, useState } from "react";
 
 import { Button } from "~/core/components/ui/button";
+import { ImageUpload } from "~/core/components/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -250,16 +251,22 @@ export function EventAddModal({
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image">이미지 URL (선택)</Label>
-            <Input
-              id="image"
+            <Label>이미지 (선택)</Label>
+            <ImageUpload
+              bucket="media"
+              folder="events"
               value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="/event-image.jpg"
+              onChange={(url) => setFormData({ ...formData, image: url })}
+              aspectRatio="16/9"
+              hint="JPG, PNG, WebP 최대 10MB"
+            />
+            <Input
+              value={formData.image}
+              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
             />
           </div>
 

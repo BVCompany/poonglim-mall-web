@@ -99,14 +99,43 @@ const allRecipes: Recipe[] = [
   },
 ];
 
+interface DbRecipe {
+  recipe_id: number;
+  title: string;
+  category: string;
+  difficulty?: string | null;
+  cooking_time?: number | null;
+  servings?: number | null;
+  thumbnail_url?: string | null;
+  description?: string | null;
+  tags?: string[] | null;
+}
+
 interface RecipeGridProps {
   selectedCategory: string;
   selectedDifficulty: string;
   searchQuery: string;
+  dbRecipes?: DbRecipe[];
 }
 
-export function RecipeGrid({ selectedCategory, selectedDifficulty, searchQuery }: RecipeGridProps) {
-  const filteredRecipes = allRecipes.filter((recipe) => {
+export function RecipeGrid({ selectedCategory, selectedDifficulty, searchQuery, dbRecipes = [] }: RecipeGridProps) {
+  const source: Recipe[] = dbRecipes.length > 0
+    ? dbRecipes.map((r) => ({
+        id: r.recipe_id,
+        title: r.title,
+        category: r.category,
+        difficulty: (r.difficulty as "easy" | "medium" | "hard") ?? "easy",
+        cookTime: r.cooking_time ? `${r.cooking_time}분` : "-",
+        servings: r.servings ? `${r.servings}인분` : "-",
+        rating: 0,
+        reviewCount: 0,
+        image: r.thumbnail_url ?? "/home/premium_egg.png",
+        description: r.description ?? "",
+        tags: r.tags ?? [],
+      }))
+    : allRecipes;
+
+  const filteredRecipes = source.filter((recipe) => {
     const matchesCategory = selectedCategory === "all" || recipe.category === selectedCategory;
     const matchesDifficulty = selectedDifficulty === "all" || recipe.difficulty === selectedDifficulty;
     const matchesSearch =

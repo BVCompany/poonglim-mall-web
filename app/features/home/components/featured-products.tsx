@@ -1,8 +1,27 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import type { Product } from "~/features/products/lib/queries.server";
 
-const products = [
+// DB 데이터를 컴포넌트 내부 형식으로 변환
+function dbProductToItem(p: Product) {
+  const badges: string[] = [];
+  if (p.badge === "best") badges.push("BEST");
+  if (p.badge === "new") badges.push("NEW");
+  if (p.badge === "b2b" || p.is_b2b) badges.push("B2B");
+  if (p.badge === "sale") badges.push("SALE");
+  return {
+    id: p.product_id,
+    name: p.name,
+    category: p.category,
+    description: p.description,
+    image: p.image_url ?? "",
+    fallback: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=700&fit=crop",
+    badges,
+  };
+}
+
+const MOCK_PRODUCTS = [
   {
     id: 1,
     name: "프리미엄 스퀴즈 에그 샐러드",
@@ -105,6 +124,10 @@ const products = [
   },
 ];
 
+interface FeaturedProductsProps {
+  dbProducts?: Product[];
+}
+
 const badgeStyle: Record<string, string> = {
   BEST: "bg-[#F8F8F6] text-[#1a1a1a]",
   NEW: "bg-[#F5D68A] text-[#1a1a1a]",
@@ -114,7 +137,12 @@ const badgeStyle: Record<string, string> = {
 const CARD_WIDTH = 408;
 const CARD_GAP = 16;
 
-export function FeaturedProducts() {
+export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
+  // DB 데이터가 있으면 사용, 없으면 더미 데이터 폴백
+  const products = dbProducts.length > 0
+    ? dbProducts.map(dbProductToItem)
+    : MOCK_PRODUCTS;
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);

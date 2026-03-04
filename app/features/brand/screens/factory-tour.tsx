@@ -1,5 +1,6 @@
-import { useState } from "react";
 import type React from "react";
+import { Form, useActionData, useNavigation } from "react-router";
+import type { Route } from "./+types/factory-tour";
 import { useTranslation } from "react-i18next";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
@@ -15,16 +16,33 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
+import { createFactoryTourApplication } from "../lib/queries.server";
+
+export async function action({ request }: Route.ActionArgs) {
+  const fd = await request.formData();
+  try {
+    await createFactoryTourApplication({
+      applicant_name: fd.get("name") as string,
+      organization: (fd.get("organization") as string) || null,
+      phone: fd.get("phone") as string,
+      email: (fd.get("email") as string) || null,
+      participants: Number(fd.get("participants") ?? 1),
+      purpose: fd.get("purpose") as string,
+      requested_date: new Date(fd.get("date") as string),
+      message: (fd.get("message") as string) || null,
+    });
+    return { success: true };
+  } catch {
+    return { success: false, error: "신청 중 오류가 발생했습니다. 다시 시도해주세요." };
+  }
+}
 
 export default function FactoryTourScreen() {
   const { t } = useTranslation();
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
-  };
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const submitted = actionData?.success === true;
 
   return (
     <div className="w-full">
@@ -198,73 +216,58 @@ export default function FactoryTourScreen() {
 
           <Card>
             <CardContent className="pt-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <Form method="post" className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="organization">단체명/회사명 *</Label>
-                    <Input id="organization" required />
+                    <Input id="organization" name="organization" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="name">신청자 성함 *</Label>
-                    <Input id="name" required />
+                    <Input id="name" name="name" required />
                   </div>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="phone">연락처 *</Label>
-                    <Input id="phone" type="tel" required />
+                    <Input id="phone" name="phone" type="tel" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">이메일 *</Label>
-                    <Input id="email" type="email" required />
+                    <Label htmlFor="email">이메일</Label>
+                    <Input id="email" name="email" type="email" />
                   </div>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="date">희망 날짜 *</Label>
-                    <Input id="date" type="date" required />
+                    <Input id="date" name="date" type="date" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="time">희망 시간 *</Label>
-                    <select
-                      id="time"
-                      required
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="">선택하세요</option>
-                      <option value="10:00">오전 10시</option>
-                      <option value="14:00">오후 2시</option>
-                    </select>
+                    <Label htmlFor="participants">참가 인원 *</Label>
+                    <Input id="participants" name="participants" type="number" min="1" required />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="participants">참가 인원 *</Label>
-                  <Input
-                    id="participants"
-                    type="number"
-                    min="10"
-                    max="30"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="purpose">견학 목적</Label>
-                  <Textarea id="purpose" rows={4} />
+                  <Label htmlFor="purpose">견학 목적 *</Label>
+                  <Textarea id="purpose" name="purpose" rows={4} required />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="message">기타 문의사항</Label>
-                  <Textarea id="message" rows={4} />
+                  <Textarea id="message" name="message" rows={4} />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full">
-                  신청하기
+                {actionData?.error && (
+                  <p className="text-sm text-red-500">{actionData.error}</p>
+                )}
+
+                <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "신청 중..." : "신청하기"}
                 </Button>
-              </form>
+              </Form>
             </CardContent>
           </Card>
         </div>

@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import type { News } from "~/features/media/lib/queries.server";
 
 type NewsCategory = "공지사항" | "이언론" | "보도자료" | "이벤트";
 
@@ -11,7 +12,31 @@ const tagStyle: Record<NewsCategory, string> = {
   이벤트: "bg-[var(--brand-green)] text-white",
 };
 
-const newsItems = [
+// DB 데이터를 컴포넌트 내부 형식으로 변환
+function dbNewsToItem(n: News) {
+  const categoryMap: Record<string, NewsCategory> = {
+    news: "이언론",
+    press: "보도자료",
+    announcement: "공지사항",
+  };
+  return {
+    id: n.news_id,
+    category: (categoryMap[n.type] ?? "공지사항") as NewsCategory,
+    title: n.title,
+    excerpt: n.summary ?? n.content?.slice(0, 100) ?? "",
+    date: n.published_at
+      ? new Date(n.published_at).toISOString().slice(0, 10)
+      : new Date(n.created_at).toISOString().slice(0, 10),
+    image: n.thumbnail_url ?? "",
+    fallback: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
+  };
+}
+
+interface NewsFeedProps {
+  dbNews?: News[];
+}
+
+const MOCK_NEWS_ITEMS = [
   {
     id: 1,
     category: "이벤트" as NewsCategory,
@@ -70,7 +95,8 @@ const newsItems = [
 const CARD_GAP = 20;
 const SCROLL_AMOUNT = 320; /* 한 카드 너비 + gap (모바일~데스크톱) */
 
-export function NewsFeed() {
+export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
+  const newsItems = dbNews.length > 0 ? dbNews.map(dbNewsToItem) : MOCK_NEWS_ITEMS;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);

@@ -9,6 +9,7 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
+import { ImageUpload } from "~/core/components/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -110,19 +111,23 @@ export function BannerAddModal({
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">배너 이미지 URL</Label>
-            <Input
-              id="imageUrl"
+            <Label>배너 이미지 <span className="text-xs text-gray-400">(권장: 1920×1080px)</span></Label>
+            <ImageUpload
+              bucket="media"
+              folder="banners"
               value={formData.imageUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, imageUrl: e.target.value })
-              }
-              placeholder="/images/hero-banner.jpg"
-              required
+              onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+              aspectRatio="16/9"
+              hint="JPG, PNG, WebP 최대 10MB"
             />
-            <p className="text-xs text-gray-500">권장 크기: 1920 x 1080px</p>
+            <Input
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
+            />
           </div>
 
           {/* Link URL & Button Text */}

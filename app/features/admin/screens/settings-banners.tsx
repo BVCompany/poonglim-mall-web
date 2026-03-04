@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/settings-banners";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -12,13 +13,49 @@ import { AdminSidebar } from "../components/admin-sidebar";
 import { BannerAddModal, type BannerFormData } from "../components/banner-add-modal";
 import { Button } from "~/core/components/ui/button";
 import { ChevronUp, ChevronDown, Eye, Edit, Trash2, Plus } from "lucide-react";
+import { getActiveBanners } from "~/features/home/lib/queries.server";
+import db from "~/core/db/drizzle-client.server";
+import { banners as bannersTable } from "~/features/home/schema";
+import { eq } from "drizzle-orm";
 
-/**
- * Loader: Require admin authentication
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const dbBanners = await getActiveBanners().catch(() => []);
+  return { adminUser, dbBanners };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+
+  if (intent === "create") {
+    await db.insert(bannersTable).values({
+      title: fd.get("title") as string,
+      subtitle: (fd.get("subtitle") as string) || null,
+      image_url: fd.get("imageUrl") as string,
+      link_url: (fd.get("linkUrl") as string) || null,
+      button_text: (fd.get("buttonText") as string) || null,
+      is_active: fd.get("isActive") !== "false",
+      sort_order: 0,
+    });
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.delete(bannersTable).where(eq(bannersTable.banner_id, id));
+    return { success: true };
+  }
+
+  if (intent === "toggle") {
+    const id = Number(fd.get("id"));
+    const isActive = fd.get("isActive") === "true";
+    if (id) await db.update(bannersTable).set({ is_active: !isActive }).where(eq(bannersTable.banner_id, id));
+    return { success: true };
+  }
+
+  return { success: false };
 }
 
 interface Banner {
@@ -48,76 +85,55 @@ const MOCK_BANNERS: Banner[] = [
 ];
 
 export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
-  const [banners, setBanners] = useState<Banner[]>(MOCK_BANNERS);
+  const { adminUser, dbBanners } = loaderData;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
+
+  const banners: Banner[] = dbBanners.length > 0
+    ? dbBanners.map((b, idx) => ({
+        id: String(b.banner_id),
+        order: b.sort_order ?? idx + 1,
+        imageUrl: b.image_url,
+        title: b.title,
+        subtitle: b.subtitle ?? "",
+        linkUrl: b.link_url ?? "",
+        buttonText: b.button_text ?? "",
+        isActive: b.is_active,
+        createdAt: b.created_at.toISOString().slice(0, 10),
+      }))
+    : MOCK_BANNERS;
 
   const handleAddBanner = (bannerData: BannerFormData) => {
-    const newBanner: Banner = {
-      id: Date.now().toString(),
-      order: banners.length + 1,
-      imageUrl: bannerData.imageUrl,
-      title: bannerData.title,
-      subtitle: bannerData.subtitle,
-      linkUrl: bannerData.linkUrl,
-      buttonText: bannerData.buttonText,
-      isActive: bannerData.isActive,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setBanners([...banners, newBanner]);
-    alert(`배너가 추가되었습니다: ${bannerData.title}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    Object.entries(bannerData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
-  const handleMoveUp = (id: string) => {
-    const index = banners.findIndex((b) => b.id === id);
-    if (index > 0) {
-      const newBanners = [...banners];
-      [newBanners[index - 1], newBanners[index]] = [
-        newBanners[index],
-        newBanners[index - 1],
-      ];
-      // Update orders
-      newBanners.forEach((banner, idx) => {
-        banner.order = idx + 1;
-      });
-      setBanners(newBanners);
-    }
-  };
-
-  const handleMoveDown = (id: string) => {
-    const index = banners.findIndex((b) => b.id === id);
-    if (index < banners.length - 1) {
-      const newBanners = [...banners];
-      [newBanners[index], newBanners[index + 1]] = [
-        newBanners[index + 1],
-        newBanners[index],
-      ];
-      // Update orders
-      newBanners.forEach((banner, idx) => {
-        banner.order = idx + 1;
-      });
-      setBanners(newBanners);
-    }
-  };
+  const handleMoveUp = (_id: string) => {};
+  const handleMoveDown = (_id: string) => {};
 
   const handleToggleActive = (id: string) => {
-    setBanners(
-      banners.map((banner) =>
-        banner.id === id ? { ...banner, isActive: !banner.isActive } : banner
-      )
-    );
+    const banner = banners.find((b) => b.id === id);
+    if (!banner) return;
+    const fd = new FormData();
+    fd.append("intent", "toggle");
+    fd.append("id", id);
+    fd.append("isActive", String(banner.isActive));
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const handleEdit = (id: string) => {
     console.log("Edit banner:", id);
-    alert(`배너 수정: ${id}`);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setBanners(banners.filter((banner) => banner.id !== id));
-      alert(`배너 삭제: ${id}`);
-    }
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   return (

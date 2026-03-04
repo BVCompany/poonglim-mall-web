@@ -1,13 +1,16 @@
 import { useState } from "react";
+import type { Route } from "./+types/main";
 import { useTranslation } from "react-i18next";
 import { RecipeGrid } from "../components/recipe-grid";
 import { RecipeFilters } from "../components/recipe-filters";
 import { RecipeSearch } from "../components/recipe-search";
+import { getRecipes } from "../lib/queries.server";
+import type { Recipe } from "../lib/queries.server";
 
-const categories = [
+const MOCK_CATEGORIES = [
   { id: "all", name: "전체 레시피", count: 6 },
-  { id: "home", name: "가정용", count: 2 },
-  { id: "cafe", name: "카페 & 베이커리", count: 2 },
+  { id: "easy", name: "가정용", count: 2 },
+  { id: "dessert", name: "카페 & 베이커리", count: 2 },
   { id: "restaurant", name: "외식업체", count: 2 },
 ];
 
@@ -18,11 +21,33 @@ const difficulties = [
   { id: "hard", name: "어려움" },
 ];
 
-export default function RecipeMainScreen() {
+export async function loader(_: Route.LoaderArgs) {
+  const dbRecipes = await getRecipes().catch(() => [] as Recipe[]);
+  return { dbRecipes };
+}
+
+export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
+  const { dbRecipes } = loaderData;
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const categories = dbRecipes.length > 0
+    ? [
+        { id: "all", name: "전체 레시피", count: dbRecipes.length },
+        ...Object.entries(
+          dbRecipes.reduce<Record<string, number>>((acc, r) => {
+            acc[r.category] = (acc[r.category] ?? 0) + 1;
+            return acc;
+          }, {}),
+        ).map(([id, count]) => ({
+          id,
+          name: MOCK_CATEGORIES.find((c) => c.id === id)?.name ?? id,
+          count,
+        })),
+      ]
+    : MOCK_CATEGORIES;
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,6 +89,7 @@ export default function RecipeMainScreen() {
                 selectedCategory={selectedCategory}
                 selectedDifficulty={selectedDifficulty}
                 searchQuery={searchQuery}
+                dbRecipes={dbRecipes}
               />
             </div>
           </div>

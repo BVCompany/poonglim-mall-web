@@ -74,12 +74,50 @@ const allEvents: Event[] = [
   },
 ];
 
-interface EventsGridProps {
-  selectedCategory: string;
+interface DbEvent {
+  event_id: number;
+  type: "event" | "notice";
+  title: string;
+  content: string;
+  summary?: string | null;
+  thumbnail_url?: string | null;
+  started_at?: Date | null;
+  ended_at?: Date | null;
+  is_active: boolean;
+  created_at: Date;
 }
 
-export function EventsGrid({ selectedCategory }: EventsGridProps) {
-  const filteredEvents = allEvents.filter(
+interface EventsGridProps {
+  selectedCategory: string;
+  dbEvents?: DbEvent[];
+}
+
+export function EventsGrid({ selectedCategory, dbEvents = [] }: EventsGridProps) {
+  const source: Event[] = dbEvents.length > 0
+    ? dbEvents.map((e) => {
+        const now = new Date();
+        const started = e.started_at ? new Date(e.started_at) : null;
+        const ended = e.ended_at ? new Date(e.ended_at) : null;
+        let status: "ongoing" | "upcoming" | "ended" = "ongoing";
+        if (ended && ended < now) status = "ended";
+        else if (started && started > now) status = "upcoming";
+        return {
+          id: e.event_id,
+          title: e.title,
+          category: e.type === "notice" ? "notice" : "promotion",
+          status,
+          startDate: started?.toLocaleDateString("ko-KR") ?? "-",
+          endDate: ended?.toLocaleDateString("ko-KR") ?? "-",
+          location: "온라인",
+          image: e.thumbnail_url ?? "/home/premium_egg.png",
+          description: e.summary ?? e.content.slice(0, 100),
+          participants: 0,
+          benefits: [],
+        };
+      })
+    : allEvents;
+
+  const filteredEvents = source.filter(
     (event) => selectedCategory === "all" || event.category === selectedCategory
   );
 

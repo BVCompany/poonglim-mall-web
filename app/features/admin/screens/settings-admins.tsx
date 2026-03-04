@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/settings-admins";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -24,7 +25,51 @@ import { Edit, Trash2, Plus, UserPlus } from "lucide-react";
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const db = (await import("~/core/db/drizzle-client.server")).default;
+  const { admins } = await import("~/features/admin/schema");
+  const { eq } = await import("drizzle-orm");
+  const dbAdmins = await db
+    .select({ admin_id: admins.admin_id, name: admins.name, email: admins.email, role: admins.role, permissions: admins.permissions, is_active: admins.is_active, created_at: admins.created_at })
+    .from(admins)
+    .where(eq(admins.is_active, true))
+    .catch(() => []);
+  return { adminUser, dbAdmins };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const currentAdmin = await requireAdminAuth(request);
+  if (currentAdmin.role !== "super_admin") return { error: "권한이 없습니다." };
+
+  const db = (await import("~/core/db/drizzle-client.server")).default;
+  const { admins } = await import("~/features/admin/schema");
+  const { eq } = await import("drizzle-orm");
+  const { default: bcrypt } = await import("bcryptjs");
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+
+  if (intent === "create") {
+    const password = fd.get("password") as string;
+    const hash = await bcrypt.hash(password, 10);
+    const roleRaw = fd.get("role") as string;
+    const dbRole: "super" | "admin" = roleRaw === "super" || roleRaw === "super_admin" ? "super" : "admin";
+    await db.insert(admins).values({
+      name: fd.get("name") as string,
+      email: fd.get("email") as string,
+      password_hash: hash,
+      role: dbRole,
+      permissions: fd.get("permissions") ? (fd.get("permissions") as string).split(",") : [],
+      is_active: true,
+    });
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.update(admins).set({ is_active: false }).where(eq(admins.admin_id, id));
+    return { success: true };
+  }
+
+  return { success: false };
 }
 
 interface AdminUser {
@@ -48,33 +93,45 @@ const MOCK_ADMINS: AdminUser[] = [
 ];
 
 export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
-  const [admins, setAdmins] = useState<AdminUser[]>(MOCK_ADMINS);
+  const { adminUser, dbAdmins } = loaderData;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
+
+  const dbRoleToAdminRole = (r: string): AdminRole =>
+    r === "super" ? "super" : "general";
+  const admins: AdminUser[] = dbAdmins.length > 0
+    ? dbAdmins.map((a) => ({
+        id: String(a.admin_id),
+        name: a.name,
+        email: a.email,
+        role: dbRoleToAdminRole(a.role),
+        permissions: (a.permissions ?? []) as AdminPermission[],
+        createdAt: a.created_at.toISOString().slice(0, 10),
+      }))
+    : MOCK_ADMINS;
 
   const handleAddAdmin = (adminData: AdminUserFormData) => {
-    const newAdmin: AdminUser = {
-      id: Date.now().toString(),
-      name: adminData.name,
-      email: adminData.email,
-      role: adminData.role,
-      permissions: adminData.permissions,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setAdmins([...admins, newAdmin]);
-    alert(`관리자가 추가되었습니다: ${adminData.name}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    fd.append("name", adminData.name);
+    fd.append("email", adminData.email);
+    fd.append("password", adminData.password ?? "changeme123!");
+    fd.append("role", adminData.role);
+    fd.append("permissions", adminData.permissions.join(","));
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
   const handleEdit = (id: string) => {
     console.log("Edit admin:", id);
-    alert(`관리자 수정: ${id}`);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setAdmins(admins.filter((admin) => admin.id !== id));
-      alert(`관리자 삭제: ${id}`);
-    }
+    if (!confirm("정말 비활성화하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const getRoleLabel = (role: AdminRole) => {

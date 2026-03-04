@@ -169,6 +169,8 @@ export default [
     route("/login", "features/admin/screens/login.tsx"),
     route("/logout", "features/admin/screens/logout.tsx"),
     route("/dashboard", "features/admin/screens/dashboard.tsx"),
+    // 파일 업로드 API - /admin 경로 아래에 두어야 세션 쿠키(path:"/admin")가 전달됨
+    route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),

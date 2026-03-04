@@ -22,7 +22,16 @@ import type { AdminJobApplication } from "../types/career.types";
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const { default: db } = await import("~/core/db/drizzle-client.server");
+  const { jobApplications, jobPostings } = await import("~/features/careers/schema");
+  const { desc } = await import("drizzle-orm");
+  const dbApplications = await db
+    .select({ app: jobApplications, job: jobPostings })
+    .from(jobApplications)
+    .leftJoin(jobPostings, (cols: any) => cols.app.job_id.eq(cols.job.job_id))
+    .orderBy(desc(jobApplications.created_at))
+    .catch(() => []);
+  return { adminUser, dbApplications };
 }
 
 export default function AdminApplicationsPage({ loaderData }: Route.ComponentProps) {
