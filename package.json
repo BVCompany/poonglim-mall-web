@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:typegen": "supabase gen types typescript --project-id ixcectnvyjxchruvvwfl > database.types.ts",
+    "admin:create": "tsx scripts/create-super-admin.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "format": "prettier --write \"app/**/*.{ts,tsx,js,jsx,json,css,md,mdx}\""
@@ -94,6 +95,7 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "react-router-devtools": "^1.1.0",
     "tailwindcss": "^4.0.17",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
     "vite-tsconfig-paths": "^5.1.4"
