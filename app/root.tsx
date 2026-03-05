@@ -50,7 +50,6 @@ import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
 
 export const links: Route.LinksFunction = () => [
-  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "icon", href: "/favicon.png", type: "image/png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
