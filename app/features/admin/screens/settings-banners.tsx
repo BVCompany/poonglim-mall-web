@@ -55,6 +55,38 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (id) {
+      await db.update(bannersTable).set({
+        title: fd.get("title") as string,
+        subtitle: (fd.get("subtitle") as string) || null,
+        image_url: fd.get("imageUrl") as string,
+        link_url: (fd.get("linkUrl") as string) || null,
+        button_text: (fd.get("buttonText") as string) || null,
+        is_active: fd.get("isActive") !== "false",
+      }).where(eq(bannersTable.banner_id, id));
+    }
+    return { success: true };
+  }
+
+  if (intent === "reorder") {
+    const id = Number(fd.get("id"));
+    const direction = fd.get("direction") as "up" | "down";
+    const allBanners = await db.select().from(bannersTable).orderBy(bannersTable.sort_order);
+    const idx = allBanners.findIndex((b) => b.banner_id === id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx >= 0 && swapIdx >= 0 && swapIdx < allBanners.length) {
+      const a = allBanners[idx];
+      const b = allBanners[swapIdx];
+      const aOrder = a.sort_order ?? idx;
+      const bOrder = b.sort_order ?? swapIdx;
+      await db.update(bannersTable).set({ sort_order: bOrder }).where(eq(bannersTable.banner_id, a.banner_id));
+      await db.update(bannersTable).set({ sort_order: aOrder }).where(eq(bannersTable.banner_id, b.banner_id));
+    }
+    return { success: true };
+  }
+
   return { success: false };
 }
 
@@ -87,6 +119,7 @@ const MOCK_BANNERS: Banner[] = [
 export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbBanners } = loaderData;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Banner | null>(null);
   const fetcher = useFetcher();
 
   const banners: Banner[] = dbBanners.length > 0
@@ -111,8 +144,31 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
     setIsAddModalOpen(false);
   };
 
-  const handleMoveUp = (_id: string) => {};
-  const handleMoveDown = (_id: string) => {};
+  const handleUpdateBanner = (bannerData: BannerFormData) => {
+    if (!editTarget) return;
+    const fd = new FormData();
+    fd.append("intent", "update");
+    fd.append("id", editTarget.id);
+    Object.entries(bannerData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    fetcher.submit(fd, { method: "POST" });
+    setEditTarget(null);
+  };
+
+  const handleMoveUp = (id: string) => {
+    const fd = new FormData();
+    fd.append("intent", "reorder");
+    fd.append("id", id);
+    fd.append("direction", "up");
+    fetcher.submit(fd, { method: "POST" });
+  };
+
+  const handleMoveDown = (id: string) => {
+    const fd = new FormData();
+    fd.append("intent", "reorder");
+    fd.append("id", id);
+    fd.append("direction", "down");
+    fetcher.submit(fd, { method: "POST" });
+  };
 
   const handleToggleActive = (id: string) => {
     const banner = banners.find((b) => b.id === id);
@@ -125,7 +181,8 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
   };
 
   const handleEdit = (id: string) => {
-    console.log("Edit banner:", id);
+    const banner = banners.find((b) => b.id === id);
+    if (banner) setEditTarget(banner);
   };
 
   const handleDelete = (id: string) => {
@@ -321,6 +378,22 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onSubmit={handleAddBanner}
+      />
+
+      {/* Edit Banner Modal */}
+      <BannerAddModal
+        open={!!editTarget}
+        onOpenChange={(o) => !o && setEditTarget(null)}
+        onSubmit={handleUpdateBanner}
+        editId={editTarget?.id}
+        initialData={editTarget ? {
+          title: editTarget.title,
+          subtitle: editTarget.subtitle,
+          imageUrl: editTarget.imageUrl,
+          linkUrl: editTarget.linkUrl,
+          buttonText: editTarget.buttonText,
+          isActive: editTarget.isActive,
+        } : undefined}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { NewsFeed } from "../components/news-feed";
 import { getActiveBanners, getActivePopups } from "../lib/queries.server";
 import { getFeaturedProducts } from "~/features/products/lib/queries.server";
 import { getRecentNews } from "~/features/media/lib/queries.server";
+import { getCompanyIntroSettings } from "~/features/site-settings/lib/queries.server";
 
 export const meta: Route.MetaFunction = ({ data }) => {
   return [
@@ -21,12 +22,13 @@ export const meta: Route.MetaFunction = ({ data }) => {
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
 
-  // DB 데이터 병렬 조회 (실패 시 빈 배열로 폴백)
-  const [banners, popups, featuredProducts, recentNews] = await Promise.all([
+  // DB 데이터 병렬 조회 (실패 시 폴백)
+  const [banners, popups, featuredProducts, recentNews, companyIntro] = await Promise.all([
     getActiveBanners().catch(() => []),
     getActivePopups().catch(() => []),
     getFeaturedProducts(10).catch(() => []),
     getRecentNews(5).catch(() => []),
+    getCompanyIntroSettings().catch(() => ({ image: null, title: null, link: null })),
   ]);
 
   return {
@@ -36,11 +38,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     popups,
     featuredProducts,
     recentNews,
+    companyIntro,
   };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { banners, featuredProducts, recentNews } = loaderData;
+  const { banners, featuredProducts, recentNews, companyIntro } = loaderData;
 
   return (
     <>
@@ -54,7 +57,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       <FeaturedProducts dbProducts={featuredProducts} />
 
       {/* 4. Company Intro - 회사 소개 풀와이드 영상/이미지 */}
-      <CompanyIntro />
+      <CompanyIntro
+        image={companyIntro.image}
+        title={companyIntro.title}
+        link={companyIntro.link}
+      />
 
       {/* 6. Instagram Feed - 인스타그램 피드 */}
       <InstagramFeed />

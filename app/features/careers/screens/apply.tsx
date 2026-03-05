@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useActionData, useNavigation } from "react-router";
+import type { Route } from "./+types/apply";
+import { createJobApplication } from "../lib/queries.server";
 import { Button } from "~/core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Input } from "~/core/components/ui/input";
@@ -9,6 +11,28 @@ import { Checkbox } from "~/core/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "~/core/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/core/components/ui/select";
 import { ArrowLeft, Upload, FileText, CheckCircle } from "lucide-react";
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const fd = await request.formData();
+  const jobId = Number(params.id);
+  if (!jobId) return { success: false, error: "잘못된 채용공고입니다." };
+  try {
+    const app = await createJobApplication({
+      job_id: jobId,
+      applicant_name: fd.get("name") as string,
+      email: fd.get("email") as string,
+      phone: fd.get("phone") as string,
+      birth_date: (fd.get("birthDate") as string) || null,
+      address: (fd.get("address") as string) || null,
+      cover_letter: (fd.get("motivation") as string) || null,
+      resume_url: null,
+      portfolio_url: (fd.get("portfolioUrl") as string) || null,
+    });
+    return { success: true, applicationId: app.application_id };
+  } catch {
+    return { success: false, error: "지원서 제출 중 오류가 발생했습니다. 다시 시도해주세요." };
+  }
+}
 
 interface FormData {
   // Personal Info
@@ -45,8 +69,11 @@ interface FormData {
 
 export default function CareerApplyScreen() {
   const { id } = useParams();
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
   const [step, setStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const isSubmitted = actionData?.success === true;
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -77,11 +104,12 @@ export default function CareerApplyScreen() {
     setFormData((prev) => ({ ...prev, [field]: file }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the data to your backend
-    console.log("Submitting application:", formData);
-    setIsSubmitted(true);
+  const handleSubmit = (e: React.FormEvent) => {
+    if (step < 4) {
+      e.preventDefault();
+      setStep((s) => s + 1);
+    }
+    // step === 4: 폼이 실제 submit 되어 action으로 전달됨
   };
 
   if (isSubmitted) {
@@ -99,7 +127,9 @@ export default function CareerApplyScreen() {
             <div className="space-y-4">
               <div className="rounded-lg bg-muted/50 p-4">
                 <h3 className="mb-2 font-semibold">접수 정보</h3>
-                <p className="text-sm text-muted-foreground">접수번호: APP-{Date.now()}</p>
+                {actionData?.applicationId && (
+                  <p className="text-sm text-muted-foreground">접수번호: APP-{actionData.applicationId}</p>
+                )}
                 <p className="text-sm text-muted-foreground">접수일시: {new Date().toLocaleString("ko-KR")}</p>
               </div>
               <div className="flex justify-center gap-4">
@@ -154,7 +184,7 @@ export default function CareerApplyScreen() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form method="post" onSubmit={handleSubmit}>
             {/* Step 1: Basic Information */}
             {step === 1 && (
               <Card>
@@ -558,6 +588,18 @@ export default function CareerApplyScreen() {
                     </div>
                   </div>
 
+                  {actionData?.error && (
+                    <p className="text-sm text-red-500">{actionData.error}</p>
+                  )}
+
+                  {/* 폼 필드 hidden으로 action에 전달 */}
+                  <input type="hidden" name="name" value={formData.name} />
+                  <input type="hidden" name="email" value={formData.email} />
+                  <input type="hidden" name="phone" value={formData.phone} />
+                  <input type="hidden" name="birthDate" value={formData.birthDate} />
+                  <input type="hidden" name="address" value={formData.address} />
+                  <input type="hidden" name="motivation" value={formData.motivation} />
+
                   <div className="flex justify-between">
                     <Button type="button" variant="outline" onClick={() => setStep(3)}>
                       이전 단계
@@ -565,14 +607,14 @@ export default function CareerApplyScreen() {
                     <Button
                       type="submit"
                       disabled={
+                        isSubmitting ||
                         !formData.privacyAgreement ||
                         !formData.name ||
                         !formData.email ||
-                        !formData.phone ||
-                        !formData.motivation
+                        !formData.phone
                       }
                     >
-                      지원서 제출
+                      {isSubmitting ? "제출 중..." : "지원서 제출"}
                     </Button>
                   </div>
                 </CardContent>
