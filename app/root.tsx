@@ -50,7 +50,7 @@ import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
 
 export const links: Route.LinksFunction = () => [
-  { rel: "icon", href: "/favicon.ico" },
+  { rel: "icon", href: "/favicon.png", type: "image/png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -123,6 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
       naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
       gaId:               seoSettings[SETTING_KEYS.SEO_GA_ID]               ?? "",
+      favicon:            seoSettings[SETTING_KEYS.FAVICON]                 ?? "",
     },
   };
 }
@@ -148,7 +149,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData("root");
   return (
     <ThemeProvider
-      specifiedTheme={data?.theme ?? "dark"} // Default to dark theme if none is specified
+      specifiedTheme={data?.theme ?? "light"}
       themeAction="/api/settings/theme" // API endpoint for changing theme
     >
       <InnerLayout>{children}</InnerLayout>
@@ -215,6 +216,10 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
         <Meta />
         <Links />
+        {/* 파비콘 — DB 업로드 값이 있으면 static보다 나중에 선언해 우선 적용 */}
+        {seo?.favicon && (
+          <link rel="icon" href={seo.favicon} />
+        )}
         {isPreRendered ? (
           <script src="/scripts/prerendered-theme.js" />
         ) : (

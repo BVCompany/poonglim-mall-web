@@ -7,6 +7,18 @@ import { ExternalLink } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { useEffect } from "react";
 
+/** 관리자 페이지는 항상 라이트 모드 고정 */
+function useForceLight() {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.remove("dark");
+    html.classList.add("light");
+    return () => {
+      html.classList.remove("light");
+    };
+  }, []);
+}
+
 const PAGE_TITLE_MAP: Record<string, string> = {
   "/admin/dashboard":              "대시보드",
   "/admin/products":               "제품 관리",
@@ -29,6 +41,7 @@ const APP_TITLE = "풍림 Admin";
 
 export function AdminNavbar() {
   const { pathname } = useLocation();
+  useForceLight();
 
   useEffect(() => {
     const pageTitle = PAGE_TITLE_MAP[pathname];

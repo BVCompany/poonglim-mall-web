@@ -19,7 +19,7 @@ import { Badge } from "~/core/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "~/core/components/ui/select";
-import { CheckCircle2, Search, BarChart2, Bot, Globe } from "lucide-react";
+import { CheckCircle2, Search, BarChart2, Globe, ImageIcon } from "lucide-react";
 import { getAllSettings, upsertSetting } from "~/features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "~/features/site-settings/schema";
 
@@ -58,6 +58,11 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "save_analytics") {
     await save(SETTING_KEYS.SEO_GA_ID);
     return { success: true, section: "analytics" };
+  }
+
+  if (intent === "save_favicon") {
+    await save(SETTING_KEYS.FAVICON);
+    return { success: true, section: "favicon" };
   }
 
   return { success: false };
@@ -99,6 +104,9 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
   const [analytics, setAnalytics] = useState({
     [SETTING_KEYS.SEO_GA_ID]: settings[SETTING_KEYS.SEO_GA_ID] ?? "",
   });
+
+  // 파비콘
+  const [faviconUrl, setFaviconUrl] = useState(settings[SETTING_KEYS.FAVICON] ?? "");
 
   const submit = (intent: string, data: Record<string, string>) => {
     const fd = new FormData();
@@ -320,6 +328,79 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
                   <div className="flex items-center gap-3 pt-2">
                     <Button type="submit" disabled={isSaving} className="bg-[#204E3A] hover:bg-[#1a3f2e]">저장</Button>
                     <SavedBadge show={!isSaving && savedSection === "analytics"} />
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* ─── 4. 파비콘 ─── */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-[#204E3A]" />
+                  <CardTitle>파비콘</CardTitle>
+                </div>
+                <CardDescription>
+                  브라우저 탭과 북마크에 표시되는 사이트 아이콘입니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData();
+                    fd.append("intent", "save_favicon");
+                    fd.append(SETTING_KEYS.FAVICON, faviconUrl);
+                    fetcher.submit(fd, { method: "POST" });
+                  }}
+                  className="space-y-5"
+                >
+                  <div className="flex gap-6 items-start">
+                    {/* 미리보기 */}
+                    <div className="flex-shrink-0">
+                      <p className="text-xs text-gray-500 mb-2 font-medium">현재 파비콘</p>
+                      <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden">
+                        {faviconUrl ? (
+                          <img src={faviconUrl} alt="파비콘 미리보기" className="w-10 h-10 object-contain" />
+                        ) : (
+                          <img src="/favicon.png" alt="기본 파비콘" className="w-10 h-10 object-contain" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1.5 text-center">
+                        {faviconUrl ? "업로드됨" : "기본값"}
+                      </p>
+                    </div>
+
+                    {/* 업로드 */}
+                    <div className="flex-1 space-y-3">
+                      <div className="space-y-1.5">
+                        <Label>파비콘 이미지 업로드</Label>
+                        <ImageUpload
+                          bucket="media"
+                          folder="favicon"
+                          value={faviconUrl}
+                          onChange={(url) => setFaviconUrl(url)}
+                          hint="PNG · ICO · SVG · 권장 크기 32×32 또는 64×64px"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500">또는 URL 직접 입력</Label>
+                        <Input
+                          value={faviconUrl}
+                          onChange={(e) => setFaviconUrl(e.target.value)}
+                          placeholder="/favicon.png"
+                          className="text-xs"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        비워두면 기본 파비콘(<code className="bg-gray-100 px-1 rounded">/favicon.png</code>)이 사용됩니다.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button type="submit" disabled={isSaving} className="bg-[#204E3A] hover:bg-[#1a3f2e]">저장</Button>
+                    <SavedBadge show={!isSaving && savedSection === "favicon"} />
                   </div>
                 </form>
               </CardContent>

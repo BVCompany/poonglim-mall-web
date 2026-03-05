@@ -55,6 +55,9 @@ export const SETTING_KEYS = {
 
   // SEO — robots
   SEO_ROBOTS:           "seo_robots",   // "index,follow" | "noindex,nofollow"
+
+  // 파비콘
+  FAVICON:              "favicon",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];
