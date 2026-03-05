@@ -50,7 +50,7 @@ import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
 
 export const links: Route.LinksFunction = () => [
-  { rel: "icon", href: "/favicon.ico" },
+  { rel: "icon", href: "/favicon.png", type: "image/png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -123,6 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
       naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
       gaId:               seoSettings[SETTING_KEYS.SEO_GA_ID]               ?? "",
+      favicon:            seoSettings[SETTING_KEYS.FAVICON]                 ?? "",
     },
   };
 }
@@ -191,6 +192,11 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* 파비콘 — DB에 업로드된 값이 있으면 동적 적용 */}
+        {seo?.favicon && (
+          <link rel="icon" href={seo.favicon} type="image/png" />
+        )}
 
         {/* SEO — robots */}
         {seo?.robots && <meta name="robots" content={seo.robots} />}
