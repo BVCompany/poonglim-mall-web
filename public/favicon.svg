@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="32" fill="#204E3A"/>
+  <ellipse cx="29" cy="22" rx="9" ry="13" fill="#6FCF97" transform="rotate(-18 29 22)"/>
+  <ellipse cx="35" cy="22" rx="9" ry="13" fill="#4CAF82" transform="rotate(18 35 22)"/>
+  <rect x="30.5" y="30" width="3" height="14" rx="1.5" fill="#5DBF8F"/>
+  <text x="32" y="55" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="rgba(255,255,255,0.9)" text-anchor="middle" letter-spacing="0.5">풍림</text>
+</svg>
