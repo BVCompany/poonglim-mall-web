@@ -53,11 +53,17 @@ export default function AdminLogin() {
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* 상단 헤더 */}
           <div className="bg-[#204E3A] px-8 pt-10 pb-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 mb-4">
-              <ShieldCheck className="w-8 h-8 text-white" />
+            <div className="flex justify-center mb-5">
+              <img
+                src="/home/poonglim-logo-eng.png"
+                alt="Poonglim"
+                className="h-10 brightness-0 invert"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">풍림푸드</h1>
-            <p className="text-emerald-200 text-sm">관리자 포털</p>
+            <div className="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-200" />
+              <p className="text-emerald-100 text-xs font-medium">관리자 포털</p>
+            </div>
           </div>
 
           {/* 폼 영역 */}
