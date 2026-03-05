@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form, useActionData, useNavigation } from "react-router";
 import type { Route } from "./+types/login";
 import { Button } from "~/core/components/ui/button";
@@ -42,6 +42,15 @@ export default function AdminLogin() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const isSubmitting = navigation.state === "submitting";
+
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.remove("dark");
+    html.classList.add("light");
+    return () => {
+      html.classList.remove("light");
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#204E3A] flex items-center justify-center p-4">
