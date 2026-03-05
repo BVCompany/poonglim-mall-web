@@ -1,9 +1,42 @@
 import { useState } from "react";
+import { Form, useNavigation, useActionData } from "react-router";
+import type { Route } from "./+types/support";
 import { Button } from "~/core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Badge } from "~/core/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/core/components/ui/accordion";
 import { Phone, Mail, MessageCircle, Clock, Search, HelpCircle, FileText, Users } from "lucide-react";
+import { getFaqs, createContact } from "../lib/queries.server";
+import type { Faq as DbFaq } from "../lib/queries.server";
+
+const FAQ_CATEGORY_LABEL: Record<string, string> = {
+  product: "제품 정보",
+  delivery: "주문 및 배송",
+  b2b: "B2B 서비스",
+  quality: "품질 및 안전",
+  general: "일반 문의",
+};
+
+export async function loader(_: Route.LoaderArgs) {
+  const dbFaqs = await getFaqs().catch(() => [] as DbFaq[]);
+  return { dbFaqs };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const fd = await request.formData();
+  try {
+    await createContact({
+      name: fd.get("name") as string,
+      phone: (fd.get("phone") as string) || null,
+      email: fd.get("email") as string,
+      title: (fd.get("type") as string) || "일반 문의",
+      content: fd.get("content") as string,
+    });
+    return { success: true };
+  } catch {
+    return { success: false, error: "문의 접수 중 오류가 발생했습니다." };
+  }
+}
 
 interface FAQ {
   question: string;
@@ -15,7 +48,7 @@ interface FAQCategory {
   questions: FAQ[];
 }
 
-const faqs: FAQCategory[] = [
+const MOCK_FAQS: FAQCategory[] = [
   {
     category: "주문 및 배송",
     questions: [
@@ -78,14 +111,24 @@ const faqs: FAQCategory[] = [
   },
 ];
 
-export default function SupportScreen() {
-  const [formSubmitted, setFormSubmitted] = useState(false);
+export default function SupportScreen({ loaderData }: Route.ComponentProps) {
+  const { dbFaqs } = loaderData;
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const formSubmitted = actionData?.success === true;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
-    setTimeout(() => setFormSubmitted(false), 3000);
-  };
+  // DB FAQ → 카테고리별 그룹핑 (없으면 더미 폴백)
+  const faqs: FAQCategory[] = dbFaqs.length > 0
+    ? Object.entries(
+        dbFaqs.reduce<Record<string, FAQ[]>>((acc, f) => {
+          const cat = FAQ_CATEGORY_LABEL[f.category] ?? f.category;
+          if (!acc[cat]) acc[cat] = [];
+          acc[cat].push({ question: f.question, answer: f.answer });
+          return acc;
+        }, {}),
+      ).map(([category, questions]) => ({ category, questions }))
+    : MOCK_FAQS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -267,84 +310,39 @@ export default function SupportScreen() {
                     <p className="text-muted-foreground">빠른 시일 내에 답변드리겠습니다.</p>
                   </div>
                 ) : (
-                  <form className="space-y-6" onSubmit={handleSubmit}>
+                  <Form method="post" className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="mb-2 block text-sm font-medium">이름 *</label>
-                        <input
-                          type="text"
-                          className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="홍길동"
-                          required
-                        />
+                        <input name="name" type="text" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="홍길동" required />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">연락처 *</label>
-                        <input
-                          type="tel"
-                          className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="010-1234-5678"
-                          required
-                        />
+                        <label className="mb-2 block text-sm font-medium">연락처</label>
+                        <input name="phone" type="tel" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="010-1234-5678" />
                       </div>
                     </div>
 
                     <div>
                       <label className="mb-2 block text-sm font-medium">이메일 *</label>
-                      <input
-                        type="email"
-                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="example@email.com"
-                        required
-                      />
+                      <input name="email" type="email" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="example@email.com" required />
                     </div>
 
                     <div>
                       <label className="mb-2 block text-sm font-medium">문의 유형 *</label>
-                      <select
-                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        required
-                      >
+                      <select name="type" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" required>
                         <option value="">선택해주세요</option>
-                        <option value="order">주문 관련</option>
-                        <option value="product">제품 문의</option>
-                        <option value="delivery">배송 문의</option>
-                        <option value="quality">품질 문의</option>
-                        <option value="b2b">B2B 문의</option>
-                        <option value="other">기타</option>
+                        <option value="주문 관련">주문 관련</option>
+                        <option value="제품 문의">제품 문의</option>
+                        <option value="배송 문의">배송 문의</option>
+                        <option value="품질 문의">품질 문의</option>
+                        <option value="B2B 문의">B2B 문의</option>
+                        <option value="기타">기타</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium">제목 *</label>
-                      <input
-                        type="text"
-                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="문의 제목을 입력해주세요"
-                        required
-                      />
-                    </div>
-
-                    <div>
                       <label className="mb-2 block text-sm font-medium">문의 내용 *</label>
-                      <textarea
-                        rows={5}
-                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="문의하실 내용을 자세히 적어주세요"
-                        required
-                      ></textarea>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">첨부파일</label>
-                      <input
-                        type="file"
-                        multiple
-                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        최대 5MB, jpg, png, pdf 파일만 업로드 가능
-                      </p>
+                      <textarea name="content" rows={5} className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="문의하실 내용을 자세히 적어주세요" required></textarea>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -354,10 +352,12 @@ export default function SupportScreen() {
                       </label>
                     </div>
 
-                    <Button type="submit" className="w-full" size="lg">
-                      문의 접수하기
+                    {actionData?.error && <p className="text-sm text-red-500">{actionData.error}</p>}
+
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                      {isSubmitting ? "접수 중..." : "문의 접수하기"}
                     </Button>
-                  </form>
+                  </Form>
                 )}
               </CardContent>
             </Card>

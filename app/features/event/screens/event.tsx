@@ -1,11 +1,15 @@
 import { useState } from "react";
+import type { Route } from "./+types/event";
 import { useTranslation } from "react-i18next";
 import { EventsGrid } from "../components/events-grid";
 import { EventsFilters } from "../components/events-filters";
 import { NewsSection } from "../components/news-section";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/core/components/ui/tabs";
+import { getEvents } from "../lib/queries.server";
+import type { Event } from "../lib/queries.server";
 
-const eventCategories = [
+// 더미 데이터 (DB 데이터 없을 때 폴백)
+const MOCK_EVENT_CATEGORIES = [
   { id: "all", name: "전체 이벤트", count: 4 },
   { id: "promotion", name: "프로모션", count: 1 },
   { id: "popup", name: "팝업스토어", count: 1 },
@@ -13,9 +17,19 @@ const eventCategories = [
   { id: "launch", name: "신제품 출시", count: 1 },
 ];
 
-export default function EventScreen() {
+export async function loader(_: Route.LoaderArgs) {
+  const dbEvents = await getEvents().catch(() => [] as Event[]);
+  return { events: dbEvents };
+}
+
+export default function EventScreen({ loaderData }: Route.ComponentProps) {
+  const { events } = loaderData;
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const eventCategories = events.length > 0
+    ? [{ id: "all", name: "전체 이벤트", count: events.length }]
+    : MOCK_EVENT_CATEGORIES;
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +52,6 @@ export default function EventScreen() {
 
             <TabsContent value="events">
               <div className="flex flex-col gap-8 lg:flex-row">
-                {/* Filters Sidebar */}
                 <div className="flex-shrink-0 lg:w-64">
                   <EventsFilters
                     categories={eventCategories}
@@ -46,10 +59,8 @@ export default function EventScreen() {
                     onCategoryChange={setSelectedCategory}
                   />
                 </div>
-
-                {/* Events Grid */}
                 <div className="flex-1">
-                  <EventsGrid selectedCategory={selectedCategory} />
+                  <EventsGrid selectedCategory={selectedCategory} dbEvents={events} />
                 </div>
               </div>
             </TabsContent>

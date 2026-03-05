@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Button } from "~/core/components/ui/button";
+import { ImageUpload } from "~/core/components/image-upload";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
@@ -269,16 +270,22 @@ export function RecipeAddModal({
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image">이미지 URL</Label>
-            <Input
-              id="image"
+            <Label>대표 이미지</Label>
+            <ImageUpload
+              bucket="media"
+              folder="recipes"
               value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="/recipe-image.jpg"
+              onChange={(url) => setFormData({ ...formData, image: url })}
+              aspectRatio="4/3"
+              hint="JPG, PNG, WebP 최대 10MB"
+            />
+            <Input
+              value={formData.image}
+              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
             />
           </div>
 

@@ -46,6 +46,8 @@ import i18next from "./core/lib/i18next.server";
 import { themeSessionResolver } from "./core/lib/theme-session.server";
 import { cn } from "./core/lib/utils";
 import NotFound from "./core/screens/404";
+import { getAllSettings } from "./features/site-settings/lib/queries.server";
+import { SETTING_KEYS } from "./features/site-settings/schema";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico" },
@@ -102,15 +104,26 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
   */
 
-  // Concurrently load theme and locale preferences for better performance
-  const [{ getTheme }, locale] = await Promise.all([
+  // Concurrently load theme, locale, and SEO settings
+  const [{ getTheme }, locale, seoSettings] = await Promise.all([
     themeSessionResolver(request),
     i18next.getLocale(request),
+    getAllSettings().catch(() => ({} as Record<string, string>)),
   ]);
 
   return {
     theme: getTheme(),
     locale,
+    seo: {
+      siteName:           seoSettings[SETTING_KEYS.SEO_SITE_NAME]           ?? "풍림푸드",
+      description:        seoSettings[SETTING_KEYS.SEO_DESCRIPTION]         ?? "",
+      ogImage:            seoSettings[SETTING_KEYS.SEO_OG_IMAGE]            ?? "",
+      siteUrl:            seoSettings[SETTING_KEYS.SEO_SITE_URL]            ?? "",
+      robots:             seoSettings[SETTING_KEYS.SEO_ROBOTS]              ?? "index,follow",
+      googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
+      naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
+      gaId:               seoSettings[SETTING_KEYS.SEO_GA_ID]               ?? "",
+    },
   };
 }
 
@@ -159,6 +172,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>("root");
   const { i18n } = useTranslation();
   const { pathname } = useLocation();
+  const seo = data?.seo;
 
   // Set the i18next language based on the locale from the loader
   useChangeLanguage(data?.locale ?? "en");
@@ -177,6 +191,28 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* SEO — robots */}
+        {seo?.robots && <meta name="robots" content={seo.robots} />}
+
+        {/* SEO — 기본 description (각 페이지의 meta가 없을 때 폴백) */}
+        {seo?.description && <meta name="description" content={seo.description} />}
+
+        {/* SEO — OG 기본값 */}
+        {seo?.siteName   && <meta property="og:site_name" content={seo.siteName} />}
+        {seo?.siteUrl    && <meta property="og:url"       content={seo.siteUrl} />}
+        {seo?.ogImage    && <meta property="og:image"     content={seo.ogImage} />}
+        {seo?.ogImage    && <meta name="twitter:card"     content="summary_large_image" />}
+        {seo?.ogImage    && <meta name="twitter:image"    content={seo.ogImage} />}
+
+        {/* 검색엔진 인증 */}
+        {seo?.googleVerification && (
+          <meta name="google-site-verification" content={seo.googleVerification} />
+        )}
+        {seo?.naverVerification && (
+          <meta name="naver-site-verification" content={seo.naverVerification} />
+        )}
+
         <Meta />
         <Links />
         {isPreRendered ? (
@@ -190,23 +226,20 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         <Toaster richColors position="bottom-right" />
         <ScrollRestoration />
         <Scripts />
-        {import.meta.env.VITE_GOOGLE_TAG_ID &&
-          import.meta.env.VITE_GOOGLE_TAG_ID !== "" && (
+        {/* GA4 — DB 설정값 우선, 없으면 env fallback */}
+        {(seo?.gaId || import.meta.env.VITE_GOOGLE_TAG_ID) && (() => {
+          const gaId = seo?.gaId || import.meta.env.VITE_GOOGLE_TAG_ID;
+          return (
             <>
-              <script
-                async
-                src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.VITE_GOOGLE_TAG_ID}`}
-              ></script>
+              <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
               <script
                 dangerouslySetInnerHTML={{
-                  __html: `window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${import.meta.env.VITE_GOOGLE_TAG_ID}');`,
+                  __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`,
                 }}
               />
             </>
-          )}
+          );
+        })()}
         {import.meta.env.VITE_CHANNEL_PLUGIN_KEY &&
           import.meta.env.VITE_CHANNEL_PLUGIN_KEY !== "" && (
             <script

@@ -113,8 +113,9 @@ export default [
       route("/:id", "features/recipe/screens/detail.tsx"),
     ]),
     
-    // Event Route (이벤트)
+    // Event Routes (이벤트)
     route("/event", "features/event/screens/event.tsx"),
+    route("/event/:id", "features/event/screens/detail.tsx"),
     
     // Inquiry Routes (구매문의)
     ...prefix("/inquiry", [
@@ -169,6 +170,8 @@ export default [
     route("/login", "features/admin/screens/login.tsx"),
     route("/logout", "features/admin/screens/logout.tsx"),
     route("/dashboard", "features/admin/screens/dashboard.tsx"),
+    // 파일 업로드 API - /admin 경로 아래에 두어야 세션 쿠키(path:"/admin")가 전달됨
+    route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
@@ -182,9 +185,12 @@ export default [
       route("/banners", "features/admin/screens/settings-banners.tsx"),
       route("/popups", "features/admin/screens/settings-popups.tsx"),
       route("/admins", "features/admin/screens/settings-admins.tsx"),
+      route("/site", "features/admin/screens/settings-site.tsx"),
+      route("/seo", "features/admin/screens/settings-seo.tsx"),
     ]),
-    // TODO: Add more admin routes as needed
-    // route("/products/new", "features/admin/screens/products/new.tsx"),
-    // route("/products/:id/edit", "features/admin/screens/products/edit.tsx"),
+    ...prefix("/media", [
+      route("/news", "features/admin/screens/media-news.tsx"),
+      route("/catalog", "features/admin/screens/media-catalog.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;

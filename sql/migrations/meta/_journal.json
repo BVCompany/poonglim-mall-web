@@ -15,6 +15,27 @@
       "when": 1744715791562,
       "tag": "0001_great_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772440773946,
+      "tag": "0002_modern_wild_child",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772444359429,
+      "tag": "0003_lean_dorian_gray",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772686070158,
+      "tag": "0004_secret_young_avengers",
+      "breakpoints": true
     }
   ]
 }

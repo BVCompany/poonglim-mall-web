@@ -5,70 +5,133 @@
  */
 
 import { useState, useMemo } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/careers";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { JobAddModal, type JobFormData } from "../components/job-add-modal";
 import { useTranslation } from "react-i18next";
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Briefcase, 
-  MapPin, 
-  Calendar,
-  Users
-} from "lucide-react";
+import { Search, Plus, Edit, Trash2, Briefcase, MapPin, Calendar, Users } from "lucide-react";
 import { Input } from "~/core/components/ui/input";
 import { Button } from "~/core/components/ui/button";
 import { Badge } from "~/core/components/ui/badge";
 import { MOCK_JOB_POSTINGS } from "../data/careers";
 import type { AdminJobPosting } from "../types/career.types";
+import { getOpenJobPostings } from "~/features/careers/lib/queries.server";
+import db from "~/core/db/drizzle-client.server";
+import { jobPostings } from "~/features/careers/schema";
+import { eq } from "drizzle-orm";
 
-/**
- * Loader: Require admin authentication
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const dbJobs = await getOpenJobPostings().catch(() => []);
+  return { adminUser, dbJobs };
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+
+  const JOB_TYPE_MAP: Record<string, "full_time" | "part_time" | "contract" | "intern"> = {
+    "정규직": "full_time", "계약직": "contract", "인턴": "intern", "파트타임": "part_time",
+  };
+  const EXP_MAP: Record<string, "entry" | "experienced" | "senior" | "all"> = {
+    "신입": "entry", "경력": "experienced", "시니어": "senior", "신입/경력": "all",
+  };
+
+  if (intent === "create") {
+    await db.insert(jobPostings).values({
+      title: fd.get("title") as string,
+      department: (fd.get("position") as string) || "미정",
+      location: (fd.get("location") as string) || "미정",
+      job_type: JOB_TYPE_MAP[fd.get("employmentType") as string] ?? "full_time",
+      experience_level: EXP_MAP[fd.get("experience") as string] ?? "all",
+      description: fd.get("description") as string,
+      requirements: (fd.get("qualifications") as string) || null,
+      benefits: (fd.get("benefits") as string) || null,
+      status: (fd.get("status") as string) === "모집중" ? "open" : "draft",
+      deadline: fd.get("deadline") ? new Date(fd.get("deadline") as string) : null,
+      is_active: true,
+    });
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.delete(jobPostings).where(eq(jobPostings.job_id, id));
+    return { success: true };
+  }
+
+  return { success: false };
+}
+
+const JOB_TYPE_LABEL: Record<string, string> = {
+  full_time: "정규직", part_time: "파트타임", contract: "계약직", intern: "인턴",
+};
+const EXP_LABEL: Record<string, string> = {
+  entry: "신입", experienced: "경력", senior: "시니어", all: "신입/경력",
+};
+
 export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbJobs } = loaderData;
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [jobPostings] = useState<AdminJobPosting[]>(MOCK_JOB_POSTINGS);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
 
-  // Real-time search filter
+  const JOB_TYPE_MAP: Record<string, AdminJobPosting["jobType"]> = {
+    full_time: "full-time", part_time: "part-time", contract: "contract", intern: "intern",
+  };
+  const EXP_MAP2: Record<string, AdminJobPosting["experienceLevel"]> = {
+    entry: "entry", experienced: "experienced", senior: "senior", all: "all",
+  };
+  const sourceJobs: AdminJobPosting[] = dbJobs.length > 0
+    ? dbJobs.map((j) => ({
+        id: String(j.job_id),
+        title: j.title,
+        department: j.department,
+        location: j.location,
+        jobType: JOB_TYPE_MAP[j.job_type] ?? "full-time",
+        experienceLevel: EXP_MAP2[j.experience_level] ?? "all",
+        description: j.description,
+        status: (j.status === "open" ? "open" : "closed") as AdminJobPosting["status"],
+        deadline: j.deadline ? new Date(j.deadline).toISOString().slice(0, 10) : "",
+        created_at: j.created_at.toISOString(),
+        updated_at: j.updated_at.toISOString(),
+      }))
+    : MOCK_JOB_POSTINGS;
+
   const filteredJobPostings = useMemo(() => {
-    if (!searchQuery.trim()) return jobPostings;
-
+    if (!searchQuery.trim()) return sourceJobs;
     const query = searchQuery.toLowerCase();
-    return jobPostings.filter(
+    return sourceJobs.filter(
       (job) =>
         job.title.toLowerCase().includes(query) ||
         job.description.toLowerCase().includes(query) ||
         job.department.toLowerCase().includes(query)
     );
-  }, [jobPostings, searchQuery]);
+  }, [sourceJobs, searchQuery]);
 
   const handleAddJob = (jobData: JobFormData) => {
-    // TODO: Add job to database
-    console.log("Add job:", jobData);
-    alert(`채용 공고가 추가되었습니다: ${jobData.title}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    Object.entries(jobData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
   const handleEdit = (id: string) => {
     console.log("Edit job posting:", id);
-    // TODO: Navigate to edit page or open modal
   };
 
   const handleDelete = (id: string) => {
-    console.log("Delete job posting:", id);
-    // TODO: Show confirmation modal and delete
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const getStatusBadgeVariant = (status: string) => {

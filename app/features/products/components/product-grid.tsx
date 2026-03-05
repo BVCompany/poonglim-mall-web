@@ -231,14 +231,43 @@ const allProducts: Product[] = [
   },
 ];
 
+interface DbProduct {
+  product_id: number;
+  name: string;
+  description: string;
+  category: string;
+  badge?: string | null;
+  image_url?: string | null;
+  price?: number | null;
+  original_price?: number | null;
+  is_b2b: boolean;
+  tags?: string[] | null;
+}
+
 interface ProductGridProps {
   selectedCategory: string;
   searchQuery: string;
+  dbProducts?: DbProduct[];
 }
 
-export function ProductGrid({ selectedCategory, searchQuery }: ProductGridProps) {
+export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: ProductGridProps) {
+  // DB 데이터가 있으면 변환, 없으면 더미 폴백
+  const source: Product[] = dbProducts.length > 0
+    ? dbProducts.map((p) => ({
+        id: p.product_id,
+        name: p.name,
+        category: p.category,
+        price: p.price ? `${p.price.toLocaleString()}원` : "가격 문의",
+        originalPrice: p.original_price ? `${p.original_price.toLocaleString()}원` : undefined,
+        image: p.image_url ?? "/home/premium_egg.png",
+        badge: (p.badge?.toUpperCase() as "NEW" | "BEST" | "SALE" | undefined),
+        description: p.description,
+        tags: p.tags ?? [],
+      }))
+    : allProducts;
+
   // Filter products
-  const filteredProducts = allProducts.filter((product) => {
+  const filteredProducts = source.filter((product) => {
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     const matchesSearch =
       searchQuery === "" ||

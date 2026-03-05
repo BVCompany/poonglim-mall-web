@@ -75,31 +75,48 @@ export function hasPermission(adminUser: AdminUser, permission: string): boolean
 }
 
 /**
- * Temporary login function
- * TODO: Replace with Supabase authentication
- * 
- * @param credentials - Admin login credentials
- * @returns Admin user or null if authentication fails
+ * DB 기반 관리자 로그인
+ * admins 테이블에서 이메일로 조회 후 bcrypt 비교
  */
 export async function loginAdmin(
   credentials: AdminLoginCredentials
 ): Promise<AdminUser | null> {
-  // TODO: Replace with Supabase query when DB is configured
-  // const { data, error } = await supabase
-  //   .from('admins')
-  //   .select('*')
-  //   .eq('email', credentials.email)
-  //   .single();
-  
-  // Temporary authentication for development
-  if (
-    credentials.email === TEMP_ADMIN_CREDENTIALS.email &&
-    credentials.password === TEMP_ADMIN_CREDENTIALS.password
-  ) {
-    return TEMP_ADMIN_CREDENTIALS.user;
+  try {
+    const db = (await import("~/core/db/drizzle-client.server")).default;
+    const { admins } = await import("../schema");
+    const { eq } = await import("drizzle-orm");
+    const { default: bcrypt } = await import("bcryptjs");
+
+    const rows = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, credentials.email))
+      .limit(1);
+
+    const admin = rows[0];
+    if (!admin || !admin.is_active) return null;
+
+    const isValid = await bcrypt.compare(credentials.password, admin.password_hash);
+    if (!isValid) return null;
+
+    const roleMap: Record<string, AdminUser["role"]> = { super: "super_admin", admin: "admin" };
+    return {
+      id: String(admin.admin_id),
+      name: admin.name,
+      email: admin.email,
+      role: roleMap[admin.role] ?? "admin",
+      permissions: (admin.permissions ?? []) as AdminUser["permissions"],
+    };
+  } catch {
+    // DB 연결 실패 시 임시 자격증명으로 폴백 (개발 환경)
+    if (
+      credentials.email === TEMP_ADMIN_CREDENTIALS.email &&
+      credentials.password === TEMP_ADMIN_CREDENTIALS.password
+    ) {
+      return TEMP_ADMIN_CREDENTIALS.user;
+    }
+    return null;
   }
-  
-  return null;
 }
 
 /**

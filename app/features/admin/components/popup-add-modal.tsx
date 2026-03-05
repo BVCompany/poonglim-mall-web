@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
+import { ImageUpload } from "~/core/components/image-upload";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
@@ -188,16 +189,22 @@ export function PopupAddModal({
             </div>
           </div>
 
-          {/* Image URL (Optional) */}
+          {/* Image Upload (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">이미지 URL (선택)</Label>
-            <Input
-              id="imageUrl"
+            <Label>팝업 이미지 (선택)</Label>
+            <ImageUpload
+              bucket="media"
+              folder="popups"
               value={formData.imageUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, imageUrl: e.target.value })
-              }
-              placeholder="https://example.com/image.jpg"
+              onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+              aspectRatio="4/5"
+              hint="JPG, PNG, WebP 최대 10MB"
+            />
+            <Input
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
             />
           </div>
 

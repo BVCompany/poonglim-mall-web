@@ -9,6 +9,7 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
+import { ImageUpload } from "~/core/components/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ interface BannerAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (banner: BannerFormData) => void;
+  initialData?: BannerFormData;
+  editId?: string;
 }
 
 export interface BannerFormData {
@@ -31,33 +34,26 @@ export interface BannerFormData {
   isActive: boolean;
 }
 
+const DEFAULT_FORM: BannerFormData = {
+  title: "", subtitle: "", imageUrl: "", linkUrl: "", buttonText: "", isActive: true,
+};
+
 export function BannerAddModal({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
+  editId,
 }: BannerAddModalProps) {
-  const [formData, setFormData] = useState<BannerFormData>({
-    title: "",
-    subtitle: "",
-    imageUrl: "",
-    linkUrl: "",
-    buttonText: "",
-    isActive: true,
-  });
+  const isEdit = !!editId;
+  const [formData, setFormData] = useState<BannerFormData>(initialData ?? DEFAULT_FORM);
 
-  // Reset form when modal closes
+  // Sync form when initialData or open state changes
   useEffect(() => {
-    if (!open) {
-      setFormData({
-        title: "",
-        subtitle: "",
-        imageUrl: "",
-        linkUrl: "",
-        buttonText: "",
-        isActive: true,
-      });
+    if (open) {
+      setFormData(initialData ?? DEFAULT_FORM);
     }
-  }, [open]);
+  }, [open, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,17 +69,22 @@ export function BannerAddModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 배너 추가</DialogTitle>
-        </DialogHeader>
+        <DialogTitle className="text-xl font-bold">
+          {isEdit ? "배너 수정" : "새 배너 추가"}
+        </DialogTitle>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+      <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <p className="text-sm text-gray-600">
-            메인 페이지에 표시될 배너 정보를 입력하세요
+            {isEdit ? "배너 정보를 수정하세요" : "메인 페이지에 표시될 배너 정보를 입력하세요"}
           </p>
 
-          {/* Title */}
+          {/* Title — 배너 위 작은 글씨 */}
           <div className="space-y-2">
-            <Label htmlFor="title">제목</Label>
+            <Label htmlFor="title">
+              제목
+              <span className="ml-1.5 text-xs font-normal text-gray-400">(배너 상단 작은 글씨)</span>
+            </Label>
             <Input
               id="title"
               value={formData.title}
@@ -95,40 +96,50 @@ export function BannerAddModal({
             />
           </div>
 
-          {/* Subtitle */}
+          {/* Subtitle — 배너 큰 굵은 글씨 */}
           <div className="space-y-2">
-            <Label htmlFor="subtitle">부제목</Label>
+            <Label htmlFor="subtitle">
+              부제목
+              <span className="ml-1.5 text-xs font-normal text-gray-400">(배너 메인 큰 글씨)</span>
+            </Label>
             <Textarea
               id="subtitle"
               value={formData.subtitle}
               onChange={(e) =>
                 setFormData({ ...formData, subtitle: e.target.value })
               }
-              placeholder="신뢰할 수 있는 품질과 혁신적인 기술로..."
+              placeholder="신뢰할 수 있는 품질과 혁신적인 기술로 만드는 프리미엄 식품 솔루션"
               rows={3}
               required
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">배너 이미지 URL</Label>
-            <Input
-              id="imageUrl"
+            <Label>배너 이미지 <span className="text-xs text-gray-400">(권장: 1920×1080px)</span></Label>
+            <ImageUpload
+              bucket="media"
+              folder="banners"
               value={formData.imageUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, imageUrl: e.target.value })
-              }
-              placeholder="/images/hero-banner.jpg"
-              required
+              onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+              aspectRatio="16/9"
+              hint="JPG, PNG, WebP 최대 10MB"
             />
-            <p className="text-xs text-gray-500">권장 크기: 1920 x 1080px</p>
+            <Input
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
+            />
           </div>
 
           {/* Link URL & Button Text */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="linkUrl">링크 URL</Label>
+              <Label htmlFor="linkUrl">
+                링크 URL
+                <span className="ml-1.5 text-xs font-normal text-gray-400">(선택 — 제목 클릭 시 이동)</span>
+              </Label>
               <Input
                 id="linkUrl"
                 value={formData.linkUrl}
@@ -136,19 +147,20 @@ export function BannerAddModal({
                   setFormData({ ...formData, linkUrl: e.target.value })
                 }
                 placeholder="/products"
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="buttonText">버튼 텍스트</Label>
+              <Label htmlFor="buttonText">
+                보조 텍스트
+                <span className="ml-1.5 text-xs font-normal text-gray-400">(선택 — 제목 두 번째 줄)</span>
+              </Label>
               <Input
                 id="buttonText"
                 value={formData.buttonText}
                 onChange={(e) =>
                   setFormData({ ...formData, buttonText: e.target.value })
                 }
-                placeholder="제품 둘러보기"
-                required
+                placeholder="만드는 프리미엄 식품 솔루션"
               />
             </div>
           </div>
@@ -192,7 +204,7 @@ export function BannerAddModal({
               type="submit"
               className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
             >
-              추가
+              {isEdit ? "저장" : "추가"}
             </Button>
           </div>
         </form>

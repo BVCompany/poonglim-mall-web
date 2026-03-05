@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/inquiries-consulting";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -20,7 +21,28 @@ import { Search, Eye, CheckCircle, Trash2, Phone, Mail } from "lucide-react";
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const { default: db } = await import("~/core/db/drizzle-client.server");
+  const { inquiries } = await import("~/features/inquiry/schema");
+  const dbInquiries = await db.select().from(inquiries).catch(() => []);
+  return { adminUser, dbInquiries };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const { default: db } = await import("~/core/db/drizzle-client.server");
+  const { inquiries } = await import("~/features/inquiry/schema");
+  const { eq } = await import("drizzle-orm");
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+  if (intent === "complete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.update(inquiries).set({ status: "completed" }).where(eq(inquiries.inquiry_id, id));
+  }
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.delete(inquiries).where(eq(inquiries.inquiry_id, id));
+  }
+  return { success: true };
 }
 
 interface Inquiry {
@@ -70,9 +92,22 @@ const MOCK_INQUIRIES: Inquiry[] = [
 export default function AdminConsultingInquiriesPage({
   loaderData,
 }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbInquiries } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
-  const [inquiries] = useState<Inquiry[]>(MOCK_INQUIRIES);
+  const fetcher = useFetcher();
+
+  const inquiries: Inquiry[] = dbInquiries.length > 0
+    ? dbInquiries.map((i) => ({
+        id: String(i.inquiry_id),
+        date: i.created_at.toISOString().slice(0, 10),
+        name: i.name,
+        phone: i.phone,
+        email: i.email,
+        type: i.type,
+        title: i.title,
+        status: i.status === "completed" ? "처리완료" as const : "대기중" as const,
+      }))
+    : MOCK_INQUIRIES;
 
   const filteredInquiries = inquiries.filter(
     (inquiry) =>
@@ -95,15 +130,18 @@ export default function AdminConsultingInquiriesPage({
   };
 
   const handleComplete = (id: string) => {
-    console.log("Complete inquiry:", id);
-    alert(`상담 문의 처리완료: ${id}`);
+    const fd = new FormData();
+    fd.append("intent", "complete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const handleDelete = (id: string) => {
-    console.log("Delete inquiry:", id);
-    if (confirm("정말 삭제하시겠습니까?")) {
-      alert(`상담 문의 삭제: ${id}`);
-    }
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   return (

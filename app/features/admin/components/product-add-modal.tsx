@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/core/components/ui/select";
+import { ImageUpload } from "~/core/components/image-upload";
 import type { ProductCategory, ProductBadge } from "../types/product.types";
 
 interface ProductAddModalProps {
@@ -267,17 +268,23 @@ export function ProductAddModal({
             </p>
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image">이미지 URL</Label>
-            <Input
-              id="image"
+            <Label>제품 이미지</Label>
+            <ImageUpload
+              bucket="products"
+              folder="products"
               value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="/product-image.jpg"
-              required
+              onChange={(url) => setFormData({ ...formData, image: url })}
+              aspectRatio="3/4"
+              hint="JPG, PNG, WebP 최대 10MB"
+            />
+            {/* 직접 URL 입력 (선택) */}
+            <Input
+              value={formData.image}
+              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+              placeholder="또는 이미지 URL 직접 입력"
+              className="text-xs"
             />
           </div>
 

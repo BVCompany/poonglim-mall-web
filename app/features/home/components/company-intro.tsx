@@ -2,7 +2,17 @@ import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
-export function CompanyIntro() {
+interface CompanyIntroProps {
+  image?: string | null;
+  title?: string | null;
+  link?: string | null;
+}
+
+const DEFAULT_IMAGE = "/home/company_intro.jpg";
+const DEFAULT_TITLE = "30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운 일상을 만들어가고 있습니다.";
+const DEFAULT_LINK  = "/brand/intro";
+
+export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -50,7 +60,7 @@ export function CompanyIntro() {
           }`}
         >
           <img
-            src="/home/company_intro.jpg"
+            src={image || DEFAULT_IMAGE}
             alt="풍림푸드 공장"
             className="absolute inset-0 h-full w-full object-cover"
             onError={(e) => {
@@ -85,14 +95,13 @@ export function CompanyIntro() {
                   letterSpacing: "-0.04em",
                 }}
               >
-                30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운
-                일상을 만들어가고 있습니다.
+                {title || DEFAULT_TITLE}
               </h2>
             </div>
 
             {/* 하단: Learn More 버튼 - 모바일 100% / PC w-fit */}
             <Link
-              to="/brand/intro"
+              to={link || DEFAULT_LINK}
               className="flex w-full items-center justify-between gap-4 rounded-full border border-black/20 px-3 py-2.5 text-sm font-medium transition-colors md:w-[190px]"
               style={{
                 backgroundColor: "#f1ecdb",

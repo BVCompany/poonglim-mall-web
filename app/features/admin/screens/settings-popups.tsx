@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/settings-popups";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -14,13 +15,48 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
 import { Edit, Trash2, Plus, Search, Eye } from "lucide-react";
+import { getActivePopups } from "~/features/home/lib/queries.server";
+import db from "~/core/db/drizzle-client.server";
+import { popups as popupsTable } from "~/features/home/schema";
+import { eq } from "drizzle-orm";
 
-/**
- * Loader: Require admin authentication
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  return { adminUser };
+  const dbPopups = await getActivePopups().catch(() => []);
+  return { adminUser, dbPopups };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAdminAuth(request);
+  const fd = await request.formData();
+  const intent = fd.get("intent") as string;
+
+  if (intent === "create") {
+    await db.insert(popupsTable).values({
+      title: fd.get("title") as string,
+      content: (fd.get("content") as string) || null,
+      link_url: (fd.get("linkUrl") as string) || null,
+      is_active: fd.get("isActive") !== "false",
+      started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
+      ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
+    });
+    return { success: true };
+  }
+
+  if (intent === "delete") {
+    const id = Number(fd.get("id"));
+    if (id) await db.delete(popupsTable).where(eq(popupsTable.popup_id, id));
+    return { success: true };
+  }
+
+  if (intent === "toggle") {
+    const id = Number(fd.get("id"));
+    const isActive = fd.get("isActive") === "true";
+    if (id) await db.update(popupsTable).set({ is_active: !isActive }).where(eq(popupsTable.popup_id, id));
+    return { success: true };
+  }
+
+  return { success: false };
 }
 
 interface Popup {
@@ -52,42 +88,48 @@ const MOCK_POPUPS: Popup[] = [
 ];
 
 export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser } = loaderData;
+  const { adminUser, dbPopups } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
-  const [popups, setPopups] = useState<Popup[]>(MOCK_POPUPS);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fetcher = useFetcher();
+
+  const popups: Popup[] = dbPopups.length > 0
+    ? dbPopups.map((p) => ({
+        id: String(p.popup_id),
+        title: p.title,
+        content: p.content ?? "",
+        frequency: "once" as const,
+        startDate: p.started_at ? new Date(p.started_at).toISOString().slice(0, 10) : "",
+        endDate: p.ended_at ? new Date(p.ended_at).toISOString().slice(0, 10) : "",
+        imageUrl: p.image_url ?? "",
+        linkUrl: p.link_url ?? "",
+        isActive: p.is_active,
+        createdAt: p.created_at.toISOString().slice(0, 10),
+      }))
+    : MOCK_POPUPS;
 
   const filteredPopups = popups.filter((popup) =>
     popup.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddPopup = (popupData: PopupFormData) => {
-    const newPopup: Popup = {
-      id: Date.now().toString(),
-      title: popupData.title,
-      content: popupData.content,
-      frequency: popupData.frequency,
-      startDate: popupData.startDate,
-      endDate: popupData.endDate,
-      imageUrl: popupData.imageUrl,
-      linkUrl: popupData.linkUrl,
-      isActive: popupData.isActive,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setPopups([...popups, newPopup]);
-    alert(`팝업이 추가되었습니다: ${popupData.title}`);
+    const fd = new FormData();
+    fd.append("intent", "create");
+    Object.entries(popupData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    fetcher.submit(fd, { method: "POST" });
+    setIsAddModalOpen(false);
   };
 
   const handleEdit = (id: string) => {
     console.log("Edit popup:", id);
-    alert(`팝업 수정: ${id}`);
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      setPopups(popups.filter((popup) => popup.id !== id));
-      alert(`팝업 삭제: ${id}`);
-    }
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    const fd = new FormData();
+    fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
   };
 
   const getFrequencyLabel = (frequency: Popup["frequency"]) => {

@@ -9,6 +9,7 @@ import type { AdminUser } from "../types/auth.types";
 import {
   ChevronDown,
   FileText,
+  Image,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -57,6 +58,8 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "이벤트/공지", href: "/admin/events" },
       { title: "레시피", href: "/admin/recipes" },
+      { title: "뉴스/보도자료", href: "/admin/media/news" },
+      { title: "카탈로그", href: "/admin/media/catalog" },
     ],
   },
   {
@@ -78,12 +81,21 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    id: "banners",
+    title: "배너 관리",
+    icon: Image,
+    children: [
+      { title: "메인 배너", href: "/admin/settings/banners" },
+      { title: "홈 섹션 관리", href: "/admin/settings/site" },
+    ],
+  },
+  {
     id: "settings",
     title: "설정",
     icon: Settings,
     children: [
-      { title: "배너 관리", href: "/admin/settings/banners" },
       { title: "팝업 관리", href: "/admin/settings/popups" },
+      { title: "사이트 설정", href: "/admin/settings/seo" },
       { title: "관리자 관리", href: "/admin/settings/admins" },
     ],
   },
