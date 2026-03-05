@@ -1,11 +1,3 @@
-/**
- * Admin Login Screen
- * 
- * Login page for admin users to access the admin panel.
- * Currently uses temporary authentication with test credentials.
- * TODO: Integrate with Supabase authentication when DB is configured.
- */
-
 import { useState } from "react";
 import { Form, useActionData, useNavigation } from "react-router";
 import type { Route } from "./+types/login";
@@ -13,149 +5,162 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Checkbox } from "~/core/components/ui/checkbox";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import {
   redirectIfAdminAuthenticated,
   loginAdmin,
   createAdminSession,
 } from "../utils/auth.server";
 
-/**
- * Loader: Redirect if already authenticated
- */
 export async function loader({ request }: Route.LoaderArgs) {
   await redirectIfAdminAuthenticated(request);
   return null;
 }
 
-/**
- * Action: Handle login form submission
- */
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const remember = formData.get("remember") === "on";
 
-  // Validate input
   if (!email || !password) {
-    return {
-      error: "이메일과 비밀번호를 입력해주세요.",
-    };
+    return { error: "이메일과 비밀번호를 입력해주세요.", email };
   }
 
-  // Attempt login
   const adminUser = await loginAdmin({ email, password, remember });
 
   if (!adminUser) {
-    return {
-      error: "이메일 또는 비밀번호가 올바르지 않습니다.",
-    };
+    return { error: "이메일 또는 비밀번호가 올바르지 않습니다.", email };
   }
 
-  // Create session and redirect
   return createAdminSession(adminUser);
 }
 
-/**
- * Admin Login Screen Component
- */
 export default function AdminLogin() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const [rememberMe, setRememberMe] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-600 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          {/* Logo & Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              풍림푸드
-            </h1>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              관리자 로그인
-            </h2>
-            <p className="text-sm text-gray-500">
-              관리자 계정으로 로그인하여 웹사이트를 관리하세요
-            </p>
+    <div className="min-h-screen bg-[#204E3A] flex items-center justify-center p-4">
+      {/* 배경 패턴 */}
+      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+
+      <div className="relative w-full max-w-md">
+        {/* 카드 */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* 상단 헤더 */}
+          <div className="bg-[#204E3A] px-8 pt-10 pb-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 mb-4">
+              <ShieldCheck className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-1">풍림푸드</h1>
+            <p className="text-emerald-200 text-sm">관리자 포털</p>
           </div>
 
-          {/* Error Message */}
-          {actionData?.error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{actionData.error}</p>
-            </div>
-          )}
+          {/* 폼 영역 */}
+          <div className="px-8 py-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-6 text-center">
+              로그인
+            </h2>
 
-          {/* Login Form */}
-          <Form method="post" className="space-y-6">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@poonglim.com"
-                required
-                disabled={isSubmitting}
-                className="w-full"
-                autoComplete="email"
-              />
-            </div>
+            {/* 오류 메시지 */}
+            {actionData?.error && (
+              <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{actionData.error}</p>
+              </div>
+            )}
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-                disabled={isSubmitting}
-                className="w-full"
-                autoComplete="current-password"
-              />
-            </div>
+            <Form method="post" className="space-y-5">
+              {/* 이메일 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  이메일
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="admin@poonglim.com"
+                    defaultValue={actionData?.email ?? ""}
+                    required
+                    disabled={isSubmitting}
+                    autoComplete="email"
+                    className="pl-9 h-11"
+                  />
+                </div>
+              </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember"
-                name="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              {/* 비밀번호 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  비밀번호
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    disabled={isSubmitting}
+                    autoComplete="current-password"
+                    className="pl-9 pr-10 h-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* 로그인 상태 유지 */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  name="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  disabled={isSubmitting}
+                />
+                <Label htmlFor="remember" className="text-sm font-normal text-gray-600 cursor-pointer">
+                  로그인 상태 유지
+                </Label>
+              </div>
+
+              {/* 로그인 버튼 */}
+              <Button
+                type="submit"
                 disabled={isSubmitting}
-              />
-              <Label
-                htmlFor="remember"
-                className="text-sm font-normal cursor-pointer"
+                className="w-full h-11 bg-[#204E3A] hover:bg-[#1a3f2e] text-white font-medium rounded-lg transition-colors"
               >
-                아이디 저장
-              </Label>
-            </div>
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    로그인 중...
+                  </span>
+                ) : "로그인"}
+              </Button>
+            </Form>
+          </div>
 
-            {/* Login Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#204E3A] hover:bg-[#1a3f2e] text-white py-6"
-            >
-              {isSubmitting ? "로그인 중..." : "로그인"}
-            </Button>
-          </Form>
-
-          {/* Test Account Info */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              테스트 계정: admin@poonglim.com / poonglim2024
+          {/* 하단 푸터 */}
+          <div className="px-8 py-4 bg-gray-50 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              © {new Date().getFullYear()} 풍림푸드 — 관리자 전용 페이지
             </p>
           </div>
         </div>

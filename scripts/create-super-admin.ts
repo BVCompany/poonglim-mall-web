@@ -45,14 +45,14 @@ async function main() {
     process.exit(1);
   }
 
-  const client = postgres(DATABASE_URL, { max: 1 });
+  const client = postgres(DATABASE_URL as string, { max: 1 });
   const db = drizzle(client);
 
   // 동적 import (서버 전용 모듈)
   const { admins } = await import("../app/features/admin/schema.js");
 
   // 이미 존재하는지 확인
-  const existing = await db.select().from(admins).where(eq(admins.email, email)).limit(1);
+  const existing = await db.select().from(admins).where(eq(admins.email, email!)).limit(1);
   if (existing.length > 0) {
     console.log(`⚠️  이미 해당 이메일로 계정이 존재합니다: ${email}`);
     console.log(`   이름: ${existing[0].name}, 역할: ${existing[0].role}`);
