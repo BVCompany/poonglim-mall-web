@@ -14,14 +14,17 @@ import { BannerAddModal, type BannerFormData } from "../components/banner-add-mo
 import { Button } from "~/core/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "~/core/components/ui/dialog";
 import { ChevronUp, ChevronDown, Eye, Edit, Trash2, Plus, ImageOff, X } from "lucide-react";
-import { getActiveBanners } from "~/features/home/lib/queries.server";
+import { getAllBanners } from "~/features/home/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { banners as bannersTable } from "~/features/home/schema";
 import { eq } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbBanners = await getActiveBanners().catch(() => []);
+  const dbBanners = await getAllBanners().catch((e) => {
+    console.error("[admin/banners] DB 조회 실패:", e);
+    return [];
+  });
   return { adminUser, dbBanners };
 }
 
