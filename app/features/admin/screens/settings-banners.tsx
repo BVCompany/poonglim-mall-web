@@ -12,7 +12,7 @@ import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { BannerAddModal, type BannerFormData } from "../components/banner-add-modal";
 import { Button } from "~/core/components/ui/button";
-import { ChevronUp, ChevronDown, Eye, Edit, Trash2, Plus } from "lucide-react";
+import { ChevronUp, ChevronDown, Eye, Edit, Trash2, Plus, ImageOff } from "lucide-react";
 import { getActiveBanners } from "~/features/home/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { banners as bannersTable } from "~/features/home/schema";
@@ -285,14 +285,31 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <img
-                            src={banner.imageUrl}
-                            alt={banner.title}
-                            className="h-16 w-24 object-cover rounded"
-                            onError={(e) => {
-                              e.currentTarget.src = "https://via.placeholder.com/96x64?text=No+Image";
-                            }}
-                          />
+                          {banner.imageUrl ? (
+                            <div className="relative h-16 w-24 rounded overflow-hidden bg-gray-100">
+                              <img
+                                src={banner.imageUrl}
+                                alt={banner.title}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.classList.add("flex", "items-center", "justify-center");
+                                    const icon = parent.querySelector(".img-fallback");
+                                    if (icon) (icon as HTMLElement).style.display = "flex";
+                                  }
+                                }}
+                              />
+                              <div className="img-fallback hidden absolute inset-0 items-center justify-center bg-gray-100">
+                                <ImageOff className="h-6 w-6 text-gray-300" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="h-16 w-24 rounded bg-gray-100 flex items-center justify-center">
+                              <ImageOff className="h-6 w-6 text-gray-300" />
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="max-w-xs">
