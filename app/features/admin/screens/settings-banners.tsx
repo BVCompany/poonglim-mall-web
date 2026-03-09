@@ -142,7 +142,7 @@ function BannerPreviewModal({ banner, open, onClose }: { banner: Banner | null; 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[95vw] w-[95vw] p-0 overflow-hidden bg-transparent border-none shadow-none">
+      <DialogContent className="!max-w-[95vw] !w-[95vw] p-0 overflow-hidden bg-transparent border-none shadow-none">
         <DialogTitle className="sr-only">{banner.title} 배너 미리보기</DialogTitle>
 
         {/* 닫기 버튼 */}
