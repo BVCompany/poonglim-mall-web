@@ -24,8 +24,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // DB 데이터 병렬 조회 (실패 시 폴백)
   const [banners, popups, featuredProducts, recentNews, companyIntro] = await Promise.all([
-    getActiveBanners().catch(() => []),
-    getActivePopups().catch(() => []),
+    getActiveBanners().catch((e) => { console.error("[home] 배너 조회 실패:", e); return []; }),
+    getActivePopups().catch((e) => { console.error("[home] 팝업 조회 실패:", e); return []; }),
     getFeaturedProducts(10).catch(() => []),
     getRecentNews(5).catch(() => []),
     getCompanyIntroSettings().catch(() => ({ image: null, title: null, link: null })),

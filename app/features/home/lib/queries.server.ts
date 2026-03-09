@@ -9,6 +9,14 @@ import { banners, popups } from "../schema";
 export type Banner = typeof banners.$inferSelect;
 export type Popup = typeof popups.$inferSelect;
 
+/** 전체 배너 목록 (관리자용 — 활성/비활성 모두) */
+export async function getAllBanners() {
+  return db
+    .select()
+    .from(banners)
+    .orderBy(asc(banners.sort_order));
+}
+
 /** 현재 노출 중인 배너 목록 */
 export async function getActiveBanners() {
   const now = new Date();
