@@ -5,6 +5,27 @@
  */
 
 import { useState } from "react";
+
+function BannerThumbnail({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = useState(false);
+  if (!src || error) {
+    return (
+      <div className="h-16 w-24 rounded bg-gray-100 flex items-center justify-center">
+        <ImageOff className="h-6 w-6 text-gray-300" />
+      </div>
+    );
+  }
+  return (
+    <div className="h-16 w-24 rounded overflow-hidden bg-gray-100">
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/settings-banners";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -285,31 +306,7 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {banner.imageUrl ? (
-                            <div className="relative h-16 w-24 rounded overflow-hidden bg-gray-100">
-                              <img
-                                src={banner.imageUrl}
-                                alt={banner.title}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    parent.classList.add("flex", "items-center", "justify-center");
-                                    const icon = parent.querySelector(".img-fallback");
-                                    if (icon) (icon as HTMLElement).style.display = "flex";
-                                  }
-                                }}
-                              />
-                              <div className="img-fallback hidden absolute inset-0 items-center justify-center bg-gray-100">
-                                <ImageOff className="h-6 w-6 text-gray-300" />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="h-16 w-24 rounded bg-gray-100 flex items-center justify-center">
-                              <ImageOff className="h-6 w-6 text-gray-300" />
-                            </div>
-                          )}
+                          <BannerThumbnail src={banner.imageUrl} alt={banner.title} />
                         </td>
                         <td className="px-6 py-4">
                           <div className="max-w-xs">
