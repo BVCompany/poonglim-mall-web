@@ -8,7 +8,7 @@ import { sql } from "drizzle-orm";
 import { boolean, pgPolicy, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { authUid, authUsers, authenticatedRole } from "drizzle-orm/supabase";
 
-import { timestamps } from "~/core/db/helpers.server";
+import { timestamps } from "~/core/db/helpers";
 
 /**
  * Profiles Table

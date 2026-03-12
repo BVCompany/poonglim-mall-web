@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { boolean, integer, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 /** 히어로 배너 */
 export const banners = pgTable(

@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { integer, pgEnum, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const factoryTourStatusEnum = pgEnum("factory_tour_status", [
   "pending",   // 승인대기
