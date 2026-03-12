@@ -39,11 +39,12 @@ const MOCK_PRODUCTS: Product[] = [
   { id: 8, name: "계란말이", category: "convenience", image: "/home/solution.png", description: "폭신한 계란말이", tags: ["#간편식", "#업소용"] },
 ];
 
+/** 사용자 지정 배지 색상 */
 const BADGE_STYLE: Record<string, string> = {
-  NEW:  "bg-[#5DB876] text-white",
-  BEST: "bg-[#204E3A] text-white",
+  BEST: "bg-[#f4f2e5] text-[#204E3A]",
+  NEW:  "bg-[#ffd55d] text-[#1a1a1a]",
   SALE: "bg-orange-500 text-white",
-  B2B:  "bg-blue-600 text-white",
+  B2B:  "bg-[#32af32] text-white",
 };
 
 interface ProductGridProps {
@@ -95,30 +96,33 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
 function ProductCard({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
 
-  // 표시할 배지 목록 구성
+  // 표시할 배지 목록 구성 (badge + is_b2b 동시 지원)
   const badges: string[] = [];
   if (product.badge && product.badge !== "B2B") badges.push(product.badge);
   if (product.isB2b) badges.push("B2B");
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-[#F5F2EB] shadow-sm transition-all duration-200 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl bg-[#EDEBE4] shadow-sm transition-all duration-200 hover:shadow-md">
 
-      {/* 이미지 영역 */}
-      <div className="relative aspect-square overflow-hidden bg-[#EDE9E0]">
-        <img
-          src={imgError ? "/home/premium_egg.png" : product.image}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          onError={() => setImgError(true)}
-        />
+      {/* 이미지 영역 — object-contain + 패딩으로 배경 노출 (홈 카드와 동일 방식) */}
+      <div className="relative aspect-square overflow-hidden bg-[#EDEBE4]">
+        {/* 이미지 패딩 래퍼 */}
+        <div className="absolute inset-0 flex items-center justify-center p-4 md:p-6">
+          <img
+            src={imgError ? "/home/premium_egg.png" : product.image}
+            alt={product.name}
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        </div>
 
-        {/* 배지 — 좌상단, 여러 개 가로 나열 */}
+        {/* 배지 — 절대 위치, 좌상단, 여러 개 가로 나열 */}
         {badges.length > 0 && (
-          <div className="absolute left-3 top-3 flex gap-1">
+          <div className="absolute left-3 top-3 z-10 flex gap-1">
             {badges.map((b) => (
               <span
                 key={b}
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
               >
                 {b}
               </span>
@@ -127,28 +131,26 @@ function ProductCard({ product }: { product: Product }) {
         )}
 
         {/* 호버 오버레이 — 대형 원형 버튼 */}
-        <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          {/* 상세보기 */}
+        <div className="absolute inset-0 z-20 flex items-center justify-center gap-3 bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:gap-4">
           <Link
             to={`/products/${product.id}`}
-            className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-white/20 text-center text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/35 md:h-24 md:w-24 md:text-sm"
+            className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-white/25 text-center text-[11px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/40 md:h-20 md:w-20 md:text-xs"
             viewTransition
           >
             상세보기
           </Link>
 
-          {/* 풍림몰 가기 */}
           {product.shopUrl ? (
             <a
               href={product.shopUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-[#204E3A] text-center text-xs font-semibold text-white transition-colors hover:bg-[#1a3f2e] md:h-24 md:w-24 md:text-sm"
+              className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-[#204E3A] text-center text-[11px] font-semibold text-white transition-colors hover:bg-[#1a3f2e] md:h-20 md:w-20 md:text-xs"
             >
               풍림몰 가기
             </a>
           ) : (
-            <div className="flex h-20 w-20 flex-col items-center justify-center rounded-full bg-[#204E3A]/50 text-center text-xs font-semibold text-white/60 md:h-24 md:w-24 md:text-sm">
+            <div className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-[#204E3A]/40 text-center text-[11px] font-semibold text-white/50 md:h-20 md:w-20 md:text-xs">
               풍림몰 가기
             </div>
           )}
@@ -156,14 +158,19 @@ function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* 텍스트 영역 */}
-      <div className="p-3 md:p-4">
+      <div className="px-3 pb-4 pt-3 md:px-4">
         <h3 className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-gray-900 md:text-base">
           {product.name}
         </h3>
-        <p className="mb-2.5 line-clamp-1 text-xs text-gray-500">{product.description}</p>
-        <div className="flex flex-wrap gap-1">
+        {/* 설명 — 1줄 초과 시 ... 처리 */}
+        <p className="mb-2.5 line-clamp-1 text-xs text-gray-500">
+          {product.description}
+        </p>
+        <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
           {product.tags.slice(0, 4).map((tag, i) => (
-            <span key={i} className="text-[11px] text-[#204E3A]/70">{tag}</span>
+            <span key={i} className="text-[11px] text-[#204E3A]/60">
+              {tag}
+            </span>
           ))}
         </div>
       </div>
