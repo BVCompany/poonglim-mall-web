@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import type { Route } from "./+types/all";
 import { ProductGrid } from "../components/product-grid";
 import { getProducts } from "../lib/queries.server";
 import type { Product } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
-import { Search, ChevronRight } from "lucide-react";
+import { PageBanner } from "~/core/components/page-banner";
+import { Search } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
   liquid_egg:  "액란가공품",
@@ -46,43 +46,18 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
       {/* ── 페이지 배너 ── */}
-      <section
-        className="relative w-full h-48 md:h-64 overflow-hidden bg-gray-800"
-        style={{
-          backgroundImage: `url(${pageBanner?.image_url ?? "/banner/product_banner_temp.png"})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {/* 어두운 오버레이 */}
-        <div className="absolute inset-0 bg-black/45" />
-
-        {/* 브레드크럼 — 좌상단 */}
-        <div className="absolute top-4 left-6 md:top-5 md:left-10 z-10">
-          <div className="flex items-center gap-1.5 text-white/70 text-xs md:text-sm">
-            <Link to="/" className="hover:text-white transition-colors">Home</Link>
-            <span>&gt;</span>
-            <span className="text-white">제품소개</span>
-          </div>
-        </div>
-
-        {/* 중앙 콘텐츠 */}
-        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 gap-2.5">
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-            {pageBanner?.title ?? "계란이야기"}
-          </h1>
-          <p className="text-white/80 text-xs md:text-sm max-w-lg leading-relaxed">
-            {pageBanner?.subtitle ?? "대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"}
-          </p>
-          <Link
-            to={pageBanner?.link_url ?? "/brand/intro"}
-            className="mt-1 inline-flex items-center gap-1 border border-white/60 hover:bg-white/20 text-white text-xs md:text-sm font-medium px-5 py-1.5 rounded-full transition-colors"
-          >
-            {pageBanner?.link_text ?? "자세히 보기"}
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </section>
+      <PageBanner
+        imageUrl="/banner/product_banner_temp.png"
+        title="계란이야기"
+        subtitle="대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"
+        linkUrl="/brand/intro"
+        linkText="자세히 보기"
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "제품소개" },
+        ]}
+        dbBanner={pageBanner}
+      />
 
       {/* ── 카테고리 탭 + 검색 ── */}
       <section className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
