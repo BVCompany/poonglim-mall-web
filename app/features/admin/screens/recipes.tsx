@@ -7,7 +7,7 @@ import type { Route } from "./+types/recipes";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
-import { RecipeAddModal, type RecipeFormData } from "../components/recipe-add-modal";
+import { RecipeAddModal, type RecipeFormData, type IngredientRow, type StepRow } from "../components/recipe-add-modal";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
@@ -58,6 +58,30 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false };
+    const ingredientsJson = fd.get("ingredients") as string;
+    const stepsJson       = fd.get("steps") as string;
+
+    await db.update(recipes).set({
+      title:        fd.get("name") as string,
+      category:     (fd.get("category") as string) || "easy",
+      description:  (fd.get("description") as string) || null,
+      cooking_time: fd.get("prepTime") ? parseInt(fd.get("prepTime") as string) || null : null,
+      servings:     fd.get("servings") ? parseInt(fd.get("servings") as string) || null : null,
+      difficulty:   (fd.get("difficulty") as string) || null,
+      ingredients:  ingredientsJson || null,
+      steps:        stepsJson || null,
+      thumbnail_url: (fd.get("image") as string) || null,
+      tags: fd.get("tags")
+        ? (fd.get("tags") as string).split(",").map((t) => t.trim()).filter(Boolean)
+        : [],
+      updated_at: new Date(),
+    }).where(eq(recipes.recipe_id, id));
+    return { success: true };
+  }
+
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) await db.delete(recipes).where(eq(recipes.recipe_id, id));
@@ -84,6 +108,8 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbRecipes, dbCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | undefined>(undefined);
+  const [editingData, setEditingData] = useState<RecipeFormData | undefined>(undefined);
   const fetcher = useFetcher();
 
   const sourceRecipes: AdminRecipe[] = dbRecipes.length > 0
@@ -131,6 +157,69 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
 
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
+  };
+
+  const handleOpenEdit = (recipeId: string) => {
+    const raw = dbRecipes.find((r) => String(r.recipe_id) === recipeId);
+    if (!raw) return;
+
+    let ingredients: IngredientRow[] = [{ name: "", amount: "" }];
+    let steps: StepRow[] = [{ description: "" }];
+    try {
+      if (raw.ingredients) {
+        const parsed = JSON.parse(raw.ingredients);
+        if (Array.isArray(parsed) && parsed.length > 0) ingredients = parsed;
+      }
+    } catch {}
+    try {
+      if (raw.steps) {
+        const parsed = JSON.parse(raw.steps);
+        if (Array.isArray(parsed) && parsed.length > 0)
+          steps = parsed.map((s: { description: string }) => ({ description: s.description }));
+      }
+    } catch {}
+
+    setEditingId(raw.recipe_id);
+    setEditingData({
+      name:        raw.title,
+      category:    raw.category,
+      difficulty:  raw.difficulty ?? "easy",
+      prepTime:    String(raw.cooking_time ?? ""),
+      servings:    String(raw.servings ?? ""),
+      description: raw.description ?? "",
+      ingredients,
+      steps,
+      tags:        (raw.tags ?? []).join(", "),
+      image:       raw.thumbnail_url ?? "",
+    });
+  };
+
+  const handleEditRecipe = (recipeData: RecipeFormData) => {
+    if (!editingId) return;
+    const fd = new FormData();
+    fd.append("intent",      "update");
+    fd.append("id",          String(editingId));
+    fd.append("name",        recipeData.name);
+    fd.append("category",    recipeData.category);
+    fd.append("difficulty",  recipeData.difficulty);
+    fd.append("description", recipeData.description);
+    fd.append("prepTime",    recipeData.prepTime);
+    fd.append("servings",    recipeData.servings);
+    fd.append("tags",        recipeData.tags);
+
+    const validIngredients = recipeData.ingredients.filter((r) => r.name.trim());
+    fd.append("ingredients", JSON.stringify(validIngredients));
+
+    const validSteps = recipeData.steps
+      .filter((s) => s.description.trim())
+      .map((s, i) => ({ step: i + 1, description: s.description }));
+    fd.append("steps", JSON.stringify(validSteps));
+
+    if (recipeData.image) fd.append("image", recipeData.image);
+
+    fetcher.submit(fd, { method: "POST" });
+    setEditingId(undefined);
+    setEditingData(undefined);
   };
 
   const handleDelete = (recipeId: string) => {
@@ -227,7 +316,12 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                       </div>
 
                       <div className="flex flex-shrink-0 items-center gap-2">
-                        <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenEdit(recipe.id)}
+                          className="text-gray-600 hover:text-gray-900"
+                        >
                           <Edit className="h-5 w-5" />
                         </Button>
                         <Button
@@ -254,10 +348,21 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
+      {/* 등록 모달 */}
       <RecipeAddModal
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onSubmit={handleAddRecipe}
+        dbCategories={dbCategories.map((c) => ({ slug: c.slug, name: c.name }))}
+      />
+
+      {/* 수정 모달 */}
+      <RecipeAddModal
+        open={editingId !== undefined}
+        onOpenChange={(o) => { if (!o) { setEditingId(undefined); setEditingData(undefined); } }}
+        onSubmit={handleEditRecipe}
+        editId={editingId}
+        initialData={editingData}
         dbCategories={dbCategories.map((c) => ({ slug: c.slug, name: c.name }))}
       />
     </div>

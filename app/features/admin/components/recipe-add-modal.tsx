@@ -1,8 +1,8 @@
 /**
- * Recipe Add Modal Component
+ * Recipe Add/Edit Modal Component
  * 재료 동적 추가 + 만드는 법 단계별 추가 지원
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
 import { ImageUpload } from "~/core/components/image-upload";
 import { Input } from "~/core/components/ui/input";
@@ -34,6 +34,10 @@ interface RecipeAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (recipe: RecipeFormData) => void;
+  /** 수정 모드: 수정할 레시피의 DB id */
+  editId?: number;
+  /** 수정 모드: 기존 데이터 (미제공 시 등록 모드) */
+  initialData?: RecipeFormData;
   /** DB에서 로드된 레시피 카테고리 */
   dbCategories?: { slug: string; name: string }[];
 }
@@ -150,16 +154,24 @@ function StepRows({
 
 // ─── 모달 ─────────────────────────────────────────────────────────────────────
 export function RecipeAddModal({
-  open, onOpenChange, onSubmit, dbCategories = [],
+  open, onOpenChange, onSubmit, editId, initialData, dbCategories = [],
 }: RecipeAddModalProps) {
-  const [form, setForm] = useState<RecipeFormData>(EMPTY_FORM);
+  const isEditMode = editId !== undefined;
+  const [form, setForm] = useState<RecipeFormData>(initialData ?? EMPTY_FORM);
+
+  // 모달이 열릴 때 initialData로 폼 초기화
+  useEffect(() => {
+    if (open) {
+      setForm(initialData ?? EMPTY_FORM);
+    }
+  }, [open, initialData]);
 
   const reset = () => setForm(EMPTY_FORM);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
-    reset();
+    if (!isEditMode) reset();
     onOpenChange(false);
   };
 
@@ -172,10 +184,12 @@ export function RecipeAddModal({
       ];
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !isEditMode) reset(); onOpenChange(o); }}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 레시피 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {isEditMode ? "레시피 수정" : "새 레시피 추가"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
@@ -302,8 +316,10 @@ export function RecipeAddModal({
 
           {/* 버튼 */}
           <div className="flex gap-3 pt-2">
-            <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">추가</Button>
-            <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }} className="flex-1">취소</Button>
+            <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">
+              {isEditMode ? "수정 완료" : "추가"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => { if (!isEditMode) reset(); onOpenChange(false); }} className="flex-1">취소</Button>
           </div>
         </form>
       </DialogContent>
