@@ -91,12 +91,13 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false };
 }
 
-function getCategoryLabel(cat: string): string {
-  const map: Record<string, string> = {
+function makeCategoryLabel(dbCategories: { slug: string; name: string }[]) {
+  const fallback: Record<string, string> = {
     easy: "가정용", dessert: "카페/베이커리", restaurant: "외식업체",
     home: "가정용", cafe: "카페/베이커리",
   };
-  return map[cat] ?? cat;
+  return (cat: string) =>
+    dbCategories.find((c) => c.slug === cat)?.name ?? fallback[cat] ?? cat;
 }
 
 function getDifficultyLabel(diff: string): string {
@@ -106,6 +107,7 @@ function getDifficultyLabel(diff: string): string {
 
 export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbRecipes, dbCategories } = loaderData;
+  const getCategoryLabel = makeCategoryLabel(dbCategories);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
@@ -117,7 +119,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
         id: String(r.recipe_id),
         title: r.title,
         description: r.description ?? "",
-        category: (r.category === "dessert" ? "cafe" : r.category === "easy" ? "home" : "restaurant") as AdminRecipe["category"],
+        category: r.category as AdminRecipe["category"],
         difficulty: (r.difficulty ?? "easy") as AdminRecipe["difficulty"],
         cookingTime: r.cooking_time ?? "",
         servings: r.servings ?? "",

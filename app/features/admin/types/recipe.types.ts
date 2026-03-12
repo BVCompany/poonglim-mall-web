@@ -6,8 +6,9 @@
 
 /**
  * Recipe category types
+ * DB 카테고리 슬러그를 그대로 사용하므로 string으로 확장
  */
-export type RecipeCategory = "home" | "cafe" | "restaurant";
+export type RecipeCategory = "home" | "cafe" | "restaurant" | (string & {});
 
 /**
  * Recipe difficulty level

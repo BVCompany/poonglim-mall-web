@@ -159,22 +159,6 @@ export function RecipeAddModal({
   const isEditMode = editId !== undefined;
   const [form, setForm] = useState<RecipeFormData>(initialData ?? EMPTY_FORM);
 
-  // 모달이 열릴 때 initialData로 폼 초기화
-  useEffect(() => {
-    if (open) {
-      setForm(initialData ?? EMPTY_FORM);
-    }
-  }, [open, initialData]);
-
-  const reset = () => setForm(EMPTY_FORM);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-    if (!isEditMode) reset();
-    onOpenChange(false);
-  };
-
   const categoryOptions = dbCategories.length > 0
     ? dbCategories
     : [
@@ -182,6 +166,31 @@ export function RecipeAddModal({
         { slug: "dessert",    name: "카페 & 베이커리" },
         { slug: "restaurant", name: "외식업체" },
       ];
+
+  // 모달이 열릴 때 폼 초기화 — 등록 모드에서는 첫 번째 카테고리를 기본값으로 설정
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      setForm(initialData);
+    } else {
+      const defaultCategory = categoryOptions[0]?.slug ?? "easy";
+      setForm({ ...EMPTY_FORM, category: defaultCategory });
+    }
+  // categoryOptions 변경 감지 시 slug 배열로 비교 (참조 안정성 보장)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialData, dbCategories]);
+
+  const reset = () => {
+    const defaultCategory = categoryOptions[0]?.slug ?? "easy";
+    setForm({ ...EMPTY_FORM, category: defaultCategory });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(form);
+    if (!isEditMode) reset();
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !isEditMode) reset(); onOpenChange(o); }}>
