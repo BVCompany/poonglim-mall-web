@@ -9,6 +9,7 @@
  */
 import { sql } from "drizzle-orm";
 import { boolean, integer, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+// integer는 sort_order 용도로만 사용
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -22,8 +23,8 @@ export const recipes = pgTable(
     description: text(),
     thumbnail_url: text(),
     image_urls: text().array().default([]),
-    cooking_time: integer(),
-    servings: integer(),
+    cooking_time: text(), // "15분", "15~20분" 등 범위 표현 가능
+    servings: text(),    // "2인분", "2~3인분" 등 범위 표현 가능
     difficulty: text(),
     // JSON 배열: [{name, amount, unit}]
     ingredients: text(),

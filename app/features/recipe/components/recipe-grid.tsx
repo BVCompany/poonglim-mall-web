@@ -40,8 +40,8 @@ interface DbRecipe {
   title: string;
   category: string;
   difficulty?: string | null;
-  cooking_time?: number | null;
-  servings?: number | null;
+  cooking_time?: string | null;
+  servings?: string | null;
   thumbnail_url?: string | null;
   description?: string | null;
   tags?: string[] | null;
@@ -131,8 +131,8 @@ export function RecipeGrid({ selectedCategory, searchQuery, dbRecipes = [] }: Re
         id: r.recipe_id,
         title: r.title,
         category: r.category,
-        cookTime: r.cooking_time ? `${r.cooking_time}분` : "-",
-        servings: r.servings ? `${r.servings}인분` : "-",
+        cookTime: r.cooking_time ?? "-",
+        servings: r.servings ?? "-",
         image: r.thumbnail_url ?? "/home/premium_egg.png",
         description: r.description ?? "",
         tags: r.tags ?? [],

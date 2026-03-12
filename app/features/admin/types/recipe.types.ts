@@ -6,8 +6,9 @@
 
 /**
  * Recipe category types
+ * DB 카테고리 슬러그를 그대로 사용하므로 string으로 확장
  */
-export type RecipeCategory = "home" | "cafe" | "restaurant";
+export type RecipeCategory = "home" | "cafe" | "restaurant" | (string & {});
 
 /**
  * Recipe difficulty level
@@ -28,8 +29,8 @@ export interface AdminRecipe {
   description: string;
   category: RecipeCategory;
   difficulty: RecipeDifficulty;
-  cookingTime: number; // in minutes
-  servings: number;
+  cookingTime: string; // "15분", "15~20분" 등
+  servings: string;   // "2인분", "2~3인분" 등
   image: string;
   tags: string[];
   badge?: RecipeBadge;

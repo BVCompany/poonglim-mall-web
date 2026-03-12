@@ -1,8 +1,8 @@
 /**
- * Recipe Add Modal Component
+ * Recipe Add/Edit Modal Component
  * 재료 동적 추가 + 만드는 법 단계별 추가 지원
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
 import { ImageUpload } from "~/core/components/image-upload";
 import { Input } from "~/core/components/ui/input";
@@ -34,6 +34,10 @@ interface RecipeAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (recipe: RecipeFormData) => void;
+  /** 수정 모드: 수정할 레시피의 DB id */
+  editId?: number;
+  /** 수정 모드: 기존 데이터 (미제공 시 등록 모드) */
+  initialData?: RecipeFormData;
   /** DB에서 로드된 레시피 카테고리 */
   dbCategories?: { slug: string; name: string }[];
 }
@@ -150,18 +154,10 @@ function StepRows({
 
 // ─── 모달 ─────────────────────────────────────────────────────────────────────
 export function RecipeAddModal({
-  open, onOpenChange, onSubmit, dbCategories = [],
+  open, onOpenChange, onSubmit, editId, initialData, dbCategories = [],
 }: RecipeAddModalProps) {
-  const [form, setForm] = useState<RecipeFormData>(EMPTY_FORM);
-
-  const reset = () => setForm(EMPTY_FORM);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-    reset();
-    onOpenChange(false);
-  };
+  const isEditMode = editId !== undefined;
+  const [form, setForm] = useState<RecipeFormData>(initialData ?? EMPTY_FORM);
 
   const categoryOptions = dbCategories.length > 0
     ? dbCategories
@@ -171,11 +167,38 @@ export function RecipeAddModal({
         { slug: "restaurant", name: "외식업체" },
       ];
 
+  // 모달이 열릴 때 폼 초기화 — 등록 모드에서는 첫 번째 카테고리를 기본값으로 설정
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      setForm(initialData);
+    } else {
+      const defaultCategory = categoryOptions[0]?.slug ?? "easy";
+      setForm({ ...EMPTY_FORM, category: defaultCategory });
+    }
+  // categoryOptions 변경 감지 시 slug 배열로 비교 (참조 안정성 보장)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialData, dbCategories]);
+
+  const reset = () => {
+    const defaultCategory = categoryOptions[0]?.slug ?? "easy";
+    setForm({ ...EMPTY_FORM, category: defaultCategory });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(form);
+    if (!isEditMode) reset();
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !isEditMode) reset(); onOpenChange(o); }}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 레시피 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {isEditMode ? "레시피 수정" : "새 레시피 추가"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
@@ -222,21 +245,19 @@ export function RecipeAddModal({
           {/* 조리시간 + 인분 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>조리시간 (분)</Label>
+              <Label>조리시간</Label>
               <Input
-                type="number"
                 value={form.prepTime}
                 onChange={(e) => setForm({ ...form, prepTime: e.target.value })}
-                placeholder="예: 15"
+                placeholder="예: 15분 · 15~20분"
               />
             </div>
             <div className="space-y-1.5">
               <Label>인분</Label>
               <Input
-                type="number"
                 value={form.servings}
                 onChange={(e) => setForm({ ...form, servings: e.target.value })}
-                placeholder="예: 2"
+                placeholder="예: 2인분 · 2~3인분"
               />
             </div>
           </div>
@@ -302,8 +323,10 @@ export function RecipeAddModal({
 
           {/* 버튼 */}
           <div className="flex gap-3 pt-2">
-            <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">추가</Button>
-            <Button type="button" variant="outline" onClick={() => { reset(); onOpenChange(false); }} className="flex-1">취소</Button>
+            <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">
+              {isEditMode ? "수정 완료" : "추가"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => { if (!isEditMode) reset(); onOpenChange(false); }} className="flex-1">취소</Button>
           </div>
         </form>
       </DialogContent>
