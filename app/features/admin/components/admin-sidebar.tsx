@@ -86,6 +86,7 @@ const menuItems: MenuItem[] = [
     icon: Image,
     children: [
       { title: "메인 배너", href: "/admin/settings/banners" },
+      { title: "페이지 배너", href: "/admin/settings/page-banners" },
       { title: "홈 섹션 관리", href: "/admin/settings/site" },
     ],
   },

@@ -44,6 +44,14 @@ export const products = pgTable(
     is_active: boolean().notNull().default(true),
     sort_order: integer().notNull().default(0),
     tags: text().array().default([]),
+    // 상세 페이지 전용 필드
+    shop_url:       text(),                    // 풍림몰 구매 링크
+    volume:         text(),                    // 용량 (예: "1L")
+    storage_method: text(),                    // 보관방법 (예: "냉장보관 0~10℃")
+    expiry_info:    text(),                    // 유통기한 (예: "제조일로부터 14일")
+    origin:         text(),                    // 원산지 (예: "국산")
+    ingredients:    text(),                    // 성분/원재료 (예: "계란 100%")
+    certifications: text().array().default([]), // 인증 (예: ["HACCP 인증", "무항생제"])
     ...timestamps,
   },
   (table) => [

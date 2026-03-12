@@ -102,6 +102,7 @@ export default [
       route("/liquid-eggs", "features/products/screens/liquid-eggs.tsx"),
       route("/puddings", "features/products/screens/puddings.tsx"),
       route("/convenience", "features/products/screens/convenience.tsx"),
+      route("/:id", "features/products/screens/detail.tsx"),
     ]),
     
     // Recipe Routes (레시피)
@@ -183,6 +184,7 @@ export default [
     ]),
     ...prefix("/settings", [
       route("/banners", "features/admin/screens/settings-banners.tsx"),
+      route("/page-banners", "features/admin/screens/settings-page-banners.tsx"),
       route("/popups", "features/admin/screens/settings-popups.tsx"),
       route("/admins", "features/admin/screens/settings-admins.tsx"),
       route("/site", "features/admin/screens/settings-site.tsx"),
