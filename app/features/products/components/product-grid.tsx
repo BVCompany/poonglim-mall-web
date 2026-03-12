@@ -133,25 +133,32 @@ function ProductCard({ product }: { product: Product }) {
 
         {/* 호버 오버레이 — 대형 원형 버튼 */}
         <div className="absolute inset-0 z-20 flex items-center justify-center gap-3 bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:gap-4">
+          {/* 상세보기 — #ffd55d 노란색 */}
           <Link
             to={`/products/${product.id}`}
-            className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-white/25 text-center text-[11px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/40 md:h-20 md:w-20 md:text-xs"
+            className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full text-center text-[11px] font-bold text-[#1a1a1a] transition-all hover:brightness-105 md:h-20 md:w-20 md:text-xs"
+            style={{ backgroundColor: "#ffd55d" }}
             viewTransition
           >
             상세보기
           </Link>
 
+          {/* 풍림몰 가기 — #2DB96B 초록색 */}
           {product.shopUrl ? (
             <a
               href={product.shopUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-[#204E3A] text-center text-[11px] font-semibold text-white transition-colors hover:bg-[#1a3f2e] md:h-20 md:w-20 md:text-xs"
+              className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full text-center text-[11px] font-bold text-white transition-all hover:brightness-105 md:h-20 md:w-20 md:text-xs"
+              style={{ backgroundColor: "#2DB96B" }}
             >
               풍림몰 가기
             </a>
           ) : (
-            <div className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full bg-[#204E3A]/40 text-center text-[11px] font-semibold text-white/50 md:h-20 md:w-20 md:text-xs">
+            <div
+              className="flex h-[68px] w-[68px] flex-col items-center justify-center rounded-full text-center text-[11px] font-bold text-white/50 md:h-20 md:w-20 md:text-xs"
+              style={{ backgroundColor: "#2DB96B55" }}
+            >
               풍림몰 가기
             </div>
           )}

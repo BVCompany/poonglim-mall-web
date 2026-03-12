@@ -120,7 +120,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
           </div>
 
           {/* 탭 바 — 녹색 캡슐 */}
-          <div className="flex items-center gap-0 overflow-x-auto rounded-full bg-[#204E3A] px-2 py-2 scrollbar-none">
+          <div className="flex items-center overflow-x-auto rounded-full bg-[#204E3A] px-3 py-2 scrollbar-none md:px-4 md:py-2.5">
             {categories.map((cat, idx) => {
               const isActive = selectedCategory === cat.id;
               const isAll = cat.id === "all";
@@ -131,12 +131,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
                 <div key={cat.id} className="flex flex-shrink-0 items-center">
                   {/* "전체 제품" 다음에만 구분선 */}
                   {idx === 1 && (
-                    <span className="mx-1 h-4 w-px flex-shrink-0 bg-white/30" />
+                    <span className="mx-2 h-5 w-px flex-shrink-0 bg-white/30 md:mx-3" />
                   )}
                   <button
                     onClick={() => setSelectedCategory(cat.id)}
                     className={`
-                      flex-shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-150
+                      flex-shrink-0 whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all duration-150 md:px-6 md:py-2.5
                       ${isActive
                         ? "bg-white text-[#204E3A]"
                         : "text-white/80 hover:bg-white/10 hover:text-white"
