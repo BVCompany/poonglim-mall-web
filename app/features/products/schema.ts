@@ -20,13 +20,6 @@ export const productBadgeEnum = pgEnum("product_badge", [
   "sale",
 ]);
 
-export const productCategoryEnum = pgEnum("product_category", [
-  "liquid_egg",  // 액란
-  "pudding",     // 푸딩
-  "convenience", // 간편식
-  "b2b",         // B2B 전용
-]);
-
 export const products = pgTable(
   "products",
   {
@@ -34,7 +27,7 @@ export const products = pgTable(
     name: text().notNull(),
     description: text().notNull(),
     detail: text(),                         // 상세 설명
-    category: productCategoryEnum().notNull(),
+    category: text().notNull().default(""), // product_categories.slug 참조
     badge: productBadgeEnum(),              // BEST / NEW / B2B / SALE
     image_url: text(),
     image_urls: text().array().default([]),

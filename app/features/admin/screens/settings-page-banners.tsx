@@ -160,7 +160,7 @@ function BannerForm({ pageKey, banner, savedKey }: {
               </div>
               <div className="flex-1 space-y-2">
                 <ImageUpload
-                  bucket="banners"
+                  bucket="media"
                   folder={`page/${pageKey}`}
                   value={imageUrl}
                   onChange={setImageUrl}

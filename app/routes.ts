@@ -174,6 +174,7 @@ export default [
     // 파일 업로드 API - /admin 경로 아래에 두어야 세션 쿠키(path:"/admin")가 전달됨
     route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
+    route("/product-categories", "features/admin/screens/product-categories.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
     route("/careers", "features/admin/screens/careers.tsx"),

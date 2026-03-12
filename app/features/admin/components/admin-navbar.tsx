@@ -22,6 +22,7 @@ function useForceLight() {
 const PAGE_TITLE_MAP: Record<string, string> = {
   "/admin/dashboard":              "대시보드",
   "/admin/products":               "제품 관리",
+  "/admin/product-categories":    "제품 카테고리 관리",
   "/admin/events":                 "이벤트/공지 관리",
   "/admin/recipes":                "레시피 관리",
   "/admin/careers":                "채용공고 관리",

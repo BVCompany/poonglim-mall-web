@@ -54,8 +54,8 @@ export function PageBanner({
   const resolvedLinkText = dbBanner?.link_text     ?? linkText;
 
   return (
-    /* 양쪽 여백 wrapper */
-    <div className="px-4 pt-4 md:px-6 md:pt-5">
+    /* 히어로 배너와 동일한 여백 */
+    <div className="px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5">
       <div
         className="relative w-full overflow-hidden rounded-2xl bg-gray-700"
         style={{

@@ -49,7 +49,10 @@ const menuItems: MenuItem[] = [
     id: "products",
     title: "제품 관리",
     icon: Package,
-    href: "/admin/products",
+    children: [
+      { title: "제품 목록", href: "/admin/products" },
+      { title: "카테고리 관리", href: "/admin/product-categories" },
+    ],
   },
   {
     id: "posts",
