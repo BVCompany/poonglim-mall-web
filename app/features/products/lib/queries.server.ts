@@ -17,14 +17,18 @@ export async function getProducts() {
     .orderBy(asc(products.sort_order));
 }
 
-/** 카테고리별 활성 제품 조회 */
-export async function getProductsByCategory(
-  category: "liquid_egg" | "pudding" | "convenience" | "b2b",
-) {
+/** 카테고리별 활성 제품 조회 (category는 text[] — ArrayContains 사용) */
+export async function getProductsByCategory(category: string) {
+  const { sql } = await import("drizzle-orm");
   return db
     .select()
     .from(products)
-    .where(and(eq(products.is_active, true), eq(products.category, category)))
+    .where(
+      and(
+        eq(products.is_active, true),
+        sql`${products.category} @> ARRAY[${category}]::text[]`,
+      ),
+    )
     .orderBy(asc(products.sort_order));
 }
 

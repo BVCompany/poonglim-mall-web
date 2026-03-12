@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { boolean, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole, authenticatedRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const adminRoleEnum = pgEnum("admin_role", ["super", "admin"]);
 

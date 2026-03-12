@@ -20,15 +20,18 @@ function useForceLight() {
 }
 
 const PAGE_TITLE_MAP: Record<string, string> = {
-  "/admin/dashboard":              "대시보드",
+  "/admin/dashboard":              "",
   "/admin/products":               "제품 관리",
+  "/admin/product-categories":    "제품 카테고리 관리",
   "/admin/events":                 "이벤트/공지 관리",
   "/admin/recipes":                "레시피 관리",
+  "/admin/recipe-categories":     "레시피 카테고리 관리",
   "/admin/careers":                "채용공고 관리",
   "/admin/applications":           "채용 지원서",
   "/admin/inquiries/consulting":   "상담 문의",
   "/admin/inquiries/tour":         "공장 견학 신청",
-  "/admin/settings/banners":       "배너 관리",
+  "/admin/settings/banners":       "메인 배너 관리",
+  "/admin/settings/page-banners":  "페이지 배너 관리",
   "/admin/settings/popups":        "팝업 관리",
   "/admin/settings/site":          "홈 섹션 관리",
   "/admin/settings/seo":           "사이트 설정",

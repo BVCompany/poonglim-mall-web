@@ -11,20 +11,13 @@ import { sql } from "drizzle-orm";
 import { boolean, integer, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const productBadgeEnum = pgEnum("product_badge", [
   "best",
   "new",
   "b2b",
   "sale",
-]);
-
-export const productCategoryEnum = pgEnum("product_category", [
-  "liquid_egg",  // 액란
-  "pudding",     // 푸딩
-  "convenience", // 간편식
-  "b2b",         // B2B 전용
 ]);
 
 export const products = pgTable(
@@ -34,7 +27,7 @@ export const products = pgTable(
     name: text().notNull(),
     description: text().notNull(),
     detail: text(),                         // 상세 설명
-    category: productCategoryEnum().notNull(),
+    category: text().array().notNull().default([]), // product_categories.slug 배열 (복수 카테고리 지원)
     badge: productBadgeEnum(),              // BEST / NEW / B2B / SALE
     image_url: text(),
     image_urls: text().array().default([]),
@@ -44,6 +37,14 @@ export const products = pgTable(
     is_active: boolean().notNull().default(true),
     sort_order: integer().notNull().default(0),
     tags: text().array().default([]),
+    // 상세 페이지 전용 필드
+    shop_url:       text(),                    // 풍림몰 구매 링크
+    volume:         text(),                    // 용량 (예: "1L")
+    storage_method: text(),                    // 보관방법 (예: "냉장보관 0~10℃")
+    expiry_info:    text(),                    // 유통기한 (예: "제조일로부터 14일")
+    origin:         text(),                    // 원산지 (예: "국산")
+    ingredients:    text(),                    // 성분/원재료 (예: "계란 100%")
+    certifications: text().array().default([]), // 인증 (예: ["HACCP 인증", "무항생제"])
     ...timestamps,
   },
   (table) => [

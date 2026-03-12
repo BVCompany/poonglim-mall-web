@@ -12,6 +12,7 @@ import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { ProductAddModal, type ProductFormData } from "../components/product-add-modal";
+import { getAllCategories } from "~/features/product-categories/lib/queries.server";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
@@ -29,17 +30,11 @@ import db from "~/core/db/drizzle-client.server";
 import { products } from "~/features/products/schema";
 import { eq } from "drizzle-orm";
 
-const CATEGORY_MAP: Record<string, "liquid_egg" | "pudding" | "convenience" | "b2b"> = {
-  "liquid-eggs": "liquid_egg",
-  "puddings": "pudding",
-  "convenience": "convenience",
-  "other": "b2b",
-};
-
 const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
   best: "best",
   new: "new",
   sale: "sale",
+  b2b: "b2b",
   recommended: "best",
 };
 
@@ -48,8 +43,11 @@ const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbProducts = await getProducts().catch(() => []);
-  return { adminUser, dbProducts };
+  const [dbProducts, dbCategories] = await Promise.all([
+    getProducts().catch(() => []),
+    getAllCategories().catch(() => []),
+  ]);
+  return { adminUser, dbProducts, dbCategories };
 }
 
 /**
@@ -61,27 +59,52 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent") as string;
 
   if (intent === "create") {
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const categoryRaw = formData.get("category") as string;
-    const priceRaw = formData.get("price") as string;
+    const name             = formData.get("name") as string;
+    const description      = formData.get("description") as string;
+    const detail           = formData.get("detail") as string;
+    const categoriesRaw    = formData.get("categories") as string;
+    const priceRaw         = formData.get("price") as string;
     const originalPriceRaw = formData.get("originalPrice") as string;
-    const badgeRaw = formData.get("badge") as string;
-    const imageUrl = formData.get("image") as string;
-    const tagsRaw = formData.get("tags") as string;
-    const isSortOrderSet = formData.get("sort_order") as string;
+    const badgeRaw         = formData.get("badge") as string;
+    const imageUrl         = formData.get("image") as string;
+    const tagsRaw          = formData.get("tags") as string;
+    const shopUrl          = formData.get("shopUrl") as string;
+    const sortOrderRaw     = formData.get("sort_order") as string;
+    // 제품 정보 스펙
+    const volume           = formData.get("volume") as string;
+    const storageMethod    = formData.get("storageMethod") as string;
+    const expiryInfo       = formData.get("expiryInfo") as string;
+    const origin           = formData.get("origin") as string;
+    const ingredients      = formData.get("ingredients") as string;
+    const certificationsRaw = formData.get("certifications") as string;
+
+    const parsedCategories: string[] = (() => {
+      try { return JSON.parse(categoriesRaw) as string[]; } catch { return []; }
+    })();
+
+    const parsedCertifications: string[] = certificationsRaw
+      ? certificationsRaw.split(",").map((c) => c.trim()).filter(Boolean)
+      : [];
 
     await db.insert(products).values({
       name,
       description,
-      category: CATEGORY_MAP[categoryRaw] ?? "convenience",
+      detail: detail || null,
+      category: parsedCategories,
       price: priceRaw ? Number(priceRaw) : null,
       original_price: originalPriceRaw ? Number(originalPriceRaw) : null,
       badge: badgeRaw ? (BADGE_MAP[badgeRaw] ?? null) : null,
       image_url: imageUrl || null,
       tags: tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      shop_url: shopUrl || null,
+      volume: volume || null,
+      storage_method: storageMethod || null,
+      expiry_info: expiryInfo || null,
+      origin: origin || null,
+      ingredients: ingredients || null,
+      certifications: parsedCertifications,
       is_active: true,
-      sort_order: isSortOrderSet ? Number(isSortOrderSet) : 0,
+      sort_order: sortOrderRaw ? Number(sortOrderRaw) : 0,
     });
 
     return { success: true };
@@ -145,7 +168,7 @@ function getBadgeLabel(badge?: AdminProduct["badge"]) {
  * Admin Products Component
  */
 export default function AdminProducts({ loaderData }: Route.ComponentProps) {
-  const { adminUser, dbProducts } = loaderData;
+  const { adminUser, dbProducts, dbCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const fetcher = useFetcher();
@@ -156,7 +179,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
         id: String(p.product_id),
         name: p.name,
         description: p.description,
-        category: p.category as AdminProduct["category"],
+        category: (Array.isArray(p.category) ? p.category[0] : p.category) as AdminProduct["category"],
         price: p.price ?? 0,
         originalPrice: p.original_price ?? undefined,
         image: p.image_url ?? "",
@@ -177,12 +200,20 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     fd.append("intent", "create");
     fd.append("name", productData.name);
     fd.append("description", productData.description);
-    fd.append("category", productData.category);
+    fd.append("categories", JSON.stringify(productData.categories));
     fd.append("price", String(productData.price));
     if (productData.originalPrice) fd.append("originalPrice", String(productData.originalPrice));
-    if (productData.badges?.[0]) fd.append("badge", productData.badges[0]);
+    if (productData.badge) fd.append("badge", productData.badge);
     fd.append("image", productData.image ?? "");
     fd.append("tags", productData.tags.join(","));
+    if (productData.shopUrl)       fd.append("shopUrl", productData.shopUrl);
+    if (productData.detail)        fd.append("detail", productData.detail);
+    if (productData.volume)        fd.append("volume", productData.volume);
+    if (productData.storageMethod) fd.append("storageMethod", productData.storageMethod);
+    if (productData.expiryInfo)    fd.append("expiryInfo", productData.expiryInfo);
+    if (productData.origin)        fd.append("origin", productData.origin);
+    if (productData.ingredients)   fd.append("ingredients", productData.ingredients);
+    if (productData.certifications) fd.append("certifications", productData.certifications);
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
   };
@@ -351,6 +382,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onSubmit={handleAddProduct}
+        dbCategories={dbCategories.map((c) => ({ slug: c.slug, name: c.name }))}
       />
     </div>
   );

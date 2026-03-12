@@ -12,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const inquiryStatusEnum = pgEnum("inquiry_status", [
   "pending",    // 대기중

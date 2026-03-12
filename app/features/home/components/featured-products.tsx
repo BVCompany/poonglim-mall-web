@@ -129,9 +129,10 @@ interface FeaturedProductsProps {
 }
 
 const badgeStyle: Record<string, string> = {
-  BEST: "bg-[#F8F8F6] text-[#1a1a1a]",
-  NEW: "bg-[#F5D68A] text-[#1a1a1a]",
-  B2B: "bg-[#32AF32] text-white",
+  BEST: "bg-[#f4f2e5] text-[#204E3A]",
+  NEW:  "bg-[#ffd55d] text-[#1a1a1a]",
+  SALE: "bg-orange-500 text-white",
+  B2B:  "bg-[#32af32] text-white",
 };
 
 const CARD_WIDTH = 408;

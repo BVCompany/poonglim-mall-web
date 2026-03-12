@@ -37,6 +37,10 @@ export default defineConfig((config) => {
     build: {
       sourcemap: Boolean(process.env.SENTRY_DSN),
     },
+    ssr: {
+      // gRPC 기반 네이티브 패키지 — Vite 번들링 제외, Node.js 런타임에서 직접 로드
+      external: ["@google-analytics/data", "google-auth-library"],
+    },
     plugins,
     sentryConfig,
   };

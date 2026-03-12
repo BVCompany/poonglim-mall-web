@@ -102,6 +102,7 @@ export default [
       route("/liquid-eggs", "features/products/screens/liquid-eggs.tsx"),
       route("/puddings", "features/products/screens/puddings.tsx"),
       route("/convenience", "features/products/screens/convenience.tsx"),
+      route("/:id", "features/products/screens/detail.tsx"),
     ]),
     
     // Recipe Routes (레시피)
@@ -173,8 +174,10 @@ export default [
     // 파일 업로드 API - /admin 경로 아래에 두어야 세션 쿠키(path:"/admin")가 전달됨
     route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
+    route("/product-categories", "features/admin/screens/product-categories.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
+    route("/recipe-categories", "features/admin/screens/recipe-categories.tsx"),
     route("/careers", "features/admin/screens/careers.tsx"),
     route("/applications", "features/admin/screens/applications.tsx"),
     ...prefix("/inquiries", [
@@ -183,6 +186,7 @@ export default [
     ]),
     ...prefix("/settings", [
       route("/banners", "features/admin/screens/settings-banners.tsx"),
+      route("/page-banners", "features/admin/screens/settings-page-banners.tsx"),
       route("/popups", "features/admin/screens/settings-popups.tsx"),
       route("/admins", "features/admin/screens/settings-admins.tsx"),
       route("/site", "features/admin/screens/settings-site.tsx"),

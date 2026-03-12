@@ -11,7 +11,7 @@ import { sql } from "drizzle-orm";
 import { boolean, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
-import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
+import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const newsTypeEnum = pgEnum("news_type", [
   "news",          // 뉴스/소식

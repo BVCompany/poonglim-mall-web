@@ -22,7 +22,7 @@ import {
 } from "./ui/sheet";
 
 /* ─────────────────────────────────────────── */
-/* 메뉴 데이터 타입                               */
+/* 타입                                         */
 /* ─────────────────────────────────────────── */
 interface MenuItem {
   label: string;
@@ -30,80 +30,109 @@ interface MenuItem {
   subItems?: { label: string; path: string }[];
 }
 
-/* ─────────────────────────────────────────── */
-/* 데스크탑 네비게이션 (드롭다운 포함)             */
-/* ─────────────────────────────────────────── */
-function DesktopNavigation() {
-  const { t } = useTranslation();
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+interface NavCategory {
+  name: string;
+  slug: string;
+}
 
-  const menuItems: MenuItem[] = [
+interface NavProps {
+  name?: string;
+  email?: string;
+  avatarUrl?: string | null;
+  loading: boolean;
+  productCategories?: NavCategory[];
+  recipeCategories?: NavCategory[];
+}
+
+/* ─────────────────────────────────────────── */
+/* 메뉴 빌더                                    */
+/* ─────────────────────────────────────────── */
+function buildMenuItems(
+  t: (key: string) => string,
+  productCategories: NavCategory[],
+  recipeCategories: NavCategory[],
+): MenuItem[] {
+  // ── 제품 서브메뉴 ──
+  const productSubItems: { label: string; path: string }[] = [
+    { label: t("navigation.products.all"), path: "/products/all" },
+  ];
+  if (productCategories.length > 0) {
+    productCategories.forEach((cat) => {
+      productSubItems.push({
+        label: cat.name,
+        path: `/products/all?category=${cat.slug}`,
+      });
+    });
+  } else {
+    // DB 미연결 시 고정값 fallback
+    productSubItems.push(
+      { label: t("navigation.products.liquidEggs"),  path: "/products/liquid-eggs" },
+      { label: t("navigation.products.puddings"),    path: "/products/puddings" },
+      { label: t("navigation.products.convenience"), path: "/products/convenience" },
+    );
+  }
+
+  // ── 레시피 서브메뉴 ──
+  const recipeSubItems: { label: string; path: string }[] = [
+    { label: t("navigation.recipe.all"), path: "/recipe/main" },
+  ];
+  if (recipeCategories.length > 0) {
+    recipeCategories.forEach((cat) => {
+      recipeSubItems.push({
+        label: cat.name,
+        path: `/recipe/main?category=${cat.slug}`,
+      });
+    });
+  } else {
+    recipeSubItems.push(
+      { label: t("navigation.recipe.home"),       path: "/recipe/easy" },
+      { label: t("navigation.recipe.cafe"),       path: "/recipe/dessert" },
+      { label: t("navigation.recipe.restaurant"), path: "/recipe/restaurant" },
+    );
+  }
+
+  return [
     {
       label: t("navigation.brand.title"),
       subItems: [
-        { label: t("navigation.brand.intro"), path: "/brand/intro" },
-        { label: t("navigation.brand.history"), path: "/brand/history" },
-        {
-          label: t("navigation.brand.certifications"),
-          path: "/brand/certifications",
-        },
-        {
-          label: t("navigation.brand.factoryTour"),
-          path: "/brand/factory-tour",
-        },
+        { label: t("navigation.brand.intro"),          path: "/brand/intro" },
+        { label: t("navigation.brand.history"),        path: "/brand/history" },
+        { label: t("navigation.brand.certifications"), path: "/brand/certifications" },
+        { label: t("navigation.brand.factoryTour"),    path: "/brand/factory-tour" },
       ],
     },
-    {
-      label: t("navigation.products.title"),
-      subItems: [
-        { label: t("navigation.products.all"), path: "/products/all" },
-        {
-          label: t("navigation.products.liquidEggs"),
-          path: "/products/liquid-eggs",
-        },
-        {
-          label: t("navigation.products.puddings"),
-          path: "/products/puddings",
-        },
-        {
-          label: t("navigation.products.convenience"),
-          path: "/products/convenience",
-        },
-      ],
-    },
-    {
-      label: t("navigation.recipe.title"),
-      subItems: [
-        { label: t("navigation.recipe.all"), path: "/recipe/main" },
-        { label: t("navigation.recipe.home"), path: "/recipe/easy" },
-        { label: t("navigation.recipe.cafe"), path: "/recipe/dessert" },
-        {
-          label: t("navigation.recipe.restaurant"),
-          path: "/recipe/restaurant",
-        },
-      ],
-    },
-    { label: t("navigation.event.title"), path: "/event" },
+    { label: t("navigation.products.title"), subItems: productSubItems },
+    { label: t("navigation.recipe.title"),   subItems: recipeSubItems },
+    { label: t("navigation.event.title"),    path: "/event" },
     {
       label: t("navigation.inquiry.title"),
       subItems: [
         { label: t("navigation.inquiry.general"), path: "/inquiry/online" },
-        { label: t("navigation.inquiry.b2b"), path: "/inquiry/bulk" },
+        { label: t("navigation.inquiry.b2b"),     path: "/inquiry/bulk" },
       ],
     },
     { label: t("navigation.support.title"), path: "/support" },
     {
       label: t("navigation.careers.title"),
       subItems: [
-        {
-          label: t("navigation.careers.positions"),
-          path: "/careers/positions",
-        },
-        { label: t("navigation.careers.benefits"), path: "/careers/benefits" },
-        { label: t("navigation.careers.talent"), path: "/careers/talent" },
+        { label: t("navigation.careers.positions"), path: "/careers/positions" },
+        { label: t("navigation.careers.benefits"),  path: "/careers/benefits" },
+        { label: t("navigation.careers.talent"),    path: "/careers/talent" },
       ],
     },
   ];
+}
+
+/* ─────────────────────────────────────────── */
+/* 데스크탑 네비게이션                           */
+/* ─────────────────────────────────────────── */
+function DesktopNavigation({ productCategories, recipeCategories }: {
+  productCategories: NavCategory[];
+  recipeCategories: NavCategory[];
+}) {
+  const { t } = useTranslation();
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuItems = buildMenuItems(t, productCategories, recipeCategories);
 
   return (
     <div className="flex items-center gap-20">
@@ -115,21 +144,21 @@ function DesktopNavigation() {
           onMouseLeave={() => setOpenMenu(null)}
         >
           {item.subItems ? (
-            <button className="text-[20px] font-bold whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]">
+            <button className="whitespace-nowrap text-[20px] font-bold text-[#111] transition-colors hover:text-[#0E5A3A]">
               {item.label}
             </button>
           ) : (
             <Link
               to={item.path!}
               viewTransition
-              className="text-[20px] font-bold whitespace-nowrap text-[#111] transition-colors hover:text-[#0E5A3A]"
+              className="whitespace-nowrap text-[20px] font-bold text-[#111] transition-colors hover:text-[#0E5A3A]"
             >
               {item.label}
             </Link>
           )}
 
           {item.subItems && openMenu === item.label && (
-            <div className="absolute top-full left-0 z-50 pt-3">
+            <div className="absolute left-0 top-full z-50 pt-3">
               <div className="min-w-[180px] rounded-lg border border-black/[0.06] bg-white py-2 shadow-lg">
                 {item.subItems.map((sub) => (
                   <Link
@@ -151,84 +180,20 @@ function DesktopNavigation() {
 }
 
 /* ─────────────────────────────────────────── */
-/* 모바일 네비게이션 (Sheet 내부)                  */
+/* 모바일 네비게이션                             */
 /* ─────────────────────────────────────────── */
-function MobileNavigation() {
+function MobileNavigation({ productCategories, recipeCategories }: {
+  productCategories: NavCategory[];
+  recipeCategories: NavCategory[];
+}) {
   const { t } = useTranslation();
   const [openSections, setOpenSections] = useState<string[]>([]);
+  const menuItems = buildMenuItems(t, productCategories, recipeCategories);
 
   const toggle = (s: string) =>
     setOpenSections((prev) =>
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
     );
-
-  const menuItems: MenuItem[] = [
-    {
-      label: t("navigation.brand.title"),
-      subItems: [
-        { label: t("navigation.brand.intro"), path: "/brand/intro" },
-        { label: t("navigation.brand.history"), path: "/brand/history" },
-        {
-          label: t("navigation.brand.certifications"),
-          path: "/brand/certifications",
-        },
-        {
-          label: t("navigation.brand.factoryTour"),
-          path: "/brand/factory-tour",
-        },
-      ],
-    },
-    {
-      label: t("navigation.products.title"),
-      subItems: [
-        { label: t("navigation.products.all"), path: "/products/all" },
-        {
-          label: t("navigation.products.liquidEggs"),
-          path: "/products/liquid-eggs",
-        },
-        {
-          label: t("navigation.products.puddings"),
-          path: "/products/puddings",
-        },
-        {
-          label: t("navigation.products.convenience"),
-          path: "/products/convenience",
-        },
-      ],
-    },
-    {
-      label: t("navigation.recipe.title"),
-      subItems: [
-        { label: t("navigation.recipe.all"), path: "/recipe/main" },
-        { label: t("navigation.recipe.home"), path: "/recipe/easy" },
-        { label: t("navigation.recipe.cafe"), path: "/recipe/dessert" },
-        {
-          label: t("navigation.recipe.restaurant"),
-          path: "/recipe/restaurant",
-        },
-      ],
-    },
-    { label: t("navigation.event.title"), path: "/event" },
-    {
-      label: t("navigation.inquiry.title"),
-      subItems: [
-        { label: t("navigation.inquiry.general"), path: "/inquiry/online" },
-        { label: t("navigation.inquiry.b2b"), path: "/inquiry/bulk" },
-      ],
-    },
-    { label: t("navigation.support.title"), path: "/support" },
-    {
-      label: t("navigation.careers.title"),
-      subItems: [
-        {
-          label: t("navigation.careers.positions"),
-          path: "/careers/positions",
-        },
-        { label: t("navigation.careers.benefits"), path: "/careers/benefits" },
-        { label: t("navigation.careers.talent"), path: "/careers/talent" },
-      ],
-    },
-  ];
 
   return (
     <div className="flex flex-col gap-1 pt-4">
@@ -260,7 +225,7 @@ function MobileNavigation() {
               />
             </CollapsibleTrigger>
             <CollapsibleContent className="pl-4">
-              {item.subItems?.map((sub) => (
+              {item.subItems.map((sub) => (
                 <SheetClose key={sub.path} asChild>
                   <Link
                     to={sub.path}
@@ -291,43 +256,32 @@ function MobileNavigation() {
 
 /* ─────────────────────────────────────────── */
 /* NavigationBar — 2단 구조                     */
-/*   TopBar  : 40px, 우측 정렬 유틸             */
-/*   MainNav : 68px, 좌 로고 + 절대중앙 메뉴    */
 /* ─────────────────────────────────────────── */
 export function NavigationBar({
   loading: _loading,
-}: {
-  name?: string;
-  email?: string;
-  avatarUrl?: string | null;
-  loading: boolean;
-}) {
+  productCategories = [],
+  recipeCategories = [],
+}: NavProps) {
   const { t } = useTranslation();
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 w-full"
+      className="fixed left-0 right-0 top-0 z-50 w-full"
       style={{ backgroundColor: "rgba(244, 242, 229, 0.95)" }}
     >
       <div className="mx-auto w-full min-w-0 md:max-w-[1680px]">
-        {/* ── TOP BAR — 40px, 데스크톱만 표시 ── */}
+        {/* ── TOP BAR — 데스크톱만 표시 ── */}
         <div className="hidden w-full lg:block" style={{ height: "40px" }}>
           <div className="flex h-full w-full items-center justify-end gap-2 px-6 lg:px-10">
-            {/* 검색 아이콘 */}
             <button
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444] transition-colors hover:bg-black/5"
               aria-label="검색"
             >
               <SearchIcon className="h-[17px] w-[17px]" />
             </button>
-
-            {/* 언어 선택 — 지구본 아이콘 */}
             <div className="flex h-8 w-8 items-center justify-center rounded-full text-[#444] transition-colors hover:bg-black/5">
               <LangSwitcher />
             </div>
-
-            {/* 풍림몰 + 수발주시스템 버튼 그룹
-                상단 flat, 하단 좌우 라운드, h-full 밀착 */}
             <div
               className="flex h-full overflow-hidden"
               style={{ borderRadius: "0 0 12px 12px" }}
@@ -356,11 +310,10 @@ export function NavigationBar({
           </div>
         </div>
 
-        {/* ── MAIN NAV — 50px (모바일), 68px (데스크톱) ── */}
+        {/* ── MAIN NAV ── */}
         <nav className="h-[50px] w-full min-w-0 md:h-[68px]">
           <div className="flex h-full w-full min-w-0 items-center justify-between gap-2 px-3 sm:px-4 md:px-6 lg:px-10">
-            {/* 좌: 로고 (모바일: 30px 높이) */}
-            <Link to="/" className="flex shrink-0 items-center min-w-0">
+            <Link to="/" className="flex min-w-0 shrink-0 items-center">
               <img
                 src="/home/poonglim-logo-eng.png"
                 alt="풍림푸드"
@@ -368,9 +321,12 @@ export function NavigationBar({
               />
             </Link>
 
-            {/* 우: 데스크톱 메뉴 */}
+            {/* 데스크톱 메뉴 */}
             <div className="hidden items-center lg:flex">
-              <DesktopNavigation />
+              <DesktopNavigation
+                productCategories={productCategories}
+                recipeCategories={recipeCategories}
+              />
             </div>
 
             {/* 모바일: 검색 + 햄버거 */}
@@ -386,7 +342,10 @@ export function NavigationBar({
               </SheetTrigger>
               <SheetContent className="w-[300px] overflow-y-auto">
                 <SheetHeader>
-                  <MobileNavigation />
+                  <MobileNavigation
+                    productCategories={productCategories}
+                    recipeCategories={recipeCategories}
+                  />
                 </SheetHeader>
               </SheetContent>
             </div>
