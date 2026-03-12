@@ -47,33 +47,40 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
     <div className="min-h-screen bg-[#F5F2EB]">
       {/* ── 페이지 배너 ── */}
       <section
-        className="relative w-full h-52 md:h-72 overflow-hidden bg-[#204E3A]"
-        style={pageBanner?.image_url ? {
-          backgroundImage: `url(${pageBanner.image_url})`,
+        className="relative w-full h-48 md:h-64 overflow-hidden bg-gray-800"
+        style={{
+          backgroundImage: `url(${pageBanner?.image_url ?? "/banner/product_banner_temp.png"})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-        } : undefined}
+        }}
       >
-        {/* 오버레이 */}
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 gap-3">
-          <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
-            {pageBanner?.title ?? "제품 소개"}
+        {/* 어두운 오버레이 */}
+        <div className="absolute inset-0 bg-black/45" />
+
+        {/* 브레드크럼 — 좌상단 */}
+        <div className="absolute top-4 left-6 md:top-5 md:left-10 z-10">
+          <div className="flex items-center gap-1.5 text-white/70 text-xs md:text-sm">
+            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            <span>&gt;</span>
+            <span className="text-white">제품소개</span>
+          </div>
+        </div>
+
+        {/* 중앙 콘텐츠 */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 gap-2.5">
+          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+            {pageBanner?.title ?? "계란이야기"}
           </h1>
-          {pageBanner?.subtitle && (
-            <p className="text-white/80 text-sm md:text-base max-w-xl">
-              {pageBanner.subtitle}
-            </p>
-          )}
-          {pageBanner?.link_url && (
-            <Link
-              to={pageBanner.link_url}
-              className="mt-2 inline-flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-5 py-2 rounded-full border border-white/30 transition-colors"
-            >
-              {pageBanner.link_text ?? "더 알아보기"}
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          )}
+          <p className="text-white/80 text-xs md:text-sm max-w-lg leading-relaxed">
+            {pageBanner?.subtitle ?? "대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"}
+          </p>
+          <Link
+            to={pageBanner?.link_url ?? "/brand/intro"}
+            className="mt-1 inline-flex items-center gap-1 border border-white/60 hover:bg-white/20 text-white text-xs md:text-sm font-medium px-5 py-1.5 rounded-full transition-colors"
+          >
+            {pageBanner?.link_text ?? "자세히 보기"}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </section>
 
