@@ -27,7 +27,7 @@ export const products = pgTable(
     name: text().notNull(),
     description: text().notNull(),
     detail: text(),                         // 상세 설명
-    category: text().notNull().default(""), // product_categories.slug 참조
+    category: text().array().notNull().default([]), // product_categories.slug 배열 (복수 카테고리 지원)
     badge: productBadgeEnum(),              // BEST / NEW / B2B / SALE
     image_url: text(),
     image_urls: text().array().default([]),

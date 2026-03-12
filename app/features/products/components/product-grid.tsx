@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 interface Product {
   id: number;
   name: string;
-  category: string;
+  category: string[];    // text[] 대응
   image: string;
   badge?: string;
   isB2b?: boolean;
@@ -18,7 +18,7 @@ interface DbProduct {
   product_id: number;
   name: string;
   description: string;
-  category: string;
+  category: string | string[];   // text[] 대응
   badge?: string | null;
   image_url?: string | null;
   price?: number | null;
@@ -29,14 +29,14 @@ interface DbProduct {
 }
 
 const MOCK_PRODUCTS: Product[] = [
-  { id: 1, name: "짜먹는 에그샐러드 1kg", category: "liquid_egg", image: "/home/premium_egg.png", badge: "BEST", description: "간편하게 즐기는 프리미엄 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 2, name: "짜먹는 콘버터 에그샐러드 1kg", category: "liquid_egg", image: "/home/premium_egg.png", badge: "NEW", isB2b: true, description: "고소한 콘버터가 들어간 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 3, name: "짜먹는 단호박 에그샐러드 1kg", category: "liquid_egg", image: "/home/premium_egg.png", description: "영양 가득한 단호박 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 4, name: "짜먹는 김치 에그샐러드 1kg", category: "liquid_egg", image: "/home/premium_egg.png", badge: "BEST", description: "한국적인 맛의 김치 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 5, name: "커스터드 푸딩", category: "pudding", image: "/home/puding.png", badge: "BEST", description: "부드럽고 진한 커스터드 푸딩", tags: ["#디저트", "#프리미엄", "#커스터드"] },
-  { id: 6, name: "카라멜 푸딩", category: "pudding", image: "/home/puding.png", badge: "NEW", description: "달콤한 카라멜 소스와 함께", tags: ["#디저트", "#카라멜"] },
-  { id: 7, name: "계란찜", category: "convenience", image: "/home/solution.png", badge: "BEST", description: "부드러운 계란찜", tags: ["#간편식", "#업소용"] },
-  { id: 8, name: "계란말이", category: "convenience", image: "/home/solution.png", description: "폭신한 계란말이", tags: ["#간편식", "#업소용"] },
+  { id: 1, name: "짜먹는 에그샐러드 1kg", category: ["liquid_egg"], image: "/home/premium_egg.png", badge: "BEST", description: "간편하게 즐기는 프리미엄 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
+  { id: 2, name: "짜먹는 콘버터 에그샐러드 1kg", category: ["liquid_egg"], image: "/home/premium_egg.png", badge: "NEW", isB2b: true, description: "고소한 콘버터가 들어간 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
+  { id: 3, name: "짜먹는 단호박 에그샐러드 1kg", category: ["liquid_egg"], image: "/home/premium_egg.png", description: "영양 가득한 단호박 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
+  { id: 4, name: "짜먹는 김치 에그샐러드 1kg", category: ["liquid_egg"], image: "/home/premium_egg.png", badge: "BEST", description: "한국적인 맛의 김치 에그샐러드", tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
+  { id: 5, name: "커스터드 푸딩", category: ["pudding"], image: "/home/puding.png", badge: "BEST", description: "부드럽고 진한 커스터드 푸딩", tags: ["#디저트", "#프리미엄", "#커스터드"] },
+  { id: 6, name: "카라멜 푸딩", category: ["pudding"], image: "/home/puding.png", badge: "NEW", description: "달콤한 카라멜 소스와 함께", tags: ["#디저트", "#카라멜"] },
+  { id: 7, name: "계란찜", category: ["convenience"], image: "/home/solution.png", badge: "BEST", description: "부드러운 계란찜", tags: ["#간편식", "#업소용"] },
+  { id: 8, name: "계란말이", category: ["convenience"], image: "/home/solution.png", description: "폭신한 계란말이", tags: ["#간편식", "#업소용"] },
 ];
 
 /** 사용자 지정 배지 색상 */
@@ -58,7 +58,7 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
     ? dbProducts.map((p) => ({
         id: p.product_id,
         name: p.name,
-        category: p.category,
+        category: Array.isArray(p.category) ? p.category : (p.category ? [p.category] : []),
         image: p.image_url ?? "/home/premium_egg.png",
         badge: p.badge?.toUpperCase(),
         isB2b: p.is_b2b,
@@ -69,7 +69,8 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
     : MOCK_PRODUCTS;
 
   const filtered = source.filter((p) => {
-    const matchCat = selectedCategory === "all" || p.category === selectedCategory;
+    const cats = Array.isArray(p.category) ? p.category : [p.category];
+    const matchCat = selectedCategory === "all" || cats.includes(selectedCategory);
     const q = searchQuery.toLowerCase();
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
     return matchCat && matchSearch;
@@ -166,10 +167,13 @@ function ProductCard({ product }: { product: Product }) {
         <p className="mb-2.5 line-clamp-1 text-xs text-gray-500">
           {product.description}
         </p>
-        <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
+        <div className="flex flex-wrap gap-1">
           {product.tags.slice(0, 4).map((tag, i) => (
-            <span key={i} className="text-[11px] text-[#204E3A]/60">
-              {tag}
+            <span
+              key={i}
+              className="rounded-full bg-[#DDD9D0] px-2 py-0.5 text-[10px] font-medium text-[#666]"
+            >
+              {tag.startsWith("#") ? tag : `#${tag}`}
             </span>
           ))}
         </div>

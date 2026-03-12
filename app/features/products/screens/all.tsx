@@ -25,6 +25,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
   const totalCount = dbProducts.length;
 
+  // 제품의 category는 text[] — includes로 판별
+  const inCategory = (productCategory: string | string[], slug: string) => {
+    if (Array.isArray(productCategory)) return productCategory.includes(slug);
+    return productCategory === slug;
+  };
+
   // DB에 카테고리가 있으면 DB 기준, 없으면 제품 데이터에서 자동 추출
   const categories = dbCategories.length > 0
     ? [
@@ -32,14 +38,15 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         ...dbCategories.map((cat) => ({
           id: cat.slug,
           name: cat.name,
-          count: dbProducts.filter((p) => p.category === cat.slug).length,
+          count: dbProducts.filter((p) => inCategory(p.category, cat.slug)).length,
         })),
       ]
     : [
         { id: "all", name: "전체 제품", count: totalCount },
         ...Object.entries(
           dbProducts.reduce<Record<string, number>>((acc, p) => {
-            acc[p.category] = (acc[p.category] ?? 0) + 1;
+            const cats = Array.isArray(p.category) ? p.category : [p.category];
+            cats.forEach((c) => { if (c) acc[c] = (acc[c] ?? 0) + 1; });
             return acc;
           }, {}),
         ).map(([id, count]) => ({ id, name: id, count })),
@@ -68,9 +75,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       {/* ── 제품 카테고리 헤더 + 검색 ── */}
       <div className="px-4 pt-8 pb-4 md:px-8 lg:px-2.5">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
-          {/* 타이틀 */}
-          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900 md:text-xl">
-            <img src="/home/product-star.png" alt="" className="h-5 w-5 object-contain md:h-6 md:w-6" />
+          {/* 타이틀 — 36px / letterSpacing -4% */}
+          <h2
+            className="flex items-center gap-2 font-bold text-gray-900"
+            style={{ fontSize: "clamp(22px, 3vw, 36px)", letterSpacing: "-0.04em" }}
+          >
+            <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain md:h-7 md:w-7" />
             제품 카테고리
           </h2>
 

@@ -75,7 +75,9 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
         <div className="rounded-2xl bg-white p-6 space-y-4">
           {/* 카테고리 */}
           <p className="text-xs font-medium text-[#204E3A] uppercase tracking-wide">
-            {CATEGORY_LABELS[product.category] ?? product.category}
+            {(Array.isArray(product.category) ? product.category : [product.category])
+              .map((c) => CATEGORY_LABELS[c] ?? c)
+              .join(" · ")}
           </p>
 
           {/* 제품명 */}
