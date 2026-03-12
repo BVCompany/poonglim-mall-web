@@ -23,7 +23,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const totalCount = dbProducts.length || 0;
+  const totalCount = dbProducts.length;
 
   // DB에 카테고리가 있으면 DB 기준, 없으면 제품 데이터에서 자동 추출
   const categories = dbCategories.length > 0
@@ -45,6 +45,9 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         ).map(([id, count]) => ({ id, name: id, count })),
       ];
 
+  // 현재 선택된 카테고리 수량 (검색 전 카테고리 기준)
+  const currentCategoryCount = categories.find((c) => c.id === selectedCategory)?.count ?? totalCount;
+
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
 
@@ -63,84 +66,99 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       />
 
       {/* ── 제품 카테고리 헤더 + 검색 ── */}
-      <div className="px-4 md:px-8 lg:px-2.5 pt-8 pb-4">
-        <div className="mx-auto max-w-[var(--hero-pc-width,1640px)] flex items-center justify-between gap-4">
+      <div className="px-4 pt-8 pb-4 md:px-8 lg:px-2.5">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
           {/* 타이틀 */}
-          <h2 className="flex items-center gap-2 text-lg md:text-xl font-bold text-gray-900">
-            <img src="/home/product-star.png" alt="" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900 md:text-xl">
+            <img src="/home/product-star.png" alt="" className="h-5 w-5 object-contain md:h-6 md:w-6" />
             제품 카테고리
           </h2>
 
           {/* 검색창 — PC */}
-          <div className="relative hidden md:flex items-center">
+          <div className="relative hidden items-center md:flex">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="검색어를 입력해주세요."
-              className="pl-4 pr-12 py-2.5 text-sm border border-gray-300 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-[#204E3A]/30 w-64"
+              className="w-64 rounded-full border border-gray-300 bg-white py-2.5 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#204E3A]/30"
             />
             <button
-              onClick={() => {}}
-              className="absolute right-1.5 w-8 h-8 flex items-center justify-center bg-[#204E3A] rounded-full hover:bg-[#1a3f2e] transition-colors"
+              className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#204E3A] transition-colors hover:bg-[#1a3f2e]"
             >
-              <Search className="w-4 h-4 text-white" />
+              <Search className="h-4 w-4 text-white" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── 카테고리 탭 바 (녹색 캡슐) ── */}
-      <div className="px-4 md:px-8 lg:px-2.5 pb-6">
-        <div className="mx-auto max-w-[var(--hero-pc-width,1640px)]">
+      {/* ── 카테고리 탭 바 + 모바일 검색 ── */}
+      <div className="px-4 pb-4 md:px-8 lg:px-2.5">
+        <div className="mx-auto max-w-[1600px]">
           {/* 모바일 검색창 */}
-          <div className="relative flex items-center mb-4 md:hidden">
+          <div className="relative mb-3 flex items-center md:hidden">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="검색어를 입력해주세요."
-              className="w-full pl-4 pr-12 py-2.5 text-sm border border-gray-300 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-[#204E3A]/30"
+              className="w-full rounded-full border border-gray-300 bg-white py-2.5 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#204E3A]/30"
             />
-            <button className="absolute right-1.5 w-8 h-8 flex items-center justify-center bg-[#204E3A] rounded-full">
-              <Search className="w-4 h-4 text-white" />
+            <button className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#204E3A]">
+              <Search className="h-4 w-4 text-white" />
             </button>
           </div>
 
-          {/* 탭 바 */}
-          <div className="bg-[#204E3A] rounded-full px-2 py-2 flex items-center gap-0 overflow-x-auto scrollbar-none">
-            {categories.map((cat, idx) => (
-              <div key={cat.id} className="flex items-center flex-shrink-0">
-                {/* 첫 번째와 두 번째 항목 사이 구분선 */}
-                {idx === 1 && (
-                  <span className="h-4 w-px bg-white/30 mx-1 flex-shrink-0" />
-                )}
-                <button
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`
-                    flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150 whitespace-nowrap
-                    ${selectedCategory === cat.id
-                      ? "bg-white text-[#204E3A]"
-                      : "text-white/80 hover:text-white hover:bg-white/10"
-                    }
-                  `}
-                >
-                  {cat.name}
-                  {cat.count > 0 && (
-                    <span className={`ml-1.5 text-xs ${selectedCategory === cat.id ? "text-[#204E3A]/60" : "text-white/50"}`}>
-                      ({cat.count})
-                    </span>
+          {/* 탭 바 — 녹색 캡슐 */}
+          <div className="flex items-center gap-0 overflow-x-auto rounded-full bg-[#204E3A] px-2 py-2 scrollbar-none">
+            {categories.map((cat, idx) => {
+              const isActive = selectedCategory === cat.id;
+              const isAll = cat.id === "all";
+              // 전체 제품은 항상 수량 표시, 나머지는 활성 상태일 때만 표시
+              const showCount = isAll || isActive;
+
+              return (
+                <div key={cat.id} className="flex flex-shrink-0 items-center">
+                  {/* "전체 제품" 다음에만 구분선 */}
+                  {idx === 1 && (
+                    <span className="mx-1 h-4 w-px flex-shrink-0 bg-white/30" />
                   )}
-                </button>
-              </div>
-            ))}
+                  <button
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`
+                      flex-shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-150
+                      ${isActive
+                        ? "bg-white text-[#204E3A]"
+                        : "text-white/80 hover:bg-white/10 hover:text-white"
+                      }
+                    `}
+                  >
+                    {cat.name}
+                    {showCount && cat.count > 0 && (
+                      <span className={`ml-1 text-xs ${isActive ? "text-[#204E3A]/60" : "text-white/50"}`}>
+                        ({cat.count})
+                      </span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      </div>
+
+      {/* ── 총 N개 제품 ── */}
+      <div className="px-4 pb-4 md:px-8 lg:px-2.5">
+        <div className="mx-auto max-w-[1600px]">
+          <p className="text-sm font-medium text-gray-600">
+            총 <span className="font-bold text-[#204E3A]">{currentCategoryCount}</span>개 제품
+          </p>
         </div>
       </div>
 
       {/* ── 제품 그리드 ── */}
-      <div className="px-4 md:px-8 lg:px-2.5 pb-16">
-        <div className="mx-auto max-w-[var(--hero-pc-width,1640px)]">
+      <div className="px-4 pb-16 md:px-8 lg:px-2.5">
+        <div className="mx-auto max-w-[1600px]">
           <ProductGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}
