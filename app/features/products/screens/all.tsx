@@ -9,6 +9,11 @@ import type { ProductCategory } from "~/features/product-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
 import { Search } from "lucide-react";
 
+export const meta: Route.MetaFunction = () => [
+  { title: "제품 소개 | 풍림푸드" },
+  { name: "description", content: "풍림푸드의 다양한 제품을 소개합니다." },
+];
+
 export async function loader(_: Route.LoaderArgs) {
   const [dbProducts, pageBanner, dbCategories] = await Promise.all([
     getProducts().catch(() => [] as Product[]),

@@ -7,49 +7,56 @@ import Footer from "../components/footer";
 import FloatingButton from "../components/floating-button";
 import { NavigationBar } from "../components/navigation-bar";
 import makeServerClient from "../lib/supa-client.server";
+import { getActiveCategories } from "~/features/product-categories/lib/queries.server";
+import { getActiveRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // NOTE: Supabase temporarily disabled - return mock data
-  // TODO: Re-enable when Supabase credentials are available
-  
+  // 제품·레시피 카테고리 (DB 오류 시 빈 배열 fallback)
+  const [productCategories, recipeCategories] = await Promise.all([
+    getActiveCategories().catch(() => []),
+    getActiveRecipeCategories().catch(() => []),
+  ]);
+
   try {
-    // Check if Supabase is configured
     if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
       const [client] = makeServerClient(request);
       const userPromise = client.auth.getUser();
-      return { userPromise };
+      return { userPromise, productCategories, recipeCategories };
     }
-  } catch (error) {
-    console.log("Supabase not configured, using mock data");
+  } catch {
+    // Supabase 미설정 시 무시
   }
-  
-  // Return mock user promise for development without Supabase
+
   const mockUserPromise = Promise.resolve({ data: { user: null }, error: null });
-  return { userPromise: mockUserPromise };
+  return { userPromise: mockUserPromise, productCategories, recipeCategories };
 }
 
 export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
-  const { userPromise } = loaderData;
+  const { userPromise, productCategories, recipeCategories } = loaderData;
   return (
     <div className="flex min-h-screen w-full flex-col justify-between" style={{ backgroundColor: "#F4F2E5" }}>
-      {/* 헤더: max-w 밖에서 풀 너비 (모바일 뷰포트 전체) */}
-      <Suspense fallback={<NavigationBar loading={true} />}>
+      <Suspense fallback={<NavigationBar loading={true} productCategories={[]} recipeCategories={[]} />}>
         <Await resolve={userPromise}>
           {({ data: { user } }) =>
             user === null ? (
-              <NavigationBar loading={false} />
+              <NavigationBar
+                loading={false}
+                productCategories={productCategories}
+                recipeCategories={recipeCategories}
+              />
             ) : (
               <NavigationBar
                 name={user.user_metadata.name || "Anonymous"}
                 email={user.email}
                 avatarUrl={user.user_metadata.avatar_url}
                 loading={false}
+                productCategories={productCategories}
+                recipeCategories={recipeCategories}
               />
             )
           }
         </Await>
       </Suspense>
-      {/* 콘텐츠: max-w 적용 */}
       <div className="mt-[var(--header-height)] w-full flex-1">
         <div className="mx-auto w-full max-w-[1920px]">
           <Outlet />

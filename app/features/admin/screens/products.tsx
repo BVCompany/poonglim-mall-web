@@ -59,24 +59,37 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent") as string;
 
   if (intent === "create") {
-    const name       = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const categoriesRaw = formData.get("categories") as string;   // JSON array string
-    const priceRaw    = formData.get("price") as string;
+    const name             = formData.get("name") as string;
+    const description      = formData.get("description") as string;
+    const detail           = formData.get("detail") as string;
+    const categoriesRaw    = formData.get("categories") as string;
+    const priceRaw         = formData.get("price") as string;
     const originalPriceRaw = formData.get("originalPrice") as string;
-    const badgeRaw    = formData.get("badge") as string;
-    const imageUrl    = formData.get("image") as string;
-    const tagsRaw     = formData.get("tags") as string;
-    const shopUrl     = formData.get("shopUrl") as string;
-    const sortOrderRaw = formData.get("sort_order") as string;
+    const badgeRaw         = formData.get("badge") as string;
+    const imageUrl         = formData.get("image") as string;
+    const tagsRaw          = formData.get("tags") as string;
+    const shopUrl          = formData.get("shopUrl") as string;
+    const sortOrderRaw     = formData.get("sort_order") as string;
+    // 제품 정보 스펙
+    const volume           = formData.get("volume") as string;
+    const storageMethod    = formData.get("storageMethod") as string;
+    const expiryInfo       = formData.get("expiryInfo") as string;
+    const origin           = formData.get("origin") as string;
+    const ingredients      = formData.get("ingredients") as string;
+    const certificationsRaw = formData.get("certifications") as string;
 
     const parsedCategories: string[] = (() => {
       try { return JSON.parse(categoriesRaw) as string[]; } catch { return []; }
     })();
 
+    const parsedCertifications: string[] = certificationsRaw
+      ? certificationsRaw.split(",").map((c) => c.trim()).filter(Boolean)
+      : [];
+
     await db.insert(products).values({
       name,
       description,
+      detail: detail || null,
       category: parsedCategories,
       price: priceRaw ? Number(priceRaw) : null,
       original_price: originalPriceRaw ? Number(originalPriceRaw) : null,
@@ -84,6 +97,12 @@ export async function action({ request }: Route.ActionArgs) {
       image_url: imageUrl || null,
       tags: tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [],
       shop_url: shopUrl || null,
+      volume: volume || null,
+      storage_method: storageMethod || null,
+      expiry_info: expiryInfo || null,
+      origin: origin || null,
+      ingredients: ingredients || null,
+      certifications: parsedCertifications,
       is_active: true,
       sort_order: sortOrderRaw ? Number(sortOrderRaw) : 0,
     });
@@ -187,7 +206,14 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     if (productData.badge) fd.append("badge", productData.badge);
     fd.append("image", productData.image ?? "");
     fd.append("tags", productData.tags.join(","));
-    if (productData.shopUrl) fd.append("shopUrl", productData.shopUrl);
+    if (productData.shopUrl)       fd.append("shopUrl", productData.shopUrl);
+    if (productData.detail)        fd.append("detail", productData.detail);
+    if (productData.volume)        fd.append("volume", productData.volume);
+    if (productData.storageMethod) fd.append("storageMethod", productData.storageMethod);
+    if (productData.expiryInfo)    fd.append("expiryInfo", productData.expiryInfo);
+    if (productData.origin)        fd.append("origin", productData.origin);
+    if (productData.ingredients)   fd.append("ingredients", productData.ingredients);
+    if (productData.certifications) fd.append("certifications", productData.certifications);
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
   };

@@ -34,9 +34,17 @@ export interface ProductFormData {
   originalPrice?: number;
   badge?: string;
   description: string;
+  detail?: string;             // 상세 설명 (HTML or 텍스트)
   tags: string[];
   image: string;
   shopUrl?: string;            // 풍림몰 구매 링크
+  // 제품 정보 스펙
+  volume?: string;             // 용량
+  storageMethod?: string;      // 보관방법
+  expiryInfo?: string;         // 유통기한
+  origin?: string;             // 원산지
+  ingredients?: string;        // 성분/원재료
+  certifications?: string;     // 인증 (쉼표 구분)
 }
 
 const BADGE_OPTIONS: ProductBadge[] = [
@@ -61,9 +69,16 @@ const EMPTY_FORM: ProductFormData = {
   originalPrice: undefined,
   badge: undefined,
   description: "",
+  detail: "",
   tags: [],
   image: "",
   shopUrl: "",
+  volume: "",
+  storageMethod: "",
+  expiryInfo: "",
+  origin: "",
+  ingredients: "",
+  certifications: "",
 };
 
 export function ProductAddModal({
@@ -234,9 +249,77 @@ export function ProductAddModal({
             <Textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="제품 설명을 입력하세요"
+              placeholder="한 줄 요약 설명 (목록 카드에 표시)"
               rows={3}
               required
+            />
+          </div>
+
+          {/* 인증 */}
+          <div className="space-y-1.5">
+            <Label>인증 (쉼표 구분)</Label>
+            <Input
+              value={form.certifications ?? ""}
+              onChange={(e) => setForm({ ...form, certifications: e.target.value })}
+              placeholder="예: HACCP 인증, 무항생제, 국산 100%"
+            />
+          </div>
+
+          {/* 제품 정보 스펙 */}
+          <div className="space-y-3 rounded-xl border border-dashed border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-700">제품 정보 (상세 페이지 표시)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">용량</Label>
+                <Input
+                  value={form.volume ?? ""}
+                  onChange={(e) => setForm({ ...form, volume: e.target.value })}
+                  placeholder="예: 1kg, 1L, 12구"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">원산지</Label>
+                <Input
+                  value={form.origin ?? ""}
+                  onChange={(e) => setForm({ ...form, origin: e.target.value })}
+                  placeholder="예: 국산"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">보관방법</Label>
+                <Input
+                  value={form.storageMethod ?? ""}
+                  onChange={(e) => setForm({ ...form, storageMethod: e.target.value })}
+                  placeholder="예: 냉장보관 (0~10℃)"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">유통기한</Label>
+                <Input
+                  value={form.expiryInfo ?? ""}
+                  onChange={(e) => setForm({ ...form, expiryInfo: e.target.value })}
+                  placeholder="예: 제조일로부터 14일"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">성분/원재료</Label>
+              <Input
+                value={form.ingredients ?? ""}
+                onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
+                placeholder="예: 계란 100%"
+              />
+            </div>
+          </div>
+
+          {/* 상세 설명 (HTML) */}
+          <div className="space-y-1.5">
+            <Label>상세 설명 (선택)</Label>
+            <Textarea
+              value={form.detail ?? ""}
+              onChange={(e) => setForm({ ...form, detail: e.target.value })}
+              placeholder="상세 페이지 하단에 표시되는 긴 설명입니다. HTML 입력 가능."
+              rows={4}
             />
           </div>
 

@@ -60,7 +60,8 @@ const menuItems: MenuItem[] = [
     icon: FileText,
     children: [
       { title: "이벤트/공지", href: "/admin/events" },
-      { title: "레시피", href: "/admin/recipes" },
+      { title: "레시피 목록", href: "/admin/recipes" },
+      { title: "레시피 카테고리", href: "/admin/recipe-categories" },
       { title: "뉴스/보도자료", href: "/admin/media/news" },
       { title: "카탈로그", href: "/admin/media/catalog" },
     ],

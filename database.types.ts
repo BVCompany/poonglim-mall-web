@@ -502,6 +502,45 @@ export type Database = {
         }
         Relationships: []
       }
+      page_banners: {
+        Row: {
+          created_at: string
+          image_url: string | null
+          is_active: boolean
+          link_text: string | null
+          link_url: string | null
+          page_banner_id: number
+          page_key: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          page_banner_id?: never
+          page_key: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_text?: string | null
+          link_url?: string | null
+          page_banner_id?: never
+          page_key?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           approved_at: string
@@ -598,60 +637,111 @@ export type Database = {
         }
         Relationships: []
       }
-      products: {
+      product_categories: {
         Row: {
-          badge: Database["public"]["Enums"]["product_badge"] | null
-          category: Database["public"]["Enums"]["product_category"]
+          category_id: number
           created_at: string
-          description: string
-          detail: string | null
-          image_url: string | null
-          image_urls: string[] | null
           is_active: boolean
-          is_b2b: boolean
           name: string
-          original_price: number | null
-          price: number | null
-          product_id: number
+          slug: string
           sort_order: number
-          tags: string[] | null
           updated_at: string
         }
         Insert: {
-          badge?: Database["public"]["Enums"]["product_badge"] | null
-          category: Database["public"]["Enums"]["product_category"]
+          category_id?: never
           created_at?: string
-          description: string
-          detail?: string | null
-          image_url?: string | null
-          image_urls?: string[] | null
           is_active?: boolean
-          is_b2b?: boolean
           name: string
-          original_price?: number | null
-          price?: number | null
-          product_id?: never
+          slug: string
           sort_order?: number
-          tags?: string[] | null
           updated_at?: string
         }
         Update: {
-          badge?: Database["public"]["Enums"]["product_badge"] | null
-          category?: Database["public"]["Enums"]["product_category"]
+          category_id?: never
           created_at?: string
-          description?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          badge: Database["public"]["Enums"]["product_badge"] | null
+          category: string[]
+          certifications: string[] | null
+          created_at: string
+          description: string
+          detail: string | null
+          expiry_info: string | null
+          image_url: string | null
+          image_urls: string[] | null
+          ingredients: string | null
+          is_active: boolean
+          is_b2b: boolean
+          name: string
+          origin: string | null
+          original_price: number | null
+          price: number | null
+          product_id: number
+          shop_url: string | null
+          sort_order: number
+          storage_method: string | null
+          tags: string[] | null
+          updated_at: string
+          volume: string | null
+        }
+        Insert: {
+          badge?: Database["public"]["Enums"]["product_badge"] | null
+          category?: string[]
+          certifications?: string[] | null
+          created_at?: string
+          description: string
           detail?: string | null
+          expiry_info?: string | null
           image_url?: string | null
           image_urls?: string[] | null
+          ingredients?: string | null
           is_active?: boolean
           is_b2b?: boolean
-          name?: string
+          name: string
+          origin?: string | null
           original_price?: number | null
           price?: number | null
           product_id?: never
+          shop_url?: string | null
           sort_order?: number
+          storage_method?: string | null
           tags?: string[] | null
           updated_at?: string
+          volume?: string | null
+        }
+        Update: {
+          badge?: Database["public"]["Enums"]["product_badge"] | null
+          category?: string[]
+          certifications?: string[] | null
+          created_at?: string
+          description?: string
+          detail?: string | null
+          expiry_info?: string | null
+          image_url?: string | null
+          image_urls?: string[] | null
+          ingredients?: string | null
+          is_active?: boolean
+          is_b2b?: boolean
+          name?: string
+          origin?: string | null
+          original_price?: number | null
+          price?: number | null
+          product_id?: never
+          shop_url?: string | null
+          sort_order?: number
+          storage_method?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          volume?: string | null
         }
         Relationships: []
       }
@@ -682,9 +772,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_categories: {
+        Row: {
+          category_id: number
+          created_at: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: never
+          created_at?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: never
+          created_at?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
-          category: Database["public"]["Enums"]["recipe_category"]
+          category: string
           cooking_time: number | null
           created_at: string
           description: string | null
@@ -704,7 +824,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["recipe_category"]
+          category?: string
           cooking_time?: number | null
           created_at?: string
           description?: string | null
@@ -724,7 +844,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["recipe_category"]
+          category?: string
           cooking_time?: number | null
           created_at?: string
           description?: string | null
@@ -785,8 +905,6 @@ export type Database = {
       job_type: "full_time" | "part_time" | "contract" | "intern"
       news_type: "news" | "press" | "announcement"
       product_badge: "best" | "new" | "b2b" | "sale"
-      product_category: "liquid_egg" | "pudding" | "convenience" | "b2b"
-      recipe_category: "easy" | "dessert" | "restaurant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -928,8 +1046,6 @@ export const Constants = {
       job_type: ["full_time", "part_time", "contract", "intern"],
       news_type: ["news", "press", "announcement"],
       product_badge: ["best", "new", "b2b", "sale"],
-      product_category: ["liquid_egg", "pudding", "convenience", "b2b"],
-      recipe_category: ["easy", "dessert", "restaurant"],
     },
   },
 } as const

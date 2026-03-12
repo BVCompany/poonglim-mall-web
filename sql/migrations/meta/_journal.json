@@ -50,6 +50,13 @@
       "when": 1773297977133,
       "tag": "0006_purple_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773302132262,
+      "tag": "0007_chemical_wolfpack",
+      "breakpoints": true
     }
   ]
 }

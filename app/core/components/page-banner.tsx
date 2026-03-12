@@ -6,8 +6,8 @@
  *   - 최대 너비:    mx-auto md:max-w-[var(--hero-pc-width,1640px)]
  *   - 라운드:       rounded-3xl md:rounded-[2rem]
  */
-import { Link } from "react-router";
 import { ChevronRight } from "lucide-react";
+import { Link } from "react-router";
 
 export interface BreadcrumbItem {
   label: string;
@@ -39,11 +39,11 @@ export function PageBanner({
   breadcrumb = [],
   dbBanner,
 }: PageBannerProps) {
-  const resolvedImage    = dbBanner?.image_url  ?? imageUrl;
-  const resolvedTitle    = dbBanner?.title       ?? title;
-  const resolvedSubtitle = dbBanner?.subtitle    ?? subtitle;
-  const resolvedLinkUrl  = dbBanner?.link_url    ?? linkUrl;
-  const resolvedLinkText = dbBanner?.link_text   ?? linkText;
+  const resolvedImage = dbBanner?.image_url ?? imageUrl;
+  const resolvedTitle = dbBanner?.title ?? title;
+  const resolvedSubtitle = dbBanner?.subtitle ?? subtitle;
+  const resolvedLinkUrl = dbBanner?.link_url ?? linkUrl;
+  const resolvedLinkText = dbBanner?.link_text ?? linkText;
 
   return (
     /* 히어로 배너와 동일한 외부 여백 */
@@ -52,13 +52,12 @@ export function PageBanner({
       <div className="mx-auto w-full md:max-w-[var(--hero-pc-width,1640px)]">
         {/* 배너 카드 — 히어로와 동일한 라운드 */}
         <div
-          className="relative w-full overflow-hidden rounded-3xl md:rounded-[2rem] bg-gray-700"
+          className="relative w-full overflow-hidden rounded-3xl bg-gray-700 md:rounded-[2rem]"
           style={{
             backgroundImage: `url(${resolvedImage})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            minHeight: "180px",
-            height: "clamp(180px, 18vw, 260px)",
+            height: "clamp(200px, 28vw, 380px)",
           }}
         >
           {/* 어두운 오버레이 */}
@@ -66,12 +65,15 @@ export function PageBanner({
 
           {/* 브레드크럼 — 좌상단 */}
           {breadcrumb.length > 0 && (
-            <nav className="absolute top-4 left-5 z-10 flex items-center gap-1 text-white/70 text-xs md:text-sm">
+            <nav className="absolute top-4 left-30 z-10 flex items-center gap-1 text-xs text-white/70 md:text-sm">
               {breadcrumb.map((item, i) => (
                 <span key={i} className="flex items-center gap-1">
                   {i > 0 && <span className="opacity-60">&gt;</span>}
                   {item.href ? (
-                    <Link to={item.href} className="hover:text-white transition-colors">
+                    <Link
+                      to={item.href}
+                      className="transition-colors hover:text-white"
+                    >
                       {item.label}
                     </Link>
                   ) : (

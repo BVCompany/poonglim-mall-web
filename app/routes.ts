@@ -177,6 +177,7 @@ export default [
     route("/product-categories", "features/admin/screens/product-categories.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
+    route("/recipe-categories", "features/admin/screens/recipe-categories.tsx"),
     route("/careers", "features/admin/screens/careers.tsx"),
     route("/applications", "features/admin/screens/applications.tsx"),
     ...prefix("/inquiries", [

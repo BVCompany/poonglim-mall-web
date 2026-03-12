@@ -8,23 +8,17 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers.server";
-
-export const recipeCategoryEnum = pgEnum("recipe_category", [
-  "easy",       // 가정용
-  "dessert",    // 카페/베이커리
-  "restaurant", // 레스토랑
-]);
 
 export const recipes = pgTable(
   "recipes",
   {
     ...makeIdentityColumn("recipe_id"),
     title: text().notNull(),
-    category: recipeCategoryEnum().notNull(),
+    category: text().notNull().default("easy"), // recipe_categories.slug 참조
     description: text(),
     thumbnail_url: text(),
     image_urls: text().array().default([]),
