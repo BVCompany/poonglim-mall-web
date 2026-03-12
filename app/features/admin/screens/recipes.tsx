@@ -44,8 +44,8 @@ export async function action({ request }: Route.ActionArgs) {
       title:        fd.get("name") as string,
       category:     (fd.get("category") as string) || "easy",
       description:  (fd.get("description") as string) || null,
-      cooking_time: fd.get("prepTime") ? parseInt(fd.get("prepTime") as string) || null : null,
-      servings:     fd.get("servings") ? parseInt(fd.get("servings") as string) || null : null,
+      cooking_time: (fd.get("prepTime") as string) || null,
+      servings:     (fd.get("servings") as string) || null,
       difficulty:   (fd.get("difficulty") as string) || null,
       ingredients:  ingredientsJson || null,
       steps:        stepsJson || null,
@@ -68,8 +68,8 @@ export async function action({ request }: Route.ActionArgs) {
       title:        fd.get("name") as string,
       category:     (fd.get("category") as string) || "easy",
       description:  (fd.get("description") as string) || null,
-      cooking_time: fd.get("prepTime") ? parseInt(fd.get("prepTime") as string) || null : null,
-      servings:     fd.get("servings") ? parseInt(fd.get("servings") as string) || null : null,
+      cooking_time: (fd.get("prepTime") as string) || null,
+      servings:     (fd.get("servings") as string) || null,
       difficulty:   (fd.get("difficulty") as string) || null,
       ingredients:  ingredientsJson || null,
       steps:        stepsJson || null,
@@ -119,8 +119,8 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
         description: r.description ?? "",
         category: (r.category === "dessert" ? "cafe" : r.category === "easy" ? "home" : "restaurant") as AdminRecipe["category"],
         difficulty: (r.difficulty ?? "easy") as AdminRecipe["difficulty"],
-        cookingTime: r.cooking_time ?? 0,
-        servings: r.servings ?? 0,
+        cookingTime: r.cooking_time ?? "",
+        servings: r.servings ?? "",
         image: r.thumbnail_url ?? "",
         tags: r.tags ?? [],
         created_at: r.created_at.toISOString(),
@@ -298,14 +298,18 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                         <p className="mb-2 text-sm text-gray-600">{recipe.description}</p>
 
                         <div className="mb-2 flex items-center gap-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Clock className="h-4 w-4" />
-                            <span>{recipe.cookingTime}분</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm text-gray-700">
-                            <Users className="h-4 w-4" />
-                            <span>{recipe.servings}인분</span>
-                          </div>
+                          {recipe.cookingTime && (
+                            <div className="flex items-center gap-1 text-sm text-gray-700">
+                              <Clock className="h-4 w-4" />
+                              <span>{recipe.cookingTime}</span>
+                            </div>
+                          )}
+                          {recipe.servings && (
+                            <div className="flex items-center gap-1 text-sm text-gray-700">
+                              <Users className="h-4 w-4" />
+                              <span>{recipe.servings}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap gap-2">

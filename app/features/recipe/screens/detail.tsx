@@ -9,8 +9,8 @@ interface MockRecipe {
   recipe_id: number;
   title: string;
   category: string;
-  cooking_time?: number;
-  servings?: number;
+  cooking_time?: string;
+  servings?: string;
   difficulty?: string;
   thumbnail_url?: string;
   description?: string;
@@ -22,7 +22,7 @@ interface MockRecipe {
 
 const MOCK_MAP: Record<number, MockRecipe> = {
   1: {
-    recipe_id: 1, title: "프리미엄 티라미수", category: "dessert", cooking_time: 45, servings: 4,
+    recipe_id: 1, title: "프리미엄 티라미수", category: "dessert", cooking_time: "45분", servings: "4인분",
     thumbnail_url: "/recipe/recipe01.png",
     description: "카페 수준의 고급 티라미수 만들기. 풍림 계란으로 더욱 진하고 부드러운 티라미수를 완성하세요.",
     tags: ["디저트", "카페메뉴", "고급"],
@@ -45,7 +45,7 @@ const MOCK_MAP: Record<number, MockRecipe> = {
     is_active: true,
   },
   2: {
-    recipe_id: 2, title: "부드러운 계란찜", category: "easy", cooking_time: 15, servings: 3,
+    recipe_id: 2, title: "부드러운 계란찜", category: "easy", cooking_time: "15분", servings: "2~3인분",
     thumbnail_url: "/recipe/recipe02.png",
     description: "풍림푸드 액란으로 만드는 부드럽고 맛있는 계란찜입니다. 간단한 재료로 누구나 쉽게 만들 수 있어요.",
     tags: ["가정용", "2~3인분"],
@@ -66,9 +66,9 @@ const MOCK_MAP: Record<number, MockRecipe> = {
     ]),
     is_active: true,
   },
-  3: { recipe_id: 3, title: "부드러운 계란말이", category: "easy", cooking_time: 10, servings: 2, thumbnail_url: "/recipe/recipe03.png", description: "촉촉하고 부드러운 프리미엄 계란말이", tags: ["간단요리", "도시락"], ingredients: JSON.stringify([{ name: "풍림푸드 액란", amount: "150ml" }, { name: "소금", amount: "약간" }, { name: "식용유", amount: "적당량" }]), steps: JSON.stringify([{ step: 1, description: "액란에 소금으로 간을 합니다." }, { step: 2, description: "팬에 기름을 두르고 약불로 달굽니다." }, { step: 3, description: "계란물을 조금씩 부으며 말아줍니다." }, { step: 4, description: "완성 후 먹기 좋게 썰어 냅니다." }]), is_active: true },
-  4: { recipe_id: 4, title: "베리 스트로베리 푸딩", category: "dessert", cooking_time: 30, servings: 2, thumbnail_url: "/recipe/recipe04.png", description: "상큼한 딸기와 부드러운 푸딩의 조화", tags: ["디저트", "딸기"], ingredients: JSON.stringify([{ name: "풍림푸드 푸딩", amount: "2개" }, { name: "딸기", amount: "10개" }, { name: "딸기잼", amount: "2큰술" }]), steps: JSON.stringify([{ step: 1, description: "딸기를 깨끗이 씻어 반으로 자릅니다." }, { step: 2, description: "푸딩 위에 딸기잼을 살짝 올립니다." }, { step: 3, description: "딸기를 예쁘게 올려 완성합니다." }]), is_active: true },
-  5: { recipe_id: 5, title: "불장닭 떡볶이", category: "easy", cooking_time: 20, servings: 3, thumbnail_url: "/recipe/recipe05.png", description: "진한 불맛과 쫄깃한 떡의 환상 조합", tags: ["매운맛", "떡볶이"], ingredients: JSON.stringify([{ name: "떡", amount: "300g" }, { name: "풍림 계란", amount: "2개" }, { name: "불장닭 소스", amount: "3큰술" }, { name: "물", amount: "200ml" }]), steps: JSON.stringify([{ step: 1, description: "떡을 물에 불려 준비합니다." }, { step: 2, description: "팬에 소스와 물을 넣고 끓입니다." }, { step: 3, description: "떡을 넣고 소스가 배도록 조려줍니다." }, { step: 4, description: "계란을 반숙으로 삶아 올려 마무리합니다." }]), is_active: true },
+  3: { recipe_id: 3, title: "부드러운 계란말이", category: "easy", cooking_time: "10분", servings: "2인분", thumbnail_url: "/recipe/recipe03.png", description: "촉촉하고 부드러운 프리미엄 계란말이", tags: ["간단요리", "도시락"], ingredients: JSON.stringify([{ name: "풍림푸드 액란", amount: "150ml" }, { name: "소금", amount: "약간" }, { name: "식용유", amount: "적당량" }]), steps: JSON.stringify([{ step: 1, description: "액란에 소금으로 간을 합니다." }, { step: 2, description: "팬에 기름을 두르고 약불로 달굽니다." }, { step: 3, description: "계란물을 조금씩 부으며 말아줍니다." }, { step: 4, description: "완성 후 먹기 좋게 썰어 냅니다." }]), is_active: true },
+  4: { recipe_id: 4, title: "베리 스트로베리 푸딩", category: "dessert", cooking_time: "30분", servings: "2인분", thumbnail_url: "/recipe/recipe04.png", description: "상큼한 딸기와 부드러운 푸딩의 조화", tags: ["디저트", "딸기"], ingredients: JSON.stringify([{ name: "풍림푸드 푸딩", amount: "2개" }, { name: "딸기", amount: "10개" }, { name: "딸기잼", amount: "2큰술" }]), steps: JSON.stringify([{ step: 1, description: "딸기를 깨끗이 씻어 반으로 자릅니다." }, { step: 2, description: "푸딩 위에 딸기잼을 살짝 올립니다." }, { step: 3, description: "딸기를 예쁘게 올려 완성합니다." }]), is_active: true },
+  5: { recipe_id: 5, title: "불장닭 떡볶이", category: "easy", cooking_time: "20분", servings: "2~3인분", thumbnail_url: "/recipe/recipe05.png", description: "진한 불맛과 쫄깃한 떡의 환상 조합", tags: ["매운맛", "떡볶이"], ingredients: JSON.stringify([{ name: "떡", amount: "300g" }, { name: "풍림 계란", amount: "2개" }, { name: "불장닭 소스", amount: "3큰술" }, { name: "물", amount: "200ml" }]), steps: JSON.stringify([{ step: 1, description: "떡을 물에 불려 준비합니다." }, { step: 2, description: "팬에 소스와 물을 넣고 끓입니다." }, { step: 3, description: "떡을 넣고 소스가 배도록 조려줍니다." }, { step: 4, description: "계란을 반숙으로 삶아 올려 마무리합니다." }]), is_active: true },
 };
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
@@ -119,8 +119,8 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
     catch { return []; }
   })();
 
-  const cookTime  = recipe.cooking_time ? `${recipe.cooking_time}분` : null;
-  const servings  = recipe.servings ? `${recipe.servings}인분` : null;
+  const cookTime  = recipe.cooking_time ? String(recipe.cooking_time) : null;
+  const servings  = recipe.servings ? String(recipe.servings) : null;
   const tags: string[] = recipe.tags ?? [];
   const categoryLabel = CATEGORY_LABELS[recipe.category] ?? recipe.category;
 

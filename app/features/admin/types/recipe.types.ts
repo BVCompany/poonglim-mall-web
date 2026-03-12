@@ -28,8 +28,8 @@ export interface AdminRecipe {
   description: string;
   category: RecipeCategory;
   difficulty: RecipeDifficulty;
-  cookingTime: number; // in minutes
-  servings: number;
+  cookingTime: string; // "15분", "15~20분" 등
+  servings: string;   // "2인분", "2~3인분" 등
   image: string;
   tags: string[];
   badge?: RecipeBadge;

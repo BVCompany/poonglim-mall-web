@@ -236,21 +236,19 @@ export function RecipeAddModal({
           {/* 조리시간 + 인분 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>조리시간 (분)</Label>
+              <Label>조리시간</Label>
               <Input
-                type="number"
                 value={form.prepTime}
                 onChange={(e) => setForm({ ...form, prepTime: e.target.value })}
-                placeholder="예: 15"
+                placeholder="예: 15분 · 15~20분"
               />
             </div>
             <div className="space-y-1.5">
               <Label>인분</Label>
               <Input
-                type="number"
                 value={form.servings}
                 onChange={(e) => setForm({ ...form, servings: e.target.value })}
-                placeholder="예: 2"
+                placeholder="예: 2인분 · 2~3인분"
               />
             </div>
           </div>
