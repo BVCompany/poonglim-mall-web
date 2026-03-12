@@ -110,6 +110,57 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "update") {
+    const id = Number(formData.get("id"));
+    if (!id) return { success: false };
+
+    const name             = formData.get("name") as string;
+    const description      = formData.get("description") as string;
+    const detail           = formData.get("detail") as string;
+    const categoriesRaw    = formData.get("categories") as string;
+    const priceRaw         = formData.get("price") as string;
+    const originalPriceRaw = formData.get("originalPrice") as string;
+    const badgeRaw         = formData.get("badge") as string;
+    const imageUrl         = formData.get("image") as string;
+    const tagsRaw          = formData.get("tags") as string;
+    const shopUrl          = formData.get("shopUrl") as string;
+    const volume           = formData.get("volume") as string;
+    const storageMethod    = formData.get("storageMethod") as string;
+    const expiryInfo       = formData.get("expiryInfo") as string;
+    const origin           = formData.get("origin") as string;
+    const ingredientsVal   = formData.get("ingredients") as string;
+    const certificationsRaw = formData.get("certifications") as string;
+
+    const parsedCategories: string[] = (() => {
+      try { return JSON.parse(categoriesRaw) as string[]; } catch { return []; }
+    })();
+
+    const parsedCertifications: string[] = certificationsRaw
+      ? certificationsRaw.split(",").map((c) => c.trim()).filter(Boolean)
+      : [];
+
+    await db.update(products).set({
+      name,
+      description,
+      detail: detail || null,
+      category: parsedCategories,
+      price: priceRaw ? Number(priceRaw) : null,
+      original_price: originalPriceRaw ? Number(originalPriceRaw) : null,
+      badge: badgeRaw ? (BADGE_MAP[badgeRaw] ?? null) : null,
+      image_url: imageUrl || null,
+      tags: tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      shop_url: shopUrl || null,
+      volume: volume || null,
+      storage_method: storageMethod || null,
+      expiry_info: expiryInfo || null,
+      origin: origin || null,
+      ingredients: ingredientsVal || null,
+      certifications: parsedCertifications,
+      updated_at: new Date(),
+    }).where(eq(products.product_id, id));
+    return { success: true };
+  }
+
   if (intent === "delete") {
     const id = Number(formData.get("id"));
     if (id) {
@@ -171,6 +222,8 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbProducts, dbCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | undefined>(undefined);
+  const [editingData, setEditingData] = useState<ProductFormData | undefined>(undefined);
   const fetcher = useFetcher();
 
   // DB 데이터가 있으면 사용, 없으면 더미
@@ -218,9 +271,56 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     setIsAddModalOpen(false);
   };
 
-  const handleEdit = (productId: string) => {
-    // TODO: 수정 모달 또는 페이지
-    console.log("Edit product:", productId);
+  const handleOpenEdit = (productId: string) => {
+    const raw = dbProducts.find((p) => String(p.product_id) === productId);
+    if (!raw) return;
+
+    setEditingId(raw.product_id);
+    setEditingData({
+      name:           raw.name,
+      categories:     Array.isArray(raw.category) ? raw.category : (raw.category ? [raw.category] : []),
+      price:          raw.price ?? 0,
+      originalPrice:  raw.original_price ?? undefined,
+      badge:          raw.badge ?? undefined,
+      description:    raw.description ?? "",
+      detail:         raw.detail ?? "",
+      tags:           raw.tags ?? [],
+      image:          raw.image_url ?? "",
+      shopUrl:        raw.shop_url ?? "",
+      volume:         raw.volume ?? "",
+      storageMethod:  raw.storage_method ?? "",
+      expiryInfo:     raw.expiry_info ?? "",
+      origin:         raw.origin ?? "",
+      ingredients:    raw.ingredients ?? "",
+      certifications: (raw.certifications ?? []).join(", "),
+    });
+  };
+
+  const handleEditProduct = (productData: ProductFormData) => {
+    if (!editingId) return;
+    const fd = new FormData();
+    fd.append("intent",      "update");
+    fd.append("id",          String(editingId));
+    fd.append("name",        productData.name);
+    fd.append("description", productData.description);
+    fd.append("categories",  JSON.stringify(productData.categories));
+    fd.append("price",       String(productData.price));
+    if (productData.originalPrice) fd.append("originalPrice", String(productData.originalPrice));
+    if (productData.badge)         fd.append("badge",         productData.badge);
+    fd.append("image",       productData.image ?? "");
+    fd.append("tags",        productData.tags.join(","));
+    if (productData.shopUrl)       fd.append("shopUrl",       productData.shopUrl);
+    if (productData.detail)        fd.append("detail",        productData.detail);
+    if (productData.volume)        fd.append("volume",        productData.volume);
+    if (productData.storageMethod) fd.append("storageMethod", productData.storageMethod);
+    if (productData.expiryInfo)    fd.append("expiryInfo",    productData.expiryInfo);
+    if (productData.origin)        fd.append("origin",        productData.origin);
+    if (productData.ingredients)   fd.append("ingredients",   productData.ingredients);
+    if (productData.certifications) fd.append("certifications", productData.certifications);
+
+    fetcher.submit(fd, { method: "POST" });
+    setEditingId(undefined);
+    setEditingData(undefined);
   };
 
   const handleDelete = (productId: string) => {
@@ -347,7 +447,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(product.id)}
+                        onClick={() => handleOpenEdit(product.id)}
                         className="text-gray-600 hover:text-gray-900"
                       >
                         <Edit className="w-5 h-5" />
@@ -377,11 +477,21 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
       </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* 등록 모달 */}
       <ProductAddModal
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onSubmit={handleAddProduct}
+        dbCategories={dbCategories.map((c) => ({ slug: c.slug, name: c.name }))}
+      />
+
+      {/* 수정 모달 */}
+      <ProductAddModal
+        open={editingId !== undefined}
+        onOpenChange={(o) => { if (!o) { setEditingId(undefined); setEditingData(undefined); } }}
+        onSubmit={handleEditProduct}
+        editId={editingId}
+        initialData={editingData}
         dbCategories={dbCategories.map((c) => ({ slug: c.slug, name: c.name }))}
       />
     </div>

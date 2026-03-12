@@ -3,7 +3,7 @@
  *
  * 제품 추가 모달: 복수 카테고리, 풍림몰 링크, 배지, 태그, 이미지 업로드
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
@@ -58,6 +58,10 @@ interface ProductAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (product: ProductFormData) => void;
+  /** 수정 모드: 수정할 제품의 DB id */
+  editId?: number;
+  /** 수정 모드: 기존 데이터 (미제공 시 등록 모드) */
+  initialData?: ProductFormData;
   /** DB에서 로드된 카테고리 목록 */
   dbCategories?: DbCategory[];
 }
@@ -85,10 +89,25 @@ export function ProductAddModal({
   open,
   onOpenChange,
   onSubmit,
+  editId,
+  initialData,
   dbCategories = [],
 }: ProductAddModalProps) {
-  const [form, setForm] = useState<ProductFormData>(EMPTY_FORM);
-  const [tagsInput, setTagsInput] = useState("");
+  const isEditMode = editId !== undefined;
+  const [form, setForm] = useState<ProductFormData>(initialData ?? EMPTY_FORM);
+  const [tagsInput, setTagsInput] = useState(initialData?.tags.join(", ") ?? "");
+
+  // 모달이 열릴 때 폼 초기화
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      setForm(initialData);
+      setTagsInput(initialData.tags.join(", "));
+    } else {
+      setForm(EMPTY_FORM);
+      setTagsInput("");
+    }
+  }, [open, initialData]);
 
   const reset = () => {
     setForm(EMPTY_FORM);
@@ -99,12 +118,12 @@ export function ProductAddModal({
     e.preventDefault();
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
     onSubmit({ ...form, tags });
-    reset();
+    if (!isEditMode) reset();
     onOpenChange(false);
   };
 
   const handleCancel = () => {
-    reset();
+    if (!isEditMode) reset();
     onOpenChange(false);
   };
 
@@ -125,7 +144,9 @@ export function ProductAddModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 제품 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {isEditMode ? "제품 수정" : "새 제품 추가"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
@@ -358,7 +379,7 @@ export function ProductAddModal({
           {/* 버튼 */}
           <div className="flex gap-3 pt-2">
             <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">
-              추가
+              {isEditMode ? "수정 완료" : "추가"}
             </Button>
             <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
               취소
