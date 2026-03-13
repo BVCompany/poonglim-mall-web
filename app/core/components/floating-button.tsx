@@ -21,8 +21,8 @@ export default function FloatingButton() {
   }, []);
 
   const handleChatClick = useCallback(() => {
-    if (typeof window !== "undefined" && (window as unknown as { ChannelIO?: { open: () => void } }).ChannelIO) {
-      (window as unknown as { ChannelIO: { open: () => void } }).ChannelIO.open();
+    if (typeof window !== "undefined" && typeof (window as unknown as { ChannelIO?: (cmd: string) => void }).ChannelIO === "function") {
+      (window as unknown as { ChannelIO: (cmd: string) => void }).ChannelIO("showMessenger");
     } else {
       window.location.href = "/support";
     }
