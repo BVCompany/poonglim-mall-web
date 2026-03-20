@@ -156,19 +156,17 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 배너 ── */}
-      <div className="pt-[118px]">
-        <PageBanner
-          imageUrl="/banner/support_banner_temp.png"
-          title="문의하기"
-          subtitle="궁금한 점이 있으시면 언제든 문의해주세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "문의하기" },
-          ]}
-          dbBanner={pageBanner}
-        />
-      </div>
+      <PageBanner
+        imageUrl="/banner/support_banner_temp.png"
+        title="문의하기"
+        subtitle="궁금한 점이 있으시면 언제든 문의해주세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "문의하기" },
+        ]}
+        dbBanner={pageBanner}
+      />
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 py-12 md:px-6 lg:px-10">

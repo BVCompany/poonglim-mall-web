@@ -124,19 +124,17 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 배너 ── */}
-      <div className="pt-[118px]">
-        <PageBanner
-          imageUrl="/banner/rating_banner_temp.png"
-          title="등급판정서"
-          subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "등급판정서", href: "/support/grade-certificate" },
-          ]}
-          dbBanner={pageBanner}
-        />
-      </div>
+      <PageBanner
+        imageUrl="/banner/rating_banner_temp.png"
+        title="등급판정서"
+        subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "등급판정서", href: "/support/grade-certificate" },
+        ]}
+        dbBanner={pageBanner}
+      />
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 pt-[100px] pb-[200px] md:px-6 lg:px-10">
