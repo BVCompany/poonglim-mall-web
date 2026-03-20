@@ -89,19 +89,17 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 배너 ── */}
-      <div className="pt-[118px]">
-        <PageBanner
-          imageUrl="/banner/faq_banner_temp.png"
-          title="자주 묻는 질문"
-          subtitle="궁금하신 점을 빠르게 확인하세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "FAQ" },
-          ]}
-          dbBanner={pageBanner}
-        />
-      </div>
+      <PageBanner
+        imageUrl="/banner/faq_banner_temp.png"
+        title="자주 묻는 질문"
+        subtitle="궁금하신 점을 빠르게 확인하세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "FAQ" },
+        ]}
+        dbBanner={pageBanner}
+      />
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 py-10 md:px-6 lg:px-10">
