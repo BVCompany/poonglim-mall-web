@@ -1,9 +1,7 @@
 /**
  * Admin Consulting Inquiries Management Page
- * 
- * Allows admins to view and manage consulting inquiries.
+ * 문의하기 내역 관리 (contacts 테이블 사용)
  */
-
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/inquiries-consulting";
@@ -12,284 +10,245 @@ import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { Input } from "~/core/components/ui/input";
 import { Button } from "~/core/components/ui/button";
-import { Badge } from "~/core/components/ui/badge";
-import { Card } from "~/core/components/ui/card";
-import { Search, Eye, CheckCircle, Trash2, Phone, Mail } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
+import { Search, Eye, CheckCircle, Trash2, Phone, Mail, Building2 } from "lucide-react";
+import {
+  getAllContacts,
+  updateContactStatus,
+  deleteContact,
+} from "~/features/support/lib/queries.server";
 
-/**
- * Loader: Require admin authentication
- */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const { default: db } = await import("~/core/db/drizzle-client.server");
-  const { inquiries } = await import("~/features/inquiry/schema");
-  const dbInquiries = await db.select().from(inquiries).catch(() => []);
-  return { adminUser, dbInquiries };
+  const dbContacts = await getAllContacts().catch(() => []);
+  return { adminUser, dbContacts };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdminAuth(request);
-  const { default: db } = await import("~/core/db/drizzle-client.server");
-  const { inquiries } = await import("~/features/inquiry/schema");
-  const { eq } = await import("drizzle-orm");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
+
   if (intent === "complete") {
     const id = Number(fd.get("id"));
-    if (id) await db.update(inquiries).set({ status: "completed" }).where(eq(inquiries.inquiry_id, id));
+    if (id) await updateContactStatus(id, "completed");
+  }
+  if (intent === "pending") {
+    const id = Number(fd.get("id"));
+    if (id) await updateContactStatus(id, "pending");
   }
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(inquiries).where(eq(inquiries.inquiry_id, id));
+    if (id) await deleteContact(id);
   }
   return { success: true };
 }
 
-interface Inquiry {
-  id: string;
-  date: string;
+type Contact = {
+  contact_id: number;
+  inquiry_type: string;
   name: string;
-  phone: string;
   email: string;
-  type: string;
+  phone: string | null;
+  company: string | null;
   title: string;
-  status: "대기중" | "처리완료";
-}
+  content: string;
+  status: "pending" | "completed";
+  admin_memo: string | null;
+  created_at: Date | string;
+};
 
-const MOCK_INQUIRIES: Inquiry[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    name: "김철수",
-    phone: "010-1234-5678",
-    email: "kim@example.com",
-    type: "제품 문의",
-    title: "액란 제품 대량 구매 문의",
-    status: "대기중",
-  },
-  {
-    id: "2",
-    date: "2024-01-14",
-    name: "이영희",
-    phone: "010-2345-6789",
-    email: "lee@example.com",
-    type: "일반 소비자 문의",
-    title: "제품 배송 문의",
-    status: "처리완료",
-  },
-  {
-    id: "3",
-    date: "2024-01-13",
-    name: "박민수",
-    phone: "010-3456-7890",
-    email: "park@example.com",
-    type: "B2B 문의",
-    title: "장기 배송 계약 문의",
-    status: "처리완료",
-  },
-];
+const STATUS_LABEL: Record<string, string> = {
+  pending: "대기중",
+  completed: "처리완료",
+};
+const STATUS_COLOR: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  completed: "bg-green-100 text-green-800 border-green-200",
+};
 
-export default function AdminConsultingInquiriesPage({
-  loaderData,
-}: Route.ComponentProps) {
-  const { adminUser, dbInquiries } = loaderData;
-  const [searchQuery, setSearchQuery] = useState("");
+export default function AdminConsultingInquiriesPage({ loaderData }: Route.ComponentProps) {
+  const { adminUser, dbContacts } = loaderData;
   const fetcher = useFetcher();
 
-  const inquiries: Inquiry[] = dbInquiries.length > 0
-    ? dbInquiries.map((i) => ({
-        id: String(i.inquiry_id),
-        date: i.created_at.toISOString().slice(0, 10),
-        name: i.name,
-        phone: i.phone,
-        email: i.email,
-        type: i.type,
-        title: i.title,
-        status: i.status === "completed" ? "처리완료" as const : "대기중" as const,
-      }))
-    : MOCK_INQUIRIES;
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
+  const [selected, setSelected] = useState<Contact | null>(null);
 
-  const filteredInquiries = inquiries.filter(
-    (inquiry) =>
-      inquiry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inquiry.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inquiry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inquiry.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const contacts = dbContacts as Contact[];
 
-  // Calculate statistics
-  const stats = {
-    total: inquiries.length,
-    pending: inquiries.filter((i) => i.status === "대기중").length,
-    completed: inquiries.filter((i) => i.status === "처리완료").length,
-  };
+  const filtered = contacts.filter((c) => {
+    const matchSearch =
+      !search ||
+      c.name.includes(search) ||
+      c.title.includes(search) ||
+      c.content.includes(search) ||
+      (c.email ?? "").includes(search) ||
+      (c.phone ?? "").includes(search);
+    const matchStatus = filterStatus === "all" || c.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
 
-  const handleView = (id: string) => {
-    console.log("View inquiry:", id);
-    alert(`상담 문의 상세보기: ${id}`);
-  };
-
-  const handleComplete = (id: string) => {
-    const fd = new FormData();
-    fd.append("intent", "complete");
-    fd.append("id", id);
-    fetcher.submit(fd, { method: "POST" });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-    const fd = new FormData();
-    fd.append("intent", "delete");
-    fd.append("id", id);
-    fetcher.submit(fd, { method: "POST" });
-  };
+  const formatDate = (d: Date | string) =>
+    new Date(d).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-gray-50">
       <AdminSidebar adminUser={adminUser} />
-
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Top Navigation Bar */}
+      <div className="flex flex-1 flex-col">
         <AdminNavbar />
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-8">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                상담 문의 관리
-              </h1>
-              <p className="text-gray-600">
-                웹사이트에서 남겨진 문의 내용을 확인하고 관리합니다
+        <main className="flex-1 p-6">
+          {/* 헤더 */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">상담 문의 관리</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                총 {contacts.length}건 · 대기중{" "}
+                {contacts.filter((c) => c.status === "pending").length}건
               </p>
             </div>
+          </div>
 
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-3 gap-6 mb-6">
-              <Card className="p-6">
-                <h3 className="text-sm text-gray-600 mb-2">전체 문의</h3>
-                <p className="text-4xl font-bold text-gray-900">{stats.total}</p>
-              </Card>
-              <Card className="p-6">
-                <h3 className="text-sm text-gray-600 mb-2">대기중</h3>
-                <p className="text-4xl font-bold text-orange-500">{stats.pending}</p>
-              </Card>
-              <Card className="p-6">
-                <h3 className="text-sm text-gray-600 mb-2">처리완료</h3>
-                <p className="text-4xl font-bold text-emerald-600">{stats.completed}</p>
-              </Card>
-            </div>
-
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="이름, 이메일, 제목으로 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+          {/* 통계 카드 */}
+          <div className="mb-6 grid grid-cols-3 gap-4">
+            {[
+              { label: "전체 문의", value: contacts.length, color: "text-gray-900" },
+              { label: "대기중", value: contacts.filter((c) => c.status === "pending").length, color: "text-orange-500" },
+              { label: "처리완료", value: contacts.filter((c) => c.status === "completed").length, color: "text-emerald-600" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
+                <p className="text-sm text-gray-500">{s.label}</p>
+                <p className={`mt-1 text-4xl font-bold ${s.color}`}>{s.value}</p>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Inquiries Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      접수일
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      이름
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      연락처
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      문의 유형
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      제목
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      상태
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      작업
-                    </th>
+          {/* 필터 + 검색 */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            {(["all", "pending", "completed"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  filterStatus === s
+                    ? "bg-[#02633E] text-white"
+                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {s === "all" ? "전체" : STATUS_LABEL[s]}
+              </button>
+            ))}
+            <div className="relative ml-auto">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="이름, 제목, 내용, 이메일 검색..."
+                className="w-72 pl-9"
+              />
+            </div>
+          </div>
+
+          {/* 테이블 */}
+          {filtered.length === 0 ? (
+            <div className="rounded-xl bg-white py-20 text-center text-gray-400 shadow-sm border border-gray-100">
+              접수된 문의가 없습니다.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3">번호</th>
+                    <th className="px-4 py-3">문의유형</th>
+                    <th className="px-4 py-3">이름</th>
+                    <th className="px-4 py-3">연락처</th>
+                    <th className="px-4 py-3">제목</th>
+                    <th className="px-4 py-3">상태</th>
+                    <th className="px-4 py-3">접수일</th>
+                    <th className="px-4 py-3 text-right">관리</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredInquiries.map((inquiry) => (
-                    <tr key={inquiry.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {inquiry.date}
+                <tbody>
+                  {filtered.map((c, idx) => (
+                    <tr
+                      key={c.contact_id}
+                      className="border-b last:border-0 transition-colors hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-3 text-gray-400">{filtered.length - idx}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
+                          {c.inquiry_type}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {inquiry.name}
+                      <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        <div>{c.phone ?? "-"}</div>
+                        <div className="text-xs text-gray-400">{c.email}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {inquiry.phone}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {inquiry.email}
-                          </div>
-                        </div>
+                      <td className="max-w-xs px-4 py-3">
+                        <button
+                          onClick={() => setSelected(c)}
+                          className="truncate text-left font-medium text-gray-800 hover:text-[#02633E] hover:underline"
+                        >
+                          {c.title}
+                        </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {inquiry.type}
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[c.status]}`}
+                        >
+                          {STATUS_LABEL[c.status]}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                        {inquiry.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {inquiry.status === "대기중" ? (
-                          <Badge className="bg-gray-900 text-white">
-                            대기중
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-[#204E3A] text-white">
-                            처리완료
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-3 text-gray-500">{formatDate(c.created_at)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleView(inquiry.id)}
-                            className="h-8 w-8"
+                            onClick={() => setSelected(c)}
+                            title="상세보기"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-gray-500" />
                           </Button>
-                          {inquiry.status === "대기중" && (
+                          {c.status === "pending" ? (
+                            <fetcher.Form method="post">
+                              <input type="hidden" name="intent" value="complete" />
+                              <input type="hidden" name="id" value={c.contact_id} />
+                              <Button variant="ghost" size="icon" type="submit" title="처리완료">
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              </Button>
+                            </fetcher.Form>
+                          ) : (
+                            <fetcher.Form method="post">
+                              <input type="hidden" name="intent" value="pending" />
+                              <input type="hidden" name="id" value={c.contact_id} />
+                              <Button variant="ghost" size="icon" type="submit" title="대기중으로 변경">
+                                <CheckCircle className="h-4 w-4 text-gray-400" />
+                              </Button>
+                            </fetcher.Form>
+                          )}
+                          <fetcher.Form method="post">
+                            <input type="hidden" name="intent" value="delete" />
+                            <input type="hidden" name="id" value={c.contact_id} />
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleComplete(inquiry.id)}
-                              className="h-8 w-8 text-[#204E3A]"
+                              type="submit"
+                              title="삭제"
+                              onClick={(e) => {
+                                if (!confirm("이 문의를 삭제하시겠습니까?")) e.preventDefault();
+                              }}
                             >
-                              <CheckCircle className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 text-red-400" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(inquiry.id)}
-                            className="h-8 w-8 text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </fetcher.Form>
                         </div>
                       </td>
                     </tr>
@@ -297,25 +256,96 @@ export default function AdminConsultingInquiriesPage({
                 </tbody>
               </table>
             </div>
-
-            {/* Empty State */}
-            {filteredInquiries.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-lg shadow">
-                <Search className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-4 text-lg font-medium text-gray-900">
-                  검색 결과가 없습니다
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">
-                  {searchQuery
-                    ? "다른 검색어로 시도해보세요"
-                    : "문의가 없습니다"}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+          )}
+        </main>
       </div>
+
+      {/* 상세보기 모달 */}
+      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>문의 상세</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[selected.status]}`}
+                >
+                  {STATUS_LABEL[selected.status]}
+                </span>
+                <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
+                  {selected.inquiry_type}
+                </span>
+                <span className="ml-auto text-gray-400">{formatDate(selected.created_at)}</span>
+              </div>
+
+              <h2 className="text-lg font-bold text-gray-900">{selected.title}</h2>
+
+              <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <span className="font-medium text-gray-700">이름:</span>
+                  {selected.name}
+                </div>
+                {selected.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="h-4 w-4 shrink-0" />
+                    {selected.phone}
+                  </div>
+                )}
+                {selected.email && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    {selected.email}
+                  </div>
+                )}
+                {selected.company && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Building2 className="h-4 w-4 shrink-0" />
+                    {selected.company}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-100 bg-white p-4">
+                <p className="whitespace-pre-wrap leading-relaxed text-gray-700">{selected.content}</p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                {selected.status === "pending" ? (
+                  <fetcher.Form method="post">
+                    <input type="hidden" name="intent" value="complete" />
+                    <input type="hidden" name="id" value={selected.contact_id} />
+                    <Button
+                      type="submit"
+                      className="bg-[#02633E] text-white hover:bg-[#024d31]"
+                      onClick={() => setSelected(null)}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      처리완료로 변경
+                    </Button>
+                  </fetcher.Form>
+                ) : (
+                  <fetcher.Form method="post">
+                    <input type="hidden" name="intent" value="pending" />
+                    <input type="hidden" name="id" value={selected.contact_id} />
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      onClick={() => setSelected(null)}
+                    >
+                      대기중으로 변경
+                    </Button>
+                  </fetcher.Form>
+                )}
+                <Button variant="outline" onClick={() => setSelected(null)}>
+                  닫기
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

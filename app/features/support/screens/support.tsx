@@ -26,11 +26,13 @@ export async function action({ request }: Route.ActionArgs) {
   const fd = await request.formData();
   try {
     await createContact({
+      inquiry_type: (fd.get("type") as string) || "기타",
       name: fd.get("name") as string,
       phone: (fd.get("phone") as string) || null,
       email: fd.get("email") as string,
       title: (fd.get("type") as string) || "일반 문의",
       content: fd.get("content") as string,
+      lookup_password: "",
     });
     return { success: true };
   } catch {

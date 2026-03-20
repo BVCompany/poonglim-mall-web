@@ -805,7 +805,7 @@ export type Database = {
       recipes: {
         Row: {
           category: string
-          cooking_time: number | null
+          cooking_time: string | null
           created_at: string
           description: string | null
           difficulty: string | null
@@ -814,7 +814,7 @@ export type Database = {
           is_active: boolean
           nutrition: string | null
           recipe_id: number
-          servings: number | null
+          servings: string | null
           sort_order: number
           steps: string | null
           tags: string[] | null
@@ -825,7 +825,7 @@ export type Database = {
         }
         Insert: {
           category?: string
-          cooking_time?: number | null
+          cooking_time?: string | null
           created_at?: string
           description?: string | null
           difficulty?: string | null
@@ -834,7 +834,7 @@ export type Database = {
           is_active?: boolean
           nutrition?: string | null
           recipe_id?: never
-          servings?: number | null
+          servings?: string | null
           sort_order?: number
           steps?: string | null
           tags?: string[] | null
@@ -845,7 +845,7 @@ export type Database = {
         }
         Update: {
           category?: string
-          cooking_time?: number | null
+          cooking_time?: string | null
           created_at?: string
           description?: string | null
           difficulty?: string | null
@@ -854,7 +854,7 @@ export type Database = {
           is_active?: boolean
           nutrition?: string | null
           recipe_id?: never
-          servings?: number | null
+          servings?: string | null
           sort_order?: number
           steps?: string | null
           tags?: string[] | null

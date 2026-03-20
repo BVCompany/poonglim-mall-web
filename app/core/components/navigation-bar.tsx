@@ -48,76 +48,50 @@ interface NavProps {
 /* 메뉴 빌더                                    */
 /* ─────────────────────────────────────────── */
 function buildMenuItems(
-  t: (key: string) => string,
-  productCategories: NavCategory[],
-  recipeCategories: NavCategory[],
+  _t: (key: string) => string,
+  _productCategories: NavCategory[],
+  _recipeCategories: NavCategory[],
 ): MenuItem[] {
-  // ── 제품 서브메뉴 ──
-  const productSubItems: { label: string; path: string }[] = [
-    { label: t("navigation.products.all"), path: "/products/all" },
-  ];
-  if (productCategories.length > 0) {
-    productCategories.forEach((cat) => {
-      productSubItems.push({
-        label: cat.name,
-        path: `/products/all?category=${cat.slug}`,
-      });
-    });
-  } else {
-    // DB 미연결 시 고정값 fallback
-    productSubItems.push(
-      { label: t("navigation.products.liquidEggs"),  path: "/products/liquid-eggs" },
-      { label: t("navigation.products.puddings"),    path: "/products/puddings" },
-      { label: t("navigation.products.convenience"), path: "/products/convenience" },
-    );
-  }
-
-  // ── 레시피 서브메뉴 ──
-  const recipeSubItems: { label: string; path: string }[] = [
-    { label: t("navigation.recipe.all"), path: "/recipe/main" },
-  ];
-  if (recipeCategories.length > 0) {
-    recipeCategories.forEach((cat) => {
-      recipeSubItems.push({
-        label: cat.name,
-        path: `/recipe/main?category=${cat.slug}`,
-      });
-    });
-  } else {
-    recipeSubItems.push(
-      { label: t("navigation.recipe.home"),       path: "/recipe/easy" },
-      { label: t("navigation.recipe.cafe"),       path: "/recipe/dessert" },
-      { label: t("navigation.recipe.restaurant"), path: "/recipe/restaurant" },
-    );
-  }
-
   return [
+    // ── 회사소개 ──
     {
-      label: t("navigation.brand.title"),
+      label: "회사소개",
       subItems: [
-        { label: t("navigation.brand.intro"),          path: "/brand/intro" },
-        { label: t("navigation.brand.history"),        path: "/brand/history" },
-        { label: t("navigation.brand.certifications"), path: "/brand/certifications" },
-        { label: t("navigation.brand.factoryTour"),    path: "/brand/factory-tour" },
+        { label: "회사소개",   path: "/brand/intro" },
+        { label: "연혁",       path: "/brand/history" },
+        { label: "품질 & 인증", path: "/brand/certifications" },
+        { label: "채용",       path: "/careers/positions" },
+        { label: "오시는 길",  path: "/brand/location" },
       ],
     },
-    { label: t("navigation.products.title"), subItems: productSubItems },
-    { label: t("navigation.recipe.title"),   subItems: recipeSubItems },
-    { label: t("navigation.event.title"),    path: "/event" },
+    // ── 제품소개 ──
     {
-      label: t("navigation.inquiry.title"),
+      label: "제품소개",
       subItems: [
-        { label: t("navigation.inquiry.general"), path: "/inquiry/online" },
-        { label: t("navigation.inquiry.b2b"),     path: "/inquiry/bulk" },
+        { label: "계란이야기", path: "/products/egg-story" },
+        { label: "제품보기",   path: "/products/all" },
+        { label: "레시피",     path: "/recipe/main" },
       ],
     },
-    { label: t("navigation.support.title"), path: "/support" },
+    // ── 홍보센터 ──
     {
-      label: t("navigation.careers.title"),
+      label: "홍보센터",
       subItems: [
-        { label: t("navigation.careers.positions"), path: "/careers/positions" },
-        { label: t("navigation.careers.benefits"),  path: "/careers/benefits" },
-        { label: t("navigation.careers.talent"),    path: "/careers/talent" },
+        { label: "보도자료", path: "/blog" },
+        { label: "이벤트",   path: "/event" },
+        { label: "견학신청", path: "/brand/factory-tour" },
+      ],
+    },
+    // ── 고객지원 ──
+    {
+      label: "고객지원",
+      subItems: [
+        { label: "공지사항",         path: "/support/notice" },
+        { label: "자료실",           path: "/support/resources" },
+        { label: "계란안정성검사결과", path: "/support/safety-test" },
+        { label: "등급판정서",        path: "/support/grade-certificate" },
+        { label: "FAQ",              path: "/support/faq" },
+        { label: "문의하기",          path: "/support/contact" },
       ],
     },
   ];
