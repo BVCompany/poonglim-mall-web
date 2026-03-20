@@ -88,16 +88,18 @@ export default [
     // ]),
     route("/contact", "features/contact/screens/contact-us.tsx"),
     
-    // Brand Routes (브랜드)
+    // Brand Routes (브랜드/회사소개)
     ...prefix("/brand", [
       route("/intro", "features/brand/screens/intro.tsx"),
       route("/history", "features/brand/screens/history.tsx"),
       route("/certifications", "features/brand/screens/certifications.tsx"),
       route("/factory-tour", "features/brand/screens/factory-tour.tsx"),
+      route("/location", "features/brand/screens/location.tsx"),
     ]),
     
-    // Products Routes (제품)
+    // Products Routes (제품소개)
     ...prefix("/products", [
+      route("/egg-story", "features/products/screens/egg-story.tsx"),
       route("/all", "features/products/screens/all.tsx"),
       route("/liquid-eggs", "features/products/screens/liquid-eggs.tsx"),
       route("/puddings", "features/products/screens/puddings.tsx"),
@@ -124,8 +126,18 @@ export default [
       route("/bulk", "features/inquiry/screens/bulk.tsx"),
     ]),
     
-    // Customer Support Route (고객지원)
+    // Customer Support Routes (고객지원)
     route("/support", "features/support/screens/support.tsx"),
+    ...prefix("/support", [
+      route("/notice",              "features/support/screens/notice.tsx"),
+      route("/notice/:id",          "features/support/screens/notice-detail.tsx"),
+      route("/resources",           "features/support/screens/resources.tsx"),
+      route("/safety-test",             "features/support/screens/safety-test.tsx"),
+      route("/grade-certificate",       "features/support/screens/grade-certificate.tsx"),
+      route("/grade-certificate/:id",   "features/support/screens/grade-certificate-detail.tsx"),
+      route("/faq",                     "features/support/screens/faq.tsx"),
+      route("/contact",                 "features/support/screens/contact.tsx"),
+    ]),
     
     // Careers Routes (채용)
     ...prefix("/careers", [
@@ -175,6 +187,9 @@ export default [
     route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
     route("/product-categories", "features/admin/screens/product-categories.tsx"),
+    route("/notices", "features/admin/screens/notices.tsx"),
+    route("/grade-certificates", "features/admin/screens/grade-certificates.tsx"),
+    route("/faqs", "features/admin/screens/faqs.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
     route("/recipe-categories", "features/admin/screens/recipe-categories.tsx"),

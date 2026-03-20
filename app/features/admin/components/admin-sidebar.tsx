@@ -59,6 +59,9 @@ const menuItems: MenuItem[] = [
     title: "게시물 관리",
     icon: FileText,
     children: [
+      { title: "공지사항", href: "/admin/notices" },
+      { title: "등급판정서", href: "/admin/grade-certificates" },
+      { title: "FAQ", href: "/admin/faqs" },
       { title: "이벤트/공지", href: "/admin/events" },
       { title: "레시피 목록", href: "/admin/recipes" },
       { title: "레시피 카테고리", href: "/admin/recipe-categories" },
