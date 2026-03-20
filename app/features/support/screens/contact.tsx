@@ -82,8 +82,13 @@ const STATUS_COLOR: Record<string, string> = {
 
 /* ── 입력 공통 스타일 ── */
 const inputCls = "w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-[#02633E] placeholder:text-gray-300";
-const labelCls = "mb-1.5 block text-sm font-semibold text-gray-700";
+const labelStyle: React.CSSProperties = { fontSize: "20px", letterSpacing: "-0.02em", fontWeight: 600, color: "#374151", marginBottom: "6px" };
 const requiredMark = <span className="ml-0.5 text-red-500">*</span>;
+const requiredNote = (
+  <span style={{ fontSize: "13px", letterSpacing: "-0.02em", color: "#aaa", fontWeight: 400 }}>
+    <span className="text-red-500">*</span> 필수 입력사항
+  </span>
+);
 
 export default function ContactScreen({ loaderData }: Route.ComponentProps) {
   const { pageBanner } = loaderData;
@@ -227,24 +232,26 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
             <div className="mb-6 flex overflow-hidden rounded-xl border border-[#D8D0BB]">
               <button
                 onClick={() => setActiveTab("contact")}
-                className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-bold transition-colors"
-                style={
-                  activeTab === "contact"
+                className="flex flex-1 items-center justify-center gap-2 py-4 transition-colors"
+                style={{
+                  fontSize: "20px", letterSpacing: "-0.04em", fontWeight: 700,
+                  ...(activeTab === "contact"
                     ? { backgroundColor: "#02633E", color: "#fff" }
-                    : { backgroundColor: "#EAE3C9", color: "#555" }
-                }
+                    : { backgroundColor: "#EAE3C9", color: "#555" }),
+                }}
               >
                 {activeTab === "contact" && <Plus className="h-4 w-4" />}
                 문의하기
               </button>
               <button
                 onClick={() => setActiveTab("lookup")}
-                className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-bold transition-colors"
-                style={
-                  activeTab === "lookup"
+                className="flex flex-1 items-center justify-center gap-2 py-4 transition-colors"
+                style={{
+                  fontSize: "20px", letterSpacing: "-0.04em", fontWeight: 700,
+                  ...(activeTab === "lookup"
                     ? { backgroundColor: "#02633E", color: "#fff" }
-                    : { backgroundColor: "#EAE3C9", color: "#555" }
-                }
+                    : { backgroundColor: "#EAE3C9", color: "#555" }),
+                }}
               >
                 {activeTab === "lookup" && <Plus className="h-4 w-4" />}
                 문의내역 조회
@@ -268,13 +275,12 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                 </div>
               ) : (
                 <form onSubmit={handleContactSubmit} className="space-y-5">
-                  <div className="mb-1 flex justify-end text-xs text-gray-400">
-                    <span><span className="text-red-500">*</span> 필수 입력사항</span>
-                  </div>
-
                   {/* 문의유형 */}
                   <div>
-                    <label className={labelCls}>문의유형 {requiredMark}</label>
+                    <div className="flex items-center justify-between" style={{ marginBottom: "6px" }}>
+                      <label style={labelStyle}>문의유형 {requiredMark}</label>
+                      {requiredNote}
+                    </div>
                     <select
                       value={form.inquiry_type}
                       onChange={(e) => setF("inquiry_type", e.target.value)}
@@ -291,7 +297,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 이름 */}
                   <div>
-                    <label className={labelCls}>이름 {requiredMark}</label>
+                    <label style={labelStyle}>이름 {requiredMark}</label>
                     <input
                       type="text"
                       value={form.name}
@@ -304,7 +310,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 연락처 */}
                   <div>
-                    <label className={labelCls}>연락처 {requiredMark}</label>
+                    <label style={labelStyle}>연락처 {requiredMark}</label>
                     <input
                       type="tel"
                       value={form.phone}
@@ -317,7 +323,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 이메일 */}
                   <div>
-                    <label className={labelCls}>이메일</label>
+                    <label style={labelStyle}>이메일</label>
                     <div className="flex items-center gap-2">
                       {/* 로컬 부분 — 전체의 절반 */}
                       <input
@@ -353,7 +359,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 회사/기관명 */}
                   <div>
-                    <label className={labelCls}>회사/기관명</label>
+                    <label style={labelStyle}>회사/기관명</label>
                     <input
                       type="text"
                       value={form.company}
@@ -365,7 +371,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 비밀번호 */}
                   <div>
-                    <label className={labelCls}>비밀번호 {requiredMark}</label>
+                    <label style={labelStyle}>비밀번호 {requiredMark}</label>
                     <input
                       type="password"
                       value={form.lookup_password}
@@ -378,7 +384,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                   {/* 문의 내용 */}
                   <div>
-                    <label className={labelCls}>문의 내용 {requiredMark}</label>
+                    <label style={labelStyle}>문의 내용 {requiredMark}</label>
                     <textarea
                       value={form.content}
                       onChange={(e) => setF("content", e.target.value)}
@@ -394,8 +400,12 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                     className="flex items-center justify-between gap-4 rounded-xl p-4 text-xs text-gray-500"
                     style={{ backgroundColor: "#F0EEDD" }}
                   >
-                    <label htmlFor="agree" className="cursor-pointer leading-relaxed">
-                      개인정보 수집 및 이용에 동의합니다. 수집된 문의 본인 답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후 파기합니다.
+                    <label
+                      htmlFor="agree"
+                      className="cursor-pointer leading-relaxed"
+                      style={{ fontSize: "18px", letterSpacing: "-0.02em" }}
+                    >
+                      개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의 답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후 파기됩니다.
                     </label>
                     <div className="relative shrink-0">
                       <input
@@ -439,17 +449,16 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
             {/* ── 탭2: 문의내역 조회 ── */}
             {activeTab === "lookup" && (
               <div className="space-y-6">
-                <p className="text-base font-semibold text-gray-700">
+                <p style={{ fontSize: "28px", letterSpacing: "-0.02em", fontWeight: 700, color: "#222" }}>
                   문의 시 입력하신 정보로 조회하실 수 있습니다.
                 </p>
 
                 <form onSubmit={handleLookupSubmit} className="space-y-5">
-                  <div className="mb-1 flex justify-end text-xs text-gray-400">
-                    <span><span className="text-red-500">*</span> 필수 입력사항</span>
-                  </div>
-
                   <div>
-                    <label className={labelCls}>이름 {requiredMark}</label>
+                    <div className="flex items-center justify-between" style={{ marginBottom: "6px" }}>
+                      <label style={labelStyle}>이름 {requiredMark}</label>
+                      {requiredNote}
+                    </div>
                     <input
                       type="text"
                       value={lookupForm.name}
@@ -461,7 +470,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                   </div>
 
                   <div>
-                    <label className={labelCls}>연락처 {requiredMark}</label>
+                    <label style={labelStyle}>연락처 {requiredMark}</label>
                     <input
                       type="tel"
                       value={lookupForm.phone}
@@ -473,7 +482,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                   </div>
 
                   <div>
-                    <label className={labelCls}>비밀번호 {requiredMark}</label>
+                    <label style={labelStyle}>비밀번호 {requiredMark}</label>
                     <input
                       type="password"
                       value={lookupForm.lookup_password}
