@@ -40,11 +40,20 @@ export type PageBanner = typeof pageBanners.$inferSelect;
 
 /** 페이지별 배너 레이블 */
 export const PAGE_KEY_LABELS: Record<string, string> = {
-  products: "제품 소개",
-  brand:    "브랜드",
-  recipe:   "레시피",
-  event:    "이벤트/공지",
-  careers:  "채용",
-  support:  "고객지원",
-  inquiry:  "구매문의",
+  // 제품소개
+  products:            "제품보기",
+  recipe:              "레시피",
+  // 회사소개
+  brand:               "브랜드/회사소개",
+  careers:             "채용",
+  // 홍보센터
+  news:                "보도자료",
+  event:               "이벤트",
+  // 고객지원
+  notice:              "공지사항",
+  faq:                 "자주 묻는 질문(FAQ)",
+  "grade-certificate": "등급판정서",
+  contact:             "문의하기",
+  support:             "고객지원",
+  inquiry:             "구매문의",
 };

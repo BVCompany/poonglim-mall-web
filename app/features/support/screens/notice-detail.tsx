@@ -93,6 +93,8 @@ const MOCK_ADJACENT: Record<
   },
 };
 
+const showBanner = false;
+
 export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.id);
 
@@ -146,47 +148,49 @@ export default function NoticeDetailScreen({
     id,
   } = loaderData;
 
-  /* DB 미연결 → 더미 */
   const notice = dbNotice ?? MOCK_MAP[id] ?? MOCK_MAP[12];
   const prev = dbPrev ?? MOCK_ADJACENT[id]?.prev ?? null;
   const next = dbNext ?? MOCK_ADJACENT[id]?.next ?? null;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 페이지 배너 (목록과 동일) ── */}
-      <PageBanner
-        imageUrl="/banner/notice_banner_temp.png"
-        title="공지사항"
-        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
-        breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "공지사항", href: "/support/notice" },
-        ]}
-        dbBanner={pageBanner}
-      />
+      {/* ── 페이지 배너 ── */}
+      {showBanner && (
+        <PageBanner
+          imageUrl="/banner/notice_banner_temp.png"
+          title="공지사항"
+          subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+          breadcrumb={[
+            { label: "Home", href: "/" },
+            { label: "고객지원", href: "/support" },
+            { label: "공지사항", href: "/support/notice" },
+          ]}
+          dbBanner={pageBanner}
+          hideBreadcrumbOnMobile
+        />
+      )}
 
-      {/* ── 본문 — 배너와 동일한 가로 너비 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 pt-[100px] pb-[200px] md:px-6 lg:px-10">
+      {/* ── 본문 ── */}
+      <div className="mx-auto max-w-[1600px] px-4 pt-6 pb-[120px] md:px-6 md:pt-[100px] md:pb-[200px] lg:px-10">
         {/* ── 제목 + 날짜 ── */}
         <div
-          className="flex items-start justify-between gap-6 pb-5"
+          className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
           style={{ borderBottom: "1px solid #D8D0BB" }}
         >
           <h1
-            className="text-xl leading-snug font-bold text-gray-900 md:text-2xl"
+            className="text-lg leading-snug font-bold text-gray-900 md:text-2xl"
             style={{ letterSpacing: "-0.02em" }}
           >
             {notice.title}
           </h1>
-          <span className="shrink-0 pt-1 text-sm text-gray-400">
+          <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
             {formatDateTime(notice.created_at)}
           </span>
         </div>
 
         {/* ── 작성자 / 조회수 ── */}
         <div
-          className="flex items-center gap-5 py-4 text-sm text-gray-500"
+          className="flex items-center gap-3 py-3 text-xs text-gray-500 md:gap-5 md:py-4 md:text-sm"
           style={{ borderBottom: "1px solid #D8D0BB" }}
         >
           <span>
@@ -199,33 +203,49 @@ export default function NoticeDetailScreen({
 
         {/* ── 본문 콘텐츠 ── */}
         <div
-          className="prose prose-sm max-w-none py-10 leading-relaxed text-gray-700"
-          style={{ minHeight: "280px" }}
+          className="prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10"
+          style={{ minHeight: "200px" }}
           dangerouslySetInnerHTML={{ __html: notice.content }}
         />
 
-        {/* ── 이전글 / 목록 / 다음글 ── */}
+        {/* ── 이전글 / 다음글 ── */}
         <div
-          className="flex items-center justify-between gap-4 pt-8"
+          className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
           style={{ borderTop: "1px solid #D8D0BB" }}
         >
-          {/* 이전글 */}
           <div className="flex-1">
             {prev ? (
               <Link
                 to={`/support/notice/${prev.notice_id}`}
                 className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
               >
-                <ChevronLeft className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5" />
                 <span className="font-medium text-gray-400">이전글</span>
-                <span className="line-clamp-1 max-w-[280px]">{prev.title}</span>
+                <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{prev.title}</span>
+                <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
               </Link>
             ) : (
               <span className="text-sm text-gray-300">이전글이 없습니다.</span>
             )}
           </div>
 
-          {/* 목록 버튼 */}
+          <div className="flex-1 text-right">
+            {next ? (
+              <Link
+                to={`/support/notice/${next.notice_id}`}
+                className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+              >
+                <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{next.title}</span>
+                <span className="font-medium text-gray-400">다음글</span>
+                <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
+              </Link>
+            ) : (
+              <span className="text-sm text-gray-300">다음글이 없습니다.</span>
+            )}
+          </div>
+        </div>
+
+        {/* 목록 버튼 */}
+        <div className="mt-6 flex justify-center">
           <Link
             to="/support/notice"
             className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
@@ -233,22 +253,6 @@ export default function NoticeDetailScreen({
           >
             목록
           </Link>
-
-          {/* 다음글 */}
-          <div className="flex flex-1 justify-end">
-            {next ? (
-              <Link
-                to={`/support/notice/${next.notice_id}`}
-                className="group inline-flex items-center gap-2 text-right text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-              >
-                <span className="line-clamp-1 max-w-[280px]">{next.title}</span>
-                <span className="font-medium text-gray-400">다음글</span>
-                <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            ) : (
-              <span className="text-sm text-gray-300">다음글이 없습니다.</span>
-            )}
-          </div>
         </div>
       </div>
     </div>
