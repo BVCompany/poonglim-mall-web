@@ -93,7 +93,6 @@ const MOCK_ADJACENT: Record<
   },
 };
 
-const showBanner = false;
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.id);
@@ -155,20 +154,18 @@ export default function NoticeDetailScreen({
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 페이지 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/notice_banner_temp.png"
-          title="공지사항"
-          subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "공지사항", href: "/support/notice" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/notice_banner_temp.png"
+        title="공지사항"
+        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "공지사항", href: "/support/notice" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 pt-6 pb-[120px] md:px-6 md:pt-[100px] md:pb-[200px] lg:px-10">

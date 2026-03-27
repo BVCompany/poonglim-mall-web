@@ -1,12 +1,11 @@
 /**
  * 등급판정서 목록 페이지
  */
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { ChevronLeft, ChevronRight, Check, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Download, Plus, Search } from "lucide-react";
 import type { Route } from "./+types/grade-certificate";
 import { PageBanner } from "~/core/components/page-banner";
-import { SearchBar } from "~/core/components/search-bar";
 import { getGradeCertificates } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -17,18 +16,15 @@ export const meta: Route.MetaFunction = () => [
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const tab = (url.searchParams.get("tab") ?? "current") as "current" | "archive";
-  const certType = url.searchParams.get("type") ?? "전체보기";
-  const normalizedCertType = certType === "전체" ? "전체보기" : certType;
+  const rawType = url.searchParams.get("type") ?? "전체";
+  const activeType = rawType === "전체보기" ? "전체" : rawType;
 
   const [dbCerts, pageBanner] = await Promise.all([
-    getGradeCertificates(
-      tab,
-      normalizedCertType === "전체보기" ? undefined : normalizedCertType,
-    ).catch(() => []),
+    getGradeCertificates(tab, activeType === "전체" ? undefined : activeType).catch(() => []),
     getPageBanner("grade-certificate").catch(() => null),
   ]);
 
-  return { dbCerts, pageBanner, activeTab: tab, activeType: normalizedCertType };
+  return { dbCerts, pageBanner, activeTab: tab, activeType };
 }
 
 /* ── 더미 데이터 ── */
@@ -47,9 +43,8 @@ const MOCK_CERTS = [
   { cert_id: 1,  tab: "archive", cert_type: "액란",   title: "2022년 10월 등급판정서 (액란)",     file_url: "#", file_name: "6004-old-0002.pdf", view_count: 55,  is_active: true, content: "", author: "풍림푸드", created_at: "2022-10-01", is_pinned: false },
 ];
 
-const CERT_TYPES = ["전체보기", "액란용", "포장란용"];
+const CERT_TYPES = ["전체", "포장란", "액란", "기타"];
 const ITEMS_PER_PAGE = 10;
-const showBanner = false;
 
 export default function GradeCertificateScreen({ loaderData }: Route.ComponentProps) {
   const { dbCerts, pageBanner, activeTab, activeType } = loaderData;
@@ -59,7 +54,9 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
   const [page, setPage] = useState(1);
 
   const allCerts = (dbCerts.length > 0 ? dbCerts : MOCK_CERTS) as typeof MOCK_CERTS;
-  const sourceCerts = allCerts.filter((c) => c.tab === activeTab);
+  const sourceCerts = allCerts
+    .filter((c) => c.tab === activeTab)
+    .filter((c) => activeType === "전체" || c.cert_type === activeType);
 
   useEffect(() => { setPage(1); }, [activeTab, activeType, query]);
 
@@ -81,7 +78,8 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
   const handleTypeChange = (type: string) => {
     setInputValue(""); setQuery(""); setPage(1);
     setSearchParams((p) => {
-      if (type === "전체보기") p.delete("type"); else p.set("type", type);
+      if (type === "전체") p.delete("type");
+      else p.set("type", type);
       return p;
     });
   };
@@ -93,40 +91,35 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/rating_banner_temp.png"
-          title="등급판정서"
-          subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "등급판정서" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/rating_banner_temp.png"
+        title="등급판정서"
+        subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "등급판정서" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
-      {/* ── 상단 타이틀 (별 아이콘) ── */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
           <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121] md:text-[32px]">
-            등급판정서
-          </h1>
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">등급판정서</h1>
         </div>
       </div>
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
 
-        {/* ── 상단 탭 ── */}
-        <div className="mb-6 flex overflow-hidden rounded-full border border-[#D8D0BB] md:rounded-xl">
+        {/* 모바일 상단 탭 */}
+        <div className="mb-6 flex overflow-hidden rounded-full border border-[#D8D0BB] md:hidden">
           <button
+            type="button"
             onClick={() => handleTabChange("current")}
-            className="flex h-16 flex-1 items-center justify-center gap-2 px-2 text-[16px] font-extrabold tracking-[-0.04em] transition-colors md:h-auto md:py-4 md:text-sm md:font-bold md:tracking-normal"
+            className="flex h-16 flex-1 items-center justify-center gap-2 px-2 text-[16px] font-extrabold tracking-[-0.04em] transition-colors"
             style={
               activeTab === "current"
                 ? { backgroundColor: "#32AF32", color: "#fff" }
@@ -134,17 +127,14 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
             }
           >
             {activeTab === "current" && (
-              <img
-                src="/home/star_icon.png"
-                alt=""
-                className="h-3.5 w-3.5 object-contain md:h-4 md:w-4"
-              />
+              <img src="/home/star_icon.png" alt="" className="h-3.5 w-3.5 object-contain" />
             )}
             등급판정서
           </button>
           <button
+            type="button"
             onClick={() => handleTabChange("archive")}
-            className="flex h-16 flex-1 items-center justify-center gap-2 px-2 text-[16px] font-extrabold tracking-[-0.04em] transition-colors md:h-auto md:py-4 md:text-sm md:font-medium md:tracking-normal"
+            className="flex h-16 flex-1 items-center justify-center gap-2 px-2 text-[16px] font-extrabold tracking-[-0.04em] transition-colors"
             style={
               activeTab === "archive"
                 ? { backgroundColor: "#32AF32", color: "#fff" }
@@ -152,7 +142,39 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
             }
           >
             등급판정서
-            <span className="text-[10px] md:text-xs">(2022.11 이전)</span>
+            <span className="text-[10px]">(2022.11 이전)</span>
+          </button>
+        </div>
+
+        {/* PC 상단 탭 */}
+        <div
+          className="mb-6 hidden overflow-hidden rounded-xl border md:flex"
+          style={{ borderColor: "#D8D0BB" }}
+        >
+          <button
+            type="button"
+            onClick={() => handleTabChange("current")}
+            className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-bold transition-colors"
+            style={
+              activeTab === "current"
+                ? { backgroundColor: "#02633E", color: "#fff" }
+                : { backgroundColor: "#F0EEDD", color: "#555" }
+            }
+          >
+            {activeTab === "current" && <Plus className="h-4 w-4" />}
+            등급판정서
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange("archive")}
+            className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-medium transition-colors"
+            style={
+              activeTab === "archive"
+                ? { backgroundColor: "#02633E", color: "#fff" }
+                : { backgroundColor: "#F0EEDD", color: "#555" }
+            }
+          >
+            등급판정서 (2022.11 이전)
           </button>
         </div>
 
@@ -160,6 +182,7 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
         {activeTab === "current" && (
           <p className="mb-6 text-xs leading-relaxed text-gray-500 md:mb-8 md:text-sm">
             아래에 나타난 등급판정서는 실제로 등급 판정 대상이 되는 축산물품질평가원의 이지-시스, 축산물품질평가원/가축에서
+            <br className="hidden md:block" />
             7+등급 또는 기등급 판정 완료 현재 완성된 판정서를 올려드리고 있습니다. 매달 판정을 올려드리므로 아래 판정서에서 수정된 내용을 참고해 판정서 열람이 가능합니다.
           </p>
         )}
@@ -172,8 +195,9 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
               return (
                 <button
                   key={type}
+                  type="button"
                   onClick={() => handleTypeChange(type)}
-                  className="flex items-center gap-1.5 rounded-full px-3 font-medium transition-colors md:px-5"
+                  className="flex items-center gap-1.5 rounded-full px-3 font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
                   style={{
                     fontSize: "clamp(13px, 2.5vw, 18px)",
                     letterSpacing: "-0.04em",
@@ -190,8 +214,24 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
             })}
           </div>
 
-          <div className="hidden md:block">
-            <SearchBar value={inputValue} onChange={setInputValue} onSearch={handleSearch} />
+          <div className="hidden items-center gap-3 md:flex">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="검색어를 입력해주세요."
+              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
+              style={{ backgroundColor: "#02633E" }}
+              aria-label="검색"
+            >
+              <Search className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -203,49 +243,86 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
             {paginated.map((cert, idx) => {
               const displayNum = totalCount - ((page - 1) * ITEMS_PER_PAGE + idx);
               return (
-                <Link
-                  key={cert.cert_id}
-                  to={`/support/grade-certificate/${cert.cert_id}`}
-                  className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:px-5 md:py-4"
-                  style={{ backgroundColor: "#F0EEDD" }}
-                >
-                  {/* 왼쪽: 번호 + 카테고리 태그 */}
-                  <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
-                    <span className="text-xs text-gray-500 md:text-sm">{displayNum}</span>
-                    <span
-                      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:px-2.5 md:text-[11px]"
-                      style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                    >
-                      {cert.cert_type}
-                    </span>
-                  </div>
-
-                  {/* 오른쪽: 제목 + 다운로드 */}
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E] md:text-sm">
-                      {cert.title}
-                    </span>
-                    {cert.file_url && cert.file_url !== "#" ? (
-                      <a
-                        href={cert.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="shrink-0 text-gray-400 transition-colors hover:text-[#02633E]"
+                <Fragment key={cert.cert_id}>
+                  <Link
+                    to={`/support/grade-certificate/${cert.cert_id}`}
+                    className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:hidden"
+                    style={{ backgroundColor: "#F0EEDD" }}
+                  >
+                    <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
+                      <span className="text-xs text-gray-500">{displayNum}</span>
+                      <span
+                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
                       >
-                        <Download className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      </a>
-                    ) : (
-                      <span className="shrink-0 text-gray-200"><Download className="h-3.5 w-3.5 md:h-4 md:w-4" /></span>
-                    )}
-                  </div>
+                        {cert.cert_type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
+                        {cert.title}
+                      </span>
+                      {cert.file_url && cert.file_url !== "#" ? (
+                        <a
+                          href={cert.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="shrink-0 text-gray-400 transition-colors hover:text-[#02633E]"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+                      ) : (
+                        <span className="shrink-0 text-gray-200">
+                          <Download className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="col-start-2 flex items-center gap-2 text-[11px] text-gray-400">
+                      <span>{formatDate(cert.created_at)}</span>
+                      <span>{cert.view_count}</span>
+                    </div>
+                  </Link>
 
-                  {/* 오른쪽 하단: 메타 */}
-                  <div className="flex items-center gap-2 text-[11px] text-gray-400 md:text-xs">
-                    <span>{formatDate(cert.created_at)}</span>
-                    <span>{cert.view_count}</span>
+                  <div
+                    className="group hidden grid-cols-[56px_1fr_80px_120px_56px_40px] items-center gap-4 rounded-xl px-5 py-4 transition-all hover:brightness-[0.97] md:grid"
+                    style={{ backgroundColor: "#F0EEDD" }}
+                  >
+                    <span className="text-center text-sm text-gray-400">{displayNum}</span>
+                    <Link
+                      to={`/support/grade-certificate/${cert.cert_id}`}
+                      className="truncate text-sm font-medium text-gray-800 transition-colors group-hover:text-[#02633E]"
+                    >
+                      {cert.title}
+                    </Link>
+                    <div className="text-center">
+                      <span
+                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                      >
+                        {cert.cert_type}
+                      </span>
+                    </div>
+                    <span className="text-center text-xs text-gray-400">{formatDate(cert.created_at)}</span>
+                    <span className="text-right text-xs text-gray-400">{cert.view_count}</span>
+                    <div>
+                      {cert.file_url && cert.file_url !== "#" ? (
+                        <a
+                          href={cert.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center text-gray-400 transition-colors hover:text-[#02633E]"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <span className="flex items-center justify-center text-gray-200">
+                          <Download className="h-4 w-4" />
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </Link>
+                </Fragment>
               );
             })}
           </div>

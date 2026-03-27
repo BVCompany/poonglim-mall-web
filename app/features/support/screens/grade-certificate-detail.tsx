@@ -74,7 +74,6 @@ const MOCK_ADJACENT: Record<
   },
 };
 
-const showBanner = false;
 
 export async function loader({ params }: Route.LoaderArgs) {
   const id = Number(params.id);
@@ -126,20 +125,18 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/rating_banner_temp.png"
-          title="등급판정서"
-          subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "등급판정서", href: "/support/grade-certificate" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/rating_banner_temp.png"
+        title="등급판정서"
+        subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "등급판정서", href: "/support/grade-certificate" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 pt-6 pb-[120px] md:px-6 md:pt-[100px] md:pb-[200px] lg:px-10">

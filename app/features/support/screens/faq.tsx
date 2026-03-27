@@ -3,10 +3,9 @@
  */
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Route } from "./+types/faq";
 import { PageBanner } from "~/core/components/page-banner";
-import { SearchBar } from "~/core/components/search-bar";
 import { getFaqs } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -52,7 +51,6 @@ const MOCK_FAQS = [
 ];
 
 const ITEMS_PER_PAGE = 10;
-const showBanner = false;
 
 export default function FAQScreen({ loaderData }: Route.ComponentProps) {
   const { dbFaqs, pageBanner, activeCategory } = loaderData;
@@ -88,49 +86,42 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/faq_banner_temp.png"
-          title="자주 묻는 질문"
-          subtitle="궁금하신 점을 빠르게 확인하세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "FAQ" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/faq_banner_temp.png"
+        title="자주 묻는 질문"
+        subtitle="궁금하신 점을 빠르게 확인하세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "FAQ" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
-      {/* ── 상단 타이틀 (별 아이콘) ── */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
           <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121] md:text-[32px]">
-            FAQ
-          </h1>
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">FAQ</h1>
         </div>
       </div>
 
       {/* ── 본문 ── */}
       <div className="mx-auto max-w-[1600px] px-4 py-6 pb-[200px] md:px-6 md:py-10 md:pb-0 lg:px-10">
 
-        {/* ── 필터 탭 + 검색 ── */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* ── 필터 탭 + 검색 (검색은 PC만) ── */}
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(({ key, label }) => {
               const isActive = key === activeCategory;
               return (
                 <button
                   key={key}
+                  type="button"
                   onClick={() => handleCategoryChange(key)}
-                  className="flex items-center gap-1.5 rounded-full px-3 font-medium transition-colors md:px-5"
+                  className="flex h-[clamp(34px,5vw,43px)] items-center gap-1.5 rounded-full px-3 text-[clamp(13px,2.5vw,18px)] font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
                   style={{
-                    fontSize: "clamp(13px, 2.5vw, 18px)",
                     letterSpacing: "-0.04em",
-                    height: "clamp(34px, 5vw, 43px)",
                     ...(isActive
                       ? { backgroundColor: "#02633E", color: "#fff" }
                       : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
@@ -143,8 +134,24 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
             })}
           </div>
 
-          <div className="hidden md:block">
-            <SearchBar value={inputValue} onChange={setInputValue} onSearch={handleSearch} />
+          <div className="hidden items-center gap-3 md:flex">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="검색어를 입력해주세요."
+              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
+              style={{ backgroundColor: "#02633E" }}
+              aria-label="검색"
+            >
+              <Search className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
