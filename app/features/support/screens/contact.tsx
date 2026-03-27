@@ -90,10 +90,8 @@ const requiredNote = (
   </span>
 );
 
-const showBanner = false;
-
 export default function ContactScreen({ loaderData }: Route.ComponentProps) {
-  const { pageBanner } = loaderData;
+  const pageBanner = loaderData?.pageBanner ?? null;
   const fetcher = useFetcher<typeof action>();
   const [activeTab, setActiveTab] = useState<"contact" | "lookup">("contact");
 
@@ -160,29 +158,23 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/support_banner_temp.png"
-          title="문의하기"
-          subtitle="궁금한 점이 있으시면 언제든 문의해주세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "문의하기" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/support_banner_temp.png"
+        title="문의하기"
+        subtitle="궁금한 점이 있으시면 언제든 문의해주세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "문의하기" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
-      {/* ── 상단 타이틀 (별 아이콘) ── */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
           <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121] md:text-[32px]">
-            문의하기
-          </h1>
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">문의하기</h1>
         </div>
       </div>
 
