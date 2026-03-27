@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { Route } from "./+types/all";
 import { ProductGrid } from "../components/product-grid";
 import { getProducts } from "../lib/queries.server";
@@ -7,7 +8,7 @@ import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import { getActiveCategories } from "~/features/product-categories/lib/queries.server";
 import type { ProductCategory } from "~/features/product-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
-import { Search } from "lucide-react";
+import { SearchBar } from "~/core/components/search-bar";
 
 export const meta: Route.MetaFunction = () => [
   { title: "제품 소개 | 풍림푸드" },
@@ -26,7 +27,15 @@ export async function loader(_: Route.LoaderArgs) {
 export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) {
   const { dbProducts, pageBanner, dbCategories } = loaderData;
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const SORT_OPTIONS = [
+    { id: "recommended", label: "추천순" },
+    { id: "latest", label: "최신순" },
+    { id: "name", label: "가나다순" },
+  ] as const;
+  const [sortOption, setSortOption] = useState<(typeof SORT_OPTIONS)[number]["id"]>("recommended");
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   const totalCount = dbProducts.length;
 
@@ -65,8 +74,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         imageUrl="/banner/product_banner_temp.png"
         title="계란이야기"
         subtitle="대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"
+        mobileSubtitle={"대한민국 대표 계란\n풍림푸드 계란 이야기를 들어볼래요?"}
         linkUrl="/brand/intro"
         linkText="자세히 보기"
+        mobileHeightClassName="h-[375px] md:h-[clamp(200px,28vw,380px)]"
+        hideBreadcrumbOnMobile
+        frostedLinkOnMobile
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "제품소개" },
@@ -75,7 +88,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       />
 
       {/* ── 배너 아래 여백 확보 + 제품 카테고리 헤더 + 검색 ── */}
-      <div className="px-4 pt-12 pb-5 md:px-8 md:pt-16 lg:px-2.5">
+      <div className="px-4 pb-5 pt-10 md:px-8 md:pt-16 lg:px-2.5">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
 
           {/* 타이틀 — 36px / letterSpacing -4% */}
@@ -87,22 +100,13 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
             제품 카테고리
           </h2>
 
-          {/* 검색창 — PC: 인풋 + 버튼이 나란히 분리된 형태 */}
-          <div className="hidden items-center gap-2 md:flex">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-              placeholder="검색어를 입력해주세요."
-              className="w-72 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#02633E]/30"
+          {/* 검색창 */}
+          <div className="hidden md:block">
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onSearch={() => setSearchQuery(searchInput)}
             />
-            <button
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:brightness-110"
-              style={{ backgroundColor: "#02633E" }}
-            >
-              <Search className="h-5 w-5 text-white" />
-            </button>
           </div>
         </div>
       </div>
@@ -110,27 +114,30 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       {/* ── 카테고리 탭 바 ── */}
       <div className="px-4 pb-5 md:px-8 lg:px-2.5">
         <div className="mx-auto max-w-[1600px]">
-
-          {/* 모바일 검색창: 인풋 + 버튼 나란히 분리 */}
-          <div className="mb-4 flex items-center gap-2 md:hidden">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="검색어를 입력해주세요."
-              className="min-w-0 flex-1 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#02633E]/30"
-            />
-            <button
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: "#02633E" }}
-            >
-              <Search className="h-4 w-4 text-white" />
-            </button>
+          {/* 모바일 탭 — 개별 알약 버튼 */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden">
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat.id;
+              const showCount = cat.id === "all" || isActive;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isActive ? "bg-[#02633E] text-white" : "bg-[#EAE3C9] text-[#003F2B]"
+                  }`}
+                  style={{ letterSpacing: "-0.03em" }}
+                >
+                  {cat.name}
+                  {showCount && cat.count > 0 && <span className="ml-0.5 opacity-70">({cat.count})</span>}
+                </button>
+              );
+            })}
           </div>
 
-          {/* 탭 바 — #02633E, 18px bold, letterSpacing -4% */}
+          {/* 데스크탑 탭 바 — #02633E */}
           <div
-            className="flex items-center overflow-x-auto rounded-full px-4 py-3 scrollbar-none md:px-5 md:py-4"
+            className="hidden items-center overflow-x-auto rounded-full px-4 py-3 scrollbar-none md:flex md:px-5 md:py-4"
             style={{ backgroundColor: "#02633E" }}
           >
             {categories.map((cat, idx) => {
@@ -140,7 +147,6 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
               return (
                 <div key={cat.id} className="flex flex-shrink-0 items-center">
-                  {/* "전체 제품" 다음 구분선 */}
                   {idx === 1 && (
                     <span className="mx-3 h-5 w-px flex-shrink-0 bg-white/40 md:mx-4" />
                   )}
@@ -173,12 +179,48 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         </div>
       </div>
 
-      {/* ── 총 N개 제품 ── */}
+      {/* ── 총 N개 제품 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-8 lg:px-2.5">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between">
           <p className="text-sm font-medium text-gray-600">
             총 <span className="font-bold text-[#02633E]">{currentCategoryCount}</span>개 제품
           </p>
+          <div className="flex items-center gap-2 md:hidden">
+            <div className="relative">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full bg-[#F5F2EB] px-3 py-1 text-xs font-medium text-black"
+                onClick={() => setIsSortOpen((prev) => !prev)}
+              >
+                {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ?? "추천순"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isSortOpen ? "rotate-180" : ""}`} />
+              </button>
+              {isSortOpen && (
+                <div className="absolute right-0 top-9 z-20 w-24 overflow-hidden rounded-lg border border-[#E1D9BF] bg-white shadow-md">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setSortOption(opt.id);
+                        setIsSortOpen(false);
+                      }}
+                      className={`block w-full px-3 py-2 text-left text-xs ${
+                        sortOption === opt.id ? "bg-[#F4F0E1] font-semibold text-[#003F2B]" : "text-[#4B4B4B]"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <img
+              src="/product/sort_icon.png"
+              alt="정렬 아이콘"
+              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[#F5F2EB] object-contain p-1.5"
+            />
+          </div>
         </div>
       </div>
 
@@ -188,6 +230,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
           <ProductGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}
+            sortOption={sortOption}
             dbProducts={dbProducts}
           />
         </div>

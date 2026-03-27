@@ -50,6 +50,7 @@ interface DbRecipe {
 interface RecipeGridProps {
   selectedCategory: string;
   searchQuery: string;
+  sortOption?: "recommended" | "latest" | "name";
   dbRecipes?: DbRecipe[];
   selectedDifficulty?: string; // 하위 호환성 유지 (현재 미사용)
 }
@@ -120,7 +121,12 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
 }
 
 // ─── 그리드 컴포넌트 ──────────────────────────────────────────────────────────
-export function RecipeGrid({ selectedCategory, searchQuery, dbRecipes = [] }: RecipeGridProps) {
+export function RecipeGrid({
+  selectedCategory,
+  searchQuery,
+  sortOption = "recommended",
+  dbRecipes = [],
+}: RecipeGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [animKey, setAnimKey] = useState(0);
@@ -146,8 +152,14 @@ export function RecipeGrid({ selectedCategory, searchQuery, dbRecipes = [] }: Re
     return matchCat && matchSearch;
   });
 
-  // 카테고리·검색 변경 시 1페이지 리셋
-  const filterKey = `${selectedCategory}__${searchQuery}`;
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortOption === "latest") return b.id - a.id;
+    if (sortOption === "name") return a.title.localeCompare(b.title, "ko");
+    return 0;
+  });
+
+  // 카테고리·검색·정렬 변경 시 1페이지 리셋
+  const filterKey = `${selectedCategory}__${searchQuery}__${sortOption}`;
   useEffect(() => {
     if (prevFilter.current !== filterKey) {
       prevFilter.current = filterKey;
@@ -157,8 +169,8 @@ export function RecipeGrid({ selectedCategory, searchQuery, dbRecipes = [] }: Re
     }
   }, [filterKey]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const pageItems = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const goPage = (page: number, dir: "next" | "prev") => {
     setSlideDir(dir);

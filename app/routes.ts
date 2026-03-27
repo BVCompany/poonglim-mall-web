@@ -116,6 +116,12 @@ export default [
       route("/:id", "features/recipe/screens/detail.tsx"),
     ]),
     
+    // Search Route (전체 검색)
+    route("/search", "features/search/screens/search.tsx"),
+
+    // Media Routes (홍보센터)
+    route("/media/news", "features/media/screens/news.tsx"),
+
     // Event Routes (이벤트)
     route("/event", "features/event/screens/event.tsx"),
     route("/event/:id", "features/event/screens/detail.tsx"),

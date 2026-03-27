@@ -62,10 +62,16 @@ const BADGE_STYLE: Record<string, string> = {
 interface ProductGridProps {
   selectedCategory: string;
   searchQuery: string;
+  sortOption?: "recommended" | "latest" | "name";
   dbProducts?: DbProduct[];
 }
 
-export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: ProductGridProps) {
+export function ProductGrid({
+  selectedCategory,
+  searchQuery,
+  sortOption = "recommended",
+  dbProducts = [],
+}: ProductGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [animKey, setAnimKey] = useState(0);
@@ -93,8 +99,14 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
     return matchCat && matchSearch;
   });
 
-  // 카테고리 or 검색어 변경 시 1페이지로 리셋
-  const filterKey = `${selectedCategory}__${searchQuery}`;
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortOption === "latest") return b.id - a.id;
+    if (sortOption === "name") return a.name.localeCompare(b.name, "ko");
+    return 0;
+  });
+
+  // 카테고리/검색/정렬 변경 시 1페이지로 리셋
+  const filterKey = `${selectedCategory}__${searchQuery}__${sortOption}`;
   useEffect(() => {
     if (prevFiltered.current !== filterKey) {
       prevFiltered.current = filterKey;
@@ -104,8 +116,8 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
     }
   }, [filterKey]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const pageItems = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const goPage = (page: number, dir: "next" | "prev") => {
     setSlideDir(dir);
@@ -145,7 +157,7 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
       <div
         key={animKey}
         style={slideInStyle}
-        className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4 lg:grid-cols-4"
       >
         {pageItems.map((product) => (
           <ProductCard key={product.id} product={product} />
@@ -187,6 +199,7 @@ export function ProductGrid({ selectedCategory, searchQuery, dbProducts = [] }: 
 
 function ProductCard({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
+  const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
 
   const badges: string[] = [];
   if (product.badge && product.badge !== "B2B") badges.push(product.badge);
@@ -194,11 +207,14 @@ function ProductCard({ product }: { product: Product }) {
 
   return (
     /* 카드 루트 — relative, group: 오버레이가 카드 전체를 덮음 */
-    <div className="group relative overflow-hidden rounded-2xl bg-[#EDEBE4] shadow-sm transition-all duration-200 hover:shadow-md">
+    <div
+      className="group relative overflow-hidden rounded-xl bg-[#EDEBE4] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-2xl"
+      onClick={() => setIsMobileOverlayOpen(true)}
+    >
 
       {/* ① 이미지 영역 */}
       <div className="relative aspect-square overflow-hidden bg-[#EDEBE4]">
-        <div className="absolute inset-0 flex items-center justify-center p-4 md:p-6">
+        <div className="absolute inset-0 flex items-center justify-center p-3 md:p-6">
           <img
             src={imgError ? "/home/premium_egg.png" : product.image}
             alt={product.name}
@@ -209,11 +225,11 @@ function ProductCard({ product }: { product: Product }) {
 
         {/* 배지 — 좌상단 */}
         {badges.length > 0 && (
-          <div className="absolute left-3 top-3 z-10 flex gap-1">
+          <div className="absolute left-2 top-2 z-10 flex gap-1 md:left-3 md:top-3">
             {badges.map((b) => (
               <span
                 key={b}
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold md:px-2.5 md:text-[11px] ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
               >
                 {b}
               </span>
@@ -223,25 +239,22 @@ function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* ② 텍스트 영역 (~134px) */}
-      <div className="px-4 pb-5 pt-4">
+      <div className="px-2.5 pb-3.5 pt-2.5 md:px-4 md:pb-5 md:pt-4">
         <h3
-          className="mb-1 line-clamp-2 leading-snug text-gray-900"
-          style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.015em" }}
+          className="mb-1 line-clamp-2 text-[13px] font-extrabold leading-[1.25] tracking-[-0.02em] text-gray-900 md:text-[20px] md:leading-snug md:tracking-[-0.015em]"
         >
           {product.name}
         </h3>
         <p
-          className="mb-2.5 line-clamp-1 text-gray-500"
-          style={{ fontSize: "16px", fontWeight: 400, letterSpacing: "-0.015em" }}
+          className="mb-2 line-clamp-1 text-[11px] font-normal tracking-[-0.02em] text-gray-500 md:mb-2.5 md:text-[16px] md:tracking-[-0.015em]"
         >
           {product.description}
         </p>
         <div className="flex flex-wrap gap-1">
-          {product.tags.slice(0, 4).map((tag, i) => (
+          {product.tags.slice(0, 3).map((tag, i) => (
             <span
               key={i}
-              className="rounded-full px-2 py-0.5 font-medium text-[#555]"
-              style={{ fontSize: "12px", letterSpacing: "-0.02em", backgroundColor: "#f4f2e5" }}
+              className="rounded-full bg-[#f4f2e5] px-2 py-0.5 text-[10px] font-medium tracking-[-0.02em] text-[#555] md:text-[12px]"
             >
               {tag.startsWith("#") ? tag : `#${tag}`}
             </span>
@@ -250,13 +263,13 @@ function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* ③ 카드 전체 호버 오버레이 — 카드 루트 기준 absolute inset-0 */}
-      <div className="absolute inset-0 z-20 flex items-center justify-center gap-4 rounded-2xl bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <div className="absolute inset-0 z-20 hidden flex-col items-center justify-center gap-3 rounded-2xl bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:flex">
 
         {/* 상세보기 — #ffd55d */}
         <Link
           to={`/products/${product.id}`}
-          className="flex h-[140px] w-[140px] items-center justify-center rounded-full font-bold text-[#1a1a1a] transition-all hover:brightness-105"
-          style={{ backgroundColor: "#ffd55d", fontSize: "16px" }}
+          className="flex h-12 w-[170px] items-center justify-center rounded-full font-bold text-[#1a1a1a] transition-all hover:brightness-105"
+          style={{ backgroundColor: "#ffd55d", fontSize: "15px" }}
           viewTransition
         >
           상세보기
@@ -268,22 +281,59 @@ function ProductCard({ product }: { product: Product }) {
             href={product.shopUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-[140px] w-[140px] items-center justify-center gap-0.5 rounded-full font-bold text-white transition-all hover:brightness-105"
-            style={{ backgroundColor: "#2DB96B", fontSize: "16px" }}
+            className="flex h-12 w-[170px] items-center justify-center gap-0.5 rounded-full font-bold text-white transition-all hover:brightness-105"
+            style={{ backgroundColor: "#2DB96B", fontSize: "15px" }}
           >
             풍림몰
             <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
           </a>
         ) : (
           <div
-            className="flex h-[140px] w-[140px] items-center justify-center gap-0.5 rounded-full font-bold text-white/50"
-            style={{ backgroundColor: "#2DB96B55", fontSize: "16px" }}
+            className="flex h-12 w-[170px] items-center justify-center gap-0.5 rounded-full font-bold text-white/50"
+            style={{ backgroundColor: "#2DB96B55", fontSize: "15px" }}
           >
             풍림몰
             <ArrowUpRight className="h-5 w-5 opacity-50" strokeWidth={2.5} />
           </div>
         )}
       </div>
+
+      {/* 모바일: 카드 탭 시 액션 오버레이 표시 */}
+      {isMobileOverlayOpen && (
+        <div
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/45 md:hidden"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMobileOverlayOpen(false);
+          }}
+        >
+          <Link
+            to={`/products/${product.id}`}
+            className="flex h-9 w-[120px] items-center justify-center rounded-full bg-[#ffd55d] text-[12px] font-bold text-[#1a1a1a]"
+            viewTransition
+            onClick={(e) => e.stopPropagation()}
+          >
+            상세보기
+          </Link>
+          {product.shopUrl ? (
+            <a
+              href={product.shopUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-9 w-[120px] items-center justify-center gap-0.5 rounded-full bg-[#2DB96B] text-[12px] font-bold text-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              풍림몰
+              <ArrowUpRight className="h-4 w-4" strokeWidth={2.5} />
+            </a>
+          ) : (
+            <div className="flex h-9 w-[120px] items-center justify-center gap-0.5 rounded-full bg-[#2DB96B55] text-[12px] font-bold text-white/60">
+              풍림몰
+              <ArrowUpRight className="h-4 w-4 opacity-50" strokeWidth={2.5} />
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );

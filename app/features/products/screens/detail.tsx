@@ -114,9 +114,8 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
 
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
-
       {/* ── 브레드크럼 — 네비바 로고 좌측 기준 정렬 ── */}
-      <div className="mx-auto w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:px-6 lg:px-10">
+      <div className="mx-auto hidden w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:block md:px-6 lg:px-10">
         <nav className="flex items-center gap-1 text-xs text-gray-400">
           <Link to="/" className="transition-colors hover:text-gray-600">Home</Link>
           <ChevronRight className="h-3 w-3" />
@@ -133,10 +132,10 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
       </div>
 
       {/* ── 본문 컨테이너 ── */}
-      <div className="mx-auto max-w-[560px] space-y-4 px-4 pb-20">
+      <div className="mx-auto max-w-[560px] space-y-4 px-3 pb-20 md:px-4">
 
         {/* ① 이미지 카드 — 배지 없음, 이미지가 카드를 꽉 채움 */}
-        <div className="aspect-square w-full overflow-hidden rounded-3xl">
+        <div className="aspect-square w-full overflow-hidden rounded-2xl md:rounded-3xl">
           <img
             src={imgError ? "/home/premium_egg.png" : (product.image_url ?? "/home/premium_egg.png")}
             alt={product.name}
@@ -146,12 +145,12 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
         </div>
 
         {/* ② 제품 정보 카드 — 배경 #EAE3C9 */}
-        <div className="mt-8 rounded-3xl p-7" style={{ backgroundColor: "#EAE3C9" }}>
+        <div className="mt-4 rounded-2xl p-5 md:mt-8 md:rounded-3xl md:p-7" style={{ backgroundColor: "#EAE3C9" }}>
 
           {/* 제품명 */}
           <h1
-            className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
-            style={{ fontSize: "clamp(20px, 4vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
+              className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
+              style={{ fontSize: "clamp(24px, 6vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
           >
             <img
               src="/home/product-star.png"
@@ -162,7 +161,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           </h1>
 
           {/* 설명 */}
-          <p className="mb-4 text-sm leading-relaxed" style={{ color: "#003F2B" }}>
+            <p className="mb-4 text-[15px] leading-relaxed md:text-sm" style={{ color: "#003F2B" }}>
             {product.description}
           </p>
 
@@ -202,7 +201,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               href={shopUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-1.5 rounded-full py-4 font-bold text-white transition-all hover:brightness-110"
+              className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 font-bold text-white transition-all hover:brightness-110 md:py-4"
               style={{ backgroundColor: "#003F2B", fontSize: "16px", letterSpacing: "-0.02em" }}
             >
               풍림몰 구매
@@ -210,7 +209,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
             </a>
           ) : (
             <div
-              className="flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-full py-4 font-bold"
+              className="flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-full py-3.5 font-bold md:py-4"
               style={{ backgroundColor: "#003F2B55", color: "#003F2B99", fontSize: "16px", letterSpacing: "-0.02em" }}
             >
               풍림몰 구매
@@ -221,8 +220,8 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
 
         {/* ③ 제품 정보 스펙 카드 */}
         {specs.length > 0 && (
-          <div className="overflow-hidden rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
-            <div className="px-7 py-5">
+          <div className="overflow-hidden rounded-2xl md:rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
+            <div className="px-5 py-4 md:px-7 md:py-5">
               <h2
                 className="font-bold"
                 style={{ fontSize: "16px", letterSpacing: "-0.03em", color: "#003F2B" }}
@@ -236,13 +235,13 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                   <>
                     <tr key={`row-${i}`}>
                       <td
-                        className="w-28 px-7 py-4 text-sm font-medium"
+                        className="w-28 px-5 py-4 text-sm font-medium md:px-7"
                         style={{ letterSpacing: "-0.02em", color: "#003F2B" }}
                       >
                         {spec.label}
                       </td>
                       <td
-                        className="px-7 py-4 text-right text-sm"
+                        className="px-5 py-4 text-right text-sm md:px-7"
                         style={{ letterSpacing: "-0.02em", color: "#003F2B" }}
                       >
                         {spec.value}
@@ -250,7 +249,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                     </tr>
                     {i < specs.length - 1 && (
                       <tr key={`sep-${i}`}>
-                        <td colSpan={2} className="px-7 py-0">
+                        <td colSpan={2} className="px-5 py-0 md:px-7">
                           <div className="h-px bg-white/60" />
                         </td>
                       </tr>
@@ -264,7 +263,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
 
         {/* ④ 상세 설명 (HTML 콘텐츠) */}
         {product.detail && (
-          <div className="rounded-3xl bg-white p-7 shadow-sm">
+          <div className="rounded-2xl bg-white p-5 shadow-sm md:rounded-3xl md:p-7">
             <h2
               className="mb-4 font-bold text-gray-900"
               style={{ fontSize: "16px", letterSpacing: "-0.03em" }}
@@ -279,7 +278,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
         )}
 
         {/* 목록으로 */}
-        <div className="pt-2 text-center">
+        <div className="hidden pt-2 text-center md:block">
           <Link
             to="/products/all"
             className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"

@@ -8,27 +8,22 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
-
-export const newsTypeEnum = pgEnum("news_type", [
-  "news",          // 뉴스/소식
-  "press",         // 보도자료
-  "announcement",  // 공지사항
-]);
 
 export const news = pgTable(
   "news",
   {
     ...makeIdentityColumn("news_id"),
-    type: newsTypeEnum().notNull().default("news"),
+    type: text().notNull().default("보도자료"),
     title: text().notNull(),
     content: text().notNull(),
     summary: text(),
     thumbnail_url: text(),
     source: text(),
+    source_url: text(),
     is_active: boolean().notNull().default(true),
     published_at: text(),
     ...timestamps,

@@ -375,3 +375,18 @@ body {
     scrollbar-width: none; /* Firefox */
   }
 }
+
+/* ChannelIO 모바일 모달 잘림 방지 */
+@media (max-width: 768px) {
+  #ch-plugin,
+  #ch-plugin-core,
+  [id^="ch-plugin"] {
+    max-height: 100dvh !important;
+  }
+
+  #ch-messenger-container,
+  iframe[id^="ch-messenger"] {
+    max-height: calc(100dvh - env(safe-area-inset-bottom) - 12px) !important;
+    height: auto !important;
+  }
+}

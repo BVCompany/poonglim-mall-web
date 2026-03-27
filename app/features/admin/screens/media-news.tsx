@@ -19,9 +19,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "~/core/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "~/core/components/ui/select";
-import { Plus, Search, Edit, Trash2, Newspaper } from "lucide-react";
+  Plus, Search, Trash2, Newspaper, ExternalLink, Pencil,
+} from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
 import { news } from "~/features/media/schema";
 import { eq, desc } from "drizzle-orm";
@@ -39,12 +38,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "create") {
     await db.insert(news).values({
-      type: (fd.get("type") as "news" | "press" | "announcement") ?? "news",
+      type: (fd.get("type") as string) || "보도자료",
       title: fd.get("title") as string,
       content: fd.get("content") as string,
       summary: (fd.get("summary") as string) || null,
       thumbnail_url: (fd.get("thumbnail_url") as string) || null,
       source: (fd.get("source") as string) || null,
+      source_url: (fd.get("source_url") as string) || null,
       published_at: (fd.get("published_at") as string) || null,
       is_active: true,
     });
@@ -54,6 +54,23 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) await db.delete(news).where(eq(news.news_id, id));
+    return { success: true };
+  }
+
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (id) {
+      await db.update(news).set({
+        type: (fd.get("type") as string) || "보도자료",
+        title: fd.get("title") as string,
+        content: fd.get("content") as string,
+        summary: (fd.get("summary") as string) || null,
+        thumbnail_url: (fd.get("thumbnail_url") as string) || null,
+        source: (fd.get("source") as string) || null,
+        source_url: (fd.get("source_url") as string) || null,
+        published_at: (fd.get("published_at") as string) || null,
+      }).where(eq(news.news_id, id));
+    }
     return { success: true };
   }
 
@@ -67,29 +84,30 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false };
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  news: "뉴스", press: "보도자료", announcement: "공지사항",
-};
-const TYPE_COLOR: Record<string, string> = {
-  news: "bg-blue-100 text-blue-700",
-  press: "bg-purple-100 text-purple-700",
-  announcement: "bg-orange-100 text-orange-700",
-};
 
 export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbNews } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
-    type: "news" as "news" | "press" | "announcement",
+    type: "보도자료",
     title: "",
     summary: "",
     content: "",
     thumbnail_url: "",
     source: "",
+    source_url: "",
     published_at: "",
   });
   const fetcher = useFetcher();
+
+  const toInputDate = (value: string | Date | null | undefined) => {
+    if (!value) return "";
+    if (typeof value === "string") return value.slice(0, 10);
+    return value.toISOString().slice(0, 10);
+  };
 
   const filtered = dbNews.filter((n) =>
     n.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -102,7 +120,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
-    setForm({ type: "news", title: "", summary: "", content: "", thumbnail_url: "", source: "", published_at: "" });
+    setForm({ type: "보도자료", title: "", summary: "", content: "", thumbnail_url: "", source: "", source_url: "", published_at: "" });
   };
 
   const handleDelete = (id: number) => {
@@ -111,6 +129,34 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
     fd.append("intent", "delete");
     fd.append("id", String(id));
     fetcher.submit(fd, { method: "POST" });
+  };
+
+  const handleOpenEdit = (item: (typeof dbNews)[number]) => {
+    setEditingId(item.news_id);
+    setForm({
+      type: item.type || "보도자료",
+      title: item.title || "",
+      summary: item.summary || "",
+      content: item.content || "",
+      thumbnail_url: item.thumbnail_url || "",
+      source: item.source || "",
+      source_url: item.source_url || "",
+      published_at: toInputDate(item.published_at),
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    const fd = new FormData();
+    fd.append("intent", "update");
+    fd.append("id", String(editingId));
+    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+    fetcher.submit(fd, { method: "POST" });
+    setIsEditModalOpen(false);
+    setEditingId(null);
+    setForm({ type: "보도자료", title: "", summary: "", content: "", thumbnail_url: "", source: "", source_url: "", published_at: "" });
   };
 
   const handleToggle = (id: number, isActive: boolean) => {
@@ -172,8 +218,8 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[item.type]}`}>
-                          {TYPE_LABEL[item.type]}
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EAE3C9] text-[#003F2B]">
+                          {item.type}
                         </span>
                         {!item.is_active && (
                           <Badge variant="secondary" className="text-xs">비활성</Badge>
@@ -183,12 +229,35 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                       {item.summary && (
                         <p className="text-sm text-gray-500 truncate mt-0.5">{item.summary}</p>
                       )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        {item.published_at ?? item.created_at.toISOString().slice(0, 10)}
-                        {item.source && ` · ${item.source}`}
+                      <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+                        <span>
+                          {item.published_at ?? item.created_at.toISOString().slice(0, 10)}
+                          {item.source && ` · ${item.source}`}
+                        </span>
+                        {item.source_url && (
+                          <a
+                            href={item.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-0.5 text-[#02633E] hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            원문 보기
+                          </a>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEdit(item)}
+                        className="text-xs"
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1" />
+                        수정
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -222,15 +291,15 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4 mt-2">
             <div className="space-y-1.5">
-              <Label>유형</Label>
-              <Select value={form.type} onValueChange={(v: typeof form.type) => setForm({ ...form, type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="news">뉴스</SelectItem>
-                  <SelectItem value="press">보도자료</SelectItem>
-                  <SelectItem value="announcement">공지사항</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>태그</Label>
+              <Input
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                placeholder="예: 보도자료, 뉴스, 사회공헌, 사업확장 등"
+              />
+              <p className="text-xs text-gray-400">
+                목록 카드에 표시될 태그를 자유롭게 입력하세요.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -277,9 +346,104 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <Label>출처 링크 URL</Label>
+              <Input
+                type="url"
+                value={form.source_url}
+                onChange={(e) => setForm({ ...form, source_url: e.target.value })}
+                placeholder="https://www.example.com/article/..."
+              />
+              <p className="text-xs text-gray-400">원본 기사 링크를 입력하면 카드에서 외부 링크로 연결됩니다.</p>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">등록</Button>
               <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1">취소</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog
+        open={isEditModalOpen}
+        onOpenChange={(open) => {
+          setIsEditModalOpen(open);
+          if (!open) setEditingId(null);
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>뉴스/보도자료 수정</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <Label>태그</Label>
+              <Input
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                placeholder="예: 보도자료, 뉴스, 사회공헌, 사업확장 등"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>제목 *</Label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>요약</Label>
+              <Input value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>내용 *</Label>
+              <Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={5} required />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>썸네일 이미지</Label>
+              <ImageUpload
+                bucket="media"
+                folder="news"
+                value={form.thumbnail_url}
+                onChange={(url) => setForm({ ...form, thumbnail_url: url })}
+                aspectRatio="16/9"
+                hint="JPG, PNG, WebP 최대 10MB"
+              />
+              <Input
+                value={form.thumbnail_url}
+                onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
+                placeholder="또는 이미지 URL 직접 입력"
+                className="text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>출처/매체</Label>
+                <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>발행일</Label>
+                <Input type="date" value={form.published_at} onChange={(e) => setForm({ ...form, published_at: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>출처 링크 URL</Label>
+              <Input
+                type="url"
+                value={form.source_url}
+                onChange={(e) => setForm({ ...form, source_url: e.target.value })}
+                placeholder="https://www.example.com/article/..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">저장</Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} className="flex-1">취소</Button>
             </div>
           </form>
         </DialogContent>

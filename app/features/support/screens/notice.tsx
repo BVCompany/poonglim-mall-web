@@ -3,9 +3,10 @@
  */
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import type { Route } from "./+types/notice";
 import { PageBanner } from "~/core/components/page-banner";
+import { SearchBar } from "~/core/components/search-bar";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -15,14 +16,15 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const category = url.searchParams.get("category") ?? "전체";
+  const category = url.searchParams.get("category") ?? "전체보기";
+  const normalizedCategory = category === "전체" ? "전체보기" : category;
 
   const [dbNotices, pageBanner] = await Promise.all([
-    getNotices(category === "전체" ? undefined : category).catch(() => []),
+    getNotices(normalizedCategory === "전체보기" ? undefined : normalizedCategory).catch(() => []),
     getPageBanner("notice").catch(() => null),
   ]);
 
-  return { dbNotices, pageBanner, activeCategory: category };
+  return { dbNotices, pageBanner, activeCategory: normalizedCategory };
 }
 
 /* ── 더미 데이터 ── */
@@ -41,8 +43,9 @@ const MOCK_NOTICES = [
   { notice_id: 1,  category: "공지",   title: "풍림푸드 B2B 신규 서비스 런칭 안내", tags: ["B2B"],                created_at: "2026-01-10", view_count: 176, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
 ];
 
-const CATEGORIES = ["전체", "공지", "안내", "이벤트"];
+const CATEGORIES = ["전체보기", "공지", "안내", "외식업계"];
 const ITEMS_PER_PAGE = 9;
+const showBanner = false;
 
 export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
   const { dbNotices, pageBanner, activeCategory } = loaderData;
@@ -53,21 +56,35 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
 
   const sourceNotices = (dbNotices.length > 0 ? dbNotices : MOCK_NOTICES) as typeof MOCK_NOTICES;
 
+  // DB/더미 필드 차이로 런타임 에러가 나지 않도록 안전 정규화
+  const normalizedNotices = sourceNotices.map((n, i) => ({
+    notice_id: Number(n.notice_id ?? i + 1),
+    category: String(n.category ?? ""),
+    title: String(n.title ?? ""),
+    tags: Array.isArray(n.tags) ? n.tags : [],
+    created_at: n.created_at ?? new Date().toISOString(),
+    view_count: Number(n.view_count ?? 0),
+    is_pinned: Boolean(n.is_pinned),
+  }));
+
   useEffect(() => { setPage(1); }, [activeCategory, query]);
 
-  const filtered = sourceNotices.filter((n) =>
+  const filtered = normalizedNotices.filter((n) =>
     n.title.toLowerCase().includes(query.toLowerCase()),
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  // 고정글 우선 노출(상단), 나머지는 기존 순서 유지
+  const pinnedNotices = filtered.filter((n) => n.is_pinned);
+  const regularNotices = filtered.filter((n) => !n.is_pinned);
+  const orderedNotices = [...pinnedNotices, ...regularNotices];
 
-  /* 일반글 역순 번호 맵: notice_id → 표시 번호 (전체 기준 역순) */
-  const regularItems = filtered.filter((n) => !n.is_pinned);
-  const totalRegular = regularItems.length;
+  const regularOrdered = orderedNotices.filter((n) => !n.is_pinned);
   const regularRankMap = new Map(
-    regularItems.map((n, i) => [n.notice_id, totalRegular - i]),
+    regularOrdered.map((n, i) => [n.notice_id, regularOrdered.length - i]),
   );
+
+  const totalPages = Math.max(1, Math.ceil(orderedNotices.length / ITEMS_PER_PAGE));
+  const paginated = orderedNotices.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const handleSearch = () => {
     setQuery(inputValue);
@@ -78,7 +95,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     setInputValue("");
     setQuery("");
     setPage(1);
-    if (cat === "전체") {
+    if (cat === "전체보기") {
       setSearchParams({});
     } else {
       setSearchParams({ category: cat });
@@ -90,33 +107,48 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
 
-  /* 좌측: 고정글은 첫번째 태그(없으면 "공고"), 일반글은 null(→ 번호) */
-  const getPinLabel = (notice: typeof MOCK_NOTICES[number]) => {
+  const getPinLabel = (notice: { is_pinned: boolean; tags: string[] }) => {
     if (!notice.is_pinned) return null;
-    return notice.tags?.[0] || "공고";
+    return notice.tags?.[0] || "공지";
   };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 페이지 배너 ── */}
-      <PageBanner
-        imageUrl="/banner/notice_banner_temp.png"
-        title="공지사항"
-        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
-        breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "공지사항" },
-        ]}
-        dbBanner={pageBanner}
-      />
+      {showBanner && (
+        <PageBanner
+          imageUrl="/banner/notice_banner_temp.png"
+          title="공지사항"
+          subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+          breadcrumb={[
+            { label: "Home", href: "/" },
+            { label: "고객지원", href: "/support" },
+            { label: "공지사항" },
+          ]}
+          dbBanner={pageBanner}
+          hideBreadcrumbOnMobile
+        />
+      )}
+
+      {/* ── 상단 타이틀 (별 아이콘) ── */}
+      <div className="px-4 pt-3">
+        <div className="inline-flex items-center gap-1.5">
+          <img
+            src="/home/product-star.png"
+            alt=""
+            className="h-3.5 w-3.5 object-contain"
+          />
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121] md:text-[32px]">
+            공지사항
+          </h1>
+        </div>
+      </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 py-10 md:px-6 lg:px-10">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
 
         {/* ── 필터 탭 + 검색 ── */}
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* 카테고리 탭 */}
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
               const isActive = cat === activeCategory;
@@ -124,40 +156,25 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                 <button
                   key={cat}
                   onClick={() => handleCategoryChange(cat)}
-                  className="flex items-center gap-1.5 rounded-full px-5 font-medium transition-colors"
+                  className="flex items-center gap-1.5 rounded-full px-3 font-medium transition-colors md:px-5"
                   style={{
-                    fontSize: "18px",
+                    fontSize: "clamp(13px, 2.5vw, 18px)",
                     letterSpacing: "-0.04em",
-                    height: "43px",
+                    height: "clamp(34px, 5vw, 43px)",
                     ...(isActive
                       ? { backgroundColor: "#02633E", color: "#fff" }
                       : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
                   }}
                 >
-                  {isActive && <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />}
+                  {isActive && <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />}
                   {cat}
                 </button>
               );
             })}
           </div>
 
-          {/* 검색 — 인풋과 버튼이 분리된 디자인, 높이 64px */}
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="검색어를 입력해주세요."
-              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
-            />
-            <button
-              onClick={handleSearch}
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
-              style={{ backgroundColor: "#02633E" }}
-            >
-              <Search className="h-5 w-5" />
-            </button>
+          <div className="hidden md:block">
+            <SearchBar value={inputValue} onChange={setInputValue} onSearch={handleSearch} />
           </div>
         </div>
 
@@ -171,55 +188,43 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             {paginated.map((notice) => {
               const pinLabel = getPinLabel(notice);
               const displayNum = regularRankMap.get(notice.notice_id) ?? 0;
-
               return (
                 <Link
                   key={notice.notice_id}
                   to={`/support/notice/${notice.notice_id}`}
-                  className="group grid items-center gap-4 rounded-xl px-5 py-4 transition-all hover:brightness-[0.97]"
-                  style={{
-                    backgroundColor: "#F0EEDD",
-                    gridTemplateColumns: "100px 1fr 100px 120px 56px",
-                  }}
+                  className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:px-5 md:py-4"
+                  style={{ backgroundColor: "#F0EEDD" }}
                 >
-                  {/* ① 고정태그 or 넘버링 */}
-                  <div className="text-center">
+                  {/* 왼쪽: 번호(or 고정태그) + 카테고리 태그 */}
+                  <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
                     {pinLabel ? (
                       <span
-                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:px-2.5 md:text-[11px]"
                         style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
                       >
                         {pinLabel}
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-400">{displayNum}</span>
+                      <span className="text-xs text-gray-500 md:text-sm">{displayNum}</span>
                     )}
-                  </div>
-
-                  {/* ② 게시물 제목 */}
-                  <span className="truncate text-sm font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
-                    {notice.title}
-                  </span>
-
-                  {/* ③ 구분 (카테고리) */}
-                  <div className="hidden text-center sm:block">
                     <span
-                      className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:px-2.5 md:text-[11px]"
                       style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
                     >
                       {notice.category}
                     </span>
                   </div>
 
-                  {/* ④ 작성일자 */}
-                  <span className="hidden text-center text-xs text-gray-400 md:block">
-                    {formatDate(notice.created_at)}
+                  {/* 오른쪽: 제목 */}
+                  <span className="truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E] md:text-sm">
+                    {notice.title}
                   </span>
 
-                  {/* ⑤ 조회수 */}
-                  <span className="text-right text-xs text-gray-400">
-                    {notice.view_count}
-                  </span>
+                  {/* 오른쪽 하단: 메타 */}
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 md:text-xs">
+                    <span>{formatDate(notice.created_at)}</span>
+                    <span>{notice.view_count}</span>
+                  </div>
                 </Link>
               );
             })}

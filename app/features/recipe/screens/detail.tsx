@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/detail";
 import { getRecipeById } from "../lib/queries.server";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Clock3, Users } from "lucide-react";
 
 // ─── 목 데이터 (DB 연결 전 테스트용) ─────────────────────────────────────────
 interface MockRecipe {
@@ -128,7 +128,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
     <div className="min-h-screen bg-[#F5F2EB]">
 
       {/* ── 브레드크럼 — 네비바 로고 좌측 정렬 ── */}
-      <div className="mx-auto w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:px-6 lg:px-10">
+      <div className="mx-auto hidden w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:block md:px-6 lg:px-10">
         <nav className="flex items-center gap-1 text-xs text-gray-400">
           <Link to="/" className="transition-colors hover:text-gray-600">Home</Link>
           <ChevronRight className="h-3 w-3" />
@@ -141,10 +141,10 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
       </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[560px] space-y-4 px-4 pb-20">
+      <div className="mx-auto max-w-[560px] space-y-4 px-3 pb-20 md:px-4">
 
         {/* ① 이미지 카드 */}
-        <div className="aspect-square w-full overflow-hidden rounded-3xl">
+        <div className="aspect-square w-full overflow-hidden rounded-2xl md:rounded-3xl">
           <img
             src={imgError ? "/home/premium_egg.png" : (recipe.thumbnail_url ?? "/home/premium_egg.png")}
             alt={recipe.title}
@@ -154,12 +154,12 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
         </div>
 
         {/* ② 레시피 정보 카드 */}
-        <div className="mt-8 rounded-3xl p-7" style={{ backgroundColor: "#EAE3C9" }}>
+        <div className="mt-4 rounded-2xl p-5 md:mt-8 md:rounded-3xl md:p-7" style={{ backgroundColor: "#EAE3C9" }}>
 
           {/* 제목 */}
           <h1
-            className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
-            style={{ fontSize: "clamp(20px, 4vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
+              className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
+              style={{ fontSize: "clamp(24px, 6vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
           >
             <img src="/home/product-star.png" alt="" className="mt-0.5 h-5 w-5 flex-shrink-0 object-contain" />
             {recipe.title}
@@ -167,12 +167,12 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
 
           {/* 설명 */}
           {recipe.description && (
-            <p className="mb-4 text-sm leading-relaxed" style={{ color: "#003F2B" }}>
+            <p className="mb-4 text-[15px] leading-relaxed md:text-sm" style={{ color: "#003F2B" }}>
               {recipe.description}
             </p>
           )}
 
-          {/* 태그 — 카테고리 + 인분 포함 */}
+          {/* 메타 태그 — 모바일 시안 스타일 */}
           <div className="flex flex-wrap items-center gap-1.5">
             {categoryLabel && (
               <span
@@ -184,17 +184,19 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
             )}
             {cookTime && (
               <span
-                className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium"
+                className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium"
                 style={{ borderColor: "#00000020", backgroundColor: "#ffffff", color: "#000000" }}
               >
+                <Clock3 className="h-3.5 w-3.5" />
                 {cookTime}
               </span>
             )}
             {servings && (
               <span
-                className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium"
+                className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium"
                 style={{ borderColor: "#00000020", backgroundColor: "#ffffff", color: "#000000" }}
               >
+                <Users className="h-3.5 w-3.5" />
                 {servings}
               </span>
             )}
@@ -212,8 +214,8 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
 
         {/* ③ 재료 카드 */}
         {ingredients.length > 0 && (
-          <div className="overflow-hidden rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
-            <div className="px-7 py-5">
+          <div className="overflow-hidden rounded-2xl md:rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
+            <div className="px-5 py-4 md:px-7 md:py-5">
               <h2 className="font-bold" style={{ fontSize: "16px", letterSpacing: "-0.03em", color: "#003F2B" }}>
                 재료
               </h2>
@@ -223,16 +225,16 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                 {ingredients.map((ing, i) => (
                   <>
                     <tr key={`row-${i}`}>
-                      <td className="px-7 py-4 text-sm font-medium" style={{ color: "#003F2B", letterSpacing: "-0.02em" }}>
+                      <td className="px-5 py-4 text-sm font-medium md:px-7" style={{ color: "#003F2B", letterSpacing: "-0.02em" }}>
                         {ing.name}
                       </td>
-                      <td className="px-7 py-4 text-right text-sm" style={{ color: "#003F2B", letterSpacing: "-0.02em" }}>
+                      <td className="px-5 py-4 text-right text-sm md:px-7" style={{ color: "#003F2B", letterSpacing: "-0.02em" }}>
                         {ing.amount}
                       </td>
                     </tr>
                     {i < ingredients.length - 1 && (
                       <tr key={`sep-${i}`}>
-                        <td colSpan={2} className="px-7 py-0">
+                        <td colSpan={2} className="px-5 py-0 md:px-7">
                           <div className="h-px bg-white/60" />
                         </td>
                       </tr>
@@ -271,7 +273,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
         )}
 
         {/* 목록으로 */}
-        <div className="pt-2 text-center">
+        <div className="hidden pt-2 text-center md:block">
           <Link
             to="/recipe/main"
             className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
