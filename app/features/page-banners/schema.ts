@@ -51,6 +51,7 @@ export const PAGE_KEY_LABELS: Record<string, string> = {
   event:               "이벤트",
   // 고객지원
   notice:              "공지사항",
+  resources:           "자료실",
   faq:                 "자주 묻는 질문(FAQ)",
   "grade-certificate": "등급판정서",
   contact:             "문의하기",

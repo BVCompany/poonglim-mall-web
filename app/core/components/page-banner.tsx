@@ -29,6 +29,8 @@ export interface PageBannerProps {
     link_text?: string | null;
   } | null;
   mobileHeightClassName?: string;
+  /** true면 md 미만에서 배너 블록 전체를 숨김 (PC만 표시) */
+  hideOnMobile?: boolean;
   hideBreadcrumbOnMobile?: boolean;
   frostedLinkOnMobile?: boolean;
   mobileSubtitle?: string;
@@ -43,6 +45,7 @@ export function PageBanner({
   breadcrumb = [],
   dbBanner,
   mobileHeightClassName = "h-[clamp(200px,28vw,380px)]",
+  hideOnMobile = true,
   hideBreadcrumbOnMobile = false,
   frostedLinkOnMobile = false,
   mobileSubtitle,
@@ -55,7 +58,9 @@ export function PageBanner({
 
   return (
     /* 히어로 배너와 동일한 외부 여백 */
-    <div className="px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5">
+    <div
+      className={`px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5 ${hideOnMobile ? "hidden md:block" : ""}`}
+    >
       {/* 히어로 배너와 동일한 최대 너비 */}
       <div className="mx-auto w-full md:max-w-[var(--hero-pc-width,1640px)]">
         {/* 배너 카드 — 히어로와 동일한 라운드 */}

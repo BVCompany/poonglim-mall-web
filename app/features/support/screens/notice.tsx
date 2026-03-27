@@ -1,12 +1,11 @@
 /**
  * 공지사항 목록 페이지
  */
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Search } from "lucide-react";
 import type { Route } from "./+types/notice";
 import { PageBanner } from "~/core/components/page-banner";
-import { SearchBar } from "~/core/components/search-bar";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -45,7 +44,6 @@ const MOCK_NOTICES = [
 
 const CATEGORIES = ["전체보기", "공지", "안내", "외식업계"];
 const ITEMS_PER_PAGE = 9;
-const showBanner = false;
 
 export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
   const { dbNotices, pageBanner, activeCategory } = loaderData;
@@ -114,33 +112,24 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 페이지 배너 ── */}
-      {showBanner && (
-        <PageBanner
-          imageUrl="/banner/notice_banner_temp.png"
-          title="공지사항"
-          subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
-          breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "고객지원", href: "/support" },
-            { label: "공지사항" },
-          ]}
-          dbBanner={pageBanner}
-          hideBreadcrumbOnMobile
-        />
-      )}
+      <PageBanner
+        imageUrl="/banner/notice_banner_temp.png"
+        title="공지사항"
+        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+        breadcrumb={[
+          { label: "Home", href: "/" },
+          { label: "고객지원", href: "/support" },
+          { label: "공지사항" },
+        ]}
+        dbBanner={pageBanner}
+        hideBreadcrumbOnMobile
+      />
 
-      {/* ── 상단 타이틀 (별 아이콘) ── */}
-      <div className="px-4 pt-3">
+      {/* 모바일 전용 상단 타이틀 */}
+      <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
-          <img
-            src="/home/product-star.png"
-            alt=""
-            className="h-3.5 w-3.5 object-contain"
-          />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121] md:text-[32px]">
-            공지사항
-          </h1>
+          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">공지사항</h1>
         </div>
       </div>
 
@@ -156,25 +145,40 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                 <button
                   key={cat}
                   onClick={() => handleCategoryChange(cat)}
-                  className="flex items-center gap-1.5 rounded-full px-3 font-medium transition-colors md:px-5"
+                  className="flex h-[clamp(34px,5vw,43px)] items-center gap-1.5 rounded-full px-3 text-[clamp(13px,2.5vw,18px)] font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
                   style={{
-                    fontSize: "clamp(13px, 2.5vw, 18px)",
                     letterSpacing: "-0.04em",
-                    height: "clamp(34px, 5vw, 43px)",
                     ...(isActive
                       ? { backgroundColor: "#02633E", color: "#fff" }
                       : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
                   }}
                 >
-                  {isActive && <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />}
+                  {isActive && (
+                    <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />
+                  )}
                   {cat}
                 </button>
               );
             })}
           </div>
 
-          <div className="hidden md:block">
-            <SearchBar value={inputValue} onChange={setInputValue} onSearch={handleSearch} />
+          <div className="hidden items-center gap-3 md:flex">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="검색어를 입력해주세요."
+              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
+              style={{ backgroundColor: "#02633E" }}
+            >
+              <Search className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -189,43 +193,74 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
               const pinLabel = getPinLabel(notice);
               const displayNum = regularRankMap.get(notice.notice_id) ?? 0;
               return (
-                <Link
-                  key={notice.notice_id}
-                  to={`/support/notice/${notice.notice_id}`}
-                  className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:px-5 md:py-4"
-                  style={{ backgroundColor: "#F0EEDD" }}
-                >
-                  {/* 왼쪽: 번호(or 고정태그) + 카테고리 태그 */}
-                  <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
-                    {pinLabel ? (
+                <Fragment key={notice.notice_id}>
+                  {/* 모바일 카드 */}
+                  <Link
+                    to={`/support/notice/${notice.notice_id}`}
+                    className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:hidden"
+                    style={{ backgroundColor: "#F0EEDD" }}
+                  >
+                    <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
+                      {pinLabel ? (
+                        <span
+                          className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                        >
+                          {pinLabel}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">{displayNum}</span>
+                      )}
                       <span
-                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:px-2.5 md:text-[11px]"
+                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
                       >
-                        {pinLabel}
+                        {notice.category}
                       </span>
-                    ) : (
-                      <span className="text-xs text-gray-500 md:text-sm">{displayNum}</span>
-                    )}
-                    <span
-                      className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:px-2.5 md:text-[11px]"
-                      style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                    >
-                      {notice.category}
+                    </div>
+                    <span className="truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
+                      {notice.title}
                     </span>
-                  </div>
-
-                  {/* 오른쪽: 제목 */}
-                  <span className="truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E] md:text-sm">
-                    {notice.title}
-                  </span>
-
-                  {/* 오른쪽 하단: 메타 */}
-                  <div className="flex items-center gap-2 text-[11px] text-gray-400 md:text-xs">
-                    <span>{formatDate(notice.created_at)}</span>
-                    <span>{notice.view_count}</span>
-                  </div>
-                </Link>
+                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                      <span>{formatDate(notice.created_at)}</span>
+                      <span>{notice.view_count}</span>
+                    </div>
+                  </Link>
+                  {/* PC 테이블형 행 */}
+                  <Link
+                    to={`/support/notice/${notice.notice_id}`}
+                    className="group hidden grid-cols-[100px_1fr_100px_120px_56px] items-center gap-4 rounded-xl px-5 py-4 transition-all hover:brightness-[0.97] md:grid"
+                    style={{ backgroundColor: "#F0EEDD" }}
+                  >
+                    <div className="text-center">
+                      {pinLabel ? (
+                        <span
+                          className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                          style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                        >
+                          {pinLabel}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">{displayNum}</span>
+                      )}
+                    </div>
+                    <span className="truncate text-sm font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
+                      {notice.title}
+                    </span>
+                    <div className="hidden text-center sm:block">
+                      <span
+                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
+                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                      >
+                        {notice.category}
+                      </span>
+                    </div>
+                    <span className="hidden text-center text-xs text-gray-400 md:block">
+                      {formatDate(notice.created_at)}
+                    </span>
+                    <span className="text-right text-xs text-gray-400">{notice.view_count}</span>
+                  </Link>
+                </Fragment>
               );
             })}
           </div>

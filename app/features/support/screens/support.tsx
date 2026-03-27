@@ -248,8 +248,8 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
           </div>
 
           <div className="mx-auto max-w-4xl">
-            {/* Search Bar */}
-            <div className="relative mb-8">
+            {/* Search Bar — PC만 */}
+            <div className="relative mb-8 hidden md:block">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <input
                 type="text"
