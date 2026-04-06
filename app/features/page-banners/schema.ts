@@ -45,6 +45,7 @@ export const PAGE_KEY_LABELS: Record<string, string> = {
   recipe:              "레시피",
   // 회사소개
   brand:               "브랜드/회사소개",
+  location:            "오시는 길",
   careers:             "채용",
   // 홍보센터
   news:                "보도자료",
