@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_cert_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          image_url: string | null
+          is_active: boolean
+          sort_order: number
+          title: string
+          type: Database["public"]["Enums"]["cert_item_type"]
+          updated_at: string
+          year: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: never
+          image_url?: string | null
+          is_active?: boolean
+          sort_order?: number
+          title: string
+          type?: Database["public"]["Enums"]["cert_item_type"]
+          updated_at?: string
+          year?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: never
+          image_url?: string | null
+          is_active?: boolean
+          sort_order?: number
+          title?: string
+          type?: Database["public"]["Enums"]["cert_item_type"]
+          updated_at?: string
+          year?: string | null
+        }
+        Relationships: []
+      }
       catalogs: {
         Row: {
           catalog_id: number
@@ -137,10 +176,13 @@ export type Database = {
       contacts: {
         Row: {
           admin_memo: string | null
+          company: string | null
           contact_id: number
           content: string
           created_at: string
           email: string
+          inquiry_type: string
+          lookup_password: string
           name: string
           phone: string | null
           status: Database["public"]["Enums"]["contact_status"]
@@ -149,10 +191,13 @@ export type Database = {
         }
         Insert: {
           admin_memo?: string | null
+          company?: string | null
           contact_id?: never
           content: string
           created_at?: string
           email: string
+          inquiry_type?: string
+          lookup_password?: string
           name: string
           phone?: string | null
           status?: Database["public"]["Enums"]["contact_status"]
@@ -161,10 +206,13 @@ export type Database = {
         }
         Update: {
           admin_memo?: string | null
+          company?: string | null
           contact_id?: never
           content?: string
           created_at?: string
           email?: string
+          inquiry_type?: string
+          lookup_password?: string
           name?: string
           phone?: string | null
           status?: Database["public"]["Enums"]["contact_status"]
@@ -299,6 +347,51 @@ export type Database = {
           question?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      grade_certificates: {
+        Row: {
+          author: string
+          cert_id: number
+          cert_type: Database["public"]["Enums"]["cert_type"]
+          content: string
+          created_at: string
+          file_name: string | null
+          file_url: string | null
+          is_active: boolean
+          tab: Database["public"]["Enums"]["cert_tab"]
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author?: string
+          cert_id?: never
+          cert_type?: Database["public"]["Enums"]["cert_type"]
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          is_active?: boolean
+          tab?: Database["public"]["Enums"]["cert_tab"]
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author?: string
+          cert_id?: never
+          cert_type?: Database["public"]["Enums"]["cert_type"]
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          is_active?: boolean
+          tab?: Database["public"]["Enums"]["cert_tab"]
+          title?: string
+          updated_at?: string
+          view_count?: number
         }
         Relationships: []
       }
@@ -468,10 +561,11 @@ export type Database = {
           news_id: number
           published_at: string | null
           source: string | null
+          source_url: string | null
           summary: string | null
           thumbnail_url: string | null
           title: string
-          type: Database["public"]["Enums"]["news_type"]
+          type: string
           updated_at: string
         }
         Insert: {
@@ -481,10 +575,11 @@ export type Database = {
           news_id?: never
           published_at?: string | null
           source?: string | null
+          source_url?: string | null
           summary?: string | null
           thumbnail_url?: string | null
           title: string
-          type?: Database["public"]["Enums"]["news_type"]
+          type?: string
           updated_at?: string
         }
         Update: {
@@ -494,11 +589,54 @@ export type Database = {
           news_id?: never
           published_at?: string | null
           source?: string | null
+          source_url?: string | null
           summary?: string | null
           thumbnail_url?: string | null
           title?: string
-          type?: Database["public"]["Enums"]["news_type"]
+          type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notices: {
+        Row: {
+          author: string
+          category: Database["public"]["Enums"]["notice_category"]
+          content: string
+          created_at: string
+          is_active: boolean
+          is_pinned: boolean
+          notice_id: number
+          tags: string[]
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author?: string
+          category?: Database["public"]["Enums"]["notice_category"]
+          content?: string
+          created_at?: string
+          is_active?: boolean
+          is_pinned?: boolean
+          notice_id?: never
+          tags?: string[]
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author?: string
+          category?: Database["public"]["Enums"]["notice_category"]
+          content?: string
+          created_at?: string
+          is_active?: boolean
+          is_pinned?: boolean
+          notice_id?: never
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          view_count?: number
         }
         Relationships: []
       }
@@ -893,6 +1031,9 @@ export type Database = {
     Enums: {
       admin_role: "super" | "admin"
       application_status: "submitted" | "reviewing" | "accepted" | "rejected"
+      cert_item_type: "award" | "cert"
+      cert_tab: "current" | "archive"
+      cert_type: "포장란" | "액란" | "기타"
       contact_status: "pending" | "completed"
       event_badge: "hot" | "new" | "ending_soon" | "important"
       event_type: "event" | "notice"
@@ -903,7 +1044,7 @@ export type Database = {
       inquiry_type: "b2b" | "bulk" | "franchise" | "export" | "general"
       job_status: "open" | "closed" | "draft"
       job_type: "full_time" | "part_time" | "contract" | "intern"
-      news_type: "news" | "press" | "announcement"
+      notice_category: "공지" | "안내" | "이벤트"
       product_badge: "best" | "new" | "b2b" | "sale"
     }
     CompositeTypes: {
@@ -1034,6 +1175,9 @@ export const Constants = {
     Enums: {
       admin_role: ["super", "admin"],
       application_status: ["submitted", "reviewing", "accepted", "rejected"],
+      cert_item_type: ["award", "cert"],
+      cert_tab: ["current", "archive"],
+      cert_type: ["포장란", "액란", "기타"],
       contact_status: ["pending", "completed"],
       event_badge: ["hot", "new", "ending_soon", "important"],
       event_type: ["event", "notice"],
@@ -1044,7 +1188,7 @@ export const Constants = {
       inquiry_type: ["b2b", "bulk", "franchise", "export", "general"],
       job_status: ["open", "closed", "draft"],
       job_type: ["full_time", "part_time", "contract", "intern"],
-      news_type: ["news", "press", "announcement"],
+      notice_category: ["공지", "안내", "이벤트"],
       product_badge: ["best", "new", "b2b", "sale"],
     },
   },

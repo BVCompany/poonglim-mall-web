@@ -9,10 +9,38 @@
  * - 관리자 CRUD: service_role (RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { integer, pgEnum, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
+
+/** 품질 인증 아이템 타입 (수상내역 | 인증서) */
+export const certItemTypeEnum = pgEnum("cert_item_type", ["award", "cert"]);
+
+/** 품질 & 인증 관리 테이블 */
+export const brandCertItems = pgTable(
+  "brand_cert_items",
+  {
+    ...makeIdentityColumn("id"),
+    type: certItemTypeEnum().notNull().default("cert"),
+    title: text().notNull(),
+    year: text(),
+    description: text(),
+    image_url: text(),
+    sort_order: integer().default(0).notNull(),
+    is_active: boolean().default(true).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    // anon: 활성 항목만 읽기 허용
+    pgPolicy("brand-cert-items-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`${table.is_active} = true`,
+    }),
+  ],
+);
 
 export const factoryTourStatusEnum = pgEnum("factory_tour_status", [
   "pending",   // 승인대기

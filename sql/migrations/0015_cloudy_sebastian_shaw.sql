@@ -1,0 +1,2 @@
+ALTER TABLE "brand_cert_items" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE POLICY "brand-cert-items-anon-select" ON "brand_cert_items" AS PERMISSIVE FOR SELECT TO "anon" USING ("brand_cert_items"."is_active" = true);
