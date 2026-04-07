@@ -1,9 +1,17 @@
 /**
  * 자료실 페이지
  */
-import { useState, useEffect } from "react";
-import { Check, ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import type { Route } from "./+types/resources";
+
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Search,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+
 import { PageBanner } from "~/core/components/page-banner";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -19,16 +27,96 @@ export async function loader(_: Route.LoaderArgs) {
 const CATEGORIES = ["전체 보기", "카탈로그", "회사소개", "인증서", "기타"];
 
 const MOCK_FILES = [
-  { id: 10, category: "인증서", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-18", ext: "PDF", url: "#" },
-  { id: 9, category: "카탈로그", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 8, category: "기타", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-16", ext: "PDF", url: "#" },
-  { id: 7, category: "회사소개", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-16", ext: "PDF", url: "#" },
-  { id: 6, category: "인증서", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 5, category: "회사소개", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 4, category: "회사소개", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 3, category: "인증서", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 2, category: "회사소개", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "312", date: "2026-02-15", ext: "PDF", url: "#" },
-  { id: 1, category: "기타", title: "2026년 풍림푸드 종합 제품 카탈로그", size: "317", date: "2026-02-15", ext: "PDF", url: "#" },
+  {
+    id: 10,
+    category: "인증서",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-18",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 9,
+    category: "카탈로그",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 8,
+    category: "기타",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-16",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 7,
+    category: "회사소개",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-16",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 6,
+    category: "인증서",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 5,
+    category: "회사소개",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 4,
+    category: "회사소개",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 3,
+    category: "인증서",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 2,
+    category: "회사소개",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "312",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
+  {
+    id: 1,
+    category: "기타",
+    title: "2026년 풍림푸드 종합 제품 카탈로그",
+    size: "317",
+    date: "2026-02-15",
+    ext: "PDF",
+    url: "#",
+  },
 ];
 
 const ITEMS_PER_PAGE = 10;
@@ -50,12 +138,19 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   };
 
   const byCategory =
-    activeCategory === "전체 보기" ? MOCK_FILES : MOCK_FILES.filter((f) => f.category === activeCategory);
+    activeCategory === "전체 보기"
+      ? MOCK_FILES
+      : MOCK_FILES.filter((f) => f.category === activeCategory);
 
-  const filtered = byCategory.filter((f) => f.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = byCategory.filter((f) =>
+    f.title.toLowerCase().includes(query.toLowerCase()),
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const paginated = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
   const totalCount = filtered.length;
 
   return (
@@ -75,12 +170,18 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
 
       <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">자료실</h1>
+          <img
+            src="/home/product-star.png"
+            alt=""
+            className="h-3.5 w-3.5 object-contain"
+          />
+          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">
+            자료실
+          </h1>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-10 lg:px-10">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
@@ -102,7 +203,12 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                       : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
                   }}
                 >
-                  {isActive && <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />}
+                  {isActive && (
+                    <Check
+                      className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5"
+                      strokeWidth={2.5}
+                    />
+                  )}
                   {cat}
                 </button>
               );
@@ -137,15 +243,18 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         ) : (
           <div className="flex flex-col gap-2">
             {paginated.map((file, idx) => {
-              const displayNum = totalCount - ((page - 1) * ITEMS_PER_PAGE + idx);
+              const displayNum =
+                totalCount - ((page - 1) * ITEMS_PER_PAGE + idx);
               return (
                 <div
                   key={file.id}
-                  className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 md:items-center md:gap-4 md:px-5 md:py-4 md:[grid-template-columns:56px_1fr_100px_120px_56px_40px]"
+                  className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 md:[grid-template-columns:56px_1fr_100px_120px_56px_40px] md:items-center md:gap-4 md:px-5 md:py-4"
                   style={{ backgroundColor: "#F0EEDD" }}
                 >
                   <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5 md:row-span-1 md:pt-0">
-                    <span className="text-xs text-gray-500 md:text-sm">{displayNum}</span>
+                    <span className="text-xs text-gray-500 md:text-sm">
+                      {displayNum}
+                    </span>
                     <span
                       className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold md:hidden"
                       style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
@@ -180,8 +289,12 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                   <div className="flex items-center gap-2 text-[11px] text-gray-400 md:contents">
                     <span className="md:hidden">{file.date}</span>
                     <span className="md:hidden">{file.size}</span>
-                    <span className="hidden text-center text-xs text-gray-400 md:block">{file.date}</span>
-                    <span className="hidden text-right text-xs text-gray-400 md:block">{file.size}</span>
+                    <span className="hidden text-center text-xs text-gray-400 md:block">
+                      {file.date}
+                    </span>
+                    <span className="hidden text-right text-xs text-gray-400 md:block">
+                      {file.size}
+                    </span>
                     <div className="hidden md:block">
                       <a
                         href={file.url}
@@ -204,7 +317,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -227,7 +340,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
