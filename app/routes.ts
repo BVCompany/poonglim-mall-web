@@ -1,9 +1,9 @@
 /**
  * Application Routes Configuration
- * 
+ *
  * This file defines all routes for the application using React Router's
  * file-based routing system. Routes are organized by feature and access level.
- * 
+ *
  * The structure uses layouts for shared UI elements and prefixes for route grouping.
  * This approach creates a hierarchical routing system that's both maintainable and scalable.
  */
@@ -87,7 +87,7 @@ export default [
     //   route("/logout", "features/auth/screens/logout.tsx"),
     // ]),
     route("/contact", "features/contact/screens/contact-us.tsx"),
-    
+
     // Brand Routes (브랜드/회사소개)
     ...prefix("/brand", [
       route("/intro", "features/brand/screens/intro.tsx"),
@@ -96,7 +96,7 @@ export default [
       route("/factory-tour", "features/brand/screens/factory-tour.tsx"),
       route("/location", "features/brand/screens/location.tsx"),
     ]),
-    
+
     // Products Routes (제품소개)
     ...prefix("/products", [
       route("/egg-story", "features/products/screens/egg-story.tsx"),
@@ -106,7 +106,7 @@ export default [
       route("/convenience", "features/products/screens/convenience.tsx"),
       route("/:id", "features/products/screens/detail.tsx"),
     ]),
-    
+
     // Recipe Routes (레시피)
     ...prefix("/recipe", [
       route("/main", "features/recipe/screens/main.tsx"),
@@ -115,7 +115,7 @@ export default [
       route("/restaurant", "features/recipe/screens/restaurant.tsx"),
       route("/:id", "features/recipe/screens/detail.tsx"),
     ]),
-    
+
     // Search Route (전체 검색)
     route("/search", "features/search/screens/search.tsx"),
 
@@ -125,26 +125,32 @@ export default [
     // Event Routes (이벤트)
     route("/event", "features/event/screens/event.tsx"),
     route("/event/:id", "features/event/screens/detail.tsx"),
-    
+
     // Inquiry Routes (구매문의)
     ...prefix("/inquiry", [
       route("/online", "features/inquiry/screens/online.tsx"),
       route("/bulk", "features/inquiry/screens/bulk.tsx"),
     ]),
-    
+
     // Customer Support Routes (고객지원)
     route("/support", "features/support/screens/support.tsx"),
     ...prefix("/support", [
-      route("/notice",              "features/support/screens/notice.tsx"),
-      route("/notice/:id",          "features/support/screens/notice-detail.tsx"),
-      route("/resources",           "features/support/screens/resources.tsx"),
-      route("/safety-test",             "features/support/screens/safety-test.tsx"),
-      route("/grade-certificate",       "features/support/screens/grade-certificate.tsx"),
-      route("/grade-certificate/:id",   "features/support/screens/grade-certificate-detail.tsx"),
-      route("/faq",                     "features/support/screens/faq.tsx"),
-      route("/contact",                 "features/support/screens/contact.tsx"),
+      route("/notice", "features/support/screens/notice.tsx"),
+      route("/notice/:id", "features/support/screens/notice-detail.tsx"),
+      route("/resources", "features/support/screens/resources.tsx"),
+      route("/safety-test", "features/support/screens/safety-test.tsx"),
+      route(
+        "/grade-certificate",
+        "features/support/screens/grade-certificate.tsx",
+      ),
+      route(
+        "/grade-certificate/:id",
+        "features/support/screens/grade-certificate-detail.tsx",
+      ),
+      route("/faq", "features/support/screens/faq.tsx"),
+      route("/contact", "features/support/screens/contact.tsx"),
     ]),
-    
+
     // Careers Routes (채용)
     ...prefix("/careers", [
       route("/positions", "features/careers/screens/positions.tsx"),
@@ -153,7 +159,7 @@ export default [
       route("/:id/apply", "features/careers/screens/apply.tsx"),
       route("/:id", "features/careers/screens/detail.tsx"),
     ]),
-    
+
     // ⚠️ 결제 관련 라우트 - 향후 DB 작업 시 활성화
     // ...prefix("/payments", [
     //   route("/checkout", "features/payments/screens/checkout.tsx"),
@@ -192,9 +198,16 @@ export default [
     // 파일 업로드 API - /admin 경로 아래에 두어야 세션 쿠키(path:"/admin")가 전달됨
     route("/api/upload", "features/upload/api/upload.tsx"),
     route("/products", "features/admin/screens/products.tsx"),
-    route("/product-categories", "features/admin/screens/product-categories.tsx"),
+    route(
+      "/product-categories",
+      "features/admin/screens/product-categories.tsx",
+    ),
     route("/notices", "features/admin/screens/notices.tsx"),
-    route("/grade-certificates", "features/admin/screens/grade-certificates.tsx"),
+    route(
+      "/grade-certificates",
+      "features/admin/screens/grade-certificates.tsx",
+    ),
+    route("/certifications", "features/admin/screens/certifications.tsx"),
     route("/faqs", "features/admin/screens/faqs.tsx"),
     route("/events", "features/admin/screens/events.tsx"),
     route("/recipes", "features/admin/screens/recipes.tsx"),
@@ -207,7 +220,10 @@ export default [
     ]),
     ...prefix("/settings", [
       route("/banners", "features/admin/screens/settings-banners.tsx"),
-      route("/page-banners", "features/admin/screens/settings-page-banners.tsx"),
+      route(
+        "/page-banners",
+        "features/admin/screens/settings-page-banners.tsx",
+      ),
       route("/popups", "features/admin/screens/settings-popups.tsx"),
       route("/admins", "features/admin/screens/settings-admins.tsx"),
       route("/site", "features/admin/screens/settings-site.tsx"),

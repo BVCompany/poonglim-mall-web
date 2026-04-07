@@ -34,3 +34,27 @@ export async function getEventById(id: number) {
     .where(eq(events.event_id, id));
   return rows[0] ?? null;
 }
+
+/** type=event 인 활성 이벤트만 조회 */
+export async function getEventsOnly() {
+  return db
+    .select()
+    .from(events)
+    .where(and(eq(events.is_active, true), eq(events.type, "event")))
+    .orderBy(desc(events.created_at));
+}
+
+/** 이전글 / 다음글 */
+export async function getAdjacentEvents(id: number) {
+  const all = await db
+    .select({ event_id: events.event_id, title: events.title })
+    .from(events)
+    .where(and(eq(events.is_active, true), eq(events.type, "event")))
+    .orderBy(desc(events.created_at));
+
+  const idx = all.findIndex((e) => e.event_id === id);
+  return {
+    prev: idx > 0 ? all[idx - 1] : null,
+    next: idx < all.length - 1 ? all[idx + 1] : null,
+  };
+}

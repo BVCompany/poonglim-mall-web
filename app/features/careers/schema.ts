@@ -9,36 +9,44 @@
  * - 관리자 CRUD: service_role (RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
 
 export const jobStatusEnum = pgEnum("job_status", [
-  "open",    // 모집중
-  "closed",  // 마감
-  "draft",   // 임시저장
+  "open", // 모집중
+  "closed", // 마감
+  "draft", // 임시저장
 ]);
 
 export const jobTypeEnum = pgEnum("job_type", [
-  "full_time",  // 정규직
-  "part_time",  // 파트타임
-  "contract",   // 계약직
-  "intern",     // 인턴
+  "full_time", // 정규직
+  "part_time", // 파트타임
+  "contract", // 계약직
+  "intern", // 인턴
 ]);
 
 export const experienceLevelEnum = pgEnum("experience_level", [
-  "entry",       // 신입
+  "entry", // 신입
   "experienced", // 경력
-  "senior",      // 시니어
-  "all",         // 신입/경력
+  "senior", // 시니어
+  "all", // 신입/경력
 ]);
 
 export const applicationStatusEnum = pgEnum("application_status", [
-  "submitted",  // 접수완료
-  "reviewing",  // 검토중
-  "accepted",   // 합격
-  "rejected",   // 불합격
+  "submitted", // 접수완료
+  "reviewing", // 검토중
+  "accepted", // 합격
+  "rejected", // 불합격
 ]);
 
 /** 채용 공고 */
@@ -76,9 +84,11 @@ export const jobApplications = pgTable(
   "job_applications",
   {
     ...makeIdentityColumn("application_id"),
-    job_id: integer().notNull().references(() => jobPostings.job_id, {
-      onDelete: "cascade",
-    }),
+    job_id: integer()
+      .notNull()
+      .references(() => jobPostings.job_id, {
+        onDelete: "cascade",
+      }),
     applicant_name: text().notNull(),
     email: text().notNull(),
     phone: text().notNull(),
