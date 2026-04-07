@@ -45,9 +45,11 @@ export async function action({ request }: Route.ActionArgs) {
 interface TourApplication {
   id: string;
   applicantName: string;
+  organization: string | null;
   phone: string;
   participants: number;
   purpose: string;
+  message: string | null;
   requestedDate: string;
   appliedDate: string;
   status: "승인대기" | "승인완료" | "거절";
@@ -57,9 +59,11 @@ const MOCK_APPLICATIONS: TourApplication[] = [
   {
     id: "1",
     applicantName: "김선생",
+    organization: "○○초등학교",
     phone: "010-1234-5678",
     participants: 30,
-    purpose: "식품 제조 과정 학습",
+    purpose: "공장: 충북 진천공장 / 방문시간: 오전 10:00 / 방문목적: 견학",
+    message: null,
     requestedDate: "2025-02-15 10:00",
     appliedDate: "2025-01-05 14:30",
     status: "승인대기",
@@ -67,9 +71,11 @@ const MOCK_APPLICATIONS: TourApplication[] = [
   {
     id: "2",
     applicantName: "이교수",
+    organization: "△△대학교",
     phone: "010-2345-6789",
     participants: 25,
-    purpose: "일반 소비자 현장 실습",
+    purpose: "공장: 충북 진천공장 / 방문시간: 오후 14:00 / 방문목적: 업무방문",
+    message: "사전 미팅 요청드립니다.",
     requestedDate: "2025-02-20 14:00",
     appliedDate: "2025-01-03 10:15",
     status: "승인완료",
@@ -77,9 +83,11 @@ const MOCK_APPLICATIONS: TourApplication[] = [
   {
     id: "3",
     applicantName: "박대리",
+    organization: null,
     phone: "010-3456-7890",
     participants: 20,
-    purpose: "직원 복지 프로그램",
+    purpose: "공장: 전북 완주공장 / 방문시간: 오전 10:00 / 방문목적: 기타",
+    message: null,
     requestedDate: "2025-03-05 15:00",
     appliedDate: "2025-01-01 09:00",
     status: "거절",
@@ -95,9 +103,11 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
     ? dbTours.map((t) => ({
         id: String(t.tour_id),
         applicantName: t.applicant_name,
+        organization: t.organization ?? null,
         phone: t.phone,
         participants: t.participants,
         purpose: t.purpose,
+        message: t.message ?? null,
         requestedDate: new Date(t.requested_date).toLocaleString("ko-KR"),
         appliedDate: t.created_at.toLocaleString("ko-KR"),
         status: (t.status === "approved" ? "승인완료" : t.status === "rejected" ? "거절" : "승인대기") as TourApplication["status"],
@@ -196,22 +206,32 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
 
                     <div className="grid grid-cols-4 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">신청자</p>
+                        <p className="text-sm text-gray-600 mb-1">담당자명</p>
                         <p className="font-medium text-gray-900">{app.applicantName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">단체명</p>
+                        <p className="font-medium text-gray-900">{app.organization ?? "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">연락처</p>
                         <p className="font-medium text-gray-900">{app.phone}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">참가 인원</p>
+                        <p className="text-sm text-gray-600 mb-1">방문 인원</p>
                         <p className="font-medium text-gray-900">{app.participants}명</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">방문 목적</p>
-                        <p className="font-medium text-gray-900">{app.purpose}</p>
-                      </div>
                     </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-1">신청 내용</p>
+                      <p className="font-medium text-gray-900">{app.purpose}</p>
+                    </div>
+                    {app.message && (
+                      <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3">
+                        <p className="text-sm text-gray-600 mb-1">문의사항</p>
+                        <p className="text-sm text-gray-800">{app.message}</p>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <Button
