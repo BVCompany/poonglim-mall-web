@@ -40,6 +40,18 @@ export default defineConfig((config) => {
     ssr: {
       // gRPC 기반 네이티브 패키지 — Vite 번들링 제외, Node.js 런타임에서 직접 로드
       external: ["@google-analytics/data", "google-auth-library"],
+      // Tiptap은 ESM named export만 제공하므로 SSR 번들에 포함해 처리
+      noExternal: [
+        "@tiptap/react",
+        "@tiptap/pm",
+        "@tiptap/starter-kit",
+        "@tiptap/extension-image",
+        "@tiptap/extension-link",
+        "@tiptap/extension-placeholder",
+        "@tiptap/extension-text-align",
+        "@tiptap/extension-color",
+        "@tiptap/extension-text-style",
+      ],
     },
     plugins,
     sentryConfig,
