@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "~/core/components/ui/button";
 import { ImageUpload } from "~/core/components/image-upload";
+import { RichTextEditor } from "~/core/components/rich-text-editor";
 import {
   Dialog,
   DialogContent,
@@ -111,7 +112,7 @@ export function EventAddModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">추가</DialogTitle>
         </DialogHeader>
@@ -236,24 +237,10 @@ export function EventAddModal({
             />
           </div>
 
-          {/* Detailed Content */}
+          {/* Thumbnail Image */}
           <div className="space-y-2">
-            <Label htmlFor="content">상세 내용</Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              placeholder="상세 내용을 입력하세요"
-              rows={5}
-              required
-            />
-          </div>
-
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label>이미지 (선택)</Label>
+            <Label>썸네일 이미지 (선택)</Label>
+            <p className="text-xs text-gray-400">목록에 표시되는 대표 이미지입니다.</p>
             <ImageUpload
               bucket="media"
               folder="events"
@@ -267,6 +254,21 @@ export function EventAddModal({
               onChange={(e) => setFormData({ ...formData, image: e.target.value })}
               placeholder="또는 이미지 URL 직접 입력"
               className="text-xs"
+            />
+          </div>
+
+          {/* Detailed Content */}
+          <div className="space-y-2">
+            <Label>상세 내용</Label>
+            <p className="text-xs text-gray-400">
+              툴바의 <strong>이미지 삽입</strong> 버튼으로 본문 안에 이미지를 직접 추가할 수 있습니다.
+            </p>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(html) => setFormData({ ...formData, content: html })}
+              placeholder="상세 내용을 입력하세요"
+              bucket="media"
+              folder="events"
             />
           </div>
 
