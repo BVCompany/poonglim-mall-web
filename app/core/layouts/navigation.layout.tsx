@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
   const { userPromise, productCategories, recipeCategories } = loaderData;
   return (
-    <div className="flex min-h-screen w-full flex-col justify-between" style={{ backgroundColor: "#F4F2E5" }}>
+    <div className="flex min-h-screen w-full flex-col justify-between" style={{ backgroundColor: "#F4F2E5", overflowX: "clip" }}>
       <Suspense fallback={<NavigationBar loading={true} productCategories={[]} recipeCategories={[]} />}>
         <Await resolve={userPromise}>
           {({ data: { user } }) =>
@@ -58,7 +58,10 @@ export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
         </Await>
       </Suspense>
       <div className="mt-[var(--header-height)] w-full flex-1">
-        <div className="mx-auto w-full max-w-[1920px]">
+        <div
+          className="pc-fluid-root mx-auto w-full max-w-[1920px]"
+          style={{ overflowX: "clip" }}
+        >
           <Outlet />
         </div>
       </div>

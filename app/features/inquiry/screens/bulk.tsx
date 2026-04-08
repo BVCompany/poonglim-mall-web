@@ -2,14 +2,21 @@ import { Button } from "~/core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Badge } from "~/core/components/ui/badge";
 import { Users, TrendingUp, Shield, Truck, HeadphonesIcon } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function BulkInquiryScreen() {
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "구매문의" },
+          { label: "사업자 문의" },
+        ]}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto w-full max-w-3xl text-center md:max-w-[min(768px,calc(768*100vw/1920))]">
             <Badge className="mb-4">B2B 전용</Badge>
             <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">사업자 전용 서비스</h1>
             <p className="mb-8 text-xl text-muted-foreground">
@@ -143,7 +150,7 @@ export default function BulkInquiryScreen() {
             <p className="text-muted-foreground">성공적인 사업 운영을 위한 토탈 솔루션</p>
           </div>
 
-          <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-2">
+          <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-2">
             <Card>
               <CardHeader>
                 <Users className="mb-2 h-8 w-8 text-primary" />

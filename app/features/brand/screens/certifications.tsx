@@ -10,6 +10,9 @@ import {
   getCertAwards,
   getCertItems,
 } from "~/features/brand/lib/queries.server";
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { PageContentMax } from "~/core/components/page-content-max";
+import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "품질 & 인증 | 풍림푸드" }];
@@ -105,9 +108,15 @@ export default function CertificationsScreen({
 
   return (
     <div className="w-full bg-[#F5F2E8]">
+      <Breadcrumb
+        items={[
+          { label: "회사소개", href: "/brand/intro" },
+          { label: "품질 & 인증" },
+        ]}
+      />
       {/* ── 페이지 타이틀 ── */}
       <div className="py-10 text-center md:py-14">
-        <h1 className="text-[36px] leading-tight font-bold tracking-tight text-[#02633E] md:text-[52px]">
+        <h1 className="text-[36px] leading-tight font-bold tracking-tight text-[#02633E] md:text-[clamp(32px,calc(52*100vw/1920),52px)]">
           품질 & 인증
         </h1>
         <p className="mt-3 text-sm text-gray-500 md:text-base">
@@ -117,7 +126,7 @@ export default function CertificationsScreen({
 
       {/* ── 커스텀 배너 — PageBanner와 동일한 외부 여백 ── */}
       <div className="px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5">
-        <div className="mx-auto w-full" style={{ maxWidth: 1840 }}>
+        <div className="mx-auto w-full" style={{ maxWidth: "var(--hero-pc-width)" }}>
           <div
             className="relative overflow-hidden rounded-3xl md:rounded-[2rem]"
             style={{ aspectRatio: "1840 / 800" }}
@@ -129,7 +138,7 @@ export default function CertificationsScreen({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
             <div className="absolute bottom-0 left-0 px-6 pb-7 md:px-12 md:pb-10">
-              <h2 className="mb-1.5 text-[18px] font-bold text-white md:text-[30px]">
+              <h2 className="mb-1.5 text-[18px] font-bold text-white md:text-[clamp(16px,calc(30*100vw/1920),30px)]">
                 품질은 약속입니다
               </h2>
               <p className="max-w-xs text-xs leading-relaxed text-white/80 md:max-w-xl md:text-sm">
@@ -142,29 +151,35 @@ export default function CertificationsScreen({
       </div>
 
       {/* ══ 섹션 1: 품질 약속 카드 ══ */}
-      <div className="mx-auto max-w-[1208px] px-4 pb-16 pt-12 md:pb-20 md:pt-16">
+      <div className="mx-auto max-w-[min(1208px,calc(1208*100vw/1920))] px-4 pb-16 pt-12 md:pb-20 md:pt-16">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {MOCK_QUALITY_ITEMS.map(({ title, desc, image, bg }) => (
             <div
               key={title}
-              className="flex w-full flex-col overflow-hidden rounded-2xl"
-              style={{ backgroundColor: bg, height: 520 }}
+              className="flex min-h-[280px] w-full flex-col overflow-hidden rounded-2xl md:min-h-0 md:h-[clamp(320px,calc(520*100vw/1920),520px)]"
+              style={{ backgroundColor: bg }}
             >
               <div className="px-8 pt-8">
                 <h3
-                  className="mb-3 text-[18px] font-bold text-[#1F2121] md:text-[22px]"
+                  className="mb-3 text-[18px] font-bold text-[#1F2121] md:text-[clamp(16px,calc(22*100vw/1920),22px)]"
                   style={{ letterSpacing: "-0.02em" }}
                 >
                   {title}
                 </h3>
-                <p className="text-sm leading-relaxed text-gray-700 md:text-[15px]">{desc}</p>
+                <p className="text-sm leading-relaxed text-gray-700 md:text-[clamp(13px,calc(15*100vw/1920),15px)]">
+                  {desc}
+                </p>
               </div>
               <div className="flex flex-1 items-end justify-center px-8 pb-8">
                 <img
                   src={image}
                   alt={title}
                   className="object-contain"
-                  style={{ width: 310, height: 310, maxWidth: "100%" }}
+                  style={{
+                    width: pcMin(310),
+                    height: pcMin(310),
+                    maxWidth: "100%",
+                  }}
                 />
               </div>
             </div>
@@ -175,11 +190,11 @@ export default function CertificationsScreen({
       {/* ══ 섹션 2: 주요 인증 및 수상내역 ══
           컨테이너에 수평 패딩 없음 → 수상내역 카드가 1600px 전체 사용.
           타이틀·탭·인증서 그리드는 요소 단위로 px-4 md:px-0 적용. */}
-      <div className="mx-auto max-w-[1600px] pb-16 md:pb-20">
+      <PageContentMax className="pb-16 md:pb-20">
 
         {/* 섹션 헤더 — 자체 패딩 */}
         <div className="mb-8 px-4 text-center md:mb-10 md:px-0">
-          <h2 className="mb-3 text-[32px] font-bold tracking-[-0.03em] text-[#02633E] md:text-[42px]">
+          <h2 className="mb-3 text-[32px] font-bold tracking-[-0.03em] text-[#02633E] md:text-[clamp(26px,calc(42*100vw/1920),42px)]">
             주요 인증 및 수상내역
           </h2>
           <p className="text-sm text-gray-500 md:text-base">
@@ -210,17 +225,21 @@ export default function CertificationsScreen({
             패딩 없음 → 텍스트 카드 좌측이 탭 버튼 좌측과 동일한 x=0에서 시작
             텍스트 533px + 이미지 flex-1 = 1600px, 높이 894px */}
         {activeTab === "award" && (
-          <div className="flex flex-col gap-4 px-4 md:h-[894px] md:flex-row md:gap-4 md:px-0">
+          <div className="flex flex-col gap-4 px-4 md:h-[clamp(420px,calc(894*100vw/1920),894px)] md:flex-row md:gap-4 md:px-0">
             {awards.map(({ id, title, image_url }) => (
               <Fragment key={id}>
-                {/* 좌: 텍스트 카드 — 533×894 */}
+                {/* 좌: 텍스트 카드 — 533×894 시안 비율 */}
                 <div
-                  className="flex items-center justify-center rounded-2xl p-8 md:h-full md:w-[533px] md:shrink-0"
+                  className="flex items-center justify-center rounded-2xl p-8 md:h-full md:w-[min(533px,calc(533*100vw/1920))] md:shrink-0"
                   style={{ backgroundColor: "#EAE3C9", minHeight: 280 }}
                 >
                   <h3
                     className="text-center font-bold text-[#003F2B]"
-                    style={{ fontSize: 32, letterSpacing: "-0.04em", lineHeight: 1.4 }}
+                    style={{
+                      fontSize: pc1920(20, 32),
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1.4,
+                    }}
                   >
                     {title}
                   </h3>
@@ -229,13 +248,21 @@ export default function CertificationsScreen({
                 {/* 우: 이미지 카드 — flex-1×894 */}
                 <div
                   className="flex flex-1 items-center justify-center rounded-2xl bg-white md:h-full"
-                  style={{ padding: 32, minHeight: 280 }}
+                  style={{
+                    padding: pc1920(16, 32),
+                    minHeight: 280,
+                  }}
                 >
                   <img
                     src={image_url ?? ""}
                     alt={title}
                     className="object-contain"
-                    style={{ maxWidth: 1017, maxHeight: 774, width: "100%", height: "100%" }}
+                    style={{
+                      maxWidth: pcMin(1017),
+                      maxHeight: pcMin(774),
+                      width: "100%",
+                      height: "100%",
+                    }}
                   />
                 </div>
               </Fragment>
@@ -250,14 +277,14 @@ export default function CertificationsScreen({
               <div
                 key={id}
                 className="flex flex-col overflow-hidden rounded-2xl bg-white"
-                style={{ height: 445 }}
+                style={{ height: pc1920(300, 445) }}
               >
                 <div className="shrink-0 px-5 pt-5">
                   <img
                     src={image_url ?? ""}
                     alt={title}
                     className="rounded-xl object-contain"
-                    style={{ width: "100%", height: 345 }}
+                    style={{ width: "100%", height: pc1920(200, 345) }}
                   />
                 </div>
                 <div className="flex flex-1 items-center justify-center px-4">
@@ -268,7 +295,7 @@ export default function CertificationsScreen({
           </div>
         )}
 
-      </div>
+      </PageContentMax>
     </div>
   );
 }

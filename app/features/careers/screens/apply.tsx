@@ -11,6 +11,7 @@ import { Checkbox } from "~/core/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "~/core/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/core/components/ui/select";
 import { ArrowLeft, Upload, FileText, CheckCircle } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export async function action({ request, params }: Route.ActionArgs) {
   const fd = await request.formData();
@@ -149,6 +150,12 @@ export default function CareerApplyScreen() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "채용", href: "/careers/positions" },
+          { label: "입사지원" },
+        ]}
+      />
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <Link

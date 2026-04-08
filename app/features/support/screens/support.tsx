@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/
 import { Phone, Mail, MessageCircle, Clock, Search, HelpCircle, FileText, Users } from "lucide-react";
 import { getFaqs, createContact } from "../lib/queries.server";
 import type { Faq as DbFaq } from "../lib/queries.server";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 const FAQ_CATEGORY_LABEL: Record<string, string> = {
   product: "제품 정보",
@@ -134,6 +135,7 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb items={[{ label: "고객지원" }]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">

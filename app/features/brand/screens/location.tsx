@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import { MapPin, Bus, Car, Check } from "lucide-react";
 import type { Route } from "./+types/location";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -117,7 +118,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
+      <PageContentMax className="py-6 md:py-10">
 
         {/* ── 탭: 작은 pill 버튼 (모바일·PC 공통) ── */}
         <div className="mb-6 flex gap-2 md:mb-8">
@@ -152,7 +153,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
               {/* 제목 + 카카오맵 */}
               <div className="mb-4 flex items-center gap-3 md:mb-5">
                 <h2
-                  className="text-xl font-bold text-gray-900 md:text-2xl"
+                  className="text-xl font-bold text-gray-900 md:text-[clamp(20px,calc(24*100vw/1920),24px)]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {loc.title}
@@ -199,12 +200,14 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 ).map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-6 md:gap-10">
                     <span
-                      className="w-16 shrink-0 text-sm font-bold text-gray-800 md:w-20 md:text-[15px]"
+                      className="w-16 shrink-0 text-sm font-bold text-gray-800 md:w-20 md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
                       style={{ letterSpacing: "-0.02em" }}
                     >
                       {label}
                     </span>
-                    <span className="flex-1 text-sm md:text-[15px]">{value}</span>
+                    <span className="flex-1 text-sm md:text-[clamp(13px,calc(15*100vw/1920),15px)]">
+                      {value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -309,7 +312,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

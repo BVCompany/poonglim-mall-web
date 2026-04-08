@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ShoppingCart, Star } from "lucide-react";
 import { Button } from "~/core/components/ui/button";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function PuddingsScreen() {
   const { t } = useTranslation();
@@ -64,9 +65,15 @@ export default function PuddingsScreen() {
 
   return (
     <div className="w-full">
+      <Breadcrumb
+        items={[
+          { label: "제품소개", href: "/products/all" },
+          { label: "푸딩 시리즈" },
+        ]}
+      />
       {/* Hero Section */}
       <section className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto max-w-7xl px-6 text-center">
+        <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))] text-center">
           <h1 className="mb-4 text-4xl font-bold md:text-5xl">
             {t("navigation.products.puddings")}
           </h1>
@@ -78,7 +85,7 @@ export default function PuddingsScreen() {
 
       {/* Products Section */}
       <section className="bg-background py-16">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <p className="mb-12 text-center text-lg text-muted-foreground">
             엄선된 원료로 만든 고품질 디저트 푸딩
           </p>

@@ -7,6 +7,7 @@ import { Check, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import type { Route } from "./+types/event";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getEventsOnly } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -200,7 +201,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
+      <PageContentMax className="py-6 md:py-10">
 
         {/* ── 필터 탭 + 검색 ── */}
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -366,7 +367,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

@@ -3,11 +3,13 @@
  *
  * 히어로 섹션과 동일한 여백/max-width/라운드 처리:
  *   - 외부 padding: px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5
- *   - 최대 너비:    mx-auto md:max-w-[var(--hero-pc-width,1640px)]
+ *   - 최대 너비:    mx-auto md:max-w-[var(--hero-pc-width)] (PC 비율 스케일)
  *   - 라운드:       rounded-3xl md:rounded-[2rem]
  */
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
+
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export interface BreadcrumbItem {
   label: string;
@@ -77,23 +79,15 @@ export function PageBanner({
 
           {/* 브레드크럼 — 좌상단 */}
           {breadcrumb.length > 0 && (
-            <nav className={`absolute left-6 top-4 z-10 items-center gap-1 text-xs text-white/70 md:left-10 md:text-sm ${hideBreadcrumbOnMobile ? "hidden md:flex" : "flex"}`}>
-              {breadcrumb.map((item, i) => (
-                <span key={i} className="flex items-center gap-1">
-                  {i > 0 && <span className="opacity-60">&gt;</span>}
-                  {item.href ? (
-                    <Link
-                      to={item.href}
-                      className="transition-colors hover:text-white"
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span className="text-white">{item.label}</span>
-                  )}
-                </span>
-              ))}
-            </nav>
+            <div className={`absolute left-6 top-4 z-10 md:left-10 ${hideBreadcrumbOnMobile ? "hidden md:flex" : "flex"}`}>
+              <Breadcrumb
+                items={breadcrumb.filter((_, i) => i > 0).map((item) => ({
+                  label: item.label,
+                  href: item.href,
+                }))}
+                standalone={false}
+              />
+            </div>
           )}
 
           {/* 중앙 콘텐츠 */}

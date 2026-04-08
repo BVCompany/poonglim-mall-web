@@ -9,6 +9,7 @@ import { getActiveRecipeCategories } from "~/features/recipe-categories/lib/quer
 import type { RecipeCategory } from "~/features/recipe-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
 import { SearchBar } from "~/core/components/search-bar";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 export const meta: Route.MetaFunction = () => [
   { title: "레시피 | 풍림푸드" },
@@ -36,7 +37,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
   ] as const;
   const [sortOption, setSortOption] = useState<(typeof SORT_OPTIONS)[number]["id"]>("recommended");
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const showBanner = false;
+  const showBanner = true;
 
   const totalCount = dbRecipes.length;
 
@@ -81,10 +82,10 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
 
       {/* ── 헤딩 + 검색 ── */}
       <div className="px-4 pb-5 pt-10 md:px-8 md:pt-16 lg:px-2.5">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4">
           <h2
             className="flex items-center gap-2 font-bold text-gray-900"
-            style={{ fontSize: "clamp(22px, 3vw, 36px)", letterSpacing: "-0.04em" }}
+            style={{ fontSize: pc1920(20, 36), letterSpacing: "-0.04em" }}
           >
             <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain md:h-8 md:w-8" />
             레시피
@@ -103,7 +104,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
 
       {/* ── 카테고리 탭 바 ── */}
       <div className="px-4 pb-5 md:px-8 lg:px-2.5">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto max-w-[var(--content-max-width)]">
 
           {/* 모바일 탭 */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden">
@@ -144,7 +145,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                   <button
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
-                      fontSize: "18px",
+                      fontSize: pc1920(15, 18),
                       letterSpacing: "-0.04em",
                       color: isActive ? "#7A5C00" : undefined,
                     }}
@@ -169,7 +170,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
 
       {/* ── 총 N개 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-8 lg:px-2.5">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between">
+        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600">
             총 <span className="font-bold text-[#02633E]">{currentCount}</span>개 레시피
           </p>
@@ -214,7 +215,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
 
       {/* ── 레시피 그리드 ── */}
       <div className="px-4 pb-16 md:px-8 lg:px-2.5">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto max-w-[var(--content-max-width)]">
           <RecipeGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}

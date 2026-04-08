@@ -3,6 +3,7 @@
  */
 import { ShieldCheck } from "lucide-react";
 import type { Route } from "./+types/safety-test";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "계란안정성검사결과 | 풍림푸드" }];
@@ -32,6 +33,12 @@ const MOCK_RESULTS = [
 export default function SafetyTestScreen() {
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
+      <Breadcrumb
+        items={[
+          { label: "고객지원", href: "/support" },
+          { label: "계란안정성검사결과" },
+        ]}
+      />
       <div className="mx-auto max-w-[900px] px-4 py-16 md:px-6 lg:px-10">
         <div className="mb-4 flex items-center gap-3">
           <ShieldCheck className="h-8 w-8" style={{ color: "#003F2B" }} />

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Heart, Shield, Lightbulb, Leaf, Users } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 interface IdealTrait {
   icon: typeof Heart;
@@ -64,6 +65,12 @@ const growthStories: GrowthStory[] = [
 export default function CareersTalentScreen() {
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "채용", href: "/careers/positions" },
+          { label: "인재상" },
+        ]}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">

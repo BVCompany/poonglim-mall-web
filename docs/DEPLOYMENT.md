@@ -3,6 +3,7 @@
 ## 📋 목차
 
 - [배포 환경 구성](#배포-환경-구성)
+- [배포 양식 (템플릿)](#배포-양식-템플릿)
 - [GitHub 설정](#github-설정)
 - [Vercel 설정](#vercel-설정)
 - [배포 워크플로우](#배포-워크플로우)
@@ -45,6 +46,81 @@ Preview Branches: All branches
 ├── Development: dev.poonglim.com (develop)
 └── PR Preview: preview-xxx-poonglim.vercel.app
 ```
+
+---
+
+## 📝 배포 양식 (템플릿)
+
+배포 전 로컬에서 아래를 한 번 실행해 두면 Vercel 빌드와 동일한 검증이 됩니다.
+
+```bash
+npm run typecheck
+npm run build
+```
+
+### A. 개발 배포 요약 (`develop` 푸시 / 슬랙·노션용)
+
+아래 블록을 복사해 날짜·담당·커밋만 채워 사용합니다.
+
+```
+[개발 배포] 풍림몰 웹 (develop)
+- 일시: YYYY-MM-DD HH:mm (KST)
+- 담당: 
+- 브랜치: develop → origin/develop
+- 커밋: <short SHA> (<한 줄 요약>)
+- Vercel: develop 연동 배포 완료 후 dev 도메인에서 확인
+- 변경 요약:
+  - 
+- 확인 URL: https://dev.poonglim.com (또는 Vercel 대시보드의 해당 Deployment URL)
+- 비고 (마이그레이션·환경변수 변경 시):
+  - 
+```
+
+### B. Pull Request 설명 템플릿 (`develop` 또는 `main` 대상)
+
+```markdown
+## 목적
+
+
+## 변경 사항
+
+
+## 테스트
+- [ ] 로컬 `npm run build` 통과
+- [ ] (해당 시) Preview URL에서 주요 시나리오 확인
+
+## 배포 영향
+- [ ] 환경 변수 변경 없음 / 있음 (설명: )
+- [ ] DB 마이그레이션 없음 / 있음 (설명: )
+
+## 스크린샷 (선택)
+
+
+```
+
+### C. 운영 릴리스 노트 (`main` 머지 시)
+
+```markdown
+## Release — YYYY-MM-DD
+
+### 포함 브랜치
+- develop → main
+
+### 사용자에게 보이는 변화
+
+
+### 기술·운영
+
+
+### 롤백 시 참고
+- Vercel Deployments에서 이전 성공 배포 Promote, 또는 Git revert 후 재배포
+
+```
+
+### D. `vercel.json` 요약
+
+- **리전**: `icn1` (서울)
+- **GitHub 자동 배포**: `main`·`develop` 활성 (`deploymentEnabled`)
 
 ---
 
@@ -496,4 +572,4 @@ Vercel Dashboard > Deployments > [Failed Deployment] > Build Logs
 
 ---
 
-**마지막 업데이트**: 2025-12-30
+**마지막 업데이트**: 2026-04-08

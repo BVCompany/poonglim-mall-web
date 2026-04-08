@@ -180,7 +180,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
     <section className="overflow-x-hidden bg-[var(--brand-cream)] py-10 md:py-20">
       <div className="mx-auto w-full max-w-[var(--content-max-width)] px-4 sm:px-6">
         {/* Section Header - 모바일: 별 없음, 2줄 타이틀, 화살표만 / PC: 별+타이틀, 전체보기+화살표 */}
-        <div className="mb-5 flex flex-row items-end justify-between gap-4 md:mb-8 md:-ml-8 md:justify-between">
+        <div className="mb-5 flex flex-row items-end justify-between gap-4 md:mb-8 md:justify-between">
           <h2
             className="flex flex-1 flex-col text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-2xl"
             style={{ letterSpacing: "-0.04em" }}
@@ -210,10 +210,10 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
         </div>
 
         {/* Product Slider - 모바일: 슬라이드만(네비 없음), 좌우 여백 px-4 */}
-        <div className="-mr-4 overflow-hidden sm:-mx-6 md:[margin-right:calc(-50vw+50%)] md:-ml-8">
+        <div className="-mr-4 sm:-mx-6 md:mx-0 md:[margin-right:calc(-50vw+50%)]">
           <div
             ref={scrollRef}
-            className="scrollbar-hide flex gap-3 overflow-x-auto px-4 pb-4 sm:gap-4 sm:px-6 md:pr-0 md:pl-6"
+            className="scrollbar-hide flex gap-3 overflow-x-auto px-4 pb-4 sm:gap-4 sm:px-6 md:pr-4"
             onScroll={checkScroll}
             style={{ scrollSnapType: "x proximity" }}
           >

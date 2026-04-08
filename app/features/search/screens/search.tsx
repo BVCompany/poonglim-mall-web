@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/search";
 
+import { PageContentMax } from "~/core/components/page-content-max";
 import db from "~/core/db/drizzle-client.server";
 import { news } from "~/features/media/schema";
 import { products } from "~/features/products/schema";
@@ -275,7 +276,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      <div className="mx-auto max-w-[1600px] px-4 pb-[120px] pt-[60px] sm:px-6 lg:px-10">
+      <PageContentMax className="pb-[120px] pt-[60px]">
         {!hasResults ? (
           <>
             <div className="mb-8 border-b border-[#E8E6DC] pb-3">
@@ -337,7 +338,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
 
-          <div className="mx-auto mt-[100px] w-full max-w-[1600px] space-y-14">
+          <div className="mt-[100px] w-full space-y-14">
 
             {/* ── 제품 ── */}
             {productItems.length > 0 && (
@@ -586,7 +587,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
           </div>
           </>
         )}
-      </div>
+      </PageContentMax>
     </div>
   );
 }

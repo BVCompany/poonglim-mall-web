@@ -2,8 +2,12 @@ import { useState } from "react";
 
 import type { Route } from "./+types/factory-tour";
 
-import { Check, Home } from "lucide-react";
-import { Form, Link, useActionData, useNavigation } from "react-router";
+import { Check } from "lucide-react";
+import { Form, useActionData, useNavigation } from "react-router";
+
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { PageContentMax } from "~/core/components/page-content-max";
+import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 
 import { createFactoryTourApplication } from "../lib/queries.server";
 
@@ -116,45 +120,43 @@ export default function FactoryTourScreen() {
       {/* ── 브레드크럼 + 타이틀 ── */}
       <section>
         {/* 브레드크럼 */}
-        <div className="mx-auto max-w-[1600px] px-4 md:px-6 lg:px-10">
-          <div className="flex items-center gap-2 py-4 text-xs text-gray-400">
-            <Link to="/" className="flex items-center hover:text-[#02633E]">
-              <Home className="h-3.5 w-3.5" />
-            </Link>
-            <span>/</span>
-            <Link to="/brand/intro" className="hover:text-[#02633E]">회사소개</Link>
-            <span>/</span>
-            <span className="font-medium text-gray-700">공장견학</span>
-          </div>
-          <div className="border-t border-gray-200" />
-        </div>
+        <Breadcrumb
+          items={[
+            { label: "회사소개", href: "/brand/intro" },
+            { label: "공장견학" },
+          ]}
+        />
 
         {/* 타이틀 + 서브타이틀 */}
-        <div className="mx-auto max-w-[1600px] px-4 py-12 text-center md:px-6 md:py-16 lg:px-10">
+        <PageContentMax className="py-12 text-center md:py-16" innerClassName="text-center">
           <h1
             className="tracking-[-0.04em]"
-            style={{ color: "#003F2B", fontSize: "60px", fontWeight: 800 }}
+            style={{ color: "#003F2B", fontSize: pc1920(32, 60), fontWeight: 800 }}
           >
             공장견학
           </h1>
           <p
             className="mt-3 tracking-[-0.02em]"
-            style={{ color: "#003F2B", fontSize: "16px", fontWeight: 400 }}
+            style={{ color: "#003F2B", fontSize: pc1920(12, 16), fontWeight: 400 }}
           >
             풍림푸드의 생산 현장을 직접 눈으로 확인하세요.
           </p>
-        </div>
+        </PageContentMax>
       </section>
 
       {/* ── 섹션 1: 견학 안내 ── */}
       <section>
-        <div className="mx-auto max-w-[1600px] px-4 py-14 md:px-6 md:py-20 lg:px-10">
-          <div className="flex flex-col gap-[10px] lg:flex-row">
+        <PageContentMax className="py-14 md:py-20">
+          <div className="flex flex-col gap-[10px] lg:flex-row lg:gap-[clamp(16px,calc(70*100vw/1920),70px)]">
 
             {/* 공장 이미지 */}
             <div
               className="relative shrink-0 overflow-hidden rounded-2xl"
-              style={{ width: "650px", height: "650px", maxWidth: "100%" }}
+              style={{
+                width: pcMin(650),
+                height: pcMin(650),
+                maxWidth: "100%",
+              }}
             >
               <img
                 src="/visit/00.png"
@@ -176,8 +178,8 @@ export default function FactoryTourScreen() {
                   key={item.num}
                   className="flex flex-col justify-center rounded-2xl px-8 py-7"
                   style={{
-                    width: "455px",
-                    height: "210px",
+                    width: pcMin(455),
+                    height: pc1920(160, 210),
                     maxWidth: "100%",
                     backgroundColor: "#ffffff",
                   }}
@@ -192,7 +194,7 @@ export default function FactoryTourScreen() {
                     </span>
                     <p
                       className="tracking-[-0.04em] text-gray-900"
-                      style={{ fontSize: "20px", fontWeight: 800 }}
+                      style={{ fontSize: pc1920(14, 20), fontWeight: 800 }}
                     >
                       {item.title}
                     </p>
@@ -200,7 +202,7 @@ export default function FactoryTourScreen() {
                   {/* 설명 */}
                   <p
                     className="mt-3 whitespace-pre-line leading-relaxed tracking-[-0.04em] text-gray-600"
-                    style={{ fontSize: "18px", fontWeight: 700 }}
+                    style={{ fontSize: pc1920(12, 18), fontWeight: 700 }}
                   >
                     {item.desc}
                   </p>
@@ -209,12 +211,12 @@ export default function FactoryTourScreen() {
             </div>
 
           </div>
-        </div>
+        </PageContentMax>
       </section>
 
       {/* ── 섹션 2: 한눈에 보는 공장견학 ── */}
       <section style={{ backgroundColor: "#003F2B" }}>
-        <div className="mx-auto max-w-[1600px] px-4 py-12 md:px-6 md:py-16 lg:px-10">
+        <PageContentMax className="py-12 md:py-16">
           {/* 타이틀 */}
           <div className="mb-8 flex items-center gap-2">
             <img
@@ -223,7 +225,7 @@ export default function FactoryTourScreen() {
               className="h-5 w-5 object-contain"
             />
             <h2
-              className="text-2xl tracking-[-0.04em] text-white"
+              className="text-2xl tracking-[-0.04em] text-white md:text-[clamp(20px,calc(24*100vw/1920),24px)]"
               style={{ fontWeight: 800 }}
             >
               한눈에 보는 공장견학
@@ -237,7 +239,11 @@ export default function FactoryTourScreen() {
                 {/* 사진 */}
                 <div
                   className="overflow-hidden rounded-2xl"
-                  style={{ width: "385px", height: "634px", maxWidth: "100%" }}
+                  style={{
+                    width: pcMin(385),
+                    height: pc1920(280, 634),
+                    maxWidth: "100%",
+                  }}
                 >
                   <img
                     src={photo.src}
@@ -258,19 +264,22 @@ export default function FactoryTourScreen() {
               </div>
             ))}
           </div>
-        </div>
+        </PageContentMax>
       </section>
 
       {/* ── 섹션 3: 견학 신청 ── */}
       <section>
-        <div className="mx-auto max-w-[1600px] px-4 py-14 md:px-6 md:py-20 lg:px-10">
-          <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-[70px]">
+        <PageContentMax className="py-14 md:py-20">
+          <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-[clamp(24px,calc(70*100vw/1920),70px)]">
 
-            {/* 왼쪽: 견학신청하기 안내 (580px) */}
-            <div className="shrink-0 rounded-2xl bg-white px-10 py-10" style={{ width: "580px", maxWidth: "100%" }}>
+            {/* 왼쪽: 견학신청하기 안내 (580px 시안) */}
+            <div
+              className="w-full shrink-0 rounded-2xl bg-white px-6 py-8 md:px-10 md:py-10 lg:w-auto"
+              style={{ width: pcMin(580), maxWidth: "100%" }}
+            >
               <h2
                 className="mb-3 tracking-[-0.04em] text-gray-900"
-                style={{ fontSize: "24px", fontWeight: 800 }}
+                style={{ fontSize: pc1920(16, 24), fontWeight: 800 }}
               >
                 견학신청하기
               </h2>
@@ -291,7 +300,7 @@ export default function FactoryTourScreen() {
                   </span>
                   <p
                     className="tracking-[-0.04em] text-gray-900"
-                    style={{ fontSize: "16px", fontWeight: 700 }}
+                    style={{ fontSize: pc1920(14, 16), fontWeight: 700 }}
                   >
                     공장견학 유의사항
                   </p>
@@ -308,7 +317,7 @@ export default function FactoryTourScreen() {
             </div>
 
             {/* 오른쪽: 신청 폼 (750px) */}
-            <div className="shrink-0" style={{ width: "750px", maxWidth: "100%" }}>
+            <div className="w-full shrink-0 lg:w-auto" style={{ width: pcMin(750), maxWidth: "100%" }}>
               {submitted ? (
                 <div
                   className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 text-center"
@@ -503,7 +512,7 @@ export default function FactoryTourScreen() {
             </div>
 
           </div>
-        </div>
+        </PageContentMax>
       </section>
 
     </div>

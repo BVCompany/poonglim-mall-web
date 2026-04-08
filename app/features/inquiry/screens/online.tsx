@@ -2,13 +2,20 @@ import { Button } from "~/core/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { ShoppingCart, Building2, Phone, Mail, MapPin, CheckCircle } from "lucide-react";
 import { Link } from "react-router";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function OnlineInquiryScreen() {
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "구매문의" },
+          { label: "온라인 구매문의" },
+        ]}
+      />
       {/* Hero Section */}
       <section className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto max-w-7xl px-6 text-center">
+        <div className="mx-auto w-full max-w-7xl px-6 text-center md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <h1 className="mb-4 text-balance text-4xl font-bold md:text-5xl">구매 및 상담</h1>
           <p className="text-pretty text-xl opacity-90">풍림푸드의 프리미엄 제품을 만나보세요</p>
         </div>
@@ -16,8 +23,8 @@ export default function OnlineInquiryScreen() {
 
       {/* Purchase Options */}
       <section className="bg-background py-12">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-2">
+        <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
+          <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-2">
             {/* B2C Section */}
             <Card className="border-2 transition-colors hover:border-primary/50">
               <CardHeader className="pb-4 text-center">
@@ -99,13 +106,13 @@ export default function OnlineInquiryScreen() {
 
       {/* Contact Information */}
       <section className="bg-muted/30 py-12">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold text-foreground">상담 및 문의</h2>
             <p className="text-muted-foreground">전문 상담원이 친절하게 도와드립니다</p>
           </div>
 
-          <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-3">
+          <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-3">
             <Card>
               <CardHeader className="text-center">
                 <Phone className="mx-auto mb-2 h-8 w-8 text-primary" />
@@ -149,8 +156,8 @@ export default function OnlineInquiryScreen() {
 
       {/* Contact Form */}
       <section className="bg-background py-12">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl">
+        <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
+          <div className="mx-auto w-full max-w-2xl md:max-w-[min(672px,calc(672*100vw/1920))]">
             <div className="mb-8 text-center">
               <h2 className="mb-4 text-3xl font-bold text-foreground">상담 신청</h2>
               <p className="text-muted-foreground">간단한 정보를 입력해주시면 전문 상담원이 연락드립니다</p>

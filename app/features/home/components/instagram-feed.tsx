@@ -112,7 +112,7 @@ export function InstagramFeed() {
       className="bg-[var(--brand-cream)] py-10 md:py-16 lg:py-20"
     >
       {/* ── 모바일 레이아웃 (이미지 시안 기준) ── */}
-      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-5 px-4 md:hidden">
+      <div className="mx-auto flex w-full max-w-[var(--pc-w-1680)] flex-col gap-5 px-4 md:hidden">
         {/* 헤더: 카테고리(14px) + 타이틀(18px) */}
         <div className={`${inView ? "animate-insta-left-in" : "opacity-0"}`}>
           <p
@@ -174,7 +174,7 @@ export function InstagramFeed() {
       </div>
 
       {/* ── PC 레이아웃 (피그마 프로토타입과 맞추어 가로 확장) ── */}
-      <div className="mx-auto hidden w-full max-w-[1640px] flex-col gap-8 px-4 sm:px-6 md:flex md:flex-row md:items-stretch md:gap-12 lg:gap-16">
+      <div className="mx-auto hidden w-full max-w-[var(--pc-w-1640)] flex-col gap-8 px-4 sm:px-6 md:flex md:flex-row md:items-stretch md:gap-12 lg:gap-16">
         <div
           className={`flex flex-shrink-0 flex-col justify-between md:w-[35%] lg:w-[320px] ${inView ? "animate-insta-left-in" : "opacity-0"}`}
         >

@@ -1,6 +1,7 @@
 import { Link, data } from "react-router";
 import type { Route } from "./+types/detail";
 import { Button } from "~/core/components/ui/button";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Badge } from "~/core/components/ui/badge";
 import { Separator } from "~/core/components/ui/separator";
@@ -46,6 +47,12 @@ export default function CareerDetailScreen({ loaderData }: Route.ComponentProps)
 
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "채용", href: "/careers/positions" },
+          { label: "채용공고" },
+        ]}
+      />
       <div className="container mx-auto px-4 py-8">
         <Link to="/careers/positions" className="mb-6 inline-flex items-center gap-2 text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" />

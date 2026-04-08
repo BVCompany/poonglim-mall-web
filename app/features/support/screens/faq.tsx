@@ -6,6 +6,7 @@ import { Link, useSearchParams } from "react-router";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Route } from "./+types/faq";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getFaqs } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -107,7 +108,7 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 py-6 pb-[200px] md:px-6 md:py-10 md:pb-0 lg:px-10">
+      <PageContentMax className="py-6 pb-[200px] md:py-10 md:pb-0">
 
         {/* ── 필터 탭 + 검색 (검색은 PC만) ── */}
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -271,7 +272,7 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
             </Link>
           </div>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

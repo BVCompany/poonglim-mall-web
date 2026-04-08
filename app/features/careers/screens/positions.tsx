@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import { getOpenJobPostings } from "../lib/queries.server";
@@ -362,7 +363,8 @@ export default function CareersPositionsScreen({
       />
 
       {/* ── 주요 모집 직무 ── */}
-      <section className="mx-auto max-w-[1600px] px-4 py-10 md:px-6 md:py-16 lg:px-10">
+      <section>
+        <PageContentMax className="py-10 md:py-16">
         <div className="mb-6 flex items-center gap-2">
           <img
             src="/home/product-star.png"
@@ -406,10 +408,12 @@ export default function CareersPositionsScreen({
             </div>
           ))}
         </div>
+        </PageContentMax>
       </section>
 
       {/* ── 채용 절차 ── */}
-      <section className="mx-auto max-w-[1600px] px-4 pb-10 md:px-6 md:pb-16 lg:px-10">
+      <section>
+        <PageContentMax className="pb-10 md:pb-16">
         <div className="mb-6 flex items-center gap-2">
           <img
             src="/home/product-star.png"
@@ -501,13 +505,12 @@ export default function CareersPositionsScreen({
             );
           })}
         </div>
+        </PageContentMax>
       </section>
 
       {/* ── 채용공고 섹션 ── */}
-      <section
-        ref={jobsSectionRef}
-        className="mx-auto max-w-[1600px] px-4 pb-10 md:px-6 md:pb-16 lg:px-10"
-      >
+      <section ref={jobsSectionRef}>
+        <PageContentMax className="pb-10 md:pb-16">
         <div className="mb-6 flex items-center gap-2">
           <img
             src="/home/product-star.png"
@@ -1429,14 +1432,15 @@ export default function CareersPositionsScreen({
             )}
           </div>
         )}
+        </PageContentMax>
       </section>
 
       {/* ── 복리후생 ── */}
       <section className="w-full bg-white" style={{ minHeight: "637px" }}>
-        <div
-          className="mx-auto flex max-w-[1600px] flex-col justify-center px-4 py-16 md:px-6 md:py-20 lg:px-10"
-          style={{ minHeight: "637px" }}
-        >
+        <PageContentMax className="py-16 md:py-20">
+          <div
+            className="flex min-h-[637px] flex-col justify-center"
+          >
           <div className="mb-8 flex items-center gap-2">
             <img
               src="/home/product-star.png"
@@ -1481,7 +1485,8 @@ export default function CareersPositionsScreen({
           >
             ※ 상세 복리후생은 입사 시 안내드립니다.
           </p>
-        </div>
+          </div>
+        </PageContentMax>
       </section>
     </div>
   );
