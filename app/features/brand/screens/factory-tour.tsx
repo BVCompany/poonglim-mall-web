@@ -7,7 +7,7 @@ import { Form, useActionData, useNavigation } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { pc1920, pcMin } from "~/core/lib/pc-fluid";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 import { createFactoryTourApplication } from "../lib/queries.server";
 
@@ -149,14 +149,9 @@ export default function FactoryTourScreen() {
         <PageContentMax className="py-14 md:py-20">
           <div className="flex flex-col gap-[10px] lg:flex-row lg:gap-[clamp(16px,calc(70*100vw/1920),70px)]">
 
-            {/* 공장 이미지 */}
+            {/* 공장 이미지 — 모바일은 전폭+정사각, lg~ 에서만 1920 시안 비율 */}
             <div
-              className="relative shrink-0 overflow-hidden rounded-2xl"
-              style={{
-                width: pcMin(650),
-                height: pcMin(650),
-                maxWidth: "100%",
-              }}
+              className="relative aspect-square w-full shrink-0 overflow-hidden rounded-2xl lg:aspect-auto lg:h-[min(650px,calc(650*100vw/1920))] lg:w-[min(650px,calc(650*100vw/1920))]"
             >
               <img
                 src="/visit/00.png"
@@ -176,11 +171,8 @@ export default function FactoryTourScreen() {
               {TOUR_INFO.map((item) => (
                 <div
                   key={item.num}
-                  className="flex flex-col justify-center rounded-2xl px-8 py-7"
+                  className="flex w-full flex-col justify-center rounded-2xl px-5 py-6 sm:px-8 sm:py-7 lg:h-[clamp(160px,calc(210*100vw/1920),210px)] lg:w-[min(455px,calc(455*100vw/1920))]"
                   style={{
-                    width: pcMin(455),
-                    height: pc1920(160, 210),
-                    maxWidth: "100%",
                     backgroundColor: "#ffffff",
                   }}
                 >
@@ -238,12 +230,7 @@ export default function FactoryTourScreen() {
               <div key={photo.label} className="flex flex-col gap-3">
                 {/* 사진 */}
                 <div
-                  className="overflow-hidden rounded-2xl"
-                  style={{
-                    width: pcMin(385),
-                    height: pc1920(280, 634),
-                    maxWidth: "100%",
-                  }}
+                  className="aspect-[385/634] w-full overflow-hidden rounded-2xl lg:aspect-auto lg:h-[clamp(280px,calc(634*100vw/1920),634px)] lg:w-[min(385px,calc(385*100vw/1920))]"
                 >
                   <img
                     src={photo.src}
@@ -273,10 +260,7 @@ export default function FactoryTourScreen() {
           <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-[clamp(24px,calc(70*100vw/1920),70px)]">
 
             {/* 왼쪽: 견학신청하기 안내 (580px 시안) */}
-            <div
-              className="w-full shrink-0 rounded-2xl bg-white px-6 py-8 md:px-10 md:py-10 lg:w-auto"
-              style={{ width: pcMin(580), maxWidth: "100%" }}
-            >
+            <div className="w-full shrink-0 rounded-2xl bg-white px-6 py-8 md:px-10 md:py-10 lg:w-[min(580px,calc(580*100vw/1920))]">
               <h2
                 className="mb-3 tracking-[-0.04em] text-gray-900"
                 style={{ fontSize: pc1920(16, 24), fontWeight: 800 }}
@@ -317,7 +301,7 @@ export default function FactoryTourScreen() {
             </div>
 
             {/* 오른쪽: 신청 폼 (750px) */}
-            <div className="w-full shrink-0 lg:w-auto" style={{ width: pcMin(750), maxWidth: "100%" }}>
+            <div className="w-full min-w-0 shrink-0 lg:w-[min(750px,calc(750*100vw/1920))]">
               {submitted ? (
                 <div
                   className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 text-center"
@@ -380,8 +364,8 @@ export default function FactoryTourScreen() {
                   </div>
 
                   {/* 단체명 + 수량 */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="sm:col-span-2">
                       <label className={labelCls}>단체명 *</label>
                       <input
                         type="text"
