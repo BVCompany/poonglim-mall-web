@@ -6,6 +6,7 @@ import { Link, useSearchParams } from "react-router";
 import { ChevronLeft, ChevronRight, Check, Download, Plus, Search } from "lucide-react";
 import type { Route } from "./+types/grade-certificate";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getGradeCertificates } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -112,7 +113,7 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
       </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-10 md:px-6 lg:px-10">
+      <PageContentMax className="py-6 md:py-10">
 
         {/* 모바일 상단 탭 */}
         <div className="mb-6 flex overflow-hidden rounded-full border border-[#D8D0BB] md:hidden">
@@ -359,7 +360,7 @@ export default function GradeCertificateScreen({ loaderData }: Route.ComponentPr
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

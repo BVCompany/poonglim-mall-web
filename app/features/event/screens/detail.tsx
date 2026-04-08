@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { Link, data } from "react-router";
 
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { PageContentMax } from "~/core/components/page-content-max";
+
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import { getAdjacentEvents, getEventById } from "../lib/queries.server";
@@ -185,35 +188,15 @@ export default function EventDetailScreen({
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
       {/* ── 브레드크럼 ── */}
-      <div
-        className="mx-auto hidden max-w-[1600px] md:block"
-        style={{ borderBottom: "1px solid #D8D0BB" }}
-      >
-        <div className="mx-auto max-w-[1600px] py-3">
-          <nav className="flex items-center gap-1 text-sm text-gray-400">
-            <Link to="/" className="transition-colors hover:text-[#02633E]">
-              Home
-            </Link>
-            <span className="opacity-60">&gt;</span>
-            <Link
-              to="/event"
-              className="transition-colors hover:text-[#02633E]"
-            >
-              홍보센터
-            </Link>
-            <span className="opacity-60">&gt;</span>
-            <Link
-              to="/event"
-              className="transition-colors hover:text-[#02633E]"
-            >
-              이벤트
-            </Link>
-          </nav>
-        </div>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: "홍보센터", href: "/event" },
+          { label: "이벤트", href: "/event" },
+        ]}
+      />
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 pt-8 pb-[120px] md:px-6 md:pt-[60px] md:pb-[200px] lg:px-10">
+      <PageContentMax className="pt-8 pb-[120px] md:pt-[60px] md:pb-[200px]">
         {/* ── 가운데 정렬 헤더 영역 ── */}
         <div className="pb-4 text-center md:pb-12">
           {/* 배지 */}
@@ -406,7 +389,7 @@ export default function EventDetailScreen({
             )}
           </div>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

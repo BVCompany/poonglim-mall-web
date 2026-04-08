@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Shield, GraduationCap, Gift, Coffee, Users, Heart, Building2 } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 
 interface Benefit {
   icon: typeof Shield;
@@ -19,6 +20,12 @@ const benefits: Benefit[] = [
 export default function CareersBenefitsScreen() {
   return (
     <div className="min-h-screen bg-background">
+      <Breadcrumb
+        items={[
+          { label: "채용", href: "/careers/positions" },
+          { label: "복리후생" },
+        ]}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">

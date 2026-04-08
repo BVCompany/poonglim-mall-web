@@ -8,6 +8,7 @@ import { Link, data, useFetcher } from "react-router";
 import { Check, MapPin, Search } from "lucide-react";
 import type { Route } from "./+types/contact";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import { createContact, lookupContacts } from "../lib/queries.server";
 
@@ -179,7 +180,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:py-12 md:px-6 lg:px-10">
+      <PageContentMax className="py-6 md:py-12">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
 
           {/* ── 왼쪽: 본사/공장 카드 ── */}
@@ -525,7 +526,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
             )}
           </div>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

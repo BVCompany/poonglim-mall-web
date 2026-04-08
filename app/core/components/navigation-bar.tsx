@@ -364,7 +364,7 @@ export function NavigationBar({
           </form>
         ) : (
           /* ── 일반 모드 ── */
-          <div className={`mx-auto w-full min-w-0 md:max-w-[1680px] ${isDetailMobileHeaderRoute ? "hidden lg:block" : ""}`}>
+          <div className={`mx-auto w-full min-w-0 md:max-w-[var(--pc-w-1680)] ${isDetailMobileHeaderRoute ? "hidden lg:block" : ""}`}>
             {/* ── TOP BAR — 데스크톱만 표시 ── */}
             <div className="hidden w-full lg:block" style={{ height: "40px" }}>
               <div className="flex h-full w-full items-center justify-end gap-2 px-6 lg:px-10">

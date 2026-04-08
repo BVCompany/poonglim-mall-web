@@ -93,7 +93,7 @@ export default function Footer() {
   return (
     <footer className="bg-[var(--brand-green)] text-white">
       {/* 모바일: 세로 스택, 좌측 정렬 / 데스크톱: 1600×360, 좌 363px / 우 956px */}
-      <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-col gap-10 px-4 py-10 sm:px-6 md:py-12 lg:min-h-[360px] lg:flex-row lg:items-stretch lg:gap-[121px] lg:px-[80px] lg:py-14">
+      <div className="mx-auto flex min-h-0 w-full max-w-[var(--content-max-width)] flex-col gap-10 px-4 py-10 sm:px-6 md:py-12 lg:min-h-[360px] lg:flex-row lg:items-stretch lg:gap-[121px] lg:px-[80px] lg:py-14">
         {/* 좌측 영역: 363px - 주소 그룹 + 아이콘 그룹 */}
         <div className="flex w-full flex-shrink-0 flex-col gap-6 lg:w-[363px]">
           {/* 주소 그룹: 로고 + 연락처 */}

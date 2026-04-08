@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/detail";
 import { getProductById } from "../lib/queries.server";
-import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 / 테스트용) ─────────────────────────────────────
 interface MockProduct {
@@ -114,25 +116,17 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
 
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
-      {/* ── 브레드크럼 — 네비바 로고 좌측 기준 정렬 ── */}
-      <div className="mx-auto hidden w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:block md:px-6 lg:px-10">
-        <nav className="flex items-center gap-1 text-xs text-gray-400">
-          <Link to="/" className="transition-colors hover:text-gray-600">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <Link to="/products/all" className="transition-colors hover:text-gray-600">제품소개</Link>
-          {categoryLabel && (
-            <>
-              <ChevronRight className="h-3 w-3" />
-              <span className="text-gray-500">{categoryLabel}</span>
-            </>
-          )}
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-700">{product.name}</span>
-        </nav>
-      </div>
+      {/* ── 브레드크럼 ── */}
+      <Breadcrumb
+        items={[
+          { label: "제품소개", href: "/products/all" },
+          ...(categoryLabel ? [{ label: categoryLabel, href: "/products/all" }] : []),
+          { label: product.name },
+        ]}
+      />
 
       {/* ── 본문 컨테이너 ── */}
-      <div className="mx-auto max-w-[560px] space-y-4 px-3 pb-20 md:px-4">
+      <div className="mx-auto w-full max-w-[560px] space-y-4 px-3 pb-20 md:max-w-[min(560px,calc(560*100vw/1920))] md:px-4">
 
         {/* ① 이미지 카드 — 배지 없음, 이미지가 카드를 꽉 채움 */}
         <div className="aspect-square w-full overflow-hidden rounded-2xl md:rounded-3xl">
@@ -150,7 +144,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           {/* 제품명 */}
           <h1
               className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
-              style={{ fontSize: "clamp(24px, 6vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
+              style={{ fontSize: pc1920(20, 26), letterSpacing: "-0.03em", color: "#003F2B" }}
           >
             <img
               src="/home/product-star.png"
@@ -161,7 +155,10 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           </h1>
 
           {/* 설명 */}
-            <p className="mb-4 text-[15px] leading-relaxed md:text-sm" style={{ color: "#003F2B" }}>
+            <p
+              className="mb-4 text-[15px] leading-relaxed md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
+              style={{ color: "#003F2B" }}
+            >
             {product.description}
           </p>
 
@@ -202,7 +199,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               target="_blank"
               rel="noopener noreferrer"
               className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 font-bold text-white transition-all hover:brightness-110 md:py-4"
-              style={{ backgroundColor: "#003F2B", fontSize: "16px", letterSpacing: "-0.02em" }}
+              style={{ backgroundColor: "#003F2B", fontSize: pc1920(14, 16), letterSpacing: "-0.02em" }}
             >
               풍림몰 구매
               <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
@@ -210,7 +207,12 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           ) : (
             <div
               className="flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-full py-3.5 font-bold md:py-4"
-              style={{ backgroundColor: "#003F2B55", color: "#003F2B99", fontSize: "16px", letterSpacing: "-0.02em" }}
+              style={{
+                backgroundColor: "#003F2B55",
+                color: "#003F2B99",
+                fontSize: pc1920(14, 16),
+                letterSpacing: "-0.02em",
+              }}
             >
               풍림몰 구매
               <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
@@ -224,7 +226,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
             <div className="px-5 py-4 md:px-7 md:py-5">
               <h2
                 className="font-bold"
-                style={{ fontSize: "16px", letterSpacing: "-0.03em", color: "#003F2B" }}
+                style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}
               >
                 제품 정보
               </h2>
@@ -266,7 +268,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           <div className="rounded-2xl bg-white p-5 shadow-sm md:rounded-3xl md:p-7">
             <h2
               className="mb-4 font-bold text-gray-900"
-              style={{ fontSize: "16px", letterSpacing: "-0.03em" }}
+              style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em" }}
             >
               상세 설명
             </h2>

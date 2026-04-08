@@ -9,6 +9,7 @@ import { Link } from "react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Route } from "./+types/news";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import db from "~/core/db/drizzle-client.server";
 import { news } from "~/features/media/schema";
@@ -210,7 +211,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
       />
 
       {/* ── 주요 보도 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 pt-12 md:px-6 lg:px-10">
+      <PageContentMax className="pt-12">
         {/* 섹션 헤더 */}
         <div className="mb-5 flex items-center gap-2">
           <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain" />
@@ -221,7 +222,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
             주요 보도
           </h2>
         </div>
-      </div>
+      </PageContentMax>
 
       {/*
         ── 슬라이더 브레이크아웃 영역 ──
@@ -229,7 +230,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
         - -ml-4/-ml-6/-ml-10: content 패딩 취소 (left)
         - [margin-right:calc(-50vw+50%)]: max-width 컨테이너 기준 우측 뷰포트 끝까지 확장
       */}
-      <div className="mx-auto max-w-[1600px] px-4 md:px-6 lg:px-10">
+      <PageContentMax>
         <div className="-ml-4 overflow-hidden sm:-ml-6 lg:-ml-10 lg:[margin-right:calc(-50vw+50%)]">
           <div
             ref={scrollRef}
@@ -513,7 +514,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
           */}
           
         </section>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

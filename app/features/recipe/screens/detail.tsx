@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/detail";
 import { getRecipeById } from "../lib/queries.server";
-import { ChevronRight, Clock3, Users } from "lucide-react";
+import { Clock3, Users } from "lucide-react";
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 테스트용) ─────────────────────────────────────────
 interface MockRecipe {
@@ -127,21 +129,17 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
 
-      {/* ── 브레드크럼 — 네비바 로고 좌측 정렬 ── */}
-      <div className="mx-auto hidden w-full max-w-[1680px] px-3 pb-2 pt-6 sm:px-4 md:block md:px-6 lg:px-10">
-        <nav className="flex items-center gap-1 text-xs text-gray-400">
-          <Link to="/" className="transition-colors hover:text-gray-600">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <Link to="/recipe/main" className="transition-colors hover:text-gray-600">레시피</Link>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-500">{categoryLabel}</span>
-          <ChevronRight className="h-3 w-3" />
-          <span className="text-gray-700">{recipe.title}</span>
-        </nav>
-      </div>
+      {/* ── 브레드크럼 ── */}
+      <Breadcrumb
+        items={[
+          { label: "레시피", href: "/recipe/main" },
+          { label: categoryLabel, href: "/recipe/main" },
+          { label: recipe.title },
+        ]}
+      />
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[560px] space-y-4 px-3 pb-20 md:px-4">
+      <div className="mx-auto w-full max-w-[560px] space-y-4 px-3 pb-20 md:max-w-[min(560px,calc(560*100vw/1920))] md:px-4">
 
         {/* ① 이미지 카드 */}
         <div className="aspect-square w-full overflow-hidden rounded-2xl md:rounded-3xl">
@@ -159,7 +157,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
           {/* 제목 */}
           <h1
               className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
-              style={{ fontSize: "clamp(24px, 6vw, 26px)", letterSpacing: "-0.03em", color: "#003F2B" }}
+              style={{ fontSize: pc1920(20, 26), letterSpacing: "-0.03em", color: "#003F2B" }}
           >
             <img src="/home/product-star.png" alt="" className="mt-0.5 h-5 w-5 flex-shrink-0 object-contain" />
             {recipe.title}
@@ -167,7 +165,10 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
 
           {/* 설명 */}
           {recipe.description && (
-            <p className="mb-4 text-[15px] leading-relaxed md:text-sm" style={{ color: "#003F2B" }}>
+            <p
+              className="mb-4 text-[15px] leading-relaxed md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
+              style={{ color: "#003F2B" }}
+            >
               {recipe.description}
             </p>
           )}
@@ -216,7 +217,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
         {ingredients.length > 0 && (
           <div className="overflow-hidden rounded-2xl md:rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
             <div className="px-5 py-4 md:px-7 md:py-5">
-              <h2 className="font-bold" style={{ fontSize: "16px", letterSpacing: "-0.03em", color: "#003F2B" }}>
+              <h2 className="font-bold" style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}>
                 재료
               </h2>
             </div>
@@ -249,7 +250,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
         {/* ④ 만드는 법 — 페이지 배경에 녹아드는 섹션 (카드 없음) */}
         {steps.length > 0 && (
           <div className="px-1 pb-2">
-            <h2 className="mb-4 font-bold" style={{ fontSize: "16px", letterSpacing: "-0.03em", color: "#003F2B" }}>
+            <h2 className="mb-4 font-bold" style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}>
               만드는 법
             </h2>
             <ol className="space-y-1">

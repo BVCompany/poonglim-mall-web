@@ -4,6 +4,8 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/history";
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
+import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -186,12 +188,12 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-8 md:px-6 md:py-14 lg:px-10">
+      <PageContentMax className="py-8 md:py-14">
 
         {/* 풍림푸드의 발자취 */}
         <div className="mb-8 inline-flex items-center gap-1.5 md:mb-10">
           <img src="/home/product-star.png" alt="" className="h-4 w-4 object-contain" />
-          <span className="text-[18px] font-semibold tracking-[-0.02em] text-[#1F2121] md:text-[20px]">
+          <span className="text-[18px] font-semibold tracking-[-0.02em] text-[#1F2121] md:text-[clamp(16px,calc(20*100vw/1920),20px)]">
             풍림푸드의 발자취
           </span>
         </div>
@@ -214,13 +216,13 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                   data-id={id}
                   type="button"
                   onClick={() => scrollToSection(id)}
-                  className="shrink-0 whitespace-nowrap rounded-full text-sm font-semibold transition-all md:text-[15px]"
+                  className="shrink-0 whitespace-nowrap rounded-full text-sm font-semibold transition-all md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
                   style={
                     isActive
                       ? {
                           backgroundColor: "#fff",
                           color: "#1F2121",
-                          padding: "8px 22px",
+                          padding: `8px ${pc1920(14, 22)}`,
                           boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                         }
                       : { color: "#fff", padding: "8px 14px" }
@@ -284,7 +286,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                   {/* 연도 — flex-1, 우정렬 */}
                   <div className="flex flex-1 items-start justify-end pr-8 pt-4">
                     <h2
-                      className="text-[36px] font-bold leading-tight"
+                      className="text-[clamp(26px,calc(36*100vw/1920),36px)] font-bold leading-tight"
                       style={{ color: "#02633E", letterSpacing: "-0.04em" }}
                     >
                       {period}
@@ -312,14 +314,23 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                             className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
                             style={{ backgroundColor: "#02633E" }}
                           />
-                          <span className="text-[15px] leading-relaxed" style={{ color: "#02633E" }}>{a}</span>
+                          <span
+                            className="text-[clamp(13px,calc(15*100vw/1920),15px)] leading-relaxed"
+                            style={{ color: "#02633E" }}
+                          >
+                            {a}
+                          </span>
                         </li>
                       ))}
                     </ul>
                     {image && (
                       <div
                         className="mt-8 overflow-hidden rounded-xl"
-                        style={{ width: imageWidth, height: imageHeight, maxWidth: "100%" }}
+                        style={{
+                          width: pcMin(imageWidth),
+                          height: pcMin(imageHeight),
+                          maxWidth: "100%",
+                        }}
                       >
                         <img
                           src={image}
@@ -334,7 +345,10 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
 
               {/* PC 섹션 사이 — 선 없이 회색 dot만, dot 컬럼과 수평 위치 일치 */}
               {idx < MILESTONES.length - 1 && (
-                <div className="hidden md:flex items-center" style={{ minHeight: 48 }}>
+                <div
+                  className="hidden md:flex items-center"
+                  style={{ minHeight: pc1920(32, 48) }}
+                >
                   <div className="flex-1" />
                   <div className="flex w-8 shrink-0 justify-center">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#C8C8C8" }} />
@@ -351,7 +365,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
           ))}
         </div>
 
-      </div>
+      </PageContentMax>
     </div>
   );
 }

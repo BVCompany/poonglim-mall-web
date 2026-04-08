@@ -40,10 +40,27 @@
   --font-nanum: "NanumSquareRound", sans-serif;
 }
 
+/* 모바일(md 미만): 기존 유체 루트 폰트 */
+@media (max-width: 767.98px) {
+  html {
+    font-size: clamp(14px, 0.9vw + 2.48px, 16px);
+  }
+}
+
 html,
 body {
   @apply dark:bg-background;
   background-color: #f4f2e5;
+}
+
+/* ── 전역 유동 레이아웃 (Fluid Layout) ── */
+:root {
+  /* 뷰포트에 따라 비례 조정되는 수평 패딩: 모바일 1rem → 1920px+ 2.5rem */
+  --fluid-px: clamp(1rem, 3.5vw, 2.5rem);
+  /* 섹션 간 수직 여백 */
+  --fluid-section-py: clamp(3rem, 6vw, 6rem);
+  /* 콘텐츠 최대 너비 */
+  --content-max-w: 1600px;
 }
 
 :root {
@@ -62,6 +79,10 @@ body {
   --header-height: 50px;
   --hero-pc-width: 1840px;
   --hero-pc-height: 800px;
+  /* md 미만 fallback (md+에서 비율로 덮어씀) */
+  --pc-stage-max: 1460px;
+  --pc-w-1680: 1680px;
+  --pc-w-1640: 1640px;
 
   /* Brand Colors */
   --brand-cream: #fdfdf5;
@@ -93,9 +114,31 @@ body {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * PC(md+): 1920 시안 대비 비율 유지
+ * - rem: html font-size가 뷰포트에 비례(하한 12px, 1920에서 16px, 초과 시 16px 상한)
+ * - --content-max-width 등: min(시안px, calc(시안px * 100vw / 1920))
+ * - 모바일(md 미만)은 기존 타이포·--content-max-width(1600) 유지
+ * - 블로그·/admin·/legal 은 navigation 레이아웃 밖 → 별도 조정 가능
+ */
 @media (min-width: 768px) {
   :root {
     --header-height: 68px;
+    /* 1920 시안 기준 PC 비율 스케일(상한은 시안 픽셀) */
+    --content-max-width: min(1600px, calc(1600 * 100vw / 1920));
+    --content-max-w: min(1600px, calc(1600 * 100vw / 1920));
+    --hero-pc-width: min(1840px, calc(1840 * 100vw / 1920));
+    --hero-pc-height: min(800px, calc(800 * 100vw / 1920));
+    --fluid-px: clamp(1rem, calc(40 * 100vw / 1920), 2.5rem);
+    --fluid-section-py: clamp(2.25rem, calc(72 * 100vw / 1920), 6rem);
+    --pc-stage-max: min(1460px, calc(1460 * 100vw / 1920));
+    --pc-w-1680: min(1680px, calc(1680 * 100vw / 1920));
+    --pc-w-1640: min(1640px, calc(1640 * 100vw / 1920));
+  }
+
+  html {
+    /* PC: 1920에서 16px, 좁은 뷰포트에서 rem 전체 비례 축소 */
+    font-size: clamp(12px, calc(100vw * 16 / 1920), 16px);
   }
 }
 
@@ -424,6 +467,39 @@ body {
   padding-left: 1rem;
   color: #718096;
   margin: 0.75rem 0;
+}
+
+/* ── 전역 반응형 유틸리티 ── */
+
+/* 이미지/미디어가 컨테이너를 초과하지 않도록 (height: auto는 Tailwind preflight이 처리) */
+img, video, iframe, embed, object {
+  max-width: 100%;
+}
+
+/* 수평 스크롤 방지 */
+html {
+  overflow-x: hidden;
+}
+
+/* 공통 컨테이너: max-w + fluid padding */
+.fluid-container {
+  width: 100%;
+  max-width: var(--content-max-w);
+  margin-inline: auto;
+  padding-inline: var(--fluid-px);
+}
+
+/* 섹션 수직 패딩 유틸리티 */
+.fluid-section {
+  padding-block: var(--fluid-section-py);
+}
+
+/* 페이지 내부 최대 너비 래퍼 (PC는 --content-max-w 비율 스케일) */
+.page-inner {
+  width: 100%;
+  max-width: var(--content-max-w);
+  margin-inline: auto;
+  padding-inline: var(--fluid-px);
 }
 
 /* ChannelIO 모바일 모달 잘림 방지 */

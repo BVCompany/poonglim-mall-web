@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import {
@@ -168,7 +169,7 @@ export default function NoticeDetailScreen({
       />
 
       {/* ── 본문 ── */}
-      <div className="mx-auto max-w-[1600px] px-4 pt-6 pb-[120px] md:px-6 md:pt-[100px] md:pb-[200px] lg:px-10">
+      <PageContentMax className="pt-6 pb-[120px] md:pt-[100px] md:pb-[200px]">
         {/* ── 제목 + 날짜 ── */}
         <div
           className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
@@ -251,7 +252,7 @@ export default function NoticeDetailScreen({
             목록
           </Link>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

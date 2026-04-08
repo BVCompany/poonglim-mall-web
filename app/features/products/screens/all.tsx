@@ -9,6 +9,7 @@ import { getActiveCategories } from "~/features/product-categories/lib/queries.s
 import type { ProductCategory } from "~/features/product-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
 import { SearchBar } from "~/core/components/search-bar";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 export const meta: Route.MetaFunction = () => [
   { title: "제품 소개 | 풍림푸드" },
@@ -89,12 +90,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 배너 아래 여백 확보 + 제품 카테고리 헤더 + 검색 ── */}
       <div className="px-4 pb-5 pt-10 md:px-8 md:pt-16 lg:px-2.5">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4">
 
           {/* 타이틀 — 36px / letterSpacing -4% */}
           <h2
             className="flex items-center gap-2 font-bold text-gray-900"
-            style={{ fontSize: "clamp(22px, 3vw, 36px)", letterSpacing: "-0.04em" }}
+            style={{ fontSize: pc1920(20, 36), letterSpacing: "-0.04em" }}
           >
             <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain md:h-8 md:w-8" />
             제품 카테고리
@@ -113,7 +114,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 카테고리 탭 바 ── */}
       <div className="px-4 pb-5 md:px-8 lg:px-2.5">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto max-w-[var(--content-max-width)]">
           {/* 모바일 탭 — 개별 알약 버튼 */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden">
             {categories.map((cat) => {
@@ -153,7 +154,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
                   <button
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
-                      fontSize: "18px",
+                      fontSize: pc1920(15, 18),
                       letterSpacing: "-0.04em",
                       color: isActive ? "#02633E" : undefined,
                     }}
@@ -181,7 +182,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 총 N개 제품 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-8 lg:px-2.5">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between">
+        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600">
             총 <span className="font-bold text-[#02633E]">{currentCategoryCount}</span>개 제품
           </p>
@@ -226,7 +227,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 제품 그리드 ── */}
       <div className="px-4 pb-16 md:px-8 lg:px-2.5">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="mx-auto max-w-[var(--content-max-width)]">
           <ProductGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}

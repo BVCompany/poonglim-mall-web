@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { PageBanner } from "~/core/components/page-banner";
+import { PageContentMax } from "~/core/components/page-content-max";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -181,7 +182,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-10 lg:px-10">
+      <PageContentMax className="py-6 md:py-10">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
@@ -345,7 +346,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </PageContentMax>
     </div>
   );
 }

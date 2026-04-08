@@ -26,6 +26,7 @@ import { z } from "zod";
 
 import FormButton from "~/core/components/form-button";
 import FormErrors from "~/core/components/form-error";
+import { Breadcrumb } from "~/core/components/breadcrumb";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
@@ -316,6 +317,9 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
    */
   return (
     <div className="flex flex-col items-center gap-20">
+      <div className="w-full">
+        <Breadcrumb items={[{ label: "문의하기" }]} />
+      </div>
       {/* Header section */}
       <div>
         <h1 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">

@@ -40,9 +40,17 @@ const SECTIONS = [
   },
 ];
 
+import { Breadcrumb } from "~/core/components/breadcrumb";
+
 export default function EggStoryScreen() {
   return (
     <div className="min-h-screen bg-[#F5F2EB]">
+      <Breadcrumb
+        items={[
+          { label: "제품소개", href: "/products/all" },
+          { label: "계란이야기" },
+        ]}
+      />
       {/* 히어로 */}
       <div
         className="flex items-center justify-center py-24 text-center"
@@ -52,7 +60,7 @@ export default function EggStoryScreen() {
           <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-white/60">
             Egg Story
           </p>
-          <h1 className="mb-4 text-4xl font-extrabold text-white md:text-5xl">
+          <h1 className="mb-4 text-4xl font-extrabold text-white md:text-[clamp(2.25rem,calc(3rem*100vw/1920),3rem)]">
             계란이야기
           </h1>
           <p className="mx-auto max-w-xl text-lg text-white/75">
@@ -62,7 +70,7 @@ export default function EggStoryScreen() {
       </div>
 
       {/* 섹션 그리드 */}
-      <div className="mx-auto max-w-[1200px] px-4 py-16 md:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-16 md:max-w-[min(1200px,calc(1200*100vw/1920))] md:px-6 lg:px-10">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {SECTIONS.map((s) => (
             <div

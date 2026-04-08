@@ -204,13 +204,13 @@ export function BrandPhilosophy() {
         {sparkle(350, 40, false, { top: "58%", left: "35%" })}
         {sparkle(450, 28, true, { top: "72%", right: "30%", left: "auto" })}
 
-        <div className="mx-auto w-full max-w-[1320px] px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[min(1320px,calc(1320*100vw/1920))] px-6 lg:px-8">
           {/* 1행: Enrich [캐릭터] Your Day — 좌측 정렬 */}
           <div className="flex justify-start pt-6 pb-2" style={slideStyle(500)}>
             <h2
               className="text-left leading-none text-[#111]"
               style={{
-                fontSize: "100px",
+                fontSize: "clamp(3rem, 7vw, 6.25rem)",
                 fontWeight: 400,
                 letterSpacing: "-0.02em",
               }}
@@ -258,13 +258,13 @@ export function BrandPhilosophy() {
               <span className="relative inline-block">
                 <span
                   className="text-[#005A3D]"
-                  style={{ fontSize: "100px", fontWeight: 800 }}
+                  style={{ fontSize: "clamp(3rem, 7vw, 6.25rem)", fontWeight: 800 }}
                 >
                   {"with "}
                 </span>
                 <span
                   className="text-[#005A3D]"
-                  style={{ fontSize: "100px", fontWeight: 800 }}
+                  style={{ fontSize: "clamp(3rem, 7vw, 6.25rem)", fontWeight: 800 }}
                 >
                   {"Good Fo"}
                   <span className="relative inline-block">

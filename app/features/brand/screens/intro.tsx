@@ -4,9 +4,11 @@
  */
 import type { Route } from "./+types/intro";
 
-import { ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+import { Breadcrumb } from "~/core/components/breadcrumb";
+import { PageContentMax } from "~/core/components/page-content-max";
+import { pc1920 } from "~/core/lib/pc-fluid";
 
 /* ── 슬라이더 데이터 — 이미지 기준 스파클 3개 위치 공통 적용 ── */
 const SPARKLES = [
@@ -168,10 +170,110 @@ function Sparkle({
 const N = SLIDES.length;
 const EXT = [SLIDES[N - 1], ...SLIDES, SLIDES[0]]; // length = N + 2
 
+/** CEO 무대 시안 (1460×690 기준 픽셀) — 리사이즈 시 동일 비율 유지 */
+const CEO_STAGE_W = 1460;
+const CEO_STAGE_H = 690;
+const CEO_PHOTO_W = 530;
+const CEO_PHOTO_H = 650;
+const CEO_QUOTE_W = 620;
+const CEO_QUOTE_H = 190;
+const CEO_BODY_W = 400;
+const CEO_BODY_H = 390;
+/** 사진 왼쪽으로 겹치는 폭(px @1460) — '다'·닫는 따옴표만 걸치도록 */
+const CEO_QUOTE_OVERLAP = 28;
+/** 무대(1460) 기준 인용 박스 최소 left — 음수 left로 무대 밖으로 나가는 것 방지, 사진과 겹침 유지 */
+const CEO_QUOTE_MIN_LEFT = 70;
+
+type CeoLayoutMetrics = {
+  photoW: number;
+  photoH: number;
+  quoteW: number;
+  quoteH: number;
+  quoteTop: number;
+  quoteLeft: number;
+  quoteFont: number;
+  bodyW: number;
+  bodyH: number;
+};
+
 export default function BrandIntroScreen() {
+  // ── 모바일 자동 슬라이더 상태 ──
   const [pos, setPos] = useState(1); // extended 배열 index (1 = 첫 실제 슬라이드)
   const [animated, setAnimated] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── PC 스크롤 드리븐 서큘러 리빌 상태 ──
+  const panelWrapRef = useRef<HTMLDivElement>(null);
+  const [gp, setGp] = useState(0); // global progress: 0 to SLIDES.length
+
+  const ceoStageRef = useRef<HTMLDivElement>(null);
+  const [ceoLayout, setCeoLayout] = useState<CeoLayoutMetrics | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ceoStageRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w < 80 || h < 80) return;
+
+      const sx = w / CEO_STAGE_W;
+      const sy = h / CEO_STAGE_H;
+      const photoW = CEO_PHOTO_W * sx;
+      const photoH = CEO_PHOTO_H * sy;
+      const quoteW = CEO_QUOTE_W * sx;
+      const quoteH = CEO_QUOTE_H * sy;
+      const bodyW = CEO_BODY_W * sx;
+      const bodyH = CEO_BODY_H * sy;
+      const quoteTop = 0.06 * h;
+      const overlap = CEO_QUOTE_OVERLAP * sx;
+      const idealLeft = w / 2 - photoW / 2 - quoteW + overlap;
+      const idealRight = idealLeft + quoteW;
+      const stageLeft = el.getBoundingClientRect().left;
+      const viewportGutter = 12;
+      const minLeftFromViewport = viewportGutter - stageLeft;
+      const minLeftStage = (CEO_QUOTE_MIN_LEFT / CEO_STAGE_W) * w;
+
+      /* 1) 무대 안 최소 left(시안 70px 스케일) — 음수 left로 1460 영역 밖으로 나가지 않게 */
+      let qLeft = Math.max(idealLeft, minLeftStage);
+      let qW = quoteW;
+
+      /* 2) 뷰포트 좌측 여백: 필요 시 오른쪽으로 밀되, minLeftStage 미만으로는 내리지 않음 → 너비 축소 */
+      if (qLeft < minLeftFromViewport) {
+        qLeft = minLeftFromViewport;
+        if (qLeft < minLeftStage) {
+          qLeft = minLeftStage;
+        }
+        qW = Math.max(220, idealRight - qLeft);
+      }
+
+      const quoteLeft = qLeft;
+      const quoteWFinal = qW;
+      const quoteFont = Math.min(56, Math.max(22, quoteWFinal * 0.084));
+
+      setCeoLayout({
+        photoW,
+        photoH,
+        quoteW: quoteWFinal,
+        quoteH,
+        quoteTop,
+        quoteLeft,
+        quoteFont,
+        bodyW,
+        bodyH,
+      });
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   // pos 변경 후 경계(clone) 도달 시 순간이동
   useEffect(() => {
@@ -201,7 +303,7 @@ export default function BrandIntroScreen() {
     }
   }, [animated]);
 
-  // 자동 진행
+  // 자동 진행 (모바일)
   useEffect(() => {
     timerRef.current = setInterval(() => setPos((p) => p + 1), 3500);
     return () => {
@@ -209,164 +311,236 @@ export default function BrandIntroScreen() {
     };
   }, []);
 
+  // PC 스크롤 드리븐 서큘러 리빌
+  useEffect(() => {
+    const onScroll = () => {
+      if (!panelWrapRef.current) return;
+      const { top, height } = panelWrapRef.current.getBoundingClientRect();
+      const scrolled = -top;
+      const totalScrollable = height - window.innerHeight;
+      if (scrolled <= 0) {
+        setGp(0);
+        return;
+      }
+      if (scrolled >= totalScrollable) {
+        setGp(SLIDES.length);
+        return;
+      }
+      setGp((scrolled / totalScrollable) * SLIDES.length);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="w-full bg-[#F5F2E8]">
-      {/* ── 브레드크럼 — PC만 표시 (PageBanner 와 동일하게 모바일 hidden) ── */}
-      <div className="mx-40 hidden border-b border-gray-200 py-3 md:block">
-        <nav className="flex items-center gap-1 text-xs text-gray-500">
-          <Link to="/" className="hover:text-[#003F2B]">
-            Home
-          </Link>
-          <ChevronRight className="h-3 w-3 opacity-50" />
-          <span>회사소개</span>
-          <ChevronRight className="h-3 w-3 opacity-50" />
-          <span className="font-medium text-[#003F2B]">회사소개</span>
-        </nav>
-      </div>
+      <Breadcrumb items={[{ label: "회사소개" }]} />
 
       {/* ══════════════════════════════════════════
-          섹션 1: 히어로 슬라이더
-          - 섹션 높이: 640px (30 520px + 년의전통 68px + 여백을 수용)
-          - 숫자 패널: 58vw → 다음 슬라이드 7vw peek (overflow:hidden으로 클립)
+          섹션 1: 스크롤 드리븐 패널 리빌 (PC) / 자동 슬라이더 (모바일)
       ══════════════════════════════════════════ */}
-      <section
-        className="relative overflow-hidden"
-        style={{ background: "#F5F2E8", height: 795 }}
-      >
-        {/* 좌: 고정 텍스트 — px-3 sm:px-4 md:px-6 lg:px-10 (헤더 nav 내부와 동일) */}
-        <div
-          className="absolute top-0 bottom-0 left-0 z-10 hidden flex-col justify-start md:flex md:pl-6 lg:pl-40"
-          style={{ width: "35%", paddingTop: 100, background: "#F5F2E8" }}
-        >
-          <h1
-            style={{
-              fontSize: 72,
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              color: "#003F2B",
-              lineHeight: 1.1,
-            }}
-          >
-            Poonglim,
-            <br />
-            Brand Story
-          </h1>
-          <p
-            style={{
-              marginTop: 20,
-              fontSize: 20,
-              fontWeight: 400,
-              letterSpacing: "-0.02em",
-              color: "#003F2B",
-              lineHeight: 1.65,
-            }}
-          >
-            1994년 설립 이래 30년간 축적된 노하우와
-            <br />
-            혁신적인 기술로 고객의 건강하고
-            <br />
-            풍요로운 일상을 만들어가고 있습니다.
-          </p>
-        </div>
 
-        {/* 우: 숫자 슬라이드 트랙 — 섹션 full width 기준, left:35% right:0 → peek 발생
-              스파클은 각 슬라이드 패널 내부에 position:absolute 로 배치 */}
-        <div
-          className="absolute inset-y-0 hidden md:block"
-          style={{ left: "35%", right: 0 }}
+      {/* ── PC: 스크롤 드리븐 서큘러 리빌
+          - 오른쪽에서 작게 나타나 → 커지며 중앙으로 이동
+          - 이전 아이템은 작아지며 왼쪽으로 밀림
+          - 모든 아이템 표시 완료 시 다음 섹션으로
+      ── */}
+      <div
+        ref={panelWrapRef}
+        className="hidden md:block"
+        style={{ height: `${SLIDES.length * 100}vh` }}
+      >
+        <section
+          className="sticky overflow-hidden"
+          style={{
+            top: "var(--header-height)",
+            height: "calc(100vh - var(--header-height))",
+            background: "#F5F2E8",
+            display: "flex",
+          }}
         >
+          {/* 좌: 브랜드 텍스트 — z-index 높여서 퇴장 아이템이 뒤로 사라지게 */}
           <div
-            className="flex h-full"
+            className="relative flex shrink-0 flex-col pl-6 lg:pl-40"
             style={{
-              transform: `translateX(calc(-${pos} * 58vw))`,
-              transition: animated
-                ? "transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)"
-                : "none",
-              willChange: "transform",
+              width: "38%",
+              height: "100%",
+
+              zIndex: 30,
+              paddingTop: "clamp(24px, 4vh, 48px)",
             }}
           >
-            {EXT.map((slide, i) => (
+            <h1
+              style={{
+                fontSize: pc1920(36, 72),
+                fontWeight: 800,
+                letterSpacing: "-0.04em",
+                color: "#003F2B",
+                lineHeight: 1.1,
+              }}
+            >
+              Poonglim,
+              <br />
+              Brand Story
+            </h1>
+            <p
+              style={{
+                marginTop: 20,
+                fontSize: pc1920(14, 20),
+                fontWeight: 400,
+                letterSpacing: "-0.02em",
+                color: "#003F2B",
+                lineHeight: 1.65,
+                opacity: 0.75,
+              }}
+            >
+              1994년 설립 이래 30년간 축적된 노하우와
+              <br />
+              혁신적인 기술로 고객의 건강하고
+              <br />
+              풍요로운 일상을 만들어가고 있습니다.
+            </p>
+          </div>
+
+          {/* 슬라이드 아이템 — 전체 섹션 기준 absolute, 왼쪽 패널 뒤로 퇴장 가능 */}
+          {SLIDES.map((slide, i) => {
+            const rel = gp - i;
+            const easeOut3 = (t: number) => 1 - Math.pow(1 - t, 3);
+            const easeIn3 = (t: number) => t * t * t;
+            const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+            const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
+
+            let scale: number;
+            let txVw: number;
+            let opacity: number;
+
+            // 앵커: left 60% (우측 영역 중앙), txVw=0일 때 활성 위치
+            // 오른쪽에서 진입 → 중앙(60vw) → 왼쪽으로 퇴장(Brand Story 패널 뒤)
+            const ENTER_FROM = -0.65;
+            const ENTER_TX = 65; // 60 + 65 = 125vw (화면 밖 우측)
+            const DEPART_TX = -62; // 60 - 62 = -2vw (화면 밖 좌측, 좌 패널 뒤)
+
+            const isLastSlide = i === N - 1;
+            // 마지막 슬라이드: 좌측 퇴장 없이 중앙 유지, 스크롤해도 페이드 없음(히어로가 통째로 넘어갈 때까지 표시)
+            if (isLastSlide && gp >= N - 1) {
+              scale = 1;
+              txVw = 0;
+              opacity = 1;
+            } else if (rel < ENTER_FROM) {
+              scale = 0.12;
+              txVw = ENTER_TX * 1.3;
+              opacity = 0;
+            } else if (rel < 0) {
+              const t = clamp01((rel - ENTER_FROM) / -ENTER_FROM);
+              scale = lerp(0.18, 1.0, easeOut3(t));
+              txVw = lerp(ENTER_TX, 0, easeOut3(t));
+              opacity = lerp(0.3, 1, t);
+            } else if (rel < 1) {
+              const t = clamp01(rel);
+              scale = lerp(1.0, 0.28, easeIn3(t));
+              txVw = lerp(0, DEPART_TX, easeIn3(t));
+              // 좌측으로 다 나가기 전에 페이드 완료 (t≈0.88 부근에서 opacity 0)
+              const FADE_FROM = 0.38;
+              const fadeT = clamp01((t - FADE_FROM) / (0.88 - FADE_FROM));
+              opacity = 1 - easeIn3(fadeT);
+            } else {
+              scale = 0.28;
+              txVw = DEPART_TX - (rel - 1) * 8;
+              opacity = 0;
+            }
+
+            const zIndex = Math.max(1, Math.round(20 - Math.abs(rel) * 8));
+
+            return (
               <div
                 key={i}
                 style={{
-                  position: "relative",
-                  width: "58vw",
-                  flexShrink: 0,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  paddingTop: 250,
-                  alignItems: "flex-start",
+                  position: "absolute",
+                  top: "50%",
+                  left: "60%",
+                  transform: `translateX(calc(-50% + ${txVw}vw)) translateY(-50%) scale(${scale})`,
+                  opacity,
+                  zIndex,
+                  willChange: "transform, opacity",
                 }}
               >
-                {/* 슬라이드별 별 이미지 스파클 — 패널 기준 absolute */}
-                {slide.sparkles.map((sp, si) => (
-                  <Sparkle
-                    key={si}
-                    src={sp.src}
-                    size={sp.size}
-                    style={{ ...sp.style, zIndex: 5 }}
-                  />
-                ))}
+                {/* 스파클 + 숫자+단위 래퍼 (스파클 % 포지션 기준점) */}
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  {slide.sparkles.map((sp, si) => (
+                    <Sparkle
+                      key={si}
+                      src={sp.src}
+                      size={sp.size}
+                      style={{ ...sp.style, zIndex: 5 }}
+                    />
+                  ))}
 
-                {/* "30" + "년의 전통" 하단 정렬, "+" 는 "30" 좌상단에 absolute */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    lineHeight: 1,
-                  }}
-                >
-                  {/* 숫자 — relative 로 "+" absolute 기준점 */}
-                  <span
+                  {/* 숫자(좌) + 단위(우) — 가로 배치, baseline 정렬 */}
+                  <div
                     style={{
-                      position: "relative",
-                      fontSize: "clamp(120px, 27vw, 390px)",
-                      fontWeight: 800,
-                      letterSpacing: "-0.04em",
-                      color: "#003F2B",
+                      display: "flex",
+                      alignItems: "flex-end",
+                      gap: "0.18em",
                       lineHeight: 1,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {slide.num}
-                    {/* "+" — 숫자 우상단에 absolute */}
                     <span
                       style={{
-                        position: "absolute",
-                        top: 0,
-                        right: "-0.6em",
-                        fontSize: "clamp(42px, 7.5vw, 108px)",
+                        position: "relative",
+                        fontSize: pc1920(96, 340),
                         fontWeight: 800,
                         letterSpacing: "-0.04em",
                         color: "#003F2B",
-                        lineHeight: 1,
+                        lineHeight: 0.9,
                       }}
                     >
-                      +
+                      {slide.num}
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: "-0.52em",
+                          fontSize: pc1920(28, 100),
+                          fontWeight: 800,
+                          letterSpacing: "-0.04em",
+                          color: "#003F2B",
+                          lineHeight: 1,
+                        }}
+                      >
+                        +
+                      </span>
                     </span>
-                  </span>
-                  {/* 단위 — 숫자와 하단 정렬 */}
-                  <span
-                    style={{
-                      fontSize: "clamp(18px, 3.5vw, 51px)",
-                      fontWeight: 700,
-                      letterSpacing: "-0.02em",
-                      color: "#003F2B",
-                      lineHeight: 1,
-                      marginLeft: "0.3em",
-                    }}
-                  >
-                    {slide.unit}
-                  </span>
+                    <span
+                      style={{
+                        fontSize: pc1920(18, 60),
+                        fontWeight: 700,
+                        letterSpacing: "-0.03em",
+                        color: "#003F2B",
+                        lineHeight: 1,
+                        paddingBottom: "0.12em",
+                        paddingLeft: "0.4em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {slide.unit}
+                    </span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            );
+          })}
+        </section>
+      </div>
 
-        {/* 모바일: 텍스트 상단 + peek 슬라이더 */}
-        <div className="flex h-full flex-col justify-start px-4 pt-12 md:hidden">
+      {/* ── 모바일: 기존 자동 슬라이더 ── */}
+      <section
+        className="relative overflow-hidden md:hidden"
+        style={{ background: "#F5F2E8", height: 795 }}
+      >
+        {/* 텍스트 상단 + peek 슬라이더 */}
+        <div className="flex h-full flex-col justify-start px-4 pt-12">
           <h1
             style={{
               fontSize: 40,
@@ -398,7 +572,7 @@ export default function BrandIntroScreen() {
             풍요로운 일상을 만들어가고 있습니다.
           </p>
 
-          {/* 모바일 peek 슬라이더: 패널 80vw → 20vw peek */}
+          {/* 모바일 peek 슬라이더 */}
           <div className="-mx-4 overflow-hidden">
             <div
               className="flex"
@@ -415,7 +589,6 @@ export default function BrandIntroScreen() {
                   className="flex-shrink-0 pl-3"
                   style={{ width: "80vw" }}
                 >
-                  {/* 모바일도 동일: 한 줄 [숫자][+ 상단][단위 하단] */}
                   <div
                     style={{
                       display: "flex",
@@ -466,34 +639,13 @@ export default function BrandIntroScreen() {
         </div>
       </section>
 
-      {/* ══ 섹션 2: CEO 인사말 ══
-          헤더와 동일한 max-w-[1680px] mx-auto 컨테이너 사용
-          → 1920px 기준: 컨테이너 margin 120px + px-10(40px) = 로고 left 160px
-          레이블·인용문: left:40px (컨테이너 내부 = 헤더 로고 정렬)
-          사진+텍스트:  left:24% of 1680px = 403px + 120px margin = 523px from viewport
-                        → 사진 중심 523+265=788px ≈ 41%
-          섹션 높이: 57vw → 1920px에서 1094px
-      ══ */}
+      {/* ══ 섹션 2: CEO 인사말 (시안: 1600 래퍼 / 1460×690 무대 / 620×190·530×650·400×390) ══ */}
       <section
-        className="relative hidden bg-[#F5F2E8] md:block"
-        style={{ height: "clamp(700px, 57vw, 1095px)" }}
+        className="hidden py-10 md:block md:py-14"
+        style={{ backgroundColor: "#F2F0E4" }}
       >
-        <div
-          className="relative mx-auto"
-          style={{ maxWidth: 1680, height: "100%" }}
-        >
-          {/* 상단 레이블 — 헤더 로고(40px) 기준 */}
-          <div
-            style={{
-              position: "absolute",
-              top: "clamp(32px, 2.5vw, 48px)",
-              left: 40,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              zIndex: 20,
-            }}
-          >
+        <PageContentMax>
+          <div className="mb-6 flex items-center gap-2 md:mb-7">
             <img
               src="/home/product-star.png"
               alt=""
@@ -501,7 +653,7 @@ export default function BrandIntroScreen() {
             />
             <span
               style={{
-                fontSize: "clamp(14px, 1.46vw, 28px)",
+                fontSize: pc1920(14, 28),
                 fontWeight: 700,
                 letterSpacing: "-0.04em",
                 color: "#003F2B",
@@ -511,171 +663,196 @@ export default function BrandIntroScreen() {
             </span>
           </div>
 
-          {/* 인용문 — 40px 시작, z-10으로 사진 위에 걸쳐짐 */}
-          <div
-            style={{
-              position: "absolute",
-              left: 100,
-              top: "clamp(90px, 7vw, 134px)",
-              width: "clamp(300px, 52%, 1000px)",
-              zIndex: 10,
-              pointerEvents: "none",
-            }}
-          >
-            <blockquote
-              style={{
-                fontSize: "clamp(36px, 3.75vw, 72px)",
-                fontWeight: 800,
-                letterSpacing: "-0.04em",
-                lineHeight: 1.15,
-                color: "#003F2B",
-              }}
-            >
-              "고객의 건강이
-              <br />곧 우리의 사명입니다"
-            </blockquote>
-          </div>
-
-          {/* 사진 + 우측 텍스트 — flex row, 수직 중앙 정렬
-               left:25% of 1680px = 420px → 1920px viewport 기준 420+120=540px
-               사진 중심: 540+265=805px ≈ 42% = 레퍼런스 기준 정렬
-               인용문 우측 끝(1033px)이 사진(540~1070px) 내에 걸쳐 "다" 오버랩 */}
-          <div
-            style={{
-              position: "absolute",
-              left: "30%",
-              right: 40,
-              top: 0,
-              bottom: 0,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {/* CEO 사진 530×650 */}
-            <div style={{ position: "relative", flexShrink: 0, zIndex: 5 }}>
-              <img
-                src="/intro/president_img.png"
-                alt="풍림푸드 대표이사 정언현"
-                style={{
-                  width: "clamp(280px, 27.6vw, 530px)",
-                  height: "clamp(344px, 33.9vw, 650px)",
-                  objectFit: "contain",
-                  display: "block",
-                }}
-              />
-              {/* 스파클 — 사진 좌하단 2개 */}
-              <img
-                src="/home/intro-star.png"
-                alt=""
-                style={{
-                  position: "absolute",
-                  left: "-10%",
-                  bottom: "28%",
-                  width: "clamp(20px, 1.7vw, 32px)",
-                }}
-              />
-              <img
-                src="/home/star_icon.png"
-                alt=""
-                style={{
-                  position: "absolute",
-                  left: "-4%",
-                  bottom: "14%",
-                  width: "clamp(12px, 1vw, 20px)",
-                }}
-              />
-              {/* 스파클 — 사진 우상단 큰 별 */}
-              <img
-                src="/home/company-intro-star.png"
-                alt=""
-                style={{
-                  position: "absolute",
-                  top: "8%",
-                  right: "-12%",
-                  width: "clamp(40px, 3.5vw, 68px)",
-                }}
-              />
-            </div>
-
-            {/* 우측 CEO 인사말 텍스트 */}
+          <div className="relative mx-auto w-full max-w-[var(--pc-stage-max)] overflow-visible">
             <div
+              className="relative w-full overflow-visible"
               style={{
-                marginLeft: "clamp(32px, 3vw, 58px)",
-                maxWidth: "clamp(260px, 25vw, 480px)",
-                flexShrink: 0,
+                height: 0,
+                paddingBottom: `${(690 / 1460) * 100}%`,
               }}
             >
-              {/* CEO 인사말 레이블 */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 20,
-                }}
+                ref={ceoStageRef}
+                className="absolute inset-0 overflow-visible"
               >
-                <img
-                  src="/home/product-star.png"
-                  alt=""
-                  style={{ width: 16, height: 16 }}
-                />
-                <span
-                  style={{
-                    fontSize: "clamp(16px, 1.46vw, 28px)",
-                    fontWeight: 700,
-                    letterSpacing: "-0.04em",
-                    color: "#003F2B",
-                  }}
+                {/* 대표 530×650 — 무대 중심, 측정 픽셀(1460:690 비율 스케일) */}
+                <div
+                  className="absolute top-1/2 left-1/2 z-[5] -translate-x-1/2 -translate-y-1/2"
+                  style={
+                    ceoLayout
+                      ? {
+                          width: ceoLayout.photoW,
+                          height: ceoLayout.photoH,
+                        }
+                      : {
+                          width: `${(CEO_PHOTO_W / CEO_STAGE_W) * 100}%`,
+                          height: `${(CEO_PHOTO_H / CEO_STAGE_H) * 100}%`,
+                        }
+                  }
                 >
-                  CEO 인사말
-                </span>
-              </div>
+                  <div
+                    className="relative h-full w-full overflow-hidden"
+                    style={{
+                      clipPath: "ellipse(47% 50% at 50% 50%)",
+                    }}
+                  >
+                    <img
+                      src="/intro/president_img.png"
+                      alt="풍림푸드 대표이사 정언현"
+                      className="block h-full w-full object-cover"
+                    />
+                  </div>
+                  <img
+                    src="/home/intro-star.png"
+                    alt=""
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: "-8%",
+                      bottom: "26%",
+                      width: "clamp(18px, 4.2%, 32px)",
+                    }}
+                  />
+                  <img
+                    src="/home/star_icon.png"
+                    alt=""
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: "-3%",
+                      bottom: "12%",
+                      width: "clamp(10px, 2.6%, 20px)",
+                    }}
+                  />
+                  <img
+                    src="/home/company-intro-star.png"
+                    alt=""
+                    className="pointer-events-none absolute"
+                    style={{
+                      top: "6%",
+                      right: "-10%",
+                      width: "clamp(32px, 8.8%, 68px)",
+                    }}
+                  />
+                </div>
 
-              {/* 본문 단락 */}
-              <div
-                style={{
-                  color: "#003F2B",
-                  fontSize: "clamp(13px, 0.83vw, 16px)",
-                  fontWeight: 700,
-                  letterSpacing: "-0.04em",
-                  lineHeight: 1.8,
-                }}
-              >
-                <p>
-                  풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날
-                  대한민국을 대표하는 프리미엄 식품 전문기업으로 성장했습니다.
-                </p>
-                <p style={{ marginTop: 16 }}>
-                  우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고
-                  풍요로운 일상을 만들어가는 파트너가 되고자 합니다. 엄선된
-                  원료와 첨단 기술, 그리고 30년간 축적된 노하우를 바탕으로 최고
-                  품질의 제품을 선보이고 있습니다.
-                </p>
-                <p style={{ marginTop: 16 }}>
-                  앞으로도 풍림푸드는 지속가능한 경영과 사회적 책임을 다하며,
-                  고객과 함께 성장하는 기업이 되겠습니다.
-                </p>
-              </div>
+                {/* 좌상 620×190 — 이상적 left + 뷰포트( html overflow-x ) 안전 보정 */}
+                <div
+                  className="pointer-events-none absolute z-10 flex items-center justify-center overflow-visible"
+                  style={
+                    ceoLayout
+                      ? {
+                          left: ceoLayout.quoteLeft,
+                          top: ceoLayout.quoteTop,
+                          width: ceoLayout.quoteW,
+                          height: ceoLayout.quoteH,
+                        }
+                      : {
+                          left: `${(CEO_QUOTE_MIN_LEFT / CEO_STAGE_W) * 100}%`,
+                          top: "6%",
+                          width: `${(CEO_QUOTE_W / CEO_STAGE_W) * 100}%`,
+                          height: `${(CEO_QUOTE_H / CEO_STAGE_H) * 100}%`,
+                        }
+                  }
+                >
+                  <blockquote
+                    style={{
+                      margin: 0,
+                      width: "100%",
+                      fontSize: ceoLayout
+                        ? ceoLayout.quoteFont
+                        : pc1920(22, 56),
+                      fontWeight: 800,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1.14,
+                      color: "#003F2B",
+                      textAlign: "center",
+                      wordBreak: "keep-all",
+                      overflow: "visible",
+                    }}
+                  >
+                    "고객의 건강이
+                    <br />곧 우리의 사명입니다"
+                  </blockquote>
+                </div>
 
-              {/* 서명 */}
-              <p
-                style={{
-                  marginTop: 32,
-                  fontSize: "clamp(14px, 0.94vw, 18px)",
-                  fontWeight: 400,
-                  letterSpacing: "-0.04em",
-                  color: "#003F2B",
-                }}
-              >
-                풍림푸드 대표이사 <span style={{ marginLeft: 16 }}>정언현</span>
-              </p>
+                {/* 우하 400×390 */}
+                <div
+                  className="absolute right-0 bottom-0 z-[6] flex min-h-0 flex-col overflow-hidden text-left"
+                  style={
+                    ceoLayout
+                      ? {
+                          width: ceoLayout.bodyW,
+                          height: ceoLayout.bodyH,
+                        }
+                      : {
+                          width: `${(CEO_BODY_W / CEO_STAGE_W) * 100}%`,
+                          height: `${(CEO_BODY_H / CEO_STAGE_H) * 100}%`,
+                        }
+                  }
+                >
+                  <div className="mb-2.5 flex shrink-0 items-center gap-2">
+                    <img
+                      src="/home/product-star.png"
+                      alt=""
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <span
+                      style={{
+                        fontSize: pc1920(14, 28),
+                        fontWeight: 700,
+                        letterSpacing: "-0.04em",
+                        color: "#003F2B",
+                      }}
+                    >
+                      CEO 인사말
+                    </span>
+                  </div>
+                  <div
+                    className="min-h-0 flex-1 overflow-y-auto pr-0.5"
+                    style={{
+                      color: "#1a2e28",
+                      fontSize: pc1920(11, 16),
+                      fontWeight: 500,
+                      letterSpacing: "-0.03em",
+                      lineHeight: 1.65,
+                    }}
+                  >
+                    <p>
+                      풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날
+                      대한민국을 대표하는 프리미엄 식품 전문기업으로
+                      성장했습니다.
+                    </p>
+                    <p style={{ marginTop: 10 }}>
+                      우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고
+                      풍요로운 일상을 만들어가는 파트너가 되고자 합니다. 엄선된
+                      원료와 첨단 기술, 그리고 30년간 축적된 노하우를 바탕으로
+                      최고 품질의 제품을 선보이고 있습니다.
+                    </p>
+                    <p style={{ marginTop: 10 }}>
+                      앞으로도 풍림푸드는 지속가능한 경영과 사회적 책임을
+                      다하며, 고객과 함께 성장하는 기업이 되겠습니다.
+                    </p>
+                  </div>
+                  <p
+                    className="mt-2.5 shrink-0"
+                    style={{
+                      fontSize: pc1920(11, 18),
+                      fontWeight: 400,
+                      letterSpacing: "-0.04em",
+                      color: "#003F2B",
+                    }}
+                  >
+                    풍림푸드 대표이사{" "}
+                    <span style={{ marginLeft: 10 }}>정언현</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </PageContentMax>
       </section>
 
       {/* 모바일 CEO 섹션 */}
-      <section className="bg-[#F5F2E8] px-4 py-12 md:hidden">
+      <section className="bg-[#F2F0E4] px-4 py-12 md:hidden">
         <div className="mb-3 flex items-center gap-2">
           <img src="/home/star_icon.png" alt="" className="h-4 w-4" />
           <span className="text-xs font-semibold tracking-widest text-[#003F2B] uppercase">
@@ -693,7 +870,7 @@ export default function BrandIntroScreen() {
           />
         </div>
         <blockquote
-          className="mb-6 leading-tight font-extrabold text-[#003F2B]"
+          className="mb-6 text-center leading-tight font-extrabold text-[#003F2B]"
           style={{ fontSize: 28, letterSpacing: "-0.04em" }}
         >
           "고객의 건강이
@@ -724,15 +901,27 @@ export default function BrandIntroScreen() {
       ══ */}
       <section
         className="hidden md:block"
-        style={{ backgroundColor: "#EAE3C9", borderRadius: "40px 40px 0 0" }}
+        style={{
+          backgroundColor: "#EAE3C9",
+          borderRadius: `${pc1920(20, 40)} ${pc1920(20, 40)} 0 0`,
+        }}
       >
         <div
           className="mx-auto"
-          style={{ maxWidth: 1680, padding: "80px 40px 80px" }}
+          style={{
+            maxWidth: "var(--pc-w-1680)",
+            padding: `${pc1920(40, 80)} ${pc1920(20, 40)}`,
+          }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 80 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: pc1920(32, 80),
+            }}
+          >
             {/* 좌측: 레이블 + 제목 */}
-            <div style={{ flex: 1, paddingTop: 8 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingTop: 8 }}>
               <div
                 style={{
                   display: "flex",
@@ -748,7 +937,7 @@ export default function BrandIntroScreen() {
                 />
                 <span
                   style={{
-                    fontSize: "clamp(14px, 1.46vw, 28px)",
+                    fontSize: pc1920(14, 28),
                     fontWeight: 700,
                     letterSpacing: "-0.04em",
                     color: "#003F2B",
@@ -759,7 +948,7 @@ export default function BrandIntroScreen() {
               </div>
               <h2
                 style={{
-                  fontSize: "clamp(28px, 2.92vw, 56px)",
+                  fontSize: pc1920(22, 56),
                   fontWeight: 800,
                   letterSpacing: "-0.04em",
                   lineHeight: 1.2,
@@ -773,12 +962,13 @@ export default function BrandIntroScreen() {
               </h2>
             </div>
 
-            {/* 우측: 2컬럼 × 3행 카드 (452×520, gap 8px) */}
+            {/* 우측: 2컬럼 × 3행 카드 (452×520 시안, 1920 비율 스케일) */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "452px 452px",
-                gap: 8,
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, min(452px, calc(452 * 100vw / 1920))))",
+                gap: pc1920(4, 8),
                 flexShrink: 0,
               }}
             >
@@ -787,12 +977,12 @@ export default function BrandIntroScreen() {
                   key={category}
                   style={{
                     backgroundColor: bg,
-                    width: 452,
-                    height: 520,
-                    borderRadius: 20,
+                    width: "100%",
+                    height: pc1920(280, 520),
+                    borderRadius: pc1920(12, 20),
                     display: "flex",
                     flexDirection: "column",
-                    padding: 28,
+                    padding: pc1920(16, 28),
                     overflow: "hidden",
                   }}
                 >
@@ -801,8 +991,8 @@ export default function BrandIntroScreen() {
                     style={{
                       display: "inline-block",
                       borderRadius: 100,
-                      padding: "4px 12px",
-                      fontSize: "clamp(11px, 0.83vw, 16px)",
+                      padding: `${pc1920(2, 4)} ${pc1920(8, 12)}`,
+                      fontSize: pc1920(11, 16),
                       fontWeight: 800,
                       letterSpacing: "-0.04em",
                       backgroundColor: highlight
@@ -818,7 +1008,7 @@ export default function BrandIntroScreen() {
                   {/* 설명 — 28px -4% 700 */}
                   <p
                     style={{
-                      fontSize: "clamp(16px, 1.46vw, 28px)",
+                      fontSize: pc1920(14, 28),
                       fontWeight: 700,
                       letterSpacing: "-0.04em",
                       lineHeight: 1.35,
@@ -838,7 +1028,11 @@ export default function BrandIntroScreen() {
                     <img
                       src={image}
                       alt={category}
-                      style={{ width: 160, height: 160, objectFit: "contain" }}
+                      style={{
+                        width: pc1920(72, 160),
+                        height: pc1920(72, 160),
+                        objectFit: "contain",
+                      }}
                     />
                   </div>
                 </div>
@@ -956,14 +1150,20 @@ export default function BrandIntroScreen() {
       {/* ══ 섹션 4: 공식 캐릭터 (PC) ══ */}
       <section
         className="hidden md:block"
-        style={{ backgroundColor: "#F5F2E8", padding: "100px 0" }}
+        style={{ backgroundColor: "#F5F2E8", padding: `${pc1920(48, 100)} 0` }}
       >
-        <div style={{ maxWidth: 1680, margin: "0 auto", padding: "0 40px" }}>
+        <div
+          style={{
+            maxWidth: "var(--pc-w-1680)",
+            margin: "0 auto",
+            padding: `0 ${pc1920(20, 40)}`,
+          }}
+        >
           {/* 헤더 */}
-          <div style={{ textAlign: "center", marginBottom: 64 }}>
+          <div style={{ textAlign: "center", marginBottom: pc1920(32, 64) }}>
             <h2
               style={{
-                fontSize: "clamp(36px, 3.65vw, 70px)",
+                fontSize: pc1920(28, 70),
                 fontWeight: 800,
                 color: "#003F2B",
                 letterSpacing: "-0.04em",
@@ -974,7 +1174,7 @@ export default function BrandIntroScreen() {
             </h2>
             <p
               style={{
-                fontSize: "clamp(12px, 0.73vw, 14px)",
+                fontSize: pc1920(11, 14),
                 color: "#C9A84C",
                 letterSpacing: "0.08em",
               }}
@@ -984,7 +1184,13 @@ export default function BrandIntroScreen() {
           </div>
 
           {/* 캐릭터 카드 목록 */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: pc1920(10, 16),
+            }}
+          >
             {CHARACTERS.map(
               ({
                 id,
@@ -1009,11 +1215,11 @@ export default function BrandIntroScreen() {
                   key={id}
                   style={{
                     backgroundColor: mainBg,
-                    borderRadius: 24,
+                    borderRadius: pc1920(16, 24),
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: imageLeft ? "row" : "row-reverse",
-                    height: "clamp(400px, 26vw, 500px)",
+                    minHeight: pc1920(320, 500),
                   }}
                 >
                   {/* 캐릭터 쇼케이스 영역 */}
@@ -1031,14 +1237,14 @@ export default function BrandIntroScreen() {
                       src={showcaseImage}
                       alt={name}
                       style={{
-                        height: "clamp(200px, 16vw, 300px)",
+                        height: pc1920(160, 300),
                         objectFit: "contain",
                         ...(showcaseFilter ? { filter: showcaseFilter } : {}),
                       }}
                     />
                     <p
                       style={{
-                        fontSize: "clamp(18px, 1.25vw, 24px)",
+                        fontSize: pc1920(15, 24),
                         fontWeight: 700,
                         color: nameColor,
                         letterSpacing: "-0.04em",
@@ -1049,7 +1255,7 @@ export default function BrandIntroScreen() {
                     </p>
                     <p
                       style={{
-                        fontSize: "clamp(11px, 0.73vw, 14px)",
+                        fontSize: pc1920(11, 14),
                         color: nameEnColor,
                       }}
                     >
@@ -1058,13 +1264,19 @@ export default function BrandIntroScreen() {
                   </div>
 
                   {/* 스토리 서브카드 */}
-                  <div style={{ flex: 1, padding: 16, display: "flex" }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      padding: pc1920(10, 16),
+                      display: "flex",
+                    }}
+                  >
                     <div
                       style={{
                         backgroundColor: insetBg,
-                        borderRadius: 16,
+                        borderRadius: pc1920(12, 16),
                         flex: 1,
-                        padding: "clamp(24px, 2.6vw, 48px)",
+                        padding: pc1920(20, 48),
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
@@ -1076,38 +1288,38 @@ export default function BrandIntroScreen() {
                         src={sceneImage}
                         alt={`${name} scene`}
                         style={{
-                          height: "clamp(60px, 5.2vw, 100px)",
+                          height: pc1920(44, 100),
                           objectFit: "contain",
-                          marginBottom: "clamp(12px, 1.25vw, 24px)",
+                          marginBottom: pc1920(10, 24),
                         }}
                       />
                       <p
                         style={{
-                          fontSize: "clamp(18px, 1.67vw, 32px)",
+                          fontSize: pc1920(16, 32),
                           fontWeight: 800,
                           color: greetingColor,
                           letterSpacing: "-0.04em",
                           lineHeight: 1.25,
                           whiteSpace: "pre-line",
-                          marginBottom: "clamp(8px, 0.73vw, 14px)",
+                          marginBottom: pc1920(6, 14),
                         }}
                       >
                         {greeting}
                       </p>
                       <p
                         style={{
-                          fontSize: "clamp(13px, 0.94vw, 18px)",
+                          fontSize: pc1920(12, 18),
                           fontWeight: 800,
                           color: accentColor,
                           letterSpacing: "-0.04em",
-                          marginBottom: "clamp(8px, 0.73vw, 14px)",
+                          marginBottom: pc1920(6, 14),
                         }}
                       >
                         {accentText}
                       </p>
                       <p
                         style={{
-                          fontSize: "clamp(11px, 0.73vw, 14px)",
+                          fontSize: pc1920(11, 14),
                           fontWeight: 700,
                           letterSpacing: "-0.04em",
                           color: bodyColor,
@@ -1273,37 +1485,37 @@ export default function BrandIntroScreen() {
         </div>
       </section>
 
-      {/* ══ 섹션 5: 회사소개서 다운로드 (PC) ══ */}
-      <section className="hidden md:block" style={{ backgroundColor: "#F5F2E8", padding: "72px 0 200px" }}>
-        <div
-          style={{
-            maxWidth: 1600,
-            margin: "0 auto",
-            padding: "0",
-            display: "flex",
-            alignItems: "center",
-            gap: 80,
-          }}
+      {/* ══ 섹션 5: 회사소개서 다운로드 (PC) — 가로 1줄 유지: 텍스트 shrink(280~655) + 카드 flex로 비율 축소 ══ */}
+      <section
+        className="hidden md:block"
+        style={{ backgroundColor: "#F5F2E8" }}
+      >
+        <PageContentMax
+          className="py-12 pb-28 md:py-14 md:pb-32 lg:pb-40"
+          innerClassName="flex w-full flex-nowrap items-center gap-x-[clamp(16px,1.375vw,22px)]"
         >
-          {/* 좌: 텍스트 */}
-          <div style={{ flex: 1 }}>
+          <div className="max-w-[min(655px,calc(655*100vw/1920))] min-w-[min(280px,calc(280*100vw/1920))] shrink grow-0 basis-[min(655px,calc(655*100vw/1920))]">
             <p
               style={{
-                fontSize: "clamp(12px, 0.73vw, 14px)",
+                fontSize: pc1920(14, 18),
+                fontWeight: 700,
                 color: "#222",
                 marginBottom: 16,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.04em",
               }}
             >
               풍림푸드를 더 자세히 알아보세요!
             </p>
             <h2
+              className="max-w-full"
               style={{
-                fontSize: "clamp(22px, 1.87vw, 32px)",
+                fontSize: pc1920(22, 32),
                 fontWeight: 800,
                 color: "#003F2B",
                 letterSpacing: "-0.04em",
-                lineHeight: 1.3,
+                lineHeight: 1.35,
+                wordBreak: "keep-all",
+                overflowWrap: "break-word",
               }}
             >
               풍림푸드의 기업 철학, 사업 영역,
@@ -1312,8 +1524,7 @@ export default function BrandIntroScreen() {
             </h2>
           </div>
 
-          {/* 우: 다운로드 카드 */}
-          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center justify-end gap-2">
             {[
               { label: "회사소개서", size: "PDF, 12.5MB", href: "#" },
               { label: "Company Brochure", size: "PDF, 12.5MB", href: "#" },
@@ -1322,36 +1533,24 @@ export default function BrandIntroScreen() {
                 key={label}
                 href={href}
                 download
+                className="box-border flex max-w-[min(457.5px,calc(457.5*100vw/1920))] min-w-0 flex-1 basis-0 cursor-pointer items-center gap-3 rounded-xl border border-[#E0D9C8] bg-white no-underline"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: 12,
-                  padding: "0 24px",
-                  border: "1px solid #E0D9C8",
-                  textDecoration: "none",
-                  width: 457,
-                  height: 133,
-                  flexShrink: 0,
-                  cursor: "pointer",
-                  boxSizing: "border-box",
+                  minHeight: pc1920(96, 133),
+                  padding: `${pc1920(12, 24)} ${pc1920(14, 24)}`,
                 }}
               >
-                {/* 문서 아이콘 */}
                 <div
+                  className="flex shrink-0 items-center justify-center rounded-lg bg-[#003F2B]"
                   style={{
-                    width: 44,
-                    height: 44,
-                    backgroundColor: "#003F2B",
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
+                    width: pc1920(32, 44),
+                    height: pc1920(32, 44),
                   }}
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <svg
+                    className="h-[55%] w-[55%]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
                     <path
                       d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
                       stroke="white"
@@ -1368,11 +1567,11 @@ export default function BrandIntroScreen() {
                     />
                   </svg>
                 </div>
-                {/* 텍스트 */}
-                <div style={{ flex: 1 }}>
+                <div className="min-w-0 flex-1">
                   <p
+                    className="break-words"
                     style={{
-                      fontSize: "clamp(13px, 0.83vw, 16px)",
+                      fontSize: pc1920(12, 16),
                       fontWeight: 700,
                       color: "#1A1A1A",
                       letterSpacing: "-0.03em",
@@ -1382,7 +1581,7 @@ export default function BrandIntroScreen() {
                   </p>
                   <p
                     style={{
-                      fontSize: "clamp(11px, 0.63vw, 12px)",
+                      fontSize: pc1920(10, 12),
                       color: "#999",
                       marginTop: 3,
                     }}
@@ -1390,13 +1589,10 @@ export default function BrandIntroScreen() {
                     {size}
                   </p>
                 </div>
-                {/* 다운로드 아이콘 */}
                 <svg
-                  width="18"
-                  height="18"
+                  className="h-[18px] w-[18px] shrink-0"
                   viewBox="0 0 24 24"
                   fill="none"
-                  style={{ flexShrink: 0 }}
                 >
                   <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
                   <path
@@ -1409,17 +1605,28 @@ export default function BrandIntroScreen() {
               </a>
             ))}
           </div>
-        </div>
+        </PageContentMax>
       </section>
 
       {/* ══ 섹션 5: 회사소개서 다운로드 (모바일) ══ */}
       <section
         className="block md:hidden"
-        style={{ backgroundColor: "#F5F2E8", borderTop: "1px solid #DDD8C8", padding: "48px 20px 60px" }}
+        style={{
+          backgroundColor: "#F5F2E8",
+          borderTop: "1px solid #DDD8C8",
+          padding: "48px 20px 60px",
+        }}
       >
         {/* 상단: 텍스트 */}
         <div style={{ marginBottom: 28 }}>
-          <p style={{ fontSize: 12, color: "#777", marginBottom: 10, letterSpacing: "-0.02em" }}>
+          <p
+            style={{
+              fontSize: 12,
+              color: "#777",
+              marginBottom: 10,
+              letterSpacing: "-0.02em",
+            }}
+          >
             풍림푸드를 더 자세히 알아보세요!
           </p>
           <h2
@@ -1431,7 +1638,8 @@ export default function BrandIntroScreen() {
               lineHeight: 1.35,
             }}
           >
-            풍림푸드의 기업 철학, 사업 영역,<br />
+            풍림푸드의 기업 철학, 사업 영역,
+            <br />
             주요 제품 라인업을 확인하실 수 있습니다.
           </h2>
         </div>
@@ -1472,17 +1680,51 @@ export default function BrandIntroScreen() {
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M14 2v6h6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 2v6h6"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#1A1A1A", letterSpacing: "-0.03em" }}>{label}</p>
-                <p style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{size}</p>
+                <p
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "#1A1A1A",
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  {label}
+                </p>
+                <p style={{ fontSize: 11, color: "#999", marginTop: 2 }}>
+                  {size}
+                </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ flexShrink: 0 }}
+              >
                 <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
-                <path d="M5 18h14" stroke="#AAAAAA" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M5 18h14"
+                  stroke="#AAAAAA"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </a>
           ))}
