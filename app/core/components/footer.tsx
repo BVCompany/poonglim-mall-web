@@ -7,6 +7,9 @@ import { ChevronDown, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
+import { PAGE_GUTTER_X } from "~/core/components/page-content-max";
+import { cn } from "~/core/lib/utils";
+
 function FooterAccordion({
   title,
   links,
@@ -89,15 +92,60 @@ const footerLinks = {
   ],
 };
 
+/** SNS 아이콘 — 모바일은 좌측 열, lg~는 하단 행(로고와 baseline 정렬) */
+function FooterSnsRow({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex gap-4", className)}>
+      <a
+        href="https://www.facebook.com/poonglimfoods"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white transition-colors hover:text-white/90"
+        aria-label="Facebook"
+      >
+        <Facebook className="size-5 fill-white" />
+      </a>
+      <a
+        href="https://www.instagram.com/poonglim_official"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white/70 transition-colors hover:text-white"
+        aria-label="Instagram"
+      >
+        <Instagram className="size-5" />
+      </a>
+      <a
+        href="https://www.youtube.com/@poonglimfoods"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-white transition-colors hover:text-white/90"
+        aria-label="YouTube"
+      >
+        <svg viewBox="0 0 24 24" className="size-5 fill-current" aria-hidden>
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      </a>
+    </div>
+  );
+}
+
 export default function Footer() {
   return (
     <footer className="bg-[var(--brand-green)] text-white">
-      {/* 모바일: 세로 스택, 좌측 정렬 / 데스크톱: 1600×360, 좌 363px / 우 956px */}
-      <div className="mx-auto flex min-h-0 w-full max-w-[var(--content-max-width)] flex-col gap-10 px-4 py-10 sm:px-6 md:py-12 lg:min-h-[360px] lg:flex-row lg:items-stretch lg:gap-[121px] lg:px-[80px] lg:py-14">
-        {/* 좌측 영역: 363px - 주소 그룹 + 아이콘 그룹 */}
-        <div className="flex w-full flex-shrink-0 flex-col gap-6 lg:w-[363px]">
+      {/* gutter는 본문(PageContentMax)과 동일. 안쪽 max-width만 시안 비율로 축소 → 맥북 등에서 좌우 정렬 일치 */}
+      <div className={cn(PAGE_GUTTER_X, "py-10 md:py-12 lg:py-14")}>
+        {/* 모바일: 세로 스택 / lg~: 그리드 — 1행 연락처|네비, 2행 SNS|로고(하단선 맞춤) */}
+        <div
+          className={cn(
+            "mx-auto flex min-h-0 w-full max-w-[var(--content-max-width)] flex-col gap-10",
+            "lg:grid lg:min-h-[360px] lg:grid-cols-[min(363px,calc(363*100vw/1920))_minmax(0,1fr)]",
+            "lg:items-stretch lg:gap-x-[min(121px,calc(121*100vw/1920))] lg:gap-y-[min(40px,calc(48*100vw/1920))]",
+          )}
+        >
+        {/* 좌측 영역: 시안 363px — 그리드에서는 열 폭으로만 제한 */}
+        <div className="flex w-full flex-shrink-0 flex-col gap-6 lg:col-start-1 lg:row-start-1 lg:w-auto lg:max-w-none">
           {/* 주소 그룹: 로고 + 연락처 */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:pb-6">
             {/* 모바일: 로고 상단 */}
             <div className="lg:hidden">
               <Link to="/">
@@ -139,51 +187,14 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* 아이콘 그룹: SNS - 주소 그룹과 간격 */}
-          <div className="flex gap-4 pt-8 lg:mt-auto lg:pt-0">
-            <a
-              href="https://www.facebook.com/poonglimfoods"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white transition-colors hover:text-white/90"
-              aria-label="Facebook"
-            >
-              <Facebook className="size-5 fill-white" />
-            </a>
-            <a
-              href="https://www.instagram.com/poonglim_official"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/70 transition-colors hover:text-white"
-              aria-label="Instagram"
-            >
-              <Instagram className="size-5" />
-            </a>
-            <a
-              href="https://www.youtube.com/@poonglimfoods"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white transition-colors hover:text-white/90"
-              aria-label="YouTube"
-            >
-              {/* YouTube 공식 로고 스타일 - 둥근 사각형 + 재생 삼각형 */}
-              <svg
-                viewBox="0 0 24 24"
-                className="size-5 fill-current"
-                aria-hidden
-              >
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-              </svg>
-            </a>
-          </div>
+          {/* 모바일·태블릿만: lg에서는 하단 행에서 네비와 같은 선상으로 배치 */}
+          <FooterSnsRow className="pt-8 lg:hidden" />
         </div>
 
-        {/* 우측 영역: 956px - 모바일에서 회사정보/제품정보/고객지원/파트너십 제외 */}
-        <div className="hidden w-full flex-col items-start gap-8 md:flex lg:w-[956px] lg:flex-shrink-0">
-
-            {/* 데스크톱: 4열 메뉴(상단) + 로고(하단, 회사정보와 같은 선상 왼쪽 정렬) */}
-            <div className="flex w-full flex-1 flex-col gap-8 max-md:hidden">
-              <div className="grid grid-cols-4 gap-8">
+        {/* 우측: 네비만 (로고는 그리드 2행에서 전체 열 가운데) */}
+        <div className="hidden w-full min-w-0 flex-col items-start md:flex lg:col-start-2 lg:row-start-1">
+            <div className="flex w-full min-w-0 flex-1 flex-col gap-8 max-md:hidden">
+              <div className="grid w-full min-w-0 grid-cols-4 gap-8">
                 <div>
                   <h4 className="mb-4 font-semibold text-white">회사정보</h4>
                   <ul className="space-y-2">
@@ -256,18 +267,26 @@ export default function Footer() {
                   </ul>
                 </div>
               </div>
-              <div className="mt-auto flex w-full justify-start">
-                <Link to="/" className="inline-block">
-                  <img
-                    src="/home/poonglim-food-footer-logo.png"
-                    alt="Poonglim Foods"
-                    className="h-10 w-auto object-contain"
-                  />
-                </Link>
-              </div>
             </div>
           </div>
+
+        {/* lg~: 2행 전체 폭 — 로고는 max-width 박스 기준 정확히 가운데(우측 열 가운데가 아님), SNS는 좌하단 */}
+        <div className="relative hidden min-h-10 lg:col-span-2 lg:row-start-2 lg:block">
+          <div className="flex items-end">
+            <FooterSnsRow className="relative z-10 w-[min(363px,calc(363*100vw/1920))] shrink-0" />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
+            <Link to="/" className="pointer-events-auto inline-block leading-none">
+              <img
+                src="/home/poonglim-food-footer-logo.png"
+                alt="Poonglim Foods"
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+          </div>
         </div>
+        </div>
+      </div>
     </footer>
   );
 }
