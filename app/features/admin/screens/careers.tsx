@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo } from "react";
+import type { JobPosting } from "~/features/careers/lib/queries.server";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/careers";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -18,14 +19,14 @@ import { Button } from "~/core/components/ui/button";
 import { Badge } from "~/core/components/ui/badge";
 import { MOCK_JOB_POSTINGS } from "../data/careers";
 import type { AdminJobPosting } from "../types/career.types";
-import { getOpenJobPostings } from "~/features/careers/lib/queries.server";
+import { getAllJobPostingsForAdmin } from "~/features/careers/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { jobPostings } from "~/features/careers/schema";
 import { eq } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbJobs = await getOpenJobPostings().catch(() => []);
+  const dbJobs = await getAllJobPostingsForAdmin().catch(() => []);
   return { adminUser, dbJobs };
 }
 
@@ -35,10 +36,19 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = fd.get("intent") as string;
 
   const JOB_TYPE_MAP: Record<string, "full_time" | "part_time" | "contract" | "intern"> = {
-    "정규직": "full_time", "계약직": "contract", "인턴": "intern", "파트타임": "part_time",
+    정규직: "full_time",
+    파트타임: "part_time",
+    계약직: "contract",
+    인턴: "intern",
   };
   const EXP_MAP: Record<string, "entry" | "experienced" | "senior" | "all"> = {
     "신입": "entry", "경력": "experienced", "시니어": "senior", "신입/경력": "all",
+  };
+
+  const formToJobStatus = (s: string): "open" | "closed" | "draft" => {
+    if (s === "모집중") return "open";
+    if (s === "임시저장") return "draft";
+    return "closed";
   };
 
   if (intent === "create") {
@@ -51,10 +61,31 @@ export async function action({ request }: Route.ActionArgs) {
       description: fd.get("description") as string,
       requirements: (fd.get("qualifications") as string) || null,
       benefits: (fd.get("benefits") as string) || null,
-      status: (fd.get("status") as string) === "모집중" ? "open" : "draft",
+      status: formToJobStatus(String(fd.get("status") ?? "")),
       deadline: fd.get("deadline") ? new Date(fd.get("deadline") as string) : null,
       is_active: true,
     });
+    return { success: true };
+  }
+
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false };
+    await db
+      .update(jobPostings)
+      .set({
+        title: fd.get("title") as string,
+        department: (fd.get("position") as string) || "미정",
+        location: (fd.get("location") as string) || "미정",
+        job_type: JOB_TYPE_MAP[fd.get("employmentType") as string] ?? "full_time",
+        experience_level: EXP_MAP[fd.get("experience") as string] ?? "all",
+        description: fd.get("description") as string,
+        requirements: (fd.get("qualifications") as string) || null,
+        benefits: (fd.get("benefits") as string) || null,
+        status: formToJobStatus(String(fd.get("status") ?? "")),
+        deadline: fd.get("deadline") ? new Date(fd.get("deadline") as string) : null,
+      })
+      .where(eq(jobPostings.job_id, id));
     return { success: true };
   }
 
@@ -79,10 +110,51 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
   const fetcher = useFetcher();
 
+  const JOB_TYPE_INV: Record<string, string> = {
+    full_time: "정규직",
+    part_time: "파트타임",
+    contract: "계약직",
+    intern: "인턴",
+  };
+  const EXP_INV: Record<string, string> = {
+    entry: "신입",
+    experienced: "경력",
+    senior: "시니어",
+    all: "신입/경력",
+  };
+
+  const statusToForm = (s: JobPosting["status"]): string => {
+    if (s === "open") return "모집중";
+    if (s === "draft") return "임시저장";
+    return "마감";
+  };
+
+  const editJobInitial = useMemo((): JobFormData | null => {
+    if (!editingJob) return null;
+    const j = editingJob;
+    return {
+      jobId: j.job_id,
+      position: j.department,
+      title: j.title,
+      employmentType: JOB_TYPE_INV[j.job_type] ?? "정규직",
+      location: j.location,
+      experience: EXP_INV[j.experience_level] ?? "신입/경력",
+      status: statusToForm(j.status),
+      deadline: j.deadline ? new Date(j.deadline).toISOString().slice(0, 10) : "",
+      description: j.description,
+      qualifications: j.requirements ?? "",
+      benefits: j.benefits ?? "",
+    };
+  }, [editingJob]);
+
   const JOB_TYPE_MAP: Record<string, AdminJobPosting["jobType"]> = {
-    full_time: "full-time", part_time: "part-time", contract: "contract", intern: "intern",
+    full_time: "full-time",
+    part_time: "part-time",
+    contract: "contract",
+    intern: "intern",
   };
   const EXP_MAP2: Record<string, AdminJobPosting["experienceLevel"]> = {
     entry: "entry", experienced: "experienced", senior: "senior", all: "all",
@@ -96,7 +168,12 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
         jobType: JOB_TYPE_MAP[j.job_type] ?? "full-time",
         experienceLevel: EXP_MAP2[j.experience_level] ?? "all",
         description: j.description,
-        status: (j.status === "open" ? "open" : "closed") as AdminJobPosting["status"],
+        status:
+          j.status === "open"
+            ? "open"
+            : j.status === "draft"
+              ? "draft"
+              : "closed",
         deadline: j.deadline ? new Date(j.deadline).toISOString().slice(0, 10) : "",
         created_at: j.created_at.toISOString(),
         updated_at: j.updated_at.toISOString(),
@@ -114,16 +191,25 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
     );
   }, [sourceJobs, searchQuery]);
 
-  const handleAddJob = (jobData: JobFormData) => {
+  const handleJobSubmit = (jobData: JobFormData) => {
     const fd = new FormData();
-    fd.append("intent", "create");
-    Object.entries(jobData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    if (jobData.jobId != null) {
+      fd.append("intent", "update");
+      fd.append("id", String(jobData.jobId));
+    } else {
+      fd.append("intent", "create");
+    }
+    const { jobId: _jid, ...fields } = jobData;
+    Object.entries(fields).forEach(([k, v]) => fd.append(k, String(v ?? "")));
     fetcher.submit(fd, { method: "POST" });
-    setIsAddModalOpen(false);
   };
 
   const handleEdit = (id: string) => {
-    console.log("Edit job posting:", id);
+    const row = dbJobs.find((j) => String(j.job_id) === id);
+    if (row) {
+      setIsAddModalOpen(false);
+      setEditingJob(row);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -167,7 +253,7 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
       case "full-time":
         return "정규직";
       case "part-time":
-        return "계약직";
+        return "파트타임";
       case "contract":
         return "계약직";
       case "intern":
@@ -222,7 +308,10 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
         </div>
         <Button 
           className="bg-[#204E3A] hover:bg-[#1a3f2e]"
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => {
+            setEditingJob(null);
+            setIsAddModalOpen(true);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           {t("admin.careers.addJob")}
@@ -341,9 +430,16 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
 
       {/* Add Job Modal */}
       <JobAddModal
-        open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        onSubmit={handleAddJob}
+        open={isAddModalOpen || editingJob != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddModalOpen(false);
+            setEditingJob(null);
+          }
+        }}
+        mode={editingJob ? "edit" : "create"}
+        initial={editJobInitial}
+        onSubmit={handleJobSubmit}
       />
     </div>
   );

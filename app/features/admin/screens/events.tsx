@@ -4,25 +4,63 @@
  * 이벤트와 공지를 탭으로 분리하여 각각 관리합니다.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/events";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { EventAddModal, type EventFormData } from "../components/event-add-modal";
+import type { EventCategory } from "../types/event.types";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Card } from "~/core/components/ui/card";
 import { Plus, Search, Edit, Trash2, CalendarRange, Megaphone } from "lucide-react";
-import { getEvents } from "~/features/event/lib/queries.server";
+import {
+  getAllEventsForAdmin,
+  type Event,
+} from "~/features/event/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { events } from "~/features/event/schema";
 import { eq } from "drizzle-orm";
 
+function parseEventBadge(
+  raw: FormDataEntryValue | null,
+): "hot" | "new" | "ending_soon" | "important" | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  if (s === "hot" || s === "new" || s === "ending_soon" || s === "important") return s;
+  return null;
+}
+
+function toInputDate(v: Date | null | undefined): string {
+  if (!v) return "";
+  const d = v instanceof Date ? v : new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+function mapEventToForm(e: Event): EventFormData {
+  const category: EventCategory = e.type === "notice" ? "notice" : "event";
+  return {
+    eventId: e.event_id,
+    title: e.title,
+    category,
+    status: "active",
+    startDate: toInputDate(e.started_at ?? undefined),
+    endDate: toInputDate(e.ended_at ?? undefined),
+    description: e.summary ?? "",
+    content: e.content,
+    image: e.thumbnail_url ?? "",
+    location: e.location ?? "",
+    contact: e.contact ?? "",
+    badge: e.badge ?? "",
+  };
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbEvents = await getEvents().catch(() => []);
+  const dbEvents = await getAllEventsForAdmin().catch(() => []);
   return { adminUser, dbEvents };
 }
 
@@ -39,10 +77,35 @@ export async function action({ request }: Route.ActionArgs) {
       content: fd.get("content") as string,
       summary: (fd.get("description") as string) || null,
       thumbnail_url: (fd.get("image") as string) || null,
+      badge: parseEventBadge(fd.get("badge")),
+      location: (fd.get("location") as string)?.trim() || null,
+      contact: (fd.get("contact") as string)?.trim() || null,
       is_active: true,
       started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
       ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
     });
+    return { success: true };
+  }
+
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false };
+    const typeRaw = fd.get("type") as string;
+    await db
+      .update(events)
+      .set({
+        type: typeRaw === "notice" ? "notice" : "event",
+        title: fd.get("title") as string,
+        content: fd.get("content") as string,
+        summary: (fd.get("description") as string) || null,
+        thumbnail_url: (fd.get("image") as string) || null,
+        badge: parseEventBadge(fd.get("badge")),
+        location: (fd.get("location") as string)?.trim() || null,
+        contact: (fd.get("contact") as string)?.trim() || null,
+        started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
+        ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
+      })
+      .where(eq(events.event_id, id));
     return { success: true };
   }
 
@@ -80,7 +143,18 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   const [activeTab, setActiveTab] = useState<Tab>("event");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const fetcher = useFetcher();
+
+  const editInitial = useMemo(
+    () => (editingEvent ? mapEventToForm(editingEvent) : null),
+    [editingEvent],
+  );
+
+  const closeEventModal = () => {
+    setIsAddModalOpen(false);
+    setEditingEvent(null);
+  };
 
   // 탭에 따라 필터링
   const tabFiltered = dbEvents.filter((e) => e.type === activeTab);
@@ -88,18 +162,26 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     e.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleAddEvent = (eventData: EventFormData) => {
+  const handleSubmitEvent = (eventData: EventFormData) => {
     const fd = new FormData();
-    fd.append("intent", "create");
-    fd.append("type", activeTab);
+    if (eventData.eventId != null) {
+      fd.append("intent", "update");
+      fd.append("id", String(eventData.eventId));
+      fd.append("type", eventData.category === "notice" ? "notice" : "event");
+    } else {
+      fd.append("intent", "create");
+      fd.append("type", activeTab);
+    }
     fd.append("title", eventData.title);
     fd.append("content", eventData.content);
     fd.append("description", eventData.description);
-    if (eventData.image) fd.append("image", eventData.image);
-    if (eventData.startDate) fd.append("startDate", eventData.startDate);
-    if (eventData.endDate) fd.append("endDate", eventData.endDate);
+    fd.append("image", eventData.image ?? "");
+    fd.append("startDate", eventData.startDate ?? "");
+    fd.append("endDate", eventData.endDate ?? "");
+    fd.append("location", eventData.location ?? "");
+    fd.append("contact", eventData.contact ?? "");
+    fd.append("badge", eventData.badge ?? "");
     fetcher.submit(fd, { method: "POST" });
-    setIsAddModalOpen(false);
   };
 
   const handleDelete = (id: number) => {
@@ -129,7 +211,10 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
               </div>
               <Button
                 className="gap-2 bg-[#204E3A] hover:bg-[#1a3f2e]"
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  setEditingEvent(null);
+                  setIsAddModalOpen(true);
+                }}
               >
                 <Plus className="h-4 w-4" />
                 {tabLabel} 추가
@@ -243,7 +328,10 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-gray-500 hover:text-gray-900"
-                          onClick={() => console.log("Edit", event.event_id)}
+                          onClick={() => {
+                            setIsAddModalOpen(false);
+                            setEditingEvent(event);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -272,9 +360,14 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
       </div>
 
       <EventAddModal
-        open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        onSubmit={handleAddEvent}
+        open={isAddModalOpen || editingEvent != null}
+        onOpenChange={(open) => {
+          if (!open) closeEventModal();
+        }}
+        mode={editingEvent ? "edit" : "create"}
+        defaultType={activeTab}
+        initial={editInitial}
+        onSubmit={handleSubmitEvent}
       />
     </div>
   );

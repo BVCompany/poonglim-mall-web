@@ -66,7 +66,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
     <Link
       to={`/recipe/${recipe.id}`}
       viewTransition
-      className="group relative block aspect-square overflow-hidden rounded-2xl bg-gray-200"
+      className="group relative block aspect-square overflow-hidden rounded-[13px] bg-gray-200 md:rounded-2xl"
     >
       {/* 이미지 — 카드 전체 커버 */}
       <img
@@ -80,38 +80,44 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
       {/* 하단 텍스트 영역 */}
-      <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-3">
+      <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5 pt-2 md:px-5 md:pb-5 md:pt-3">
         {/* 제목 — black/20% 배경 + 라운드 */}
         <h3
-          className="mb-2 inline-block rounded-lg px-2.5 py-1 font-bold leading-snug text-white"
+          className="mb-1.5 inline-block rounded-[13px] px-2 py-1 leading-snug text-white md:mb-2 md:rounded-lg md:px-2.5"
           style={{
-            fontSize: "clamp(15px, 1.4vw, 19px)",
+            fontSize: "15px",
+            fontFamily: "NanumSquareRound",
+            fontWeight: 800,
             letterSpacing: "-0.02em",
             backgroundColor: "rgba(0,0,0,0.20)",
           }}
         >
-          {recipe.title}
+          <span className="md:hidden">{recipe.title}</span>
+          <span className="hidden md:inline" style={{ fontSize: "clamp(15px, 1.4vw, 19px)" }}>{recipe.title}</span>
         </h3>
 
         {/* 설명 */}
         <p
-          className="mb-2.5 line-clamp-1 text-white/75"
-          style={{ fontSize: "clamp(11px, 1vw, 13px)", letterSpacing: "-0.01em" }}
+          className="mb-1.5 line-clamp-1 text-white/75 md:mb-2.5"
+          style={{ fontSize: "12px", fontFamily: "NanumSquareRound", fontWeight: 700, letterSpacing: "-0.01em" }}
         >
-          {recipe.description}
+          <span className="md:hidden">{recipe.description}</span>
+          <span className="hidden md:inline" style={{ fontSize: "clamp(11px, 1vw, 13px)" }}>{recipe.description}</span>
         </p>
 
         {/* 시간 | 인분 */}
         {hasMeta && (
-          <div className="flex items-center gap-0 text-white/65" style={{ fontSize: "clamp(11px, 1vw, 13px)" }}>
+          <div className="flex items-center gap-0 text-white/65">
             {recipe.cookTime && recipe.cookTime !== "-" && (
-              <span>{recipe.cookTime}</span>
+              <span style={{ fontSize: "10px", fontFamily: "NanumSquareRound", fontWeight: 400 }}
+                className="md:text-[clamp(11px,1vw,13px)]">{recipe.cookTime}</span>
             )}
             {recipe.cookTime && recipe.cookTime !== "-" && recipe.servings && recipe.servings !== "-" && (
-              <span className="mx-2 h-3 w-px bg-white/40" aria-hidden />
+              <span className="mx-1.5 h-3 w-px bg-white/40 md:mx-2" aria-hidden />
             )}
             {recipe.servings && recipe.servings !== "-" && (
-              <span>{recipe.servings}</span>
+              <span style={{ fontSize: "10px", fontFamily: "NanumSquareRound", fontWeight: 400 }}
+                className="md:text-[clamp(11px,1vw,13px)]">{recipe.servings}</span>
             )}
           </div>
         )}
@@ -208,7 +214,7 @@ export function RecipeGrid({
       <div
         key={animKey}
         style={slideInStyle}
-        className="grid grid-cols-2 gap-4 md:grid-cols-3"
+        className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4"
       >
         {pageItems.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} />

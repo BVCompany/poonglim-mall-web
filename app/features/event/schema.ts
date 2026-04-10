@@ -38,6 +38,8 @@ export const events = pgTable(
     is_active: boolean().notNull().default(true),
     started_at: timestamp(),
     ended_at: timestamp(),
+    location: text(),
+    contact: text(),
     view_count: text().default("0"),
     ...timestamps,
   },

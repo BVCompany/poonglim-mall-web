@@ -1,12 +1,22 @@
 /**
- * FAQ 페이지 — 아코디언 스타일
+ * FAQ 페이지 — 아코디언 스타일 (모바일 시안: Figma MO FAQ)
  */
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Search,
+} from "lucide-react";
 import type { Route } from "./+types/faq";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SectionTitleStar } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 import { getFaqs } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -26,18 +36,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { dbFaqs, pageBanner, activeCategory: category };
 }
 
-/* ── 카테고리 정의 ── */
+/* ── 카테고리 정의 (시안: 전체 보기 · 제품문의 · 주문/배송 · 품질/안전 · 기타) ── */
 const CATEGORIES = [
-  { key: "all",      label: "전체보기" },
-  { key: "product",  label: "제품문의" },
-  { key: "delivery", label: "구매/배송" },
-  { key: "quality",  label: "품질/기타" },
-];
+  { key: "all", label: "전체 보기" },
+  { key: "product", label: "제품문의" },
+  { key: "delivery", label: "주문/배송" },
+  { key: "quality", label: "품질/안전" },
+  { key: "general", label: "기타" },
+] as const;
 
 /* ── 더미 FAQ 데이터 ── */
 const MOCK_FAQS = [
-  { faq_id: 13, category: "product",  question: "액란 제품은 어떻게 냉장보관 하나요?",               answer: "액란 제품은 반드시 냉장(0~10°C)에서 보관해야 합니다. 개봉 후에는 가능한 빨리 사용해 주시고, 미개봉 제품은 제조일부터 14일 이내에 사용해 주세요. 직사광선을 피하고 냉내다 강한 식품과 함께 보관하지 않는 것이 좋습니다.", sort_order: 0, is_active: true },
-  { faq_id: 12, category: "product",  question: "액란 제품은 어떻게 냉장보관 하나요?",               answer: "액란 제품은 반드시 냉장(0~10°C)에서 보관해야 합니다.", sort_order: 1, is_active: true },
+  { faq_id: 13, category: "product",  question: "액란 제품은 어떻게 보관해야 하나요?",               answer: "액란 제품은 반드시 냉장보관(0~10°C)해야 합니다. 개봉 후에는 가능한 빨리 사용하시고, 미개봉 제품은 제조일로부터 14일 이내에 사용해 주세요. 직사광선을 피하고 냄새가 강한 식품과 함께 보관하지 않는 것이 좋습니다.", sort_order: 0, is_active: true },
+  { faq_id: 12, category: "product",  question: "액란 제품은 어떻게 보관해야 하나요?",               answer: "액란 제품은 반드시 냉장(0~10°C)에서 보관해야 합니다.", sort_order: 1, is_active: true },
   { faq_id: 11, category: "product",  question: "백란이 일반 계란과 다른점은 무엇인가요?",            answer: "백란은 껍데기 색이 흰색인 계란으로, 영양 성분은 일반 계란과 동일합니다.", sort_order: 2, is_active: true },
   { faq_id: 10, category: "delivery", question: "풍림 제품의 유통기한은 얼마나 되나요?",              answer: "제품마다 유통기한이 다릅니다. 포장재 표기를 참고해 주세요.", sort_order: 3, is_active: true },
   { faq_id: 9,  category: "delivery", question: "풍림몰에서 주문하면 배송은 얼마나 걸리나요?",       answer: "주문 확인 후 영업일 기준 2~3일 내 배송됩니다.", sort_order: 4, is_active: true },
@@ -53,8 +64,13 @@ const MOCK_FAQS = [
 
 const ITEMS_PER_PAGE = 10;
 
+const nanum = "font-[family-name:var(--font-nanum)]";
+
 export default function FAQScreen({ loaderData }: Route.ComponentProps) {
-  const { dbFaqs, pageBanner, activeCategory } = loaderData;
+  const { dbFaqs, pageBanner, activeCategory: rawCategory } = loaderData;
+  const activeCategory = CATEGORIES.some((c) => c.key === rawCategory)
+    ? rawCategory
+    : "all";
   const [, setSearchParams] = useSearchParams();
   const [openId, setOpenId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -63,11 +79,22 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
 
   const allFaqs = (dbFaqs.length > 0 ? dbFaqs : MOCK_FAQS) as typeof MOCK_FAQS;
 
-  useEffect(() => { setPage(1); setOpenId(null); }, [activeCategory, query]);
+  useEffect(() => {
+    setPage(1);
+    setOpenId(null);
+  }, [activeCategory, query]);
 
-  const filtered = allFaqs.filter((f) =>
-    f.question.toLowerCase().includes(query.toLowerCase()) ||
-    f.answer.toLowerCase().includes(query.toLowerCase()),
+  const byCategory = allFaqs.filter((f) => {
+    if (activeCategory === "all") return true;
+    if (activeCategory === "general")
+      return f.category === "general" || f.category === "b2b";
+    return f.category === activeCategory;
+  });
+
+  const filtered = byCategory.filter(
+    (f) =>
+      f.question.toLowerCase().includes(query.toLowerCase()) ||
+      f.answer.toLowerCase().includes(query.toLowerCase()),
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -75,10 +102,14 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
 
   const handleSearch = () => { setQuery(inputValue); setPage(1); };
 
-  const handleCategoryChange = (key: string) => {
-    setInputValue(""); setQuery(""); setPage(1); setOpenId(null);
+  const handleCategoryChange = (key: (typeof CATEGORIES)[number]["key"]) => {
+    setInputValue("");
+    setQuery("");
+    setPage(1);
+    setOpenId(null);
     setSearchParams((p) => {
-      if (key === "all") p.delete("category"); else p.set("category", key);
+      if (key === "all") p.delete("category");
+      else p.set("category", key);
       return p;
     });
   };
@@ -86,7 +117,7 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
   const toggle = (id: number) => setOpenId((prev) => (prev === id ? null : id));
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
+    <div className="min-h-screen bg-[#F4F2E5]">
       <PageBanner
         imageUrl="/banner/faq_banner_temp.png"
         title="자주 묻는 질문"
@@ -100,19 +131,31 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      <div className="px-4 pt-3 md:hidden">
-        <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">FAQ</h1>
+      <PageContentMax className="pb-[200px] pt-0 md:py-10 md:pb-0">
+        {/* 모바일: 시안 — 녹색 스파클(별) + FAQ (Figma 사각형은 PNG 스파클로 대체) */}
+        <div
+          className={cn(
+            nanum,
+            "mb-0 flex items-center gap-[11px] pt-5 md:hidden",
+          )}
+        >
+          <SectionTitleStar
+            variant="product"
+            className="h-[21px] w-[21px]"
+          />
+          <h1 className="text-[18px] font-extrabold leading-[30px] text-[#1F2121]">
+            FAQ
+          </h1>
         </div>
-      </div>
 
-      {/* ── 본문 ── */}
-      <PageContentMax className="py-6 pb-[200px] md:py-10 md:pb-0">
-
-        {/* ── 필터 탭 + 검색 (검색은 PC만) ── */}
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
+        {/* 필터 탭 + 검색 */}
+        <div className="mb-5 flex flex-col gap-4 max-md:mb-0 md:flex-row md:items-center md:justify-between">
+          <div
+            className={cn(
+              "flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] max-md:px-0 max-md:pb-5 max-md:pt-3.5 md:flex-wrap md:gap-2 md:pb-0 md:pt-0",
+              "[&::-webkit-scrollbar]:hidden",
+            )}
+          >
             {CATEGORIES.map(({ key, label }) => {
               const isActive = key === activeCategory;
               return (
@@ -120,15 +163,22 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
                   key={key}
                   type="button"
                   onClick={() => handleCategoryChange(key)}
-                  className="flex h-[clamp(34px,5vw,43px)] items-center gap-1.5 rounded-full px-3 text-[clamp(13px,2.5vw,18px)] font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
-                  style={{
-                    letterSpacing: "-0.04em",
-                    ...(isActive
-                      ? { backgroundColor: "#02633E", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
-                  }}
+                  className={cn(
+                    nanum,
+                    "inline-flex shrink-0 items-center gap-2 rounded-[40px] px-3 py-1.5 text-xs font-bold leading-[18px] transition-colors",
+                    "md:h-[43px] md:gap-1.5 md:px-5 md:text-lg md:font-medium",
+                    isActive
+                      ? "bg-[#02633E] text-white"
+                      : "bg-[#EAE3C9] text-[#1F2121]",
+                  )}
                 >
-                  {isActive && <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />}
+                  {isActive && (
+                    <Check
+                      className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5"
+                      strokeWidth={2.5}
+                      aria-hidden
+                    />
+                  )}
                   {label}
                 </button>
               );
@@ -156,52 +206,102 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* ── FAQ 아코디언 목록 ── */}
+        {/* FAQ 아코디언 */}
         {paginated.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-400">검색 결과가 없습니다.</div>
+          <div className="py-16 text-center text-sm text-gray-400">
+            검색 결과가 없습니다.
+          </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5 max-md:gap-2.5 md:gap-2">
             {paginated.map((faq) => {
               const isOpen = openId === faq.faq_id;
               return (
                 <div
                   key={faq.faq_id}
-                  className="overflow-hidden rounded-xl transition-all duration-200"
-                  style={{ backgroundColor: isOpen ? "#fff" : "#EAE3C9" }}
+                  className={cn(
+                    "overflow-hidden transition-all duration-200",
+                    "max-md:rounded-[10px] md:rounded-xl",
+                    isOpen ? "bg-white" : "bg-[#EAE3C9]",
+                  )}
                 >
                   <button
+                    type="button"
                     onClick={() => toggle(faq.faq_id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors md:gap-4 md:px-5 md:py-4"
+                    className={cn(
+                      "flex w-full items-center gap-2.5 text-left transition-colors max-md:gap-2.5 max-md:p-5 md:gap-4 md:px-5 md:py-4",
+                      isOpen
+                        ? "max-md:rounded-t-[10px] max-md:bg-white"
+                        : "max-md:rounded-[10px] max-md:bg-[#EAE3C9]",
+                    )}
                   >
                     <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold md:h-7 md:w-7 md:text-xs"
-                      style={{ backgroundColor: "#F0EEDD", color: "#02633E" }}
+                      className={cn(
+                        nanum,
+                        "flex h-[21px] w-[21px] shrink-0 items-center justify-center rounded-full text-sm font-extrabold leading-[21px] text-[#02633E] md:h-7 md:w-7 md:text-xs",
+                      )}
+                      style={{ backgroundColor: "#F0EEDD" }}
                     >
                       Q
                     </span>
-                    <span className="flex-1 text-[13px] font-semibold text-gray-800 md:text-sm">
+                    <span
+                      className={cn(
+                        nanum,
+                        "min-w-0 flex-1 text-sm leading-[21px] text-[#1F2121] md:font-semibold",
+                        isOpen
+                          ? "max-md:font-bold md:text-sm"
+                          : "max-md:font-normal md:text-sm",
+                      )}
+                    >
                       {faq.question}
                     </span>
-                    <ChevronDown
-                      className="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 md:h-5 md:w-5"
-                      style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-                    />
+                    {isOpen ? (
+                      <>
+                        <ChevronUp
+                          className="h-[18px] w-[18px] shrink-0 text-[#02633E] md:hidden"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                        <ChevronDown
+                          className="hidden h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200 md:block"
+                          style={{ transform: "rotate(180deg)" }}
+                          aria-hidden
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown
+                          className="h-[18px] w-[18px] shrink-0 text-[#02633E] md:hidden"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                        <ChevronDown
+                          className="hidden h-5 w-5 shrink-0 text-gray-400 md:block"
+                          aria-hidden
+                        />
+                      </>
+                    )}
                   </button>
 
                   {isOpen && (
-                    <>
-                      <div style={{ borderTop: "2px solid #F5F2EB" }} />
-                      <div className="flex gap-3 px-4 pb-4 pt-3 md:gap-4 md:px-5 md:pb-5 md:pt-4">
-                        <img
-                          src="/faq/answer_icon.png"
-                          alt="A"
-                          className="h-6 w-6 shrink-0 object-contain md:h-7 md:w-7"
-                        />
-                        <p className="flex-1 text-[13px] leading-relaxed text-gray-600 md:text-sm">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    </>
+                    <div
+                      className={cn(
+                        "flex gap-2.5 max-md:gap-2.5 max-md:rounded-b-[10px] max-md:border-t max-md:border-[#EAE3C9] max-md:bg-white max-md:px-5 max-md:pb-[60px] max-md:pt-5 md:gap-4 md:border-t-2 md:border-[#F5F2EB] md:px-5 md:pb-5 md:pt-4",
+                      )}
+                    >
+                      <img
+                        src="/faq/answer_icon.png"
+                        alt=""
+                        className="h-[21px] w-[21px] shrink-0 object-contain md:h-7 md:w-7"
+                      />
+                      <p
+                        className={cn(
+                          nanum,
+                          "min-w-0 flex-1 text-[15px] font-normal leading-[22.5px] text-[#1F2121] md:text-sm md:leading-relaxed md:text-gray-600",
+                        )}
+                      >
+                        {faq.answer}
+                      </p>
+                    </div>
                   )}
                 </div>
               );
@@ -209,67 +309,110 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {/* ── 페이지네이션 ── */}
-        {totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-1.5">
+        {/* 페이지네이션 */}
+        {filtered.length > 0 && (
+        <div className="mt-10 flex items-center justify-center max-md:pt-10 max-md:gap-[30px] md:mt-8 md:gap-1.5">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            aria-label="이전 페이지"
+            className={cn(
+              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
+              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
+              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
+            )}
+          >
+            <ChevronLeft
+              className="h-[18px] w-[18px] md:h-4 md:w-4"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-label={`${p}페이지`}
+              aria-current={p === page ? "page" : undefined}
+              className={cn(
+                "flex items-center justify-center font-[family-name:var(--font-nanum)] transition-colors",
+                "max-md:min-h-12 max-md:min-w-10 max-md:bg-transparent max-md:px-2 max-md:text-base max-md:font-extrabold max-md:leading-[20.8px] max-md:text-[#003F2B]",
+                "md:h-9 md:w-9 md:rounded-full md:text-sm md:font-medium",
+                p === page
+                  ? "md:bg-[#02633E] md:text-white"
+                  : "md:bg-transparent md:text-[#555]",
+              )}
             >
-              <ChevronLeft className="h-4 w-4" />
+              {p}
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors"
-                style={
-                  p === page
-                    ? { backgroundColor: "#02633E", color: "#fff" }
-                    : { backgroundColor: "transparent", color: "#555" }
-                }
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            aria-label="다음 페이지"
+            className={cn(
+              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
+              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
+              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
+            )}
+          >
+            <ChevronRight
+              className="h-[18px] w-[18px] md:h-4 md:w-4"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </button>
+        </div>
         )}
 
-        {/* ── CTA 카드 ── */}
-        <div
-          className="mt-10 rounded-2xl md:mt-12"
-          style={{ backgroundColor: "#fff" }}
-        >
-          <div className="mx-auto flex max-w-[1080px] flex-col items-center gap-4 px-5 py-6 text-center md:flex-row md:justify-between md:gap-6 md:px-8 md:text-left">
-            <div className="flex flex-col items-center gap-3 md:flex-row md:items-center md:gap-5">
-              <img
-                src="/faq/faq_icon.png"
-                alt="FAQ 캐릭터"
-                className="h-12 w-12 shrink-0 object-contain md:h-16 md:w-16"
-              />
-              <div>
-                <p className="text-lg font-bold text-gray-800 md:text-[28px]" style={{ letterSpacing: "-0.04em" }}>원하는 답변을 찾지 못하셨나요?</p>
-                <p className="mt-0.5 text-xs text-gray-500 md:text-[16px]" style={{ letterSpacing: "-0.04em" }}>
-                  상담톡 혹은 이메일 문의를 통해 친절하게 안내해 드리겠습니다.
-                </p>
+        {/* CTA — 모바일: 흰 카드 rounded-[40px] · 문의 버튼 #003F2B */}
+        <div className="mt-10 max-md:mt-0 max-md:px-0 max-md:pb-10 max-md:pt-10 md:mt-12">
+          <div className="mx-auto max-w-[1080px] rounded-[40px] bg-white p-5 md:rounded-2xl md:p-0">
+            <div className="flex flex-col items-center gap-6 text-center md:flex-row md:justify-between md:gap-6 md:px-8 md:py-6 md:text-left">
+              <div className="flex w-full flex-col items-center gap-5 md:flex-row md:items-center md:gap-5">
+                <img
+                  src="/faq/faq_icon.png"
+                  alt=""
+                  className="h-[60px] w-[60px] shrink-0 object-contain md:h-16 md:w-16"
+                />
+                <div className="flex w-full flex-col items-center gap-2.5 md:items-start">
+                  <p
+                    className={cn(
+                      nanum,
+                      "text-lg font-bold leading-[27px] text-[#1F2121] md:text-[28px]",
+                    )}
+                  >
+                    원하는 답변을 찾지 못하셨나요?
+                  </p>
+                  <p
+                    className={cn(
+                      nanum,
+                      "text-center text-sm font-normal uppercase leading-[21px] text-[#1F2121] md:text-left md:text-base md:normal-case md:text-gray-500",
+                    )}
+                  >
+                    문의하기를 통해 질문해 주시면
+                    <br className="md:hidden" />
+                    친절하게 답변드리겠습니다.
+                  </p>
+                </div>
               </div>
+              <Link
+                to="/support/contact"
+                className={cn(
+                  nanum,
+                  "inline-flex w-full items-center justify-center gap-2 rounded-[51px] bg-[#003F2B] px-5 py-5 text-lg font-extrabold leading-[23.4px] text-white transition-all hover:brightness-110 md:w-auto md:shrink-0 md:rounded-full md:py-3 md:text-[22px]",
+                )}
+              >
+                문의하기
+                <ArrowUpRight className="h-4 w-4 shrink-0 md:hidden" strokeWidth={2.25} />
+                <ChevronRight className="hidden h-4 w-4 md:inline" strokeWidth={2.5} />
+              </Link>
             </div>
-            <Link
-              to="/support/contact"
-              className="inline-flex w-full items-center justify-center gap-1 rounded-full px-5 py-2.5 text-sm font-bold text-white transition-all hover:brightness-110 md:w-auto md:shrink-0 md:px-6 md:py-3 md:text-[22px]"
-              style={{ letterSpacing: "-0.02em", backgroundColor: "#02633E" }}
-            >
-              문의하기
-              <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
         </div>
       </PageContentMax>

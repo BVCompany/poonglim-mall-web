@@ -26,6 +26,7 @@ export const news = pgTable(
     source_url: text(),
     is_active: boolean().notNull().default(true),
     published_at: text(),
+    view_count: text().notNull().default("0"),
     ...timestamps,
   },
   (table) => [

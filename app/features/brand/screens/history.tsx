@@ -1,6 +1,7 @@
 /**
  * 연혁 페이지
  */
+import { ChevronDown } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/history";
 import { PageBanner } from "~/core/components/page-banner";
@@ -110,17 +111,25 @@ const MILESTONES = [
   },
 ];
 
+function initialMobileAccordionOpen(): Record<string, boolean> {
+  const next: Record<string, boolean> = {};
+  for (const m of MILESTONES) next[m.id] = true;
+  next["period-2001"] = false;
+  return next;
+}
 
 export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
   const pageBanner = loaderData?.pageBanner ?? null;
   const [activePeriod, setActivePeriod] = useState(MILESTONES[0].id);
+  const [mobileOpen, setMobileOpen] = useState(initialMobileAccordionOpen);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const tabsRef = useRef<HTMLDivElement>(null);
   const isScrollingTo = useRef(false);
 
-  // 스크롤 시 뷰포트 중앙에 가장 가까운 섹션 탭 활성화
+  // 스크롤 시 뷰포트 중앙에 가장 가까운 섹션 탭 활성화 (PC만)
   useEffect(() => {
     function update() {
+      if (typeof window !== "undefined" && window.innerWidth < 768) return;
       if (isScrollingTo.current) return;
       const viewportMid = window.scrollY + window.innerHeight / 2;
       let best = MILESTONES[0].id;
@@ -142,8 +151,9 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
     return () => window.removeEventListener("scroll", update);
   }, []);
 
-  // 활성 탭 버튼을 탭바 컨테이너 내에서만 가로 스크롤 — 페이지 세로 스크롤에 영향 없음
+  // 활성 탭 버튼을 탭바 컨테이너 내에서만 가로 스크롤 (PC만)
   useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return;
     const container = tabsRef.current;
     if (!container) return;
     const activeBtn = container.querySelector<HTMLButtonElement>(`[data-id="${activePeriod}"]`);
@@ -180,32 +190,105 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      {/* 모바일 전용 타이틀 */}
-      <div className="px-4 pt-3 md:hidden">
-        <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">연혁</h1>
+      <PageContentMax className="pt-10 pb-8 md:py-14">
+        {/* ── 모바일: 시안(375) — 히어로 + 타임라인 점 + 아코디언 카드 (#EAE3C9) ── */}
+        <div className="md:hidden">
+          <div className="flex flex-col gap-3 pb-5">
+            <h1
+              className="text-[20px] font-extrabold leading-[26px] tracking-[-0.04em] text-[#003F2B]"
+            >
+              풍림푸드의 발자취
+            </h1>
+            <p className="whitespace-pre-line text-[14px] font-normal leading-[21px] text-[#003F2B]">
+              {`1994년부터 현재까지,\n30년간의 성장 과정과 주요 성과를 소개합니다`}
+            </p>
+          </div>
+          <img
+            src="/intro/history.png"
+            alt="풍림푸드 연혁"
+            className="mb-12 w-full max-w-[343px] rounded-[30px] object-cover"
+          />
+
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute left-[10px] top-6 bottom-6 w-px -translate-x-1/2 bg-[#02633E]/25"
+              aria-hidden
+            />
+            <div className="flex flex-col gap-4">
+              {MILESTONES.map(({ id, period, achievements }, idx) => {
+                const open = mobileOpen[id] ?? true;
+                return (
+                  <div key={id} className="relative flex gap-5">
+                    <div className="relative z-[1] flex w-[21px] shrink-0 justify-center pt-5">
+                      {idx === 0 ? (
+                        <div
+                          className="box-border h-[21px] w-[21px] shrink-0 rounded-full border-[6px] border-white/40 bg-[#F3BC1E]"
+                          aria-hidden
+                        />
+                      ) : (
+                        <div
+                          className="h-2 w-2 shrink-0 rounded-full bg-[#02633E]"
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className="flex flex-col gap-3 rounded-[10px] p-5"
+                        style={{ backgroundColor: "#EAE3C9" }}
+                      >
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          onClick={() =>
+                            setMobileOpen((prev) => ({ ...prev, [id]: !prev[id] }))
+                          }
+                          className="flex w-full items-center gap-2.5 text-left"
+                        >
+                          <span
+                            className="min-w-0 flex-1 text-[18px] font-extrabold leading-[23.4px] text-[#003F2B]"
+                          >
+                            {period}
+                          </span>
+                          <ChevronDown
+                            className={`h-[18px] w-[18px] shrink-0 text-[#02633E] transition-transform duration-200 ${
+                              open ? "rotate-180" : ""
+                            }`}
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                        </button>
+                        {open && (
+                          <p className="text-[14px] font-bold leading-[21px] text-[#003F2B]">
+                            {achievements.map((line, i) => (
+                              <Fragment key={i}>
+                                {i > 0 && <br />}
+                                {line}
+                              </Fragment>
+                            ))}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <PageContentMax className="py-8 md:py-14">
-
-        {/* 풍림푸드의 발자취 */}
-        <div className="mb-8 inline-flex items-center gap-1.5 md:mb-10">
+        {/* PC: 풍림푸드의 발자취 */}
+        <div className="mb-8 hidden items-center gap-1.5 md:mb-10 md:inline-flex">
           <img src="/home/product-star.png" alt="" className="h-4 w-4 object-contain" />
           <span className="text-[18px] font-semibold tracking-[-0.02em] text-[#1F2121] md:text-[clamp(16px,calc(20*100vw/1920),20px)]">
             풍림푸드의 발자취
           </span>
         </div>
 
-        {/* ── 연혁 탭바 ──
-            배경: 앰버/노란색(#F5C842)
-            활성 탭: 흰색 pill 버튼
-            비활성 탭: 어두운 갈색 텍스트
-            탭 사이: 가로 연결선 */}
+        {/* ── 연혁 탭바 (PC만) ── */}
         <div
           ref={tabsRef}
-          className="mb-10 flex items-center overflow-x-auto rounded-xl px-4 py-3 md:mb-14 md:px-6 md:py-4"
+          className="mb-10 hidden items-center overflow-x-auto rounded-xl px-4 py-3 md:mb-14 md:flex md:px-6 md:py-4"
           style={{ backgroundColor: "#F5C842", scrollbarWidth: "none" }}
         >
           {MILESTONES.map(({ id, period }, idx) => {
@@ -222,7 +305,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                       ? {
                           backgroundColor: "#fff",
                           color: "#1F2121",
-                          padding: `8px ${pc1920(14, 22)}`,
+                          padding: "8px 22px",
                           boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                         }
                       : { color: "#fff", padding: "8px 14px" }
@@ -255,32 +338,6 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                   else sectionRefs.current.delete(id);
                 }}
               >
-                {/* 모바일 레이아웃 */}
-                <div className="flex flex-col gap-4 md:hidden">
-                  <h2
-                    className="text-[24px] font-bold"
-                    style={{ color: "#02633E", letterSpacing: "-0.04em" }}
-                  >
-                    {period}
-                  </h2>
-                  <ul className="space-y-2.5">
-                    {achievements.map((a, i) => (
-                      <li key={i} className="flex items-start gap-2.5">
-                        <span
-                          className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: "#02633E" }}
-                        />
-                        <span className="text-sm leading-relaxed" style={{ color: "#02633E" }}>{a}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {image && (
-                    <div className="overflow-hidden rounded-xl" style={{ maxWidth: "100%", height: 220 }}>
-                      <img src={image} alt={`${period} 연혁`} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                </div>
-
                 {/* PC 레이아웃 — dot 컬럼이 정중앙 */}
                 <div className="hidden md:flex">
                   {/* 연도 — flex-1, 우정렬 */}
@@ -355,11 +412,6 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                   </div>
                   <div className="flex-1" />
                 </div>
-              )}
-
-              {/* 모바일 섹션 구분선 */}
-              {idx < MILESTONES.length - 1 && (
-                <div className="my-6 border-b border-gray-200 md:hidden" />
               )}
             </Fragment>
           ))}

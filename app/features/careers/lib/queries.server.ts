@@ -18,6 +18,11 @@ export async function getOpenJobPostings() {
     .orderBy(desc(jobPostings.created_at));
 }
 
+/** 관리자용: 상태 무관 전체 */
+export async function getAllJobPostingsForAdmin() {
+  return db.select().from(jobPostings).orderBy(desc(jobPostings.created_at));
+}
+
 /** 단건 */
 export async function getJobPostingById(id: number) {
   const rows = await db

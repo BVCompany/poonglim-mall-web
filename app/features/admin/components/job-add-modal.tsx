@@ -27,9 +27,12 @@ interface JobAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (job: JobFormData) => void;
+  mode?: "create" | "edit";
+  initial?: JobFormData | null;
 }
 
 export interface JobFormData {
+  jobId?: number;
   position: string;
   title: string;
   employmentType: string;
@@ -44,6 +47,7 @@ export interface JobFormData {
 
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: "정규직", label: "정규직" },
+  { value: "파트타임", label: "파트타임" },
   { value: "계약직", label: "계약직" },
   { value: "인턴", label: "인턴" },
 ];
@@ -51,14 +55,11 @@ const EMPLOYMENT_TYPE_OPTIONS = [
 const STATUS_OPTIONS = [
   { value: "모집중", label: "모집중" },
   { value: "마감", label: "마감" },
+  { value: "임시저장", label: "임시저장" },
 ];
 
-export function JobAddModal({
-  open,
-  onOpenChange,
-  onSubmit,
-}: JobAddModalProps) {
-  const [formData, setFormData] = useState<JobFormData>({
+function emptyJobForm(): JobFormData {
+  return {
     position: "",
     title: "",
     employmentType: "정규직",
@@ -69,29 +70,41 @@ export function JobAddModal({
     description: "",
     qualifications: "",
     benefits: "",
-  });
+  };
+}
 
-  // Reset form when modal closes
+export function JobAddModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  mode = "create",
+  initial = null,
+}: JobAddModalProps) {
+  const [formData, setFormData] = useState<JobFormData>(emptyJobForm);
+
   useEffect(() => {
     if (!open) {
-      setFormData({
-        position: "",
-        title: "",
-        employmentType: "정규직",
-        location: "",
-        experience: "",
-        status: "모집중",
-        deadline: "",
-        description: "",
-        qualifications: "",
-        benefits: "",
-      });
+      setFormData(emptyJobForm());
+      return;
     }
-  }, [open]);
+    if (mode === "edit" && initial) {
+      setFormData({
+        ...emptyJobForm(),
+        ...initial,
+        deadline: initial.deadline ?? "",
+        qualifications: initial.qualifications ?? "",
+        benefits: initial.benefits ?? "",
+      });
+      return;
+    }
+    if (mode === "create") {
+      setFormData(emptyJobForm());
+    }
+  }, [open, mode, initial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, jobId: formData.jobId });
     onOpenChange(false);
   };
 
@@ -103,10 +116,16 @@ export function JobAddModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 채용 공고 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {mode === "edit" ? "채용 공고 수정" : "새 채용 공고 추가"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form
+          key={mode === "edit" ? formData.jobId ?? "e" : "n"}
+          onSubmit={handleSubmit}
+          className="space-y-6 mt-4"
+        >
           {/* Job Position Fields */}
           <div className="space-y-4">
             {/* Position Name (Full Width) */}
@@ -287,7 +306,7 @@ export function JobAddModal({
               type="submit"
               className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
             >
-              추가
+              {mode === "edit" ? "저장" : "추가"}
             </Button>
             <Button
               type="button"

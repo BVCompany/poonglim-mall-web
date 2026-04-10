@@ -233,6 +233,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                         <span>
                           {item.published_at ?? item.created_at.toISOString().slice(0, 10)}
                           {item.source && ` · ${item.source}`}
+                          {` · 조회 ${Number.parseInt(String(item.view_count ?? "0"), 10).toLocaleString("ko-KR")}`}
                         </span>
                         {item.source_url && (
                           <a

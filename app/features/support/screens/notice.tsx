@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, Check, Search } from "lucide-react";
 import type { Route } from "./+types/notice";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SectionTitleStar } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -29,7 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 /* ── 더미 데이터 ── */
 const MOCK_NOTICES = [
-  { notice_id: 12, category: "공지",   title: "2026년 설 연휴 배송 안내",                 tags: ["공고"],              created_at: "2026-02-18", view_count: 245, is_pinned: true,  is_active: true, content: "", author: "풍림푸드" },
+  { notice_id: 12, category: "안내",   title: "2026년 설 연휴 배송 안내",                 tags: ["중요"],              created_at: "2026-02-18", view_count: 245, is_pinned: true,  is_active: true, content: "", author: "풍림푸드" },
   { notice_id: 11, category: "안내",   title: "풍림푸드 홈페이지 리뉴얼 안내",           tags: ["회사소개"],           created_at: "2026-02-16", view_count: 312, is_pinned: true,  is_active: true, content: "", author: "풍림푸드" },
   { notice_id: 10, category: "안내",   title: "2026년 1월 가격 변동 안내",               tags: ["안내"],               created_at: "2026-02-14", view_count: 189, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
   { notice_id: 9,  category: "안내",   title: "겨울철 배송 지연 안내",                   tags: ["안내"],               created_at: "2026-02-10", view_count: 215, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
@@ -43,7 +45,16 @@ const MOCK_NOTICES = [
   { notice_id: 1,  category: "공지",   title: "풍림푸드 B2B 신규 서비스 런칭 안내", tags: ["B2B"],                created_at: "2026-01-10", view_count: 176, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
 ];
 
-const CATEGORIES = ["전체보기", "공지", "안내", "외식업계"];
+const CATEGORIES = ["전체보기", "공지", "안내", "외식업계"] as const;
+
+/** 모바일 시안 라벨(URL·로직 값은 `CATEGORIES` 유지) */
+const CATEGORY_DISPLAY: Record<string, string> = {
+  전체보기: "전체 보기",
+  공지: "공지",
+  안내: "안내",
+  외식업계: "외식업체",
+};
+
 const ITEMS_PER_PAGE = 9;
 
 export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
@@ -111,8 +122,12 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     return notice.tags?.[0] || "공지";
   };
 
+  const firstPinnedRowIndexInPage = paginated.findIndex(
+    (n) => getPinLabel(n) != null,
+  );
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
+    <div className="min-h-screen bg-[#F4F2E5]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="공지사항"
@@ -126,41 +141,53 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      {/* 모바일 전용 상단 타이틀 */}
-      <div className="px-4 pt-3 md:hidden">
-        <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">공지사항</h1>
-        </div>
+      {/* 모바일 전용 상단 타이틀 (Figma 375) */}
+      <div className="flex items-center gap-[11px] px-4 pt-5 md:hidden">
+        <SectionTitleStar className="h-[21px] w-[21px]" />
+        <h1 className="font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[30px] text-[#1F2121]">
+          공지사항
+        </h1>
       </div>
 
       {/* ── 본문 ── */}
-      <PageContentMax className="py-6 md:py-10">
+      <PageContentMax className="max-md:pt-0 py-6 md:py-10">
 
-        {/* ── 필터 탭 + 검색 ── */}
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => {
-              const isActive = cat === activeCategory;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className="flex h-[clamp(34px,5vw,43px)] items-center gap-1.5 rounded-full px-3 text-[clamp(13px,2.5vw,18px)] font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
-                  style={{
-                    letterSpacing: "-0.04em",
-                    ...(isActive
-                      ? { backgroundColor: "#02633E", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
-                  }}
-                >
-                  {isActive && (
-                    <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />
-                  )}
-                  {cat}
-                </button>
-              );
-            })}
+        {/* ── 필터 탭 + 검색 (모바일 시안: 열 래퍼 pt-14 pb-20만 — 하단 여백은 pb-5에 맡기고 mb-5와 이중 적용하지 않음) ── */}
+        <div className="mb-0 flex flex-col gap-4 md:mb-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
+            <div className="flex w-full flex-wrap items-center gap-[10px] md:max-w-none md:gap-2">
+              {CATEGORIES.map((cat) => {
+                const isActive = cat === activeCategory;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategoryChange(cat)}
+                    type="button"
+                    className={cn(
+                      "flex items-center rounded-[40px] px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors md:h-[43px] md:px-5 md:text-lg md:font-medium",
+                      isActive && "gap-2 md:gap-1.5",
+                    )}
+                    style={{
+                      letterSpacing: "-0.04em",
+                      ...(isActive
+                        ? { backgroundColor: "#02633E", color: "#fff" }
+                        : {
+                            backgroundColor: "#EAE3C9",
+                            color: "#1F2121",
+                          }),
+                    }}
+                  >
+                    {isActive && (
+                      <Check
+                        className="h-3 w-3 shrink-0 text-white md:h-3.5 md:w-3.5"
+                        strokeWidth={2.5}
+                      />
+                    )}
+                    {CATEGORY_DISPLAY[cat] ?? cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -189,42 +216,69 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             검색 결과가 없습니다.
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {paginated.map((notice) => {
+          <div className="flex flex-col gap-2.5 md:gap-2">
+            {paginated.map((notice, rowIndex) => {
               const pinLabel = getPinLabel(notice);
               const displayNum = regularRankMap.get(notice.notice_id) ?? 0;
+              const isFirstPinnedOnPage =
+                pinLabel != null &&
+                firstPinnedRowIndexInPage >= 0 &&
+                rowIndex === firstPinnedRowIndexInPage;
+
+              const metaBadgeClass =
+                "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-1.5 text-center text-[11px] font-medium leading-[11px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
+
               return (
                 <Fragment key={notice.notice_id}>
-                  {/* 모바일 카드 */}
+                  {/* 모바일 카드 — Figma: 카드 #EAE3C9 r10 · 내부 p10 gap10 · 고정 첫 줄만 badge–제목 gap12 · 메타 날짜·조회수 칸 너비 구분 */}
                   <Link
                     to={`/support/notice/${notice.notice_id}`}
-                    className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:hidden"
-                    style={{ backgroundColor: "#F0EEDD" }}
+                    className="group flex rounded-[10px] bg-[#EAE3C9] transition-all hover:brightness-[0.98] md:hidden"
                   >
-                    <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
+                    <div className="flex w-full min-w-0 flex-1 flex-col gap-2.5 p-2.5">
                       {pinLabel ? (
-                        <span
-                          className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                        <div
+                          className={cn(
+                            "flex items-center",
+                            isFirstPinnedOnPage
+                              ? "gap-3"
+                              : "w-full min-w-0 self-stretch gap-2.5",
+                          )}
                         >
-                          {pinLabel}
-                        </span>
+                          <span className={metaBadgeClass}>{pinLabel}</span>
+                          <span className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121] transition-colors group-hover:text-[#02633E]">
+                            {notice.title}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-xs text-gray-500">{displayNum}</span>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="flex w-[43px] shrink-0 justify-center font-[family-name:var(--font-nanum)] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
+                            {displayNum}
+                          </div>
+                          <span className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121] transition-colors group-hover:text-[#02633E]">
+                            {notice.title}
+                          </span>
+                        </div>
                       )}
-                      <span
-                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                      >
-                        {notice.category}
-                      </span>
-                    </div>
-                    <span className="truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
-                      {notice.title}
-                    </span>
-                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                      <span>{formatDate(notice.created_at)}</span>
-                      <span>{notice.view_count}</span>
+                      <div className="flex w-full min-w-0 items-center gap-2.5">
+                        <span className={metaBadgeClass}>{notice.category}</span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-center font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121]",
+                            isFirstPinnedOnPage ? "w-20" : "w-16",
+                          )}
+                        >
+                          {formatDate(notice.created_at)}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-center font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121] tabular-nums",
+                            isFirstPinnedOnPage ? "w-[65px]" : "min-w-[21px]",
+                          )}
+                        >
+                          {notice.view_count}
+                        </span>
+                      </div>
                     </div>
                   </Link>
                   {/* PC 테이블형 행 */}
@@ -267,37 +321,64 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {/* ── 페이지네이션 ── */}
-        <div className="mt-10 flex items-center justify-center gap-1.5">
+        {/* ── 페이지네이션 (모바일 시안: pt-40 상당 간격 · gap-30 · 48 흰 원 + 녹색 2px 쉐브론 · 페이지 숫자는 원 없이 #003F2B 16/800) ── */}
+        <div className="mt-10 flex items-center justify-center max-md:gap-[30px] md:gap-1.5">
           <button
+            type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            aria-label="이전 페이지"
+            className={cn(
+              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
+              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
+              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
+            )}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft
+              className="h-[18px] w-[18px] md:h-4 md:w-4"
+              strokeWidth={2}
+              aria-hidden
+            />
           </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <button
               key={p}
+              type="button"
               onClick={() => setPage(p)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors"
-              style={
+              aria-label={`${p}페이지`}
+              aria-current={p === page ? "page" : undefined}
+              className={cn(
+                "flex items-center justify-center font-[family-name:var(--font-nanum)] transition-colors",
+                /* 모바일: 시안과 같이 숫자만, 16px / 800 / #003F2B */
+                "max-md:min-h-12 max-md:min-w-10 max-md:bg-transparent max-md:px-2 max-md:text-base max-md:leading-[20.8px] max-md:font-extrabold max-md:text-[#003F2B]",
+                /* 데스크탑: 기존 원형 버튼 */
+                "md:h-9 md:w-9 md:rounded-full md:text-sm md:font-medium",
                 p === page
-                  ? { backgroundColor: "#02633E", color: "#fff" }
-                  : { backgroundColor: "transparent", color: "#555" }
-              }
+                  ? "md:bg-[#02633E] md:text-white"
+                  : "md:bg-transparent md:text-[#555]",
+              )}
             >
               {p}
             </button>
           ))}
 
           <button
+            type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            aria-label="다음 페이지"
+            className={cn(
+              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
+              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
+              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
+            )}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight
+              className="h-[18px] w-[18px] md:h-4 md:w-4"
+              strokeWidth={2}
+              aria-hidden
+            />
           </button>
         </div>
       </PageContentMax>

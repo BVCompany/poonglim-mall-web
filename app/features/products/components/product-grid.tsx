@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Search, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 8; // 한 페이지당 표시 제품 수
@@ -199,21 +199,21 @@ export function ProductGrid({
 
 function ProductCard({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
-  const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
+  const navigate = useNavigate();
 
   const badges: string[] = [];
   if (product.badge && product.badge !== "B2B") badges.push(product.badge);
   if (product.isB2b) badges.push("B2B");
 
   return (
-    /* 카드 루트 — relative, group: 오버레이가 카드 전체를 덮음 */
+    /* 카드 루트 — 클릭 시 상세 페이지로 바로 이동 */
     <div
-      className="group relative overflow-hidden rounded-xl bg-[#EDEBE4] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-2xl"
-      onClick={() => setIsMobileOverlayOpen(true)}
+      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-2xl md:bg-[#EDEBE4]"
+      onClick={() => navigate(`/products/${product.id}`, { viewTransition: true })}
     >
 
       {/* ① 이미지 영역 */}
-      <div className="relative aspect-square overflow-hidden bg-[#EDEBE4]">
+      <div className="relative aspect-square overflow-hidden bg-[#EAE3C9] md:bg-[#EDEBE4]">
         <div className="absolute inset-0 flex items-center justify-center p-3 md:p-6">
           <img
             src={imgError ? "/home/premium_egg.png" : product.image}
@@ -236,25 +236,54 @@ function ProductCard({ product }: { product: Product }) {
             ))}
           </div>
         )}
+
+        {/* 풍림몰 badge — 모바일 우상단 상시 표시 */}
+        <div className="absolute right-2 top-2 z-10 md:hidden">
+          {product.shopUrl ? (
+            <a
+              href={product.shopUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-[18px] items-center gap-0.5 rounded-full bg-[#32AF32] px-2 text-[9px] font-bold text-white"
+              style={{ fontFamily: "NanumSquareRound" }}
+            >
+              풍림몰
+              <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
+            </a>
+          ) : (
+            <div
+              className="flex h-[18px] items-center gap-0.5 rounded-full bg-[#32AF32]/60 px-2 text-[9px] font-bold text-white/80"
+              style={{ fontFamily: "NanumSquareRound" }}
+            >
+              풍림몰
+              <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ② 텍스트 영역 (~134px) */}
-      <div className="px-2.5 pb-3.5 pt-2.5 md:px-4 md:pb-5 md:pt-4">
+      {/* ② 텍스트 영역 */}
+      <div className="px-2.5 pb-2.5 pt-2.5 md:px-4 md:pb-5 md:pt-4">
         <h3
-          className="mb-1 line-clamp-2 text-[13px] font-extrabold leading-[1.25] tracking-[-0.02em] text-gray-900 md:text-[20px] md:leading-snug md:tracking-[-0.015em]"
+          className="mb-1 line-clamp-2 leading-[1.3] tracking-[-0.02em] text-gray-900 md:leading-snug md:tracking-[-0.015em]"
+          style={{ fontSize: "15px", fontFamily: "NanumSquareRound", fontWeight: 800 }}
         >
-          {product.name}
+          <span className="md:hidden">{product.name}</span>
+          <span className="hidden text-[20px] md:inline">{product.name}</span>
         </h3>
         <p
-          className="mb-2 line-clamp-1 text-[11px] font-normal tracking-[-0.02em] text-gray-500 md:mb-2.5 md:text-[16px] md:tracking-[-0.015em]"
+          className="mb-2 line-clamp-1 tracking-[-0.02em] text-gray-500 md:mb-2.5 md:tracking-[-0.015em]"
+          style={{ fontSize: "12px", fontFamily: "NanumSquareRound", fontWeight: 400 }}
         >
-          {product.description}
+          <span className="md:hidden">{product.description}</span>
+          <span className="hidden text-[16px] md:inline">{product.description}</span>
         </p>
         <div className="flex flex-wrap gap-1">
           {product.tags.slice(0, 3).map((tag, i) => (
             <span
               key={i}
-              className="rounded-full bg-[#f4f2e5] px-2 py-0.5 text-[10px] font-medium tracking-[-0.02em] text-[#555] md:text-[12px]"
+              className="rounded-full bg-[#F4F2E5] px-2 py-0.5 text-[10px] font-medium tracking-[-0.02em] text-[#555] md:text-[12px]"
             >
               {tag.startsWith("#") ? tag : `#${tag}`}
             </span>
@@ -297,43 +326,6 @@ function ProductCard({ product }: { product: Product }) {
           </div>
         )}
       </div>
-
-      {/* 모바일: 카드 탭 시 액션 오버레이 표시 */}
-      {isMobileOverlayOpen && (
-        <div
-          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/45 md:hidden"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMobileOverlayOpen(false);
-          }}
-        >
-          <Link
-            to={`/products/${product.id}`}
-            className="flex h-9 w-[120px] items-center justify-center rounded-full bg-[#ffd55d] text-[12px] font-bold text-[#1a1a1a]"
-            viewTransition
-            onClick={(e) => e.stopPropagation()}
-          >
-            상세보기
-          </Link>
-          {product.shopUrl ? (
-            <a
-              href={product.shopUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-9 w-[120px] items-center justify-center gap-0.5 rounded-full bg-[#2DB96B] text-[12px] font-bold text-white"
-              onClick={(e) => e.stopPropagation()}
-            >
-              풍림몰
-              <ArrowUpRight className="h-4 w-4" strokeWidth={2.5} />
-            </a>
-          ) : (
-            <div className="flex h-9 w-[120px] items-center justify-center gap-0.5 rounded-full bg-[#2DB96B55] text-[12px] font-bold text-white/60">
-              풍림몰
-              <ArrowUpRight className="h-4 w-4 opacity-50" strokeWidth={2.5} />
-            </div>
-          )}
-        </div>
-      )}
 
     </div>
   );

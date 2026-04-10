@@ -121,6 +121,7 @@ export default [
 
     // Media Routes (홍보센터)
     route("/media/news", "features/media/screens/news.tsx"),
+    route("/media/news/:newsId", "features/media/screens/news-detail.tsx"),
 
     // Event Routes (이벤트)
     route("/event", "features/event/screens/event.tsx"),
@@ -138,6 +139,7 @@ export default [
       route("/notice", "features/support/screens/notice.tsx"),
       route("/notice/:id", "features/support/screens/notice-detail.tsx"),
       route("/resources", "features/support/screens/resources.tsx"),
+      route("/resources/:id", "features/support/screens/resources-detail.tsx"),
       route("/safety-test", "features/support/screens/safety-test.tsx"),
       route(
         "/grade-certificate",
@@ -232,6 +234,9 @@ export default [
     ...prefix("/media", [
       route("/news", "features/admin/screens/media-news.tsx"),
       route("/catalog", "features/admin/screens/media-catalog.tsx"),
+    ]),
+    ...prefix("/support", [
+      route("/resources", "features/admin/screens/support-resources.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

@@ -8,7 +8,8 @@ import { Check, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Route } from "./+types/event";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { getEventsOnly } from "../lib/queries.server";
+import { cn } from "~/core/lib/utils";
+import { getEvents } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export const meta: Route.MetaFunction = () => [
@@ -17,73 +18,154 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const status = url.searchParams.get("status") ?? "전체보기";
+  const tab = url.searchParams.get("tab") ?? "전체보기";
 
   const [dbEvents, pageBanner] = await Promise.all([
-    getEventsOnly().catch(() => []),
+    getEvents().catch(() => []),
     getPageBanner("event").catch(() => null),
   ]);
 
-  return { dbEvents, pageBanner, activeStatus: status };
+  return { dbEvents, pageBanner, activeTab: tab };
 }
 
+type MockEventRow = {
+  event_id: number;
+  type: "event" | "notice";
+  badge: "hot" | "new" | "ending_soon" | "important" | null;
+  title: string;
+  summary: string;
+  thumbnail_url: string | null;
+  started_at: Date | null;
+  ended_at: Date | null;
+  is_active: boolean;
+  created_at: Date;
+  view_count: string;
+  content: string;
+  /** 모바일 시안 — 장소 칩 (`events.location`, 없으면 "온라인") */
+  location?: string | null;
+};
+
 /* ── 더미 데이터 ── */
-const MOCK_EVENTS = [
+const MOCK_EVENTS: MockEventRow[] = [
   {
     event_id: 4,
-    type: "event" as const,
-    badge: "hot" as const,
+    type: "event",
+    badge: "hot",
     title: "신제품 출시 기념 할인 이벤트",
     summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null as string | null,
-    started_at: new Date("2024-12-01"),
-    ended_at: new Date("2024-12-31"),
+    thumbnail_url: null,
+    started_at: new Date("2026-02-18"),
+    ended_at: new Date("2026-02-24"),
     is_active: true,
-    created_at: new Date("2024-11-25"),
+    created_at: new Date("2026-02-10"),
     view_count: "1250",
     content: "",
+    location: "온라인",
+  },
+  {
+    event_id: 5,
+    type: "event",
+    badge: null,
+    title: "신제품 출시 기념 할인 이벤트",
+    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
+    thumbnail_url: null,
+    started_at: new Date("2026-02-18"),
+    ended_at: new Date("2026-02-24"),
+    is_active: true,
+    created_at: new Date("2026-02-11"),
+    view_count: "800",
+    content: "",
+    location: "서울 코엑스",
   },
   {
     event_id: 3,
-    type: "event" as const,
-    badge: null as null,
+    type: "event",
+    badge: null,
     title: "강남 팝업스토어 오픈",
     summary: "풍림푸드 제품을 직접 체험하고 구매할 수 있는 팝업스토어가 강남에 오픈합니다.",
-    thumbnail_url: null as string | null,
-    started_at: new Date("2025-01-15"),
-    ended_at: new Date("2025-01-28"),
+    thumbnail_url: null,
+    started_at: new Date("2026-06-01"),
+    ended_at: new Date("2026-06-15"),
     is_active: true,
-    created_at: new Date("2025-01-10"),
+    created_at: new Date("2026-05-20"),
     view_count: "890",
     content: "",
+    location: "서울 강남구 가로수길",
   },
   {
     event_id: 2,
-    type: "event" as const,
-    badge: "new" as const,
+    type: "event",
+    badge: "new",
     title: "월간 레시피 콘테스트",
-    summary: "풍림푸드 제품을 활용한 창의적인 레시피를 공모합니다.",
-    thumbnail_url: null as string | null,
-    started_at: new Date("2024-12-01"),
-    ended_at: new Date("2024-12-31"),
+    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
+    thumbnail_url: null,
+    started_at: new Date("2026-02-18"),
+    ended_at: new Date("2026-02-24"),
     is_active: true,
-    created_at: new Date("2024-11-20"),
+    created_at: new Date("2026-02-12"),
     view_count: "342",
     content: "",
+    location: "온라인",
+  },
+  {
+    event_id: 6,
+    type: "event",
+    badge: null,
+    title: "월간 레시피 콘테스트",
+    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
+    thumbnail_url: null,
+    started_at: new Date("2026-02-18"),
+    ended_at: new Date("2026-02-24"),
+    is_active: true,
+    created_at: new Date("2026-02-13"),
+    view_count: "200",
+    content: "",
+    location: "온라인",
   },
   {
     event_id: 1,
-    type: "event" as const,
-    badge: null as null,
-    title: "B2B 파트너 초청 세미나",
-    summary: "외식업체 파트너를 위한 신제품 소개 및 활용법 세미나",
-    thumbnail_url: null as string | null,
-    started_at: new Date("2024-11-15"),
-    ended_at: new Date("2024-11-15"),
+    type: "event",
+    badge: null,
+    title: "신제품 출시 기념 할인 이벤트",
+    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
+    thumbnail_url: null,
+    started_at: new Date("2025-01-01"),
+    ended_at: new Date("2025-01-20"),
     is_active: true,
-    created_at: new Date("2024-11-01"),
+    created_at: new Date("2024-12-01"),
     view_count: "150",
     content: "",
+    location: "온라인",
+  },
+  {
+    event_id: 101,
+    type: "notice",
+    badge: null,
+    title: "시스템 점검 공지",
+    summary: "원활한 서비스를 위한 시스템 점검 일정을 안내드립니다.",
+    thumbnail_url: null,
+    started_at: new Date("2026-03-01"),
+    ended_at: new Date("2026-03-01"),
+    is_active: true,
+    created_at: new Date("2026-02-20"),
+    view_count: "50",
+    content: "",
+    location: "온라인",
+  },
+  {
+    event_id: 102,
+    type: "notice",
+    badge: null,
+    title: "배송 일정 변경 안내",
+    summary: "명절 배송 마감 및 출고 일정을 안내드립니다.",
+    thumbnail_url: null,
+    started_at: new Date("2026-02-01"),
+    ended_at: new Date("2026-02-28"),
+    is_active: true,
+    created_at: new Date("2026-01-28"),
+    view_count: "120",
+    content: "",
+    location: "온라인",
   },
 ];
 
@@ -94,8 +176,24 @@ const BADGE_LABEL: Record<string, string> = {
   important: "중요",
 };
 
-const STATUSES = ["전체보기", "진행중", "예정", "종료"];
+/** 모바일 시안 — 상단 필터 탭 */
+const TABS = ["전체보기", "공지", "안내", "이벤트"] as const;
+
 const ITEMS_PER_PAGE = 9;
+
+const nanum = "font-[family-name:var(--font-nanum)]";
+
+function matchesTab(
+  type: "event" | "notice",
+  title: string,
+  tab: string,
+): boolean {
+  if (tab === "전체보기") return true;
+  if (tab === "이벤트") return type === "event";
+  if (tab === "공지") return type === "notice" && !title.includes("안내");
+  if (tab === "안내") return type === "notice" && title.includes("안내");
+  return true;
+}
 
 function getEventStatus(started_at: Date | null, ended_at: Date | null): "진행중" | "예정" | "종료" {
   const now = new Date();
@@ -120,65 +218,106 @@ function formatPeriod(started_at: Date | null, ended_at: Date | null) {
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   진행중: { bg: "#02633E", color: "#fff" },
-  예정:   { bg: "#C9A84C", color: "#fff" },
-  종료:   { bg: "#AAAAAA", color: "#fff" },
+  예정: { bg: "#C9A84C", color: "#fff" },
+  종료: { bg: "#AAAAAA", color: "#fff" },
 };
 
+/** 썸네일 좌상단 상태 뱃지 — 시안 색상 */
+function ThumbnailStatusBadge({ status }: { status: "진행중" | "예정" | "종료" }) {
+  if (status === "진행중") {
+    return (
+      <span
+        className="inline-flex rounded-full px-3 py-2 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
+        style={{ backgroundColor: "#32AF32", lineHeight: "12px" }}
+      >
+        진행중
+      </span>
+    );
+  }
+  if (status === "예정") {
+    return (
+      <span
+        className="inline-flex rounded-full px-3 py-2 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
+        style={{ backgroundColor: "#F3BC1E", lineHeight: "12px" }}
+      >
+        예정
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex rounded-full px-3 py-2 text-[10px] font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
+      style={{ backgroundColor: "#003F2B", lineHeight: "10px" }}
+    >
+      종료
+    </span>
+  );
+}
+
 export default function EventScreen({ loaderData }: Route.ComponentProps) {
-  const { dbEvents, pageBanner, activeStatus } = loaderData;
+  const { dbEvents, pageBanner, activeTab } = loaderData;
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [page, setPage] = useState(1);
 
-  const source = (dbEvents.length > 0 ? dbEvents : MOCK_EVENTS) as typeof MOCK_EVENTS;
+  const source = (dbEvents.length > 0 ? dbEvents : MOCK_EVENTS) as MockEventRow[];
 
-  const normalized = source.map((e, i) => ({
-    event_id: Number(e.event_id ?? i + 1),
-    title: String(e.title ?? ""),
-    badge: e.badge ?? null,
-    thumbnail_url: e.thumbnail_url ?? null,
-    started_at: e.started_at ? new Date(e.started_at) : null,
-    ended_at: e.ended_at ? new Date(e.ended_at) : null,
-    created_at: new Date(e.created_at),
-    view_count: String(e.view_count ?? "0"),
-    status: getEventStatus(
-      e.started_at ? new Date(e.started_at) : null,
-      e.ended_at ? new Date(e.ended_at) : null,
-    ),
-  }));
+  const normalized = source.map((e, i) => {
+    const started = e.started_at ? new Date(e.started_at) : null;
+    const ended = e.ended_at ? new Date(e.ended_at) : null;
+    return {
+      event_id: Number(e.event_id ?? i + 1),
+      title: String(e.title ?? ""),
+      type: (e.type === "notice" ? "notice" : "event") as "event" | "notice",
+      summary: String(e.summary ?? ""),
+      badge: e.badge ?? null,
+      thumbnail_url: e.thumbnail_url ?? null,
+      started_at: started,
+      ended_at: ended,
+      created_at: new Date(e.created_at),
+      view_count: String(e.view_count ?? "0"),
+      venue: e.location?.trim() ? e.location.trim() : "온라인",
+      status: getEventStatus(started, ended),
+    };
+  });
 
-  useEffect(() => { setPage(1); }, [activeStatus, query]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, query]);
 
-  const byStatus = activeStatus === "전체보기"
-    ? normalized
-    : normalized.filter((e) => e.status === activeStatus);
+  const byTab = normalized.filter((e) =>
+    matchesTab(e.type, e.title, activeTab),
+  );
 
-  const filtered = byStatus.filter((e) =>
+  const filtered = byTab.filter((e) =>
     e.title.toLowerCase().includes(query.toLowerCase()),
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const paginated = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
 
   const handleSearch = () => {
     setQuery(inputValue);
     setPage(1);
   };
 
-  const handleStatusChange = (s: string) => {
+  const handleTabChange = (t: string) => {
     setInputValue("");
     setQuery("");
     setPage(1);
-    if (s === "전체보기") {
+    if (t === "전체보기") {
       setSearchParams({});
     } else {
-      setSearchParams({ status: s });
+      setSearchParams({ tab: t });
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
+    <div className="min-h-screen bg-[#F4F2E5]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="이벤트"
@@ -192,38 +331,36 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      {/* 모바일 상단 타이틀 */}
-      <div className="px-4 pt-3 md:hidden">
-        <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
-          <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">이벤트</h1>
-        </div>
-      </div>
-
       {/* ── 본문 ── */}
-      <PageContentMax className="py-6 md:py-10">
+      <PageContentMax className="max-md:pb-16 max-md:pt-0 py-0 md:py-10">
 
         {/* ── 필터 탭 + 검색 ── */}
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {STATUSES.map((s) => {
-              const isActive = s === activeStatus;
+        <div className="mb-5 flex flex-col gap-4 max-md:mb-0 max-md:gap-0 md:flex-row md:items-center md:justify-between">
+          {/* 모바일 시안: px-4 py-3.5, 가로 스크롤 탭 */}
+          <div className="scrollbar-hide -mx-1 flex gap-2.5 overflow-x-auto px-1 py-3.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:py-0">
+            {TABS.map((t) => {
+              const isActive = t === activeTab;
               return (
                 <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
-                  className="flex h-[clamp(34px,5vw,43px)] items-center gap-1.5 rounded-full px-3 text-[clamp(13px,2.5vw,18px)] font-medium transition-colors md:h-[43px] md:px-5 md:text-lg"
+                  key={t}
+                  type="button"
+                  onClick={() => handleTabChange(t)}
+                  className={cn(
+                    nanum,
+                    "flex shrink-0 items-center gap-2 rounded-[40px] px-3 py-1.5 text-xs font-bold leading-[18px] transition-colors",
+                    "md:h-[43px] md:px-5 md:text-lg md:font-medium",
+                  )}
                   style={{
                     letterSpacing: "-0.04em",
                     ...(isActive
                       ? { backgroundColor: "#02633E", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#003F2B" }),
+                      : { backgroundColor: "#EAE3C9", color: "#1F2121" }),
                   }}
                 >
                   {isActive && (
                     <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />
                   )}
-                  {s}
+                  {t}
                 </button>
               );
             })}
@@ -255,42 +392,98 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
             해당 이벤트가 없습니다.
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 max-md:gap-5 max-md:pt-0 md:gap-2">
             {paginated.map((event, idx) => {
               const num = filtered.length - ((page - 1) * ITEMS_PER_PAGE + idx);
               const statusStyle = STATUS_STYLE[event.status];
               const badgeLabel = event.badge ? BADGE_LABEL[event.badge] : null;
+              const isEnded = event.status === "종료";
               return (
                 <Fragment key={event.event_id}>
-                  {/* 모바일 카드 */}
+                  {/* 모바일 시안 — 아이보리 카드 + 썸네일 뱃지 + 종료 오버레이 */}
                   <Link
                     to={`/event/${event.event_id}`}
-                    className="group grid grid-cols-[58px_1fr] items-start gap-x-3 gap-y-1 rounded-xl px-4 py-3 transition-all hover:brightness-[0.97] md:hidden"
-                    style={{ backgroundColor: "#F0EEDD" }}
+                    className="group relative flex w-full flex-col overflow-hidden rounded-[20px] bg-[#EAE3C9] transition-all active:brightness-95 md:hidden"
                   >
-                    <div className="row-span-2 flex flex-col items-center gap-1.5 pt-0.5">
-                      <span className="text-xs text-gray-500">{num}</span>
-                      <span
-                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                        style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
-                      >
-                        {event.status}
-                      </span>
-                      {badgeLabel && (
-                        <span
-                          className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                          style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                        >
-                          {badgeLabel}
-                        </span>
+                    <div className="flex flex-col gap-2.5 p-2.5 pb-0">
+                      <div className="relative h-[167px] w-full overflow-hidden rounded-xl bg-[#D5CEB4]">
+                        {event.thumbnail_url ? (
+                          <img
+                            src={event.thumbnail_url}
+                            alt=""
+                            className="h-full w-full object-cover object-center"
+                          />
+                        ) : null}
+                        <div className="pointer-events-none absolute left-4 top-4">
+                          <ThumbnailStatusBadge status={event.status} />
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "flex flex-col gap-4 p-5",
+                        nanum,
+                        isEnded && "text-[#1F2121]",
                       )}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <h3
+                          className={cn(
+                            "font-bold text-[#1F2121]",
+                            isEnded ? "text-[15px] leading-[22.5px]" : "text-base leading-6",
+                          )}
+                        >
+                          {event.title}
+                        </h3>
+                        {event.summary ? (
+                          <p
+                            className={cn(
+                              "line-clamp-2 text-[#1F2121]",
+                              isEnded
+                                ? "text-[13px] font-normal leading-[19.5px]"
+                                : "text-sm font-normal leading-[21px]",
+                            )}
+                          >
+                            {event.summary}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <p
+                          className={cn(
+                            "text-[#1F2121]",
+                            isEnded
+                              ? "text-[10px] font-normal leading-[14px]"
+                              : "text-xs font-normal leading-[16.8px]",
+                          )}
+                        >
+                          {formatPeriod(event.started_at, event.ended_at)}
+                        </p>
+                        <span
+                          className={cn(
+                            "inline-flex w-fit rounded-full bg-[#F4F2E5] px-1.5 py-1 font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]",
+                            isEnded ? "text-[10px] leading-[10px]" : "text-xs leading-3",
+                          )}
+                        >
+                          {event.venue}
+                        </span>
+                      </div>
                     </div>
-                    <span className="truncate text-[13px] font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
-                      {event.title}
-                    </span>
-                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                      <span>{formatPeriod(event.started_at, event.ended_at)}</span>
-                    </div>
+                    {isEnded ? (
+                      <div
+                        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[20px] bg-[#2C383A]/60"
+                        aria-hidden
+                      >
+                        <div
+                          className={cn(
+                            nanum,
+                            "flex h-[140px] w-[140px] items-center justify-center rounded-full bg-[#1F2121] px-5 py-2.5 text-center text-base font-bold leading-[22.4px] text-white",
+                          )}
+                        >
+                          종료된 이벤트
+                        </div>
+                      </div>
+                    ) : null}
                   </Link>
 
                   {/* PC 테이블형 행 */}
@@ -334,37 +527,49 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {/* ── 페이지네이션 ── */}
-        <div className="mt-10 flex items-center justify-center gap-1.5">
+        {/* ── 페이지네이션 (모바일 시안: 흰 원 48px + 숫자 #003F2B extrabold) ── */}
+        <div className="mt-10 flex items-center justify-center gap-2 max-md:gap-[30px] max-md:pt-10">
           <button
+            type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30 max-md:h-12 max-md:w-12 max-md:rounded-[40px] max-md:border-0"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft
+              className="h-4 w-4 text-[#02633E] max-md:h-[18px] max-md:w-[18px]"
+              strokeWidth={2}
+            />
           </button>
 
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors"
-              style={
-                p === page
-                  ? { backgroundColor: "#02633E", color: "#fff" }
-                  : { backgroundColor: "transparent", color: "#555" }
-              }
-            >
-              {p}
-            </button>
-          ))}
+          <div className="flex items-center gap-1.5 max-md:gap-4">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPage(p)}
+                className={cn(
+                  nanum,
+                  "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                  p === page
+                    ? "bg-[#02633E] text-white max-md:bg-transparent max-md:text-base max-md:font-extrabold max-md:leading-[20.8px] max-md:text-[#003F2B]"
+                    : "text-[#555] max-md:text-sm max-md:font-normal",
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
 
           <button
+            type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors disabled:opacity-30 hover:border-[#02633E] hover:text-[#02633E]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30 max-md:h-12 max-md:w-12 max-md:rounded-[40px] max-md:border-0"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight
+              className="h-4 w-4 text-[#02633E] max-md:h-[18px] max-md:w-[18px]"
+              strokeWidth={2}
+            />
           </button>
         </div>
       </PageContentMax>

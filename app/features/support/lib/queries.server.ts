@@ -1,6 +1,12 @@
-import { desc, eq, and, sql } from "drizzle-orm";
+import { desc, eq, and, inArray, sql } from "drizzle-orm";
 import db from "~/core/db/drizzle-client.server";
-import { notices, faqs, contacts, gradeCertificates } from "../schema";
+import {
+  notices,
+  faqs,
+  contacts,
+  gradeCertificates,
+  libraryResources,
+} from "../schema";
 
 /* ─────────────────────────── FAQ ───────────────────────────── */
 export type Faq = typeof faqs.$inferSelect;
@@ -8,7 +14,11 @@ export type Faq = typeof faqs.$inferSelect;
 export async function getFaqs(category?: string) {
   const conditions = [eq(faqs.is_active, true)];
   if (category && category !== "all") {
-    conditions.push(eq(faqs.category, category as Faq["category"]));
+    if (category === "general") {
+      conditions.push(inArray(faqs.category, ["general", "b2b"]));
+    } else {
+      conditions.push(eq(faqs.category, category as Faq["category"]));
+    }
   }
   return db
     .select()
@@ -127,6 +137,16 @@ export async function getAdjacentNotices(id: number) {
   return { prev: prev[0] ?? null, next: next[0] ?? null };
 }
 
+/** 활성 공지가 1건이라도 있는지 (상세 목업 여부) */
+export async function hasAnyActiveNotices(): Promise<boolean> {
+  const rows = await db
+    .select({ id: notices.notice_id })
+    .from(notices)
+    .where(eq(notices.is_active, true))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** 관리자용: 전체 공지사항 조회 */
 export async function getAllNotices() {
   return db
@@ -207,10 +227,93 @@ export async function getAdjacentCerts(id: number, tab: "current" | "archive") {
   return { prev: prev[0] ?? null, next: next[0] ?? null };
 }
 
+/** 활성 등급판정서가 1건이라도 있는지 (상세 목업 여부) */
+export async function hasAnyActiveGradeCertificates(): Promise<boolean> {
+  const rows = await db
+    .select({ id: gradeCertificates.cert_id })
+    .from(gradeCertificates)
+    .where(eq(gradeCertificates.is_active, true))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** 관리자용: 전체 등급판정서 */
 export async function getAllGradeCerts() {
   return db
     .select()
     .from(gradeCertificates)
     .orderBy(desc(gradeCertificates.created_at));
+}
+
+/* ─────────────────────── 자료실 (library_resources) ─────────────────────── */
+export type LibraryResource = typeof libraryResources.$inferSelect;
+
+export async function getActiveLibraryResources() {
+  return db
+    .select()
+    .from(libraryResources)
+    .where(eq(libraryResources.is_active, true))
+    .orderBy(desc(libraryResources.created_at));
+}
+
+export async function getLibraryResourceById(id: number) {
+  const rows = await db
+    .select()
+    .from(libraryResources)
+    .where(
+      and(eq(libraryResources.resource_id, id), eq(libraryResources.is_active, true)),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function hasAnyActiveLibraryResources(): Promise<boolean> {
+  const rows = await db
+    .select({ id: libraryResources.resource_id })
+    .from(libraryResources)
+    .where(eq(libraryResources.is_active, true))
+    .limit(1);
+  return rows.length > 0;
+}
+
+export async function incrementLibraryResourceViewCount(id: number) {
+  await db
+    .update(libraryResources)
+    .set({ view_count: sql`${libraryResources.view_count} + 1` })
+    .where(
+      and(eq(libraryResources.resource_id, id), eq(libraryResources.is_active, true)),
+    );
+}
+
+export async function getAllLibraryResourcesForAdmin() {
+  return db
+    .select()
+    .from(libraryResources)
+    .orderBy(desc(libraryResources.created_at));
+}
+
+/** 목록 정렬(최신순) 기준 이전/다음 글 링크 */
+export async function getAdjacentLibraryResources(resourceId: number) {
+  const all = await db
+    .select({
+      resource_id: libraryResources.resource_id,
+      title: libraryResources.title,
+    })
+    .from(libraryResources)
+    .where(eq(libraryResources.is_active, true))
+    .orderBy(desc(libraryResources.created_at));
+
+  const idx = all.findIndex((r) => r.resource_id === resourceId);
+  if (idx === -1) {
+    return {
+      prev: null as { resource_id: number; title: string } | null,
+      next: null as { resource_id: number; title: string } | null,
+    };
+  }
+  const older = all[idx + 1];
+  const newer = all[idx - 1];
+  return {
+    prev: older ? { resource_id: older.resource_id, title: older.title } : null,
+    next: newer ? { resource_id: newer.resource_id, title: newer.title } : null,
+  };
 }

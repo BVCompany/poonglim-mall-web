@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, data } from "react-router";
 import type { Route } from "./+types/detail";
-import { getProductById } from "../lib/queries.server";
+import { getProductById, hasAnyActiveProducts } from "../lib/queries.server";
 import { ArrowUpRight } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { SectionTitleStar } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 / 테스트용) ─────────────────────────────────────
@@ -76,13 +77,22 @@ export async function loader({ params }: Route.LoaderArgs) {
   const id = Number(params.id);
   if (!id) throw data("Not Found", { status: 404 });
 
-  // DB에서 먼저 조회
+  let hasReal = false;
+  try {
+    hasReal = await hasAnyActiveProducts();
+  } catch {
+    hasReal = false;
+  }
+
   const dbProduct = await getProductById(id).catch(() => null);
   if (dbProduct && dbProduct.is_active) {
     return { product: dbProduct, isMock: false };
   }
 
-  // DB에 없으면 목 데이터로 fallback (개발/테스트용)
+  if (hasReal) {
+    throw data("Not Found", { status: 404 });
+  }
+
   const mock = MOCK_MAP[id];
   if (mock) return { product: mock as any, isMock: true };
 
@@ -126,10 +136,16 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
       />
 
       {/* ── 본문 컨테이너 ── */}
-      <div className="mx-auto w-full max-w-[560px] space-y-4 px-3 pb-20 md:max-w-[min(560px,calc(560*100vw/1920))] md:px-4">
+      <div
+        className="mx-auto w-full max-w-[560px] px-4 pb-20 pt-4 md:max-w-[min(750px,calc(750*100vw/1920))]"
+        style={{ paddingTop: `clamp(16px, calc(60 * 100vw / 1920), 60px)` }}
+      >
 
-        {/* ① 이미지 카드 — 배지 없음, 이미지가 카드를 꽉 채움 */}
-        <div className="aspect-square w-full overflow-hidden rounded-2xl md:rounded-3xl">
+        {/* ① 이미지 카드 */}
+        <div
+          className="h-[343px] w-full overflow-hidden md:aspect-square md:h-auto"
+          style={{ borderRadius: `clamp(20px, calc(80 * 100vw / 1920), 80px)` }}
+        >
           <img
             src={imgError ? "/home/premium_egg.png" : (product.image_url ?? "/home/premium_egg.png")}
             alt={product.name}
@@ -138,157 +154,217 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
           />
         </div>
 
-        {/* ② 제품 정보 카드 — 배경 #EAE3C9 */}
-        <div className="mt-4 rounded-2xl p-5 md:mt-8 md:rounded-3xl md:p-7" style={{ backgroundColor: "#EAE3C9" }}>
+        {/* 카드 섹션 — 이미지와의 간격: 모바일 16px / 데스크탑 최대 60px */}
+        <div
+          className="space-y-4 md:space-y-5"
+          style={{ marginTop: `clamp(16px, calc(60 * 100vw / 1920), 60px)` }}
+        >
 
-          {/* 제품명 */}
-          <h1
-              className="mb-3 flex items-start gap-2 font-extrabold leading-tight"
-              style={{ fontSize: pc1920(20, 26), letterSpacing: "-0.03em", color: "#003F2B" }}
+          {/* ② 제품 정보 카드 — 배경 #EAE3C9 */}
+          <div
+            style={{
+              backgroundColor: "#EAE3C9",
+              borderRadius: `clamp(20px, calc(40 * 100vw / 1920), 40px)`,
+              padding: `clamp(20px, calc(40 * 100vw / 1920), 40px)`,
+            }}
           >
-            <img
-              src="/home/product-star.png"
-              alt=""
-              className="mt-0.5 h-5 w-5 flex-shrink-0 object-contain"
-            />
-            {product.name}
-          </h1>
+            {/* 제품명 */}
+            <h1
+              className="mb-3 flex items-center gap-2.5 leading-tight"
+              style={{ color: "#003F2B", letterSpacing: "-0.03em" }}
+            >
+              <SectionTitleStar
+                variant="product"
+                className="h-[21px] w-[21px] flex-shrink-0"
+              />
+              <span
+                style={{
+                  fontFamily: "NanumSquareRound",
+                  fontWeight: 800,
+                  fontSize: `clamp(20px, calc(36 * 100vw / 1920), 36px)`,
+                  lineHeight: 1.5,
+                }}
+              >
+                {product.name}
+              </span>
+            </h1>
 
-          {/* 설명 */}
+            {/* 설명 */}
             <p
-              className="mb-4 text-[15px] leading-relaxed md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
-              style={{ color: "#003F2B" }}
+              className="mb-4 leading-[1.5]"
+              style={{ color: "#003F2B", fontSize: "16px", fontFamily: "NanumSquareRound", fontWeight: 700, lineHeight: "24px" }}
             >
-            {product.description}
-          </p>
+              {product.description}
+            </p>
 
-          {/* 인증 태그 */}
-          {certifications.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-1.5">
-              {certifications.map((cert, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium"
-                  style={{ borderColor: "#00000020", backgroundColor: "#ffffff", color: "#000000" }}
-                >
-                  {cert}
-                </span>
-              ))}
-            </div>
-          )}
+            {/* 인증 태그 */}
+            {certifications.length > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-2.5">
+                {certifications.map((cert, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center overflow-hidden rounded-full px-[12.58px] py-[7.19px]"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#1F2121",
+                      fontSize: `clamp(11px, calc(12 * 100vw / 1920), 12px)`,
+                      fontFamily: "Pretendard",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {cert}
+                  </span>
+                ))}
+              </div>
+            )}
 
-          {/* 일반 태그 */}
-          {tags.length > 0 && (
-            <div className="mb-6 flex flex-wrap items-center gap-1.5">
-              {tags.map((tag, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
-                  style={{ backgroundColor: "#003F2B18", color: "#003F2B", letterSpacing: "-0.02em" }}
-                >
-                  {tag.startsWith("#") ? tag : `#${tag}`}
-                </span>
-              ))}
-            </div>
-          )}
+            {/* 일반 태그 — 데스크탑만 표시 */}
+            {tags.length > 0 && (
+              <div className="mb-6 hidden flex-wrap items-center gap-1.5 md:flex">
+                {tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
+                    style={{ backgroundColor: "#003F2B18", color: "#003F2B", letterSpacing: "-0.02em" }}
+                  >
+                    {tag.startsWith("#") ? tag : `#${tag}`}
+                  </span>
+                ))}
+              </div>
+            )}
 
-          {/* 풍림몰 구매 버튼 — 링크 있음: #003F2B / 없음: #EAE3C9 위 비활성 */}
-          {shopUrl ? (
-            <a
-              href={shopUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 font-bold text-white transition-all hover:brightness-110 md:py-4"
-              style={{ backgroundColor: "#003F2B", fontSize: pc1920(14, 16), letterSpacing: "-0.02em" }}
-            >
-              풍림몰 구매
-              <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
-            </a>
-          ) : (
+            {/* 풍림몰 구매 버튼 */}
+            {shopUrl ? (
+              <a
+                href={shopUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-4 rounded-full transition-all hover:brightness-110"
+                style={{
+                  backgroundColor: "#003F2B",
+                  color: "#ffffff",
+                  fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
+                  fontFamily: "NanumSquareRound",
+                  fontWeight: 700,
+                  padding: "20px",
+                  borderRadius: "35px",
+                }}
+              >
+                풍림몰 구매
+                <ArrowUpRight className="h-[14px] w-[14px]" strokeWidth={2.5} />
+              </a>
+            ) : (
+              <div
+                className="flex w-full cursor-not-allowed items-center justify-center gap-4"
+                style={{
+                  backgroundColor: "#003F2B55",
+                  color: "#003F2B99",
+                  fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
+                  fontFamily: "NanumSquareRound",
+                  fontWeight: 700,
+                  padding: "20px",
+                  borderRadius: "35px",
+                }}
+              >
+                풍림몰 구매
+                <ArrowUpRight className="h-[14px] w-[14px]" strokeWidth={2.5} />
+              </div>
+            )}
+          </div>
+
+          {/* ③ 제품 정보 스펙 카드 */}
+          {specs.length > 0 && (
             <div
-              className="flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-full py-3.5 font-bold md:py-4"
+              className="overflow-hidden"
               style={{
-                backgroundColor: "#003F2B55",
-                color: "#003F2B99",
-                fontSize: pc1920(14, 16),
-                letterSpacing: "-0.02em",
+                backgroundColor: "#EAE3C9",
+                borderRadius: `clamp(20px, calc(40 * 100vw / 1920), 40px)`,
               }}
             >
-              풍림몰 구매
-              <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
+              <div
+                style={{ padding: `clamp(16px, calc(40 * 100vw / 1920), 40px)` }}
+              >
+                <h2
+                  style={{
+                    color: "#003F2B",
+                    fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
+                    fontFamily: "NanumSquareRound",
+                    fontWeight: 800,
+                    lineHeight: 1.5,
+                    marginBottom: `clamp(12px, calc(30 * 100vw / 1920), 30px)`,
+                  }}
+                >
+                  제품 정보
+                </h2>
+                <div className="flex flex-col">
+                  {specs.map((spec, i) => (
+                    <div key={spec.label}>
+                      {i > 0 && <div className="h-px bg-white" />}
+                      <div
+                        className="flex items-start justify-between gap-5"
+                        style={{ paddingTop: `clamp(10px, calc(20 * 100vw / 1920), 20px)`, paddingBottom: `clamp(10px, calc(20 * 100vw / 1920), 20px)` }}
+                      >
+                        <span
+                          style={{
+                            width: "160px",
+                            flexShrink: 0,
+                            color: "#003F2B",
+                            fontSize: `clamp(14px, calc(18 * 100vw / 1920), 18px)`,
+                            fontFamily: "NanumSquareRound",
+                            fontWeight: 700,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {spec.label}
+                        </span>
+                        <span
+                          className="text-right"
+                          style={{
+                            flex: 1,
+                            color: "#1F2121",
+                            fontSize: `clamp(14px, calc(18 * 100vw / 1920), 18px)`,
+                            fontFamily: "NanumSquareRound",
+                            fontWeight: 700,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {spec.value}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* ③ 제품 정보 스펙 카드 */}
-        {specs.length > 0 && (
-          <div className="overflow-hidden rounded-2xl md:rounded-3xl" style={{ backgroundColor: "#EAE3C9" }}>
-            <div className="px-5 py-4 md:px-7 md:py-5">
+          {/* ④ 상세 설명 (HTML 콘텐츠) */}
+          {product.detail && (
+            <div className="rounded-2xl bg-white p-5 shadow-sm md:rounded-3xl md:p-7">
               <h2
-                className="font-bold"
-                style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}
+                className="mb-4 font-bold text-gray-900"
+                style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em" }}
               >
-                제품 정보
+                상세 설명
               </h2>
+              <div
+                className="prose prose-sm max-w-none text-gray-700"
+                dangerouslySetInnerHTML={{ __html: product.detail }}
+              />
             </div>
-            <table className="w-full">
-              <tbody>
-                {specs.map((spec, i) => (
-                  <>
-                    <tr key={`row-${i}`}>
-                      <td
-                        className="w-28 px-5 py-4 text-sm font-medium md:px-7"
-                        style={{ letterSpacing: "-0.02em", color: "#003F2B" }}
-                      >
-                        {spec.label}
-                      </td>
-                      <td
-                        className="px-5 py-4 text-right text-sm md:px-7"
-                        style={{ letterSpacing: "-0.02em", color: "#003F2B" }}
-                      >
-                        {spec.value}
-                      </td>
-                    </tr>
-                    {i < specs.length - 1 && (
-                      <tr key={`sep-${i}`}>
-                        <td colSpan={2} className="px-5 py-0 md:px-7">
-                          <div className="h-px bg-white/60" />
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          )}
 
-        {/* ④ 상세 설명 (HTML 콘텐츠) */}
-        {product.detail && (
-          <div className="rounded-2xl bg-white p-5 shadow-sm md:rounded-3xl md:p-7">
-            <h2
-              className="mb-4 font-bold text-gray-900"
-              style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em" }}
+          {/* 목록으로 */}
+          <div className="hidden pt-2 text-center md:block">
+            <Link
+              to="/products/all"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
             >
-              상세 설명
-            </h2>
-            <div
-              className="prose prose-sm max-w-none text-gray-700"
-              dangerouslySetInnerHTML={{ __html: product.detail }}
-            />
+              ← 제품 목록으로 돌아가기
+            </Link>
           </div>
-        )}
 
-        {/* 목록으로 */}
-        <div className="hidden pt-2 text-center md:block">
-          <Link
-            to="/products/all"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
-          >
-            ← 제품 목록으로 돌아가기
-          </Link>
         </div>
-
       </div>
     </div>
   );

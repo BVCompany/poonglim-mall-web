@@ -1,64 +1,15 @@
 /**
  * Footer Component
  *
- * 풍림푸드 푸터 - 연락처, 네비게이션 링크, SNS
+ * 풍림푸드 푸터 — 피그마 시안(#003F2B, py60·px240, 연락처/네비/로고)
  */
 import { ChevronDown, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
-import { PAGE_GUTTER_X } from "~/core/components/page-content-max";
 import { cn } from "~/core/lib/utils";
 
-function FooterAccordion({
-  title,
-  links,
-}: {
-  title: string;
-  links: { name: string; href: string; external?: boolean }[];
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="border-b border-white/20">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between py-4 text-left"
-      >
-        <h4 className="font-semibold text-white">{title}</h4>
-        <ChevronDown
-          className={`size-5 text-white/70 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-      {isOpen && (
-        <ul className="space-y-2 pb-4">
-          {links.map((link) => (
-            <li key={link.name}>
-              {link.external ? (
-                <a
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-white/70 transition-colors hover:text-white"
-                >
-                  {link.name}
-                </a>
-              ) : (
-                <Link
-                  to={link.href}
-                  className="text-sm text-white/70 transition-colors hover:text-white"
-                >
-                  {link.name}
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
+/* ── 링크 데이터 ── */
 const footerLinks = {
   company: [
     { name: "회사소개", href: "/brand/intro" },
@@ -69,7 +20,7 @@ const footerLinks = {
   ],
   products: [
     { name: "액란 제품", href: "/products/egg" },
-    { name: "푸딩 시리즈", href: "/products/pudding" },
+    { name: "푸딩 시리즈", href: "/products/pudding", underline: true },
     { name: "간편식", href: "/products/convenient" },
     { name: "전체제품", href: "/products/all" },
   ],
@@ -83,45 +34,92 @@ const footerLinks = {
     { name: "B2B상담", href: "/inquiry/b2b" },
     { name: "대량구매", href: "/inquiry/bulk" },
     { name: "파트너십", href: "/inquiry/partnership" },
-    {
-      name: "수발주시스템",
-      href: "http://wos.freshegg.co.kr/",
-      external: true,
-    },
+    { name: "수발주시스템", href: "http://wos.freshegg.co.kr/", external: true },
     { name: "수출문의", href: "/inquiry/export" },
   ],
 };
 
-/** SNS 아이콘 — 모바일은 좌측 열, lg~는 하단 행(로고와 baseline 정렬) */
-function FooterSnsRow({ className }: { className?: string }) {
+/* ── 연락처 데이터 ── */
+const contactGroups = [
+  {
+    label: "고객상담실",
+    lines: ["080-299-9292", "평일 09:00 ~ 17:00 / 주말과 공휴일은 쉽니다."],
+    mobileBody: "080-299-9292\n평일 09:00 ~ 17:00 / 주말과 공휴일은 쉽니다.",
+  },
+  {
+    label: "본사/공장",
+    lines: [
+      "충청북도 진천군 이월면 궁동길 51-21",
+      "TEL : 043-533-2285 / FAX : 043-533-2988",
+    ],
+    mobileBody: "본사/공장 : 충청북도 진천군 이월면 궁동길 51-21\nTEL : 043-533-2285 / FAX : 043-533-2988",
+  },
+  {
+    label: "서울 사무소",
+    lines: [
+      "서울특별시 강남구 봉은사로 64번길 5",
+      "TEL : 02-538-5617 / FAX : 02-538-5623",
+    ],
+    mobileBody: "서울특별시 강남구 봉은사로 64번길 5\nTEL : 02-538-5617 / FAX : 02-538-5623",
+  },
+];
+
+type NavLink = { name: string; href: string; external?: boolean; underline?: boolean };
+
+const navSections: { title: string; links: NavLink[] }[] = [
+  { title: "회사정보", links: footerLinks.company },
+  { title: "제품정보", links: footerLinks.products },
+  { title: "고객지원", links: footerLinks.support },
+  { title: "B2B/파트너십", links: footerLinks.business },
+];
+
+/* ── 공통 타이포 ── */
+const labelClass =
+  "font-sans font-bold text-[#FDFDF5] [font-size:clamp(12px,calc(14*100vw/1920),14px)] [line-height:clamp(16px,calc(18.2*100vw/1920),18.2px)]";
+const bodyClass =
+  "font-sans font-normal text-[rgba(253,253,245,0.60)] [font-size:clamp(12px,calc(14*100vw/1920),14px)] [line-height:clamp(18px,calc(21*100vw/1920),21px)]";
+const navHeadClass =
+  "font-sans font-extrabold text-[#FDFDF5] [font-size:clamp(15px,calc(20*100vw/1920),20px)] [line-height:clamp(22px,calc(26*100vw/1920),26px)]";
+const navLinkClass =
+  "font-sans font-normal text-[#FDFDF5] [font-size:clamp(13px,calc(16*100vw/1920),16px)] [line-height:clamp(22px,calc(25.6*100vw/1920),25.6px)] hover:opacity-70 transition-opacity";
+
+/* ── SNS 버튼 행 ── */
+function FooterSns({ className }: { className?: string }) {
   return (
-    <div className={cn("flex gap-4", className)}>
+    <div className={cn("flex items-center gap-[clamp(8px,calc(12*100vw/1920),12px)]", className)}>
+      {/* Facebook */}
       <a
         href="https://www.facebook.com/poonglimfoods"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-white transition-colors hover:text-white/90"
         aria-label="Facebook"
+        className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
       >
-        <Facebook className="size-5 fill-white" />
+        <Facebook className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] fill-[#FDFDF5] text-[#FDFDF5]" />
       </a>
+      {/* Instagram */}
       <a
         href="https://www.instagram.com/poonglim_official"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-white/70 transition-colors hover:text-white"
         aria-label="Instagram"
+        className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
       >
-        <Instagram className="size-5" />
+        <Instagram className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] text-[#FDFDF5]" />
       </a>
+      {/* YouTube */}
       <a
         href="https://www.youtube.com/@poonglimfoods"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-white transition-colors hover:text-white/90"
         aria-label="YouTube"
+        className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
       >
-        <svg viewBox="0 0 24 24" className="size-5 fill-current" aria-hidden>
+        <svg
+          viewBox="0 0 24 24"
+          className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] fill-[#FDFDF5]"
+          aria-hidden
+        >
           <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
         </svg>
       </a>
@@ -129,163 +127,224 @@ function FooterSnsRow({ className }: { className?: string }) {
   );
 }
 
+/* ── 모바일 아코디언 ── */
+function FooterAccordion({
+  title,
+  links,
+}: {
+  title: string;
+  links: { name: string; href: string; external?: boolean; underline?: boolean }[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border-b border-white/10">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        className="flex w-full items-center justify-between py-4 text-left"
+      >
+        <span className={navHeadClass}>{title}</span>
+        <ChevronDown
+          className={cn(
+            "size-4 text-[#FDFDF5]/60 transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
+      </button>
+      {isOpen && (
+        <ul className="flex flex-col gap-3 pb-4">
+          {links.map((link) =>
+            link.external ? (
+              <li key={link.name}>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(navLinkClass, link.underline && "underline")}
+                >
+                  {link.name}
+                </a>
+              </li>
+            ) : (
+              <li key={link.name}>
+                <Link
+                  to={link.href}
+                  className={cn(navLinkClass, link.underline && "underline")}
+                >
+                  {link.name}
+                </Link>
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function Footer() {
   return (
-    <footer className="bg-[var(--brand-green)] text-white">
-      {/* gutter는 본문(PageContentMax)과 동일. 안쪽 max-width만 시안 비율로 축소 → 맥북 등에서 좌우 정렬 일치 */}
-      <div className={cn(PAGE_GUTTER_X, "py-10 md:py-12 lg:py-14")}>
-        {/* 모바일: 세로 스택 / lg~: 그리드 — 1행 연락처|네비, 2행 SNS|로고(하단선 맞춤) */}
-        <div
-          className={cn(
-            "mx-auto flex min-h-0 w-full max-w-[var(--content-max-width)] flex-col gap-10",
-            "lg:grid lg:min-h-[360px] lg:grid-cols-[min(363px,calc(363*100vw/1920))_minmax(0,1fr)]",
-            "lg:items-stretch lg:gap-x-[min(121px,calc(121*100vw/1920))] lg:gap-y-[min(40px,calc(48*100vw/1920))]",
-          )}
-        >
-        {/* 좌측 영역: 시안 363px — 그리드에서는 열 폭으로만 제한 */}
-        <div className="flex w-full flex-shrink-0 flex-col gap-6 lg:col-start-1 lg:row-start-1 lg:w-auto lg:max-w-none">
-          {/* 주소 그룹: 로고 + 연락처 */}
-          <div className="flex flex-col gap-6 lg:pb-6">
-            {/* 모바일: 로고 상단 */}
-            <div className="lg:hidden">
-              <Link to="/">
-                <img
-                  src="/home/poonglim-food-footer-logo.png"
-                  alt="Poonglim Foods"
-                  className="h-8 w-auto object-contain"
-                />
-              </Link>
+    <footer className="w-full">
+      {/*
+        모바일: 본문(Outlet)과 딥그린 푸터 사이 140px — navigation.layout 배경(#F4F2E5)과 동일.
+        페이지별 pb 중복 없이 여기서만 유지.
+      */}
+      <div
+        className="block h-[140px] w-full shrink-0 bg-[#F4F2E5] md:hidden"
+        aria-hidden
+      />
+
+      <div className="w-full bg-[#003F2B]">
+      {/* ════════════════════════════════════
+          모바일 푸터 (md 미만)
+          구조: 로고 → 연락처 → SNS
+          ════════════════════════════════════ */}
+      <div className="flex flex-col gap-10 border-t border-[#DDDDDD] px-4 py-[60px] md:hidden">
+        <div className="flex flex-col gap-[30px]">
+
+          {/* 로고 */}
+          <Link to="/" className="inline-block leading-none">
+            <img
+              src="/home/poonglim-food-footer-logo.png"
+              alt="Poonglim Foods"
+              className="h-[38px] w-auto object-contain"
+            />
+          </Link>
+
+          {/* 연락처 + SNS */}
+          <div className="flex flex-col gap-[60px]">
+            {/* 연락처 그룹 */}
+            <div className="flex flex-col gap-5">
+              {contactGroups.map((g) => (
+                <div key={g.label} className="flex flex-col gap-[10px]">
+                  <p
+                    className="text-[14px] font-bold leading-[18.2px] text-[#FDFDF5]"
+                    style={{ fontFamily: "NanumSquareRound" }}
+                  >
+                    {g.label}
+                  </p>
+                  <p
+                    className="whitespace-pre-line text-[14px] font-normal leading-[21px]"
+                    style={{ color: "rgba(253,253,245,0.60)", fontFamily: "NanumSquareRound" }}
+                  >
+                    {g.mobileBody}
+                  </p>
+                </div>
+              ))}
             </div>
-            <div>
-              <h4 className="mb-2 font-semibold text-white">고객상담실</h4>
-              <p className="text-sm text-white/80">1588-2311</p>
-              <p className="mt-1 text-xs text-white/70">
-                평일 09:00~17:00 / 주말과 공휴일은 쉽니다.
-              </p>
+
+            {/* SNS */}
+            <FooterSns />
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════
+          PC 푸터 (md 이상)
+          ════════════════════════════════════ */}
+      <div
+        className="hidden md:flex md:flex-col md:gap-[clamp(24px,calc(60*100vw/1920),60px)]"
+        style={{
+          paddingTop: "clamp(32px, calc(60 * 100vw / 1920), 60px)",
+          paddingBottom: "clamp(32px, calc(60 * 100vw / 1920), 60px)",
+          paddingLeft: "clamp(16px, calc(240 * 100vw / 1920), 240px)",
+          paddingRight: "clamp(16px, calc(240 * 100vw / 1920), 240px)",
+        }}
+      >
+        {/* ── 메인 행: 좌(연락처) | 우(네비+로고) ── */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-between">
+
+          {/* ── 좌: 연락처 + SNS ── */}
+          <div
+            className={cn(
+              "flex flex-col justify-between gap-[clamp(24px,calc(60*100vw/1920),60px)]",
+              "lg:w-[clamp(240px,calc(363*100vw/1920),363px)] lg:shrink-0",
+              "lg:border-r lg:border-[rgba(253,253,245,0.10)] lg:pr-[clamp(16px,calc(40*100vw/1920),40px)]",
+              "lg:min-h-[clamp(240px,calc(360*100vw/1920),360px)]",
+            )}
+          >
+            {/* 연락처 그룹 */}
+            <div className="flex flex-col gap-[clamp(16px,calc(20*100vw/1920),20px)]">
+              {contactGroups.map((g) => (
+                <div
+                  key={g.label}
+                  className="flex flex-col gap-[clamp(6px,calc(10*100vw/1920),10px)]"
+                >
+                  <p className={labelClass}>{g.label}</p>
+                  <div className="flex flex-col gap-[clamp(6px,calc(12*100vw/1920),12px)]">
+                    {g.lines.map((line) => (
+                      <p key={line} className={bodyClass}>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-xs text-white/70">사업자등록번호: 219-86-00445</p>
-              <p className="mt-1 text-xs text-white/70">대표이사: 김철수</p>
-            </div>
-            <div>
-              <h4 className="mb-2 font-semibold text-white">본점</h4>
-              <p className="text-sm text-white/80">
-                대전 유성구 테크노2로 250(용산동)
-              </p>
-              <p className="mt-1 text-xs text-white/70">
-                TEL: 042-930-3333 / FAX: 042-930-3300
-              </p>
-            </div>
-            <div>
-              <h4 className="mb-2 font-semibold text-white">지점</h4>
-              <p className="text-sm text-white/80">
-                충북 음성군 원남면 상경로 167-17
-              </p>
-              <p className="mt-1 text-xs text-white/70">
-                TEL: 043-881-3072 / FAX: 043-881-3033
-              </p>
-            </div>
+
+            {/* SNS */}
+            <FooterSns />
           </div>
 
-          {/* 모바일·태블릿만: lg에서는 하단 행에서 네비와 같은 선상으로 배치 */}
-          <FooterSnsRow className="pt-8 lg:hidden" />
-        </div>
+          {/* ── 우: 네비 + 로고 ── */}
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-[clamp(24px,calc(60*100vw/1920),60px)]">
+            {/* 네비 — md~lg 아코디언 / lg+ 4열 그리드 */}
+            <div className="block lg:hidden">
+              {navSections.map((s) => (
+                <FooterAccordion key={s.title} title={s.title} links={s.links} />
+              ))}
+            </div>
 
-        {/* 우측: 네비만 (로고는 그리드 2행에서 전체 열 가운데) */}
-        <div className="hidden w-full min-w-0 flex-col items-start md:flex lg:col-start-2 lg:row-start-1">
-            <div className="flex w-full min-w-0 flex-1 flex-col gap-8 max-md:hidden">
-              <div className="grid w-full min-w-0 grid-cols-4 gap-8">
-                <div>
-                  <h4 className="mb-4 font-semibold text-white">회사정보</h4>
-                  <ul className="space-y-2">
-                    {footerLinks.company.map((link) => (
-                      <li key={link.name}>
-                        <Link
-                          to={link.href}
-                          className="text-sm text-white/70 transition-colors hover:text-white"
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold text-white">제품정보</h4>
-                  <ul className="space-y-2">
-                    {footerLinks.products.map((link) => (
-                      <li key={link.name}>
-                        <Link
-                          to={link.href}
-                          className="text-sm text-white/70 transition-colors hover:text-white"
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold text-white">고객지원</h4>
-                  <ul className="space-y-2">
-                    {footerLinks.support.map((link) => (
-                      <li key={link.name}>
-                        <Link
-                          to={link.href}
-                          className="text-sm text-white/70 transition-colors hover:text-white"
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="mb-4 font-semibold text-white">파트너십</h4>
-                  <ul className="space-y-2">
-                    {footerLinks.business.map((link) => (
-                      <li key={link.name}>
-                        {link.external ? (
+            <div className="hidden min-w-0 flex-1 lg:grid lg:grid-cols-4 lg:items-start lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
+              {navSections.map((s) => (
+                <div
+                  key={s.title}
+                  className="flex flex-col gap-[clamp(12px,calc(20*100vw/1920),20px)]"
+                >
+                  <p className={navHeadClass}>{s.title}</p>
+                  <ul className="flex flex-col gap-[clamp(6px,calc(12*100vw/1920),12px)]">
+                    {s.links.map((link) =>
+                      link.external ? (
+                        <li key={link.name}>
                           <a
                             href={link.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-white/70 transition-colors hover:text-white"
+                            className={cn(navLinkClass, link.underline && "underline")}
                           >
                             {link.name}
                           </a>
-                        ) : (
+                        </li>
+                      ) : (
+                        <li key={link.name}>
                           <Link
                             to={link.href}
-                            className="text-sm text-white/70 transition-colors hover:text-white"
+                            className={cn(navLinkClass, link.underline && "underline")}
                           >
                             {link.name}
                           </Link>
-                        )}
-                      </li>
-                    ))}
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </div>
-              </div>
+              ))}
+            </div>
+
+            {/* 로고 */}
+            <div className="flex items-end">
+              <Link to="/" className="inline-block leading-none">
+                <img
+                  src="/home/poonglim-food-footer-logo.png"
+                  alt="Poonglim Foods"
+                  className="h-auto w-auto object-contain"
+                  style={{ maxHeight: "clamp(36px, calc(60 * 100vw / 1920), 60px)" }}
+                />
+              </Link>
             </div>
           </div>
-
-        {/* lg~: 2행 전체 폭 — 로고는 max-width 박스 기준 정확히 가운데(우측 열 가운데가 아님), SNS는 좌하단 */}
-        <div className="relative hidden min-h-10 lg:col-span-2 lg:row-start-2 lg:block">
-          <div className="flex items-end">
-            <FooterSnsRow className="relative z-10 w-[min(363px,calc(363*100vw/1920))] shrink-0" />
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
-            <Link to="/" className="pointer-events-auto inline-block leading-none">
-              <img
-                src="/home/poonglim-food-footer-logo.png"
-                alt="Poonglim Foods"
-                className="h-10 w-auto object-contain"
-              />
-            </Link>
-          </div>
         </div>
-        </div>
+      </div>
       </div>
     </footer>
   );

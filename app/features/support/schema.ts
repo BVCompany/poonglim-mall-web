@@ -156,3 +156,30 @@ export const contacts = pgTable(
     }),
   ],
 );
+
+/** 고객지원 자료실 (파일·본문) */
+export const libraryResources = pgTable(
+  "library_resources",
+  {
+    ...makeIdentityColumn("resource_id"),
+    category: text().notNull(),
+    title: text().notNull(),
+    content: text().notNull().default(""),
+    author: text().notNull().default("풍림푸드"),
+    file_name: text().notNull(),
+    file_url: text().notNull(),
+    file_size_label: text(),
+    file_ext: text().default("PDF"),
+    view_count: integer().notNull().default(0),
+    is_active: boolean().notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    pgPolicy("library-resources-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`${table.is_active} = true`,
+    }),
+  ],
+);
