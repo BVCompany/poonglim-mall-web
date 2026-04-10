@@ -8,6 +8,7 @@ import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import { getActiveCategories } from "~/features/product-categories/lib/queries.server";
 import type { ProductCategory } from "~/features/product-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
+import { SectionTitleStar } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
@@ -79,6 +80,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         linkUrl="/brand/intro"
         linkText="자세히 보기"
         mobileHeightClassName="h-[375px] md:h-[clamp(200px,28vw,380px)]"
+        hideOnMobile={false}
         hideBreadcrumbOnMobile
         frostedLinkOnMobile
         breadcrumb={[
@@ -89,15 +91,18 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       />
 
       {/* ── 배너 아래 여백 확보 + 제품 카테고리 헤더 + 검색 ── */}
-      <div className="px-4 pb-5 pt-10 md:px-8 md:pt-16 lg:px-2.5">
+      <div className="px-4 pb-5 pt-5 md:px-8 md:pt-16 lg:px-2.5">
         <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4">
 
           {/* 타이틀 — 36px / letterSpacing -4% */}
           <h2
-            className="flex items-center gap-2 font-bold text-gray-900"
-            style={{ fontSize: pc1920(20, 36), letterSpacing: "-0.04em" }}
+            className="flex items-center gap-[11px] font-bold text-gray-900"
+            style={{ fontSize: pc1920(18, 36), letterSpacing: "-0.04em" }}
           >
-            <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain md:h-8 md:w-8" />
+            <SectionTitleStar
+              variant="product"
+              className="h-[21px] w-[21px] flex-shrink-0 md:h-8 md:w-8"
+            />
             제품 카테고리
           </h2>
 
@@ -125,9 +130,12 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    isActive ? "bg-[#02633E] text-white" : "bg-[#EAE3C9] text-[#003F2B]"
+                    isActive ? "bg-[#02633E] text-white" : "bg-white text-[#154725]"
                   }`}
-                  style={{ letterSpacing: "-0.03em" }}
+                  style={{
+                    fontFamily: "NanumSquareRound",
+                    letterSpacing: "-0.03em",
+                  }}
                 >
                   {cat.name}
                   {showCount && cat.count > 0 && <span className="ml-0.5 opacity-70">({cat.count})</span>}
@@ -183,8 +191,11 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
       {/* ── 총 N개 제품 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-8 lg:px-2.5">
         <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
-          <p className="text-sm font-medium text-gray-600">
-            총 <span className="font-bold text-[#02633E]">{currentCategoryCount}</span>개 제품
+          <p className="text-sm font-medium text-gray-600 md:text-sm">
+            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
+            <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCategoryCount}</span>
+            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>개 상품</span>
+            <span className="hidden md:inline">총 <span className="font-bold text-[#02633E]">{currentCategoryCount}</span>개 제품</span>
           </p>
           <div className="flex items-center gap-2 md:hidden">
             <div className="relative">

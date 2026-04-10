@@ -68,6 +68,7 @@ const menuItems: MenuItem[] = [
       { title: "레시피 카테고리", href: "/admin/recipe-categories" },
       { title: "뉴스/보도자료", href: "/admin/media/news" },
       { title: "카탈로그", href: "/admin/media/catalog" },
+      { title: "자료실", href: "/admin/support/resources" },
     ],
   },
   {

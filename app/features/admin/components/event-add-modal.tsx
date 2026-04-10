@@ -31,9 +31,15 @@ interface EventAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (event: EventFormData) => void;
+  mode?: "create" | "edit";
+  /** create일 때 탭과 동기 */
+  defaultType?: "event" | "notice";
+  /** edit일 때 초기값 */
+  initial?: EventFormData | null;
 }
 
 export interface EventFormData {
+  eventId?: number;
   title: string;
   category: EventCategory;
   status: EventStatus;
@@ -42,6 +48,10 @@ export interface EventFormData {
   description: string;
   content: string;
   image?: string;
+  location?: string;
+  contact?: string;
+  /** DB event_badge: hot | new | ending_soon | important, 빈 문자 = 없음 */
+  badge?: string;
 }
 
 const CATEGORY_OPTIONS: { value: EventCategory; label: string }[] = [
@@ -58,45 +68,76 @@ const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: "draft", label: "임시저장" },
 ];
 
-export function EventAddModal({
-  open,
-  onOpenChange,
-  onSubmit,
-}: EventAddModalProps) {
-  const [formData, setFormData] = useState<EventFormData>({
+const BADGE_NONE = "__none__";
+const BADGE_DB_OPTIONS: { value: string; label: string }[] = [
+  { value: BADGE_NONE, label: "없음" },
+  { value: "hot", label: "HOT" },
+  { value: "new", label: "NEW" },
+  { value: "ending_soon", label: "마감임박" },
+  { value: "important", label: "중요" },
+];
+
+function emptyForm(category: EventCategory = "event"): EventFormData {
+  return {
     title: "",
-    category: "event",
+    category,
     status: "active",
     startDate: "",
     endDate: "",
     description: "",
     content: "",
     image: "",
-  });
+    location: "",
+    contact: "",
+    badge: "",
+  };
+}
 
-  // Reset form when modal closes
+export function EventAddModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  mode = "create",
+  defaultType = "event",
+  initial = null,
+}: EventAddModalProps) {
+  const [formData, setFormData] = useState<EventFormData>(() =>
+    emptyForm(defaultType === "notice" ? "notice" : "event"),
+  );
+
   useEffect(() => {
     if (!open) {
-      setFormData({
-        title: "",
-        category: "event",
-        status: "active",
-        startDate: "",
-        endDate: "",
-        description: "",
-        content: "",
-        image: "",
-      });
+      setFormData(emptyForm(defaultType === "notice" ? "notice" : "event"));
+      return;
     }
-  }, [open]);
+    if (mode === "edit" && initial) {
+      setFormData({
+        ...emptyForm(),
+        ...initial,
+        endDate: initial.endDate ?? "",
+        image: initial.image ?? "",
+        location: initial.location ?? "",
+        contact: initial.contact ?? "",
+        badge: initial.badge ?? "",
+      });
+      return;
+    }
+    if (mode === "create") {
+      setFormData(emptyForm(defaultType === "notice" ? "notice" : "event"));
+    }
+  }, [open, mode, initial, defaultType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const eventData: EventFormData = {
       ...formData,
+      eventId: formData.eventId,
       endDate: formData.endDate || undefined,
       image: formData.image || undefined,
+      location: formData.location?.trim() || undefined,
+      contact: formData.contact?.trim() || undefined,
+      badge: formData.badge?.trim() || "",
     };
 
     onSubmit(eventData);
@@ -114,10 +155,16 @@ export function EventAddModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {mode === "edit" ? "수정" : "추가"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form
+          key={mode === "edit" ? formData.eventId ?? "edit" : "create"}
+          onSubmit={handleSubmit}
+          className="mt-4 space-y-4"
+        >
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">제목</Label>
@@ -197,7 +244,7 @@ export function EventAddModal({
                 }}
                 className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 style={{ userSelect: "none" }}
-                required
+                required={mode === "create"}
               />
             </div>
             <div className="space-y-2">
@@ -218,6 +265,55 @@ export function EventAddModal({
                 }}
                 className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 style={{ userSelect: "none" }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="badge">뱃지 (선택)</Label>
+            <Select
+              value={formData.badge ? formData.badge : BADGE_NONE}
+              onValueChange={(value: string) =>
+                setFormData({
+                  ...formData,
+                  badge: value === BADGE_NONE ? "" : value,
+                })
+              }
+            >
+              <SelectTrigger id="badge">
+                <SelectValue placeholder="뱃지 없음" />
+              </SelectTrigger>
+              <SelectContent>
+                {BADGE_DB_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="location">장소·채널 (선택)</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) =>
+                  setFormData({ ...formData, location: e.target.value })
+                }
+                placeholder="예: 온라인, 팝업 주소"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact">문의처 (선택)</Label>
+              <Input
+                id="contact"
+                value={formData.contact}
+                onChange={(e) =>
+                  setFormData({ ...formData, contact: e.target.value })
+                }
+                placeholder="예: 080-000-0000"
               />
             </div>
           </div>
@@ -278,7 +374,7 @@ export function EventAddModal({
               type="submit"
               className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
             >
-              추가
+              {mode === "edit" ? "저장" : "추가"}
             </Button>
             <Button
               type="button"

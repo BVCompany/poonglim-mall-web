@@ -148,6 +148,34 @@ body {
   }
 }
 
+/*
+ * PageBanner: 배너 카드 폭은 --hero-pc-width 그대로 두고,
+ * 브레드크럼만 헤더 메인 네비(로고) 시작선과 맞춤.
+ * md: 네비 px-6·배너 px-8, lg: 네비 px-10·배너 px-2.5 반영.
+ */
+.page-banner-breadcrumb-x {
+  /* <640px: 헤더 px-3 vs 배너 px-4 */
+  left: -4px;
+}
+
+@media (min-width: 640px) {
+  .page-banner-breadcrumb-x {
+    left: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .page-banner-breadcrumb-x {
+    left: calc(0.5 * (var(--hero-pc-width) - var(--pc-w-1680)) - 8px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-banner-breadcrumb-x {
+    left: calc(0.5 * (var(--hero-pc-width) - var(--pc-w-1680)) + 30px);
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

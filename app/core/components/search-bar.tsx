@@ -1,5 +1,7 @@
 import { Search } from "lucide-react";
 
+import { cn } from "~/core/lib/utils";
+
 interface SearchBarProps {
   value: string;
   onChange: (val: string) => void;
@@ -16,14 +18,14 @@ export function SearchBar({
   className = "",
 }: SearchBarProps) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onSearch()}
         placeholder={placeholder}
-        className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none placeholder:text-gray-400"
+        className="h-16 min-w-0 flex-1 rounded-full border-0 bg-white px-5 text-sm outline-none placeholder:text-gray-400 md:w-64 md:flex-none"
       />
       <button
         onClick={onSearch}

@@ -224,11 +224,13 @@ export type Database = {
       events: {
         Row: {
           badge: Database["public"]["Enums"]["event_badge"] | null
+          contact: string | null
           content: string
           created_at: string
           ended_at: string | null
           event_id: number
           is_active: boolean
+          location: string | null
           started_at: string | null
           summary: string | null
           thumbnail_url: string | null
@@ -239,11 +241,13 @@ export type Database = {
         }
         Insert: {
           badge?: Database["public"]["Enums"]["event_badge"] | null
+          contact?: string | null
           content: string
           created_at?: string
           ended_at?: string | null
           event_id?: never
           is_active?: boolean
+          location?: string | null
           started_at?: string | null
           summary?: string | null
           thumbnail_url?: string | null
@@ -254,11 +258,13 @@ export type Database = {
         }
         Update: {
           badge?: Database["public"]["Enums"]["event_badge"] | null
+          contact?: string | null
           content?: string
           created_at?: string
           ended_at?: string | null
           event_id?: never
           is_active?: boolean
+          location?: string | null
           started_at?: string | null
           summary?: string | null
           thumbnail_url?: string | null
@@ -553,6 +559,54 @@ export type Database = {
         }
         Relationships: []
       }
+      library_resources: {
+        Row: {
+          author: string
+          category: string
+          content: string
+          created_at: string
+          file_ext: string | null
+          file_name: string
+          file_size_label: string | null
+          file_url: string
+          is_active: boolean
+          resource_id: number
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author?: string
+          category: string
+          content?: string
+          created_at?: string
+          file_ext?: string | null
+          file_name: string
+          file_size_label?: string | null
+          file_url: string
+          is_active?: boolean
+          resource_id?: never
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string
+          created_at?: string
+          file_ext?: string | null
+          file_name?: string
+          file_size_label?: string | null
+          file_url?: string
+          is_active?: boolean
+          resource_id?: never
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string
@@ -567,6 +621,7 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+          view_count: string
         }
         Insert: {
           content: string
@@ -581,6 +636,7 @@ export type Database = {
           title: string
           type?: string
           updated_at?: string
+          view_count?: string
         }
         Update: {
           content?: string
@@ -595,6 +651,7 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+          view_count?: string
         }
         Relationships: []
       }

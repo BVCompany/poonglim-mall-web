@@ -8,25 +8,36 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SectionTitleStar } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { cn } from "~/core/lib/utils";
 
-/* ── 슬라이더 데이터 — 이미지 기준 스파클 3개 위치 공통 적용 ── */
+const nanum = "font-[family-name:var(--font-nanum)]";
+
+/**
+ * 회사소개 장식 스파클(히어로·대표 사진 등). 섹션 타이틀은 `SectionTitleStar variant="brandIntro"`(녹색 product-star).
+ */
+const INTRO_SPARKLE = {
+  star: "/intro/Vector.png",
+  sparkle1: "/intro/Vector-1.png",
+  sparkle2: "/intro/Vector-2.png",
+} as const;
+
+/* ── PC 히어로 슬라이더 스파클 3종 위치 ── */
+/** 히어로 스파클: 잘림은 화면(뷰포트) 바깥쪽으로 가도록 objectPosition + 좌표 보정 */
 const SPARKLES = [
-  // 연한 녹색 큰 별 — 숫자 왼쪽 상단
   {
-    src: "/home/company-intro-star.png",
+    src: INTRO_SPARKLE.sparkle1,
     size: 42,
-    style: { left: "14%", top: "22%" },
+    style: { left: "11%", top: "19%", objectPosition: "left top" },
   },
-  // 금색 큰 별 — 왼쪽 하단
   {
-    src: "/home/intro-star.png",
+    src: INTRO_SPARKLE.star,
     size: 30,
-    style: { left: "2%", bottom: "24%" },
+    style: { left: "-2%", bottom: "22%", objectPosition: "left center" },
   },
-  // 금색 작은 별 — 하단 조금 더 오른쪽
   {
-    src: "/home/star_icon.png",
+    src: INTRO_SPARKLE.sparkle2,
     size: 18,
     style: { left: "9%", bottom: "12%" },
   },
@@ -93,18 +104,16 @@ const CHARACTERS = [
     showcaseImage: "/intro/edi01.png",
     sceneImage: "/intro/edi02.png",
     mainBg: "#02633E",
-    insetBg: "#F2EBD5",
+    insetBg: "#F0EEDD",
     greeting: "안녕, 난 에디야.\n기쁨이 넘치는 시간을 선사해줄게!",
     accentText: "일상 속 '기쁨'을 선사하는 계란, 에디를 소개합니다.",
-    accentColor: "#C8860A",
-    body: "언제나 곁에 있어주는 따뜻하고 포근한 친구 '에디'. 하늘의 작은 기쁨을 나누고,\n든든함과 동시에 사랑스러움까지 겸비한 우리의 단짝친구!",
+    accentColor: "#F3BC1E",
+    body: "언제나 곁에 있어주는 따뜻하고 포근한 친구 '에디'. 하루의 작은 기쁨을 나누고, 든든함과 동시에 사랑스러움까지 겸비한 우리의 단짝친구!",
     bodyColor: "#003F2B",
     greetingColor: "#003F2B",
     nameColor: "#FFFFFF",
-    nameEnColor: "rgba(255,255,255,0.5)",
+    nameEnColor: "#FFFFFF",
     imageLeft: true,
-    showcaseFilter:
-      "drop-shadow(2px 0 0 rgba(255,255,255,0.9)) drop-shadow(-2px 0 0 rgba(255,255,255,0.9)) drop-shadow(0 2px 0 rgba(255,255,255,0.9)) drop-shadow(0 -2px 0 rgba(255,255,255,0.9))",
   },
   {
     id: "pudi",
@@ -112,21 +121,41 @@ const CHARACTERS = [
     nameEn: "Pudding + Dessert",
     showcaseImage: "/intro/puding.png",
     sceneImage: "/intro/pudings.png",
-    mainBg: "#F5C842",
+    mainBg: "#F3BC1E",
     insetBg: "#1F2121",
     greeting: "반가워, 난 푸디.\n달콤함이 가득한 하루를 만들어줄게!",
-    accentText: "일상 속 '달콤함'을 채우는 푸딩, 푸디를 소개합니다.",
-    accentColor: "#F5C842",
-    body: "한입 베어물면 풍림푸드 피지는 달콤한 친구 '푸디'. 우리의 일상을 소소한 행복으로\n가득 채워주는 작고 귀여운, 통통히는 매력을 가진 존재랍니다!",
-    bodyColor: "rgba(255,255,255,0.65)",
+    accentText: "일상 속 '달콤함'을 채우는 푸딩,\n푸디를 소개합니다.",
+    accentColor: "#F3BC1E",
+    body: "한입 베어물면 몽글몽글 퍼지는 달콤한 친구 '푸디'.\n우리의 일상을 소소한 행복으로 가득 채워주는 \n작고 귀여운, 통통튀는 매력을 가진 존재랍니다!",
+    bodyColor: "#FFFFFF",
     greetingColor: "#FFFFFF",
     nameColor: "#1F2121",
-    nameEnColor: "rgba(31,33,33,0.5)",
+    nameEnColor: "#1F2121",
     imageLeft: false,
-    showcaseFilter:
-      "drop-shadow(5px 0 0 white) drop-shadow(-5px 0 0 white) drop-shadow(0 5px 0 white) drop-shadow(0 -5px 0 white) drop-shadow(3.5px 3.5px 0 white) drop-shadow(-3.5px 3.5px 0 white) drop-shadow(3.5px -3.5px 0 white) drop-shadow(-3.5px -3.5px 0 white)",
   },
 ];
+
+/** 푸디 인셋 스토리 카드 — 모바일 피그마 (font: NanumSquareRound = `nanum`) */
+const PUDI_INSET_MOBILE = {
+  greeting: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: 800,
+    lineHeight: "25.2px",
+  },
+  accent: {
+    color: "#F3BC1E",
+    fontSize: 16,
+    fontWeight: 800,
+    lineHeight: "24px",
+  },
+  body: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: 700,
+    lineHeight: "21px",
+  },
+} as const;
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "회사소개 | 풍림푸드" }];
@@ -150,6 +179,7 @@ function Sparkle({
         width: size,
         height: size,
         objectFit: "contain",
+        objectPosition: "center center",
         ...style,
       }}
     />
@@ -168,7 +198,21 @@ function Sparkle({
  * 두 슬라이드가 동일하게 생겼으므로 시각적 점프가 없음
  */
 const N = SLIDES.length;
-const EXT = [SLIDES[N - 1], ...SLIDES, SLIDES[0]]; // length = N + 2
+
+/**
+ * 모바일 경영 철학 — 피그마 2×3 그리드 (행 우선: 좌→우)
+ * 1행: 고객 중심(흰) · 품질 신뢰(연베이지)
+ * 2행: ESG(연베이지) · 혁신 추구(연노랑)
+ * 3행: 글로벌 진출(흰) · 상생 협력(연베이지)
+ */
+const PHILOSOPHY_MOBILE_GRID = [
+  { category: "고객 중심", bg: "#FFFFFF" },
+  { category: "품질 신뢰", bg: "#E8EDD4" },
+  { category: "ESG 경영", bg: "#E8EDD4" },
+  { category: "혁신 추구", bg: "#F5EED0" },
+  { category: "글로벌 진출", bg: "#FFFFFF" },
+  { category: "상생 협력", bg: "#E8EDD4" },
+] as const;
 
 /** CEO 무대 시안 (1460×690 기준 픽셀) — 리사이즈 시 동일 비율 유지 */
 const CEO_STAGE_W = 1460;
@@ -197,11 +241,6 @@ type CeoLayoutMetrics = {
 };
 
 export default function BrandIntroScreen() {
-  // ── 모바일 자동 슬라이더 상태 ──
-  const [pos, setPos] = useState(1); // extended 배열 index (1 = 첫 실제 슬라이드)
-  const [animated, setAnimated] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   // ── PC 스크롤 드리븐 서큘러 리빌 상태 ──
   const panelWrapRef = useRef<HTMLDivElement>(null);
   const [gp, setGp] = useState(0); // global progress: 0 to SLIDES.length
@@ -275,42 +314,6 @@ export default function BrandIntroScreen() {
     };
   }, []);
 
-  // pos 변경 후 경계(clone) 도달 시 순간이동
-  useEffect(() => {
-    if (pos === EXT.length - 1) {
-      // clone-first 에 도달 → 트랜지션 완료 후 pos=1 텔레포트
-      const t = setTimeout(() => {
-        setAnimated(false);
-        setPos(1);
-      }, 760);
-      return () => clearTimeout(t);
-    }
-    if (pos === 0) {
-      // clone-last 에 도달 → 트랜지션 완료 후 pos=N 텔레포트
-      const t = setTimeout(() => {
-        setAnimated(false);
-        setPos(N);
-      }, 760);
-      return () => clearTimeout(t);
-    }
-  }, [pos]);
-
-  // 텔레포트 직후 animation 재활성화 (React 렌더링 완료 후)
-  useEffect(() => {
-    if (!animated) {
-      const t = setTimeout(() => setAnimated(true), 30);
-      return () => clearTimeout(t);
-    }
-  }, [animated]);
-
-  // 자동 진행 (모바일)
-  useEffect(() => {
-    timerRef.current = setInterval(() => setPos((p) => p + 1), 3500);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
   // PC 스크롤 드리븐 서큘러 리빌
   useEffect(() => {
     const onScroll = () => {
@@ -334,7 +337,7 @@ export default function BrandIntroScreen() {
   }, []);
 
   return (
-    <div className="w-full bg-[#F5F2E8]">
+    <div className="w-full bg-[#F4F2E5] md:bg-[#F5F2E8]">
       <Breadcrumb items={[{ label: "회사소개" }]} />
 
       {/* ══════════════════════════════════════════
@@ -534,103 +537,115 @@ export default function BrandIntroScreen() {
         </section>
       </div>
 
-      {/* ── 모바일: 기존 자동 슬라이더 ── */}
-      <section
-        className="relative overflow-hidden md:hidden"
-        style={{ background: "#F5F2E8", height: 795 }}
-      >
-        {/* 텍스트 상단 + peek 슬라이더 */}
-        <div className="flex h-full flex-col justify-start px-4 pt-12">
-          <h1
-            style={{
-              fontSize: 40,
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              color: "#003F2B",
-              lineHeight: 1.15,
-              marginBottom: 14,
-            }}
-          >
-            Poonglim,
-            <br />
-            Brand Story
-          </h1>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 400,
-              letterSpacing: "-0.02em",
-              color: "#666",
-              lineHeight: 1.65,
-              marginBottom: 28,
-            }}
-          >
-            1994년 설립 이래 30년간 축적된 노하우와
-            <br />
-            혁신적인 기술로 고객의 건강하고
-            <br />
-            풍요로운 일상을 만들어가고 있습니다.
-          </p>
+      {/* ── 모바일 히어로: 시안 비율(clamp·vw·%), 좌우 패딩 안에서 전폭 유동 ── */}
+      <section className="md:hidden">
+        <div className="flex w-full items-center justify-start px-3 py-6">
+          <div className="flex w-full flex-col items-end gap-[clamp(28px,9vw,44px)]">
+            <div className="flex w-full flex-col items-start gap-2.5 self-stretch">
+              <h1
+                className={cn(
+                  nanum,
+                  "self-stretch text-[clamp(32px,10.67vw,40px)] leading-[clamp(40px,12.8vw,48px)] font-extrabold text-[#003F2B]",
+                )}
+              >
+                Poonglim,
+                <br />
+                Brand Story
+              </h1>
+              <p
+                className={cn(
+                  nanum,
+                  "self-stretch text-[clamp(13px,3.73vw,14px)] leading-[clamp(20px,5.97vw,22.4px)] font-normal text-[#003F2B]",
+                )}
+              >
+                1994년 설립 이래 30년간 축적된 노하우와
+                <br />
+                혁신적인 기술로 고객의 건강하고 풍요로운 일상을
+                <br />
+                만들어가고 있습니다.
+              </p>
+            </div>
 
-          {/* 모바일 peek 슬라이더 */}
-          <div className="-mx-4 overflow-hidden">
-            <div
-              className="flex"
-              style={{
-                transform: `translateX(calc(-${pos} * 80vw))`,
-                transition: animated
-                  ? "transform 0.75s cubic-bezier(0.4, 0, 0.2, 1)"
-                  : "none",
-              }}
-            >
-              {EXT.map((slide, i) => (
+            <div className="relative flex w-full flex-col items-start gap-[clamp(28px,9vw,44px)] self-stretch">
+              <img
+                src={INTRO_SPARKLE.sparkle1}
+                alt=""
+                className="pointer-events-none absolute top-[clamp(140px,55.47vw,208px)] -left-[min(44px,11.7vw)] h-[min(70px,18.67vw)] w-[min(70px,18.67vw)] object-contain object-left opacity-90 select-none"
+                aria-hidden
+              />
+              <img
+                src={INTRO_SPARKLE.star}
+                alt=""
+                className="pointer-events-none absolute -top-[min(110px,29.3vw)] left-[55.1%] h-[min(225px,60vw)] w-[min(225px,60vw)] max-w-none object-contain object-right object-top opacity-90 select-none"
+                aria-hidden
+              />
+              <img
+                src={INTRO_SPARKLE.sparkle2}
+                alt=""
+                className="pointer-events-none absolute top-[clamp(140px,55.47vw,208px)] left-[67%] h-[min(40px,10.67vw)] w-[min(40px,10.67vw)] object-contain select-none"
+                aria-hidden
+              />
+
+              {SLIDES.map((slide, i) => (
                 <div
-                  key={i}
-                  className="flex-shrink-0 pl-3"
-                  style={{ width: "80vw" }}
+                  key={slide.unit}
+                  className={cn(
+                    "inline-flex w-full gap-8 self-stretch",
+                    i === 0 && "items-center justify-start",
+                    i === 1 && "items-start justify-start",
+                    i === 2 && "items-center justify-center",
+                  )}
                 >
                   <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-end",
-                      lineHeight: 1,
-                    }}
+                    className={cn(
+                      "flex min-w-0 flex-1 flex-col",
+                      i === 0 && "items-center",
+                      i === 1 && "items-start",
+                      i === 2 && "items-start",
+                    )}
                   >
-                    <span
-                      style={{
-                        fontSize: "clamp(72px, 18vw, 120px)",
-                        fontWeight: 800,
-                        letterSpacing: "-0.04em",
-                        color: "#003F2B",
-                        lineHeight: 1,
-                      }}
+                    <div
+                      className={cn(
+                        "inline-flex items-start gap-[4.4px]",
+                        i === 2
+                          ? "justify-center self-stretch"
+                          : "w-full justify-start self-stretch",
+                      )}
                     >
-                      {slide.num}
-                    </span>
-                    <span
-                      style={{
-                        alignSelf: "flex-start",
-                        fontSize: "clamp(28px, 7vw, 48px)",
-                        fontWeight: 800,
-                        letterSpacing: "-0.04em",
-                        color: "#003F2B",
-                        lineHeight: 1,
-                      }}
-                    >
-                      +
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "clamp(14px, 3.5vw, 22px)",
-                        fontWeight: 700,
-                        letterSpacing: "-0.02em",
-                        color: "#003F2B",
-                        lineHeight: 1,
-                        paddingBottom: "0.1em",
-                      }}
-                    >
-                      {slide.unit}
-                    </span>
+                      <span
+                        className={cn(
+                          nanum,
+                          "shrink-0 text-[clamp(64px,26.67vw,100px)] leading-none font-extrabold text-[#003F2B]",
+                        )}
+                      >
+                        {slide.num}
+                      </span>
+                      <div
+                        className={cn(
+                          "flex h-[min(100px,26.67vw)] min-h-[3.5rem] shrink-0 flex-col justify-between self-stretch pb-0.5",
+                          i === 2
+                            ? "min-w-0 flex-1 items-start"
+                            : "w-[min(76px,20.27vw)] min-w-[3.25rem] items-start",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            nanum,
+                            "text-[clamp(28px,10.67vw,40px)] leading-none font-extrabold text-[#003F2B]",
+                          )}
+                        >
+                          +
+                        </span>
+                        <span
+                          className={cn(
+                            nanum,
+                            "text-[clamp(14px,4.27vw,16px)] leading-tight font-bold text-[#003F2B]",
+                          )}
+                        >
+                          {slide.unit}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -646,11 +661,7 @@ export default function BrandIntroScreen() {
       >
         <PageContentMax>
           <div className="mb-6 flex items-center gap-2 md:mb-7">
-            <img
-              src="/home/product-star.png"
-              alt=""
-              style={{ width: 16, height: 16 }}
-            />
+            <SectionTitleStar variant="brandIntro" className="h-4 w-4" />
             <span
               style={{
                 fontSize: pc1920(14, 28),
@@ -690,20 +701,15 @@ export default function BrandIntroScreen() {
                         }
                   }
                 >
-                  <div
-                    className="relative h-full w-full overflow-hidden"
-                    style={{
-                      clipPath: "ellipse(47% 50% at 50% 50%)",
-                    }}
-                  >
+                  <div className="relative h-full w-full overflow-hidden">
                     <img
                       src="/intro/president_img.png"
-                      alt="풍림푸드 대표이사 정언현"
+                      alt="풍림푸드 대표이사 정연현"
                       className="block h-full w-full object-cover"
                     />
                   </div>
                   <img
-                    src="/home/intro-star.png"
+                    src={INTRO_SPARKLE.sparkle1}
                     alt=""
                     className="pointer-events-none absolute"
                     style={{
@@ -713,7 +719,7 @@ export default function BrandIntroScreen() {
                     }}
                   />
                   <img
-                    src="/home/star_icon.png"
+                    src={INTRO_SPARKLE.sparkle2}
                     alt=""
                     className="pointer-events-none absolute"
                     style={{
@@ -723,7 +729,7 @@ export default function BrandIntroScreen() {
                     }}
                   />
                   <img
-                    src="/home/company-intro-star.png"
+                    src={INTRO_SPARKLE.star}
                     alt=""
                     className="pointer-events-none absolute"
                     style={{
@@ -790,10 +796,9 @@ export default function BrandIntroScreen() {
                   }
                 >
                   <div className="mb-2.5 flex shrink-0 items-center gap-2">
-                    <img
-                      src="/home/product-star.png"
-                      alt=""
-                      style={{ width: 16, height: 16 }}
+                    <SectionTitleStar
+                      variant="brandIntro"
+                      className="h-4 w-4"
                     />
                     <span
                       style={{
@@ -842,7 +847,7 @@ export default function BrandIntroScreen() {
                     }}
                   >
                     풍림푸드 대표이사{" "}
-                    <span style={{ marginLeft: 10 }}>정언현</span>
+                    <span style={{ marginLeft: 10 }}>정연현</span>
                   </p>
                 </div>
               </div>
@@ -851,44 +856,113 @@ export default function BrandIntroScreen() {
         </PageContentMax>
       </section>
 
-      {/* 모바일 CEO 섹션 */}
-      <section className="bg-[#F2F0E4] px-4 py-12 md:hidden">
-        <div className="mb-3 flex items-center gap-2">
-          <img src="/home/star_icon.png" alt="" className="h-4 w-4" />
-          <span className="text-xs font-semibold tracking-widest text-[#003F2B] uppercase">
-            CEO 인사말
-          </span>
+      {/* 모바일 CEO — 인용은 초상 상단에 겹침, 스파클은 초상 영역 기준 배치 */}
+      <section className="bg-[#F2F0E4] md:hidden">
+        <div className="flex w-full flex-col items-start gap-0 px-3 pt-5 pb-6">
+          <div className="flex w-full items-center gap-[14px]">
+            <SectionTitleStar
+              variant="brandIntro"
+              className="h-[21px] w-[21px]"
+            />
+            <div
+              className={cn(
+                nanum,
+                "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+              )}
+            >
+              CEO 인사말
+            </div>
+          </div>
+
+          {/* 타이틀(아래 가장자리) ↔ 인용문 블록 영역: 시안 40px */}
+          <div className="relative mx-auto mt-[40px] w-full max-w-[min(320px,88vw)] overflow-visible pt-[clamp(20px,5.5vw,36px)]">
+            <div className="relative mx-auto aspect-[530/650] w-full max-w-[280px] overflow-visible">
+              <blockquote
+                className={cn(
+                  nanum,
+                  "absolute bottom-full left-1/2 z-30 w-[min(108%,calc(100%+24px))] max-w-none -translate-x-1/2 translate-y-[min(28%,2.25rem)] text-center text-[clamp(20px,6.4vw,28px)] leading-[1.28] font-extrabold text-[#003F2B]",
+                )}
+              >
+                &quot;고객의 건강이 <br />곧 우리의 사명입니다&quot;
+              </blockquote>
+
+              <div className="relative z-[5] h-full w-full overflow-hidden">
+                <img
+                  src="/intro/president_img.png"
+                  alt="풍림푸드 대표이사 정연현"
+                  className="block h-full w-full object-cover"
+                />
+              </div>
+
+              <img
+                src={INTRO_SPARKLE.sparkle1}
+                alt=""
+                className="pointer-events-none absolute z-20 opacity-90"
+                style={{
+                  left: "-6%",
+                  bottom: "24%",
+                  width: "clamp(32px, 10vw, 48px)",
+                  height: "auto",
+                }}
+                aria-hidden
+              />
+              <img
+                src={INTRO_SPARKLE.sparkle2}
+                alt=""
+                className="pointer-events-none absolute z-20"
+                style={{
+                  left: "-1%",
+                  bottom: "9%",
+                  width: "clamp(18px, 5.5vw, 30px)",
+                  height: "auto",
+                }}
+                aria-hidden
+              />
+              <img
+                src={INTRO_SPARKLE.star}
+                alt=""
+                className="pointer-events-none absolute z-20 opacity-90"
+                style={{
+                  top: "0%",
+                  right: "-10%",
+                  width: "clamp(44px, 13vw, 76px)",
+                  height: "auto",
+                }}
+                aria-hidden
+              />
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              nanum,
+              "mt-[40px] flex w-full flex-col items-start gap-4 self-stretch",
+            )}
+          >
+            <p className="text-[clamp(13px,3.73vw,14px)] leading-[1.5] font-bold text-[#1F2121]">
+              풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날 대한민국을
+              대표하는 프리미엄 식품 전문기업으로 성장했습니다.
+              <br />
+              <br />
+              우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고 풍요로운
+              일상을 만들어가는 파트너가 되고자 합니다.&nbsp;&nbsp;엄선된 원료와
+              첨단 기술, 그리고 30년간 축적된 노하우를 바탕으로 최고 품질의
+              제품을 선보이고 있습니다.
+              <br />
+              <br />
+              앞으로도 풍림푸드는 지속가능한 경영과 사회적 책임을 다하며, 고객과
+              함께 성장하는 기업이 되겠습니다.
+            </p>
+            <div className="inline-flex items-center gap-3 self-stretch">
+              <span className="text-base leading-6 font-normal text-[#003F2B]">
+                풍림푸드 대표이사
+              </span>
+              <span className="text-base leading-6 font-bold text-[#003F2B]">
+                정연현
+              </span>
+            </div>
+          </div>
         </div>
-        <div
-          className="mx-auto mb-6 overflow-hidden rounded-full"
-          style={{ width: 200, height: 250 }}
-        >
-          <img
-            src="/intro/president_img.png"
-            alt="풍림푸드 대표이사 정언현"
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <blockquote
-          className="mb-6 text-center leading-tight font-extrabold text-[#003F2B]"
-          style={{ fontSize: 28, letterSpacing: "-0.04em" }}
-        >
-          "고객의 건강이
-          <br />곧 우리의 사명입니다"
-        </blockquote>
-        <div className="space-y-3 text-sm leading-relaxed text-[#003F2B]">
-          <p>
-            풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날 대한민국을
-            대표하는 프리미엄 식품 전문기업으로 성장했습니다.
-          </p>
-          <p>
-            우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고 풍요로운
-            일상을 만들어가는 파트너가 되고자 합니다.
-          </p>
-        </div>
-        <p className="mt-6 text-sm font-semibold text-[#003F2B]">
-          풍림푸드 대표이사 <span className="ml-2">정언현</span>
-        </p>
       </section>
 
       {/* ══ 섹션 3: 경영 철학 ══
@@ -904,6 +978,7 @@ export default function BrandIntroScreen() {
         style={{
           backgroundColor: "#EAE3C9",
           borderRadius: `${pc1920(20, 40)} ${pc1920(20, 40)} 0 0`,
+          marginBottom: 40,
         }}
       >
         <div
@@ -930,11 +1005,7 @@ export default function BrandIntroScreen() {
                   marginBottom: 20,
                 }}
               >
-                <img
-                  src="/home/product-star.png"
-                  alt=""
-                  style={{ width: 16, height: 16 }}
-                />
+                <SectionTitleStar variant="brandIntro" className="h-4 w-4" />
                 <span
                   style={{
                     fontSize: pc1920(14, 28),
@@ -1042,108 +1113,78 @@ export default function BrandIntroScreen() {
         </div>
       </section>
 
-      {/* 경영 철학 — 모바일 */}
-      <section
-        className="md:hidden"
-        style={{ backgroundColor: "#EAE3C9", padding: "48px 16px" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 16,
-          }}
-        >
-          <img
-            src="/home/product-star.png"
-            alt=""
-            style={{ width: 14, height: 14 }}
-          />
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#003F2B",
-              letterSpacing: "0.1em",
-            }}
-          >
-            경영 철학
-          </span>
-        </div>
-        <h2
-          style={{
-            fontSize: 28,
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.25,
-            color: "#003F2B",
-            marginBottom: 24,
-          }}
-        >
-          6가지 핵심 가치로
-          <br />더 나은 미래를
-          <br />
-          만들어갑니다.
-        </h2>
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
-        >
-          {PHILOSOPHIES.map(({ category, desc, image, bg, highlight }) => (
-            <div
-              key={category}
-              style={{
-                backgroundColor: bg,
-                borderRadius: 16,
-                padding: 16,
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 200,
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  borderRadius: 100,
-                  padding: "2px 8px",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  backgroundColor: highlight
-                    ? "rgba(0,0,0,0.08)"
-                    : "rgba(0,63,43,0.07)",
-                  color: "#003F2B",
-                  marginBottom: 8,
-                  alignSelf: "flex-start",
-                }}
-              >
-                {category}
-              </span>
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#003F2B",
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.4,
-                }}
-              >
-                {desc}
-              </p>
+      {/* 경영 철학 — 모바일: 2×3 그리드 · 하단 40px 후 캐릭터 섹션 */}
+      <section className="flex flex-col items-center overflow-hidden rounded-t-[24px] bg-[#EAE3C9] px-3 pt-6 pb-[40px] md:hidden">
+        <div className="flex w-full flex-col items-stretch gap-4 self-stretch">
+          <div className="flex flex-col items-start gap-2 self-stretch">
+            <div className="inline-flex w-full items-center gap-[14px] self-stretch">
+              <SectionTitleStar
+                variant="brandIntro"
+                className="h-[21px] w-[21px]"
+              />
               <div
-                style={{
-                  marginTop: "auto",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
+                className={cn(
+                  nanum,
+                  "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+                )}
               >
-                <img
-                  src={image}
-                  alt={category}
-                  style={{ width: 70, height: 70, objectFit: "contain" }}
-                />
+                경영 철학
               </div>
             </div>
-          ))}
+            <h2
+              className={cn(
+                nanum,
+                "self-stretch text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold text-[#003F2B]",
+              )}
+            >
+              6가지 핵심 가치로
+              <br />더 나은 미래를 만들어갑니다.
+            </h2>
+          </div>
+
+          <div className="grid w-full grid-cols-2 items-stretch gap-[clamp(6px,2.13vw,8px)] self-stretch">
+            {PHILOSOPHY_MOBILE_GRID.map(({ category, bg }) => {
+              const card = PHILOSOPHIES.find((p) => p.category === category);
+              if (!card) return null;
+              const { desc, image } = card;
+              return (
+                <div
+                  key={category}
+                  className={cn(
+                    nanum,
+                    "flex h-full min-h-[200px] w-full flex-col items-end justify-start gap-5 overflow-hidden rounded-[20px] p-5",
+                  )}
+                  style={{ backgroundColor: bg }}
+                >
+                  <div className="flex w-full flex-col items-start gap-3 self-stretch">
+                    <h3
+                      className={cn(
+                        nanum,
+                        "text-[18px] leading-[27px] font-extrabold break-words text-[#02633E]",
+                      )}
+                    >
+                      {category}
+                    </h3>
+                    <p
+                      className={cn(
+                        nanum,
+                        "w-full text-[14px] leading-[21px] font-bold break-words text-[#1F2121]",
+                      )}
+                    >
+                      {desc}
+                    </p>
+                  </div>
+                  <img
+                    src={image}
+                    alt=""
+                    width={90}
+                    height={90}
+                    className="mt-auto h-[90px] w-[90px] shrink-0 object-contain mix-blend-darken"
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -1209,7 +1250,6 @@ export default function BrandIntroScreen() {
                 nameColor,
                 nameEnColor,
                 imageLeft,
-                showcaseFilter,
               }) => (
                 <div
                   key={id}
@@ -1239,7 +1279,6 @@ export default function BrandIntroScreen() {
                       style={{
                         height: pc1920(160, 300),
                         objectFit: "contain",
-                        ...(showcaseFilter ? { filter: showcaseFilter } : {}),
                       }}
                     />
                     <p
@@ -1288,44 +1327,87 @@ export default function BrandIntroScreen() {
                         src={sceneImage}
                         alt={`${name} scene`}
                         style={{
-                          height: pc1920(44, 100),
+                          height:
+                            id === "pudi" ? pc1920(28, 58) : pc1920(44, 100),
                           objectFit: "contain",
-                          marginBottom: pc1920(10, 24),
+                          marginBottom:
+                            id === "pudi" ? pc1920(6, 14) : pc1920(10, 24),
                         }}
                       />
                       <p
-                        style={{
-                          fontSize: pc1920(16, 32),
-                          fontWeight: 800,
-                          color: greetingColor,
-                          letterSpacing: "-0.04em",
-                          lineHeight: 1.25,
-                          whiteSpace: "pre-line",
-                          marginBottom: pc1920(6, 14),
-                        }}
+                        style={
+                          id === "pudi"
+                            ? {
+                                fontFamily:
+                                  "var(--font-nanum), NanumSquareRound, sans-serif",
+                                fontSize: pc1920(16, 32),
+                                fontWeight: 800,
+                                color: "#FFFFFF",
+                                lineHeight: pc1920(22, 45),
+                                whiteSpace: "pre-line",
+                                marginBottom: pc1920(6, 14),
+                                overflowWrap: "break-word",
+                              }
+                            : {
+                                fontSize: pc1920(16, 32),
+                                fontWeight: 800,
+                                color: greetingColor,
+                                letterSpacing: "-0.04em",
+                                lineHeight: 1.25,
+                                whiteSpace: "pre-line",
+                                marginBottom: pc1920(6, 14),
+                              }
+                        }
                       >
                         {greeting}
                       </p>
                       <p
-                        style={{
-                          fontSize: pc1920(12, 18),
-                          fontWeight: 800,
-                          color: accentColor,
-                          letterSpacing: "-0.04em",
-                          marginBottom: pc1920(6, 14),
-                        }}
+                        style={
+                          id === "pudi"
+                            ? {
+                                fontFamily:
+                                  "var(--font-nanum), NanumSquareRound, sans-serif",
+                                fontSize: pc1920(14, 28),
+                                fontWeight: 800,
+                                color: "#F3BC1E",
+                                lineHeight: pc1920(20, 38),
+                                whiteSpace: "pre-line",
+                                marginBottom: pc1920(6, 14),
+                                overflowWrap: "break-word",
+                              }
+                            : {
+                                fontSize: pc1920(12, 18),
+                                fontWeight: 800,
+                                color: accentColor,
+                                letterSpacing: "-0.04em",
+                                marginBottom: pc1920(6, 14),
+                              }
+                        }
                       >
                         {accentText}
                       </p>
                       <p
-                        style={{
-                          fontSize: pc1920(11, 14),
-                          fontWeight: 700,
-                          letterSpacing: "-0.04em",
-                          color: bodyColor,
-                          lineHeight: 1.75,
-                          whiteSpace: "pre-line",
-                        }}
+                        style={
+                          id === "pudi"
+                            ? {
+                                fontFamily:
+                                  "var(--font-nanum), NanumSquareRound, sans-serif",
+                                fontSize: pc1920(12, 18),
+                                fontWeight: 700,
+                                color: "#FFFFFF",
+                                lineHeight: pc1920(18, 27),
+                                whiteSpace: "pre-line",
+                                overflowWrap: "break-word",
+                              }
+                            : {
+                                fontSize: pc1920(11, 14),
+                                fontWeight: 700,
+                                letterSpacing: "-0.04em",
+                                color: bodyColor,
+                                lineHeight: 1.75,
+                                whiteSpace: "pre-line",
+                              }
+                        }
                       >
                         {body}
                       </p>
@@ -1338,150 +1420,151 @@ export default function BrandIntroScreen() {
         </div>
       </section>
 
-      {/* ══ 섹션 4: 공식 캐릭터 (모바일) ══ */}
-      <section
-        className="block md:hidden"
-        style={{ backgroundColor: "#F5F2E8", padding: "60px 16px" }}
-      >
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: "#003F2B",
-              letterSpacing: "-0.04em",
-              marginBottom: 8,
-            }}
-          >
-            풍림푸드 공식 캐릭터
-          </h2>
-          <p
-            style={{ fontSize: 11, color: "#C9A84C", letterSpacing: "0.08em" }}
-          >
-            Poonglim Characters Story
-          </p>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {CHARACTERS.map(
-            ({
-              id,
-              name,
-              nameEn,
-              showcaseImage,
-              sceneImage,
-              mainBg,
-              insetBg,
-              greeting,
-              accentText,
-              accentColor,
-              body,
-              bodyColor,
-              greetingColor,
-              nameColor,
-              nameEnColor,
-            }) => (
-              <div
-                key={id}
-                style={{
-                  backgroundColor: mainBg,
-                  borderRadius: 20,
-                  overflow: "hidden",
-                }}
+      {/* ══ 섹션 4: 공식 캐릭터 (모바일) — 경영철학과 간격 40px(철학 pb) · 전폭 유동 ══ */}
+      <section className="bg-[#F4F2E5] pt-10 md:hidden">
+        <div className="flex w-full flex-col px-3 pt-0 pb-6">
+          <div className="flex w-full flex-col gap-4">
+            <div className="flex w-full flex-col items-start gap-1">
+              <h2
+                className={cn(
+                  nanum,
+                  "w-full text-[20px] leading-[26px] font-extrabold text-[#003F2B]",
+                )}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    paddingTop: 32,
-                    paddingBottom: 8,
-                  }}
-                >
-                  <img
-                    src={showcaseImage}
-                    alt={name}
-                    style={{ height: 180, objectFit: "contain" }}
-                  />
-                  <p
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: nameColor,
-                      letterSpacing: "-0.04em",
-                      marginTop: 12,
-                    }}
+                풍림푸드 공식 캐릭터
+              </h2>
+              <p
+                className={cn(
+                  nanum,
+                  "w-full text-[14px] leading-[18.2px] font-normal text-[#003F2B]",
+                )}
+              >
+                Poonglim Characters Story
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-3">
+              {CHARACTERS.map(
+                ({
+                  id,
+                  name,
+                  nameEn,
+                  showcaseImage,
+                  sceneImage,
+                  mainBg,
+                  insetBg,
+                  greeting,
+                  accentText,
+                  accentColor,
+                  body,
+                  bodyColor,
+                  greetingColor,
+                  nameColor,
+                  nameEnColor,
+                }) => (
+                  <div
+                    key={id}
+                    className="flex flex-col items-center overflow-hidden rounded-[20px] px-3 pt-4 pb-3"
+                    style={{ backgroundColor: mainBg }}
                   >
-                    {name}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: nameEnColor,
-                      marginTop: 4,
-                      marginBottom: 16,
-                    }}
-                  >
-                    {nameEn}
-                  </p>
-                </div>
-                <div
-                  style={{
-                    margin: "0 12px 12px",
-                    backgroundColor: insetBg,
-                    borderRadius: 12,
-                    padding: 24,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    textAlign: "center",
-                  }}
-                >
-                  <img
-                    src={sceneImage}
-                    alt={`${name} scene`}
-                    style={{
-                      height: 60,
-                      objectFit: "contain",
-                      marginBottom: 16,
-                    }}
-                  />
-                  <p
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 800,
-                      color: greetingColor,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1.3,
-                      whiteSpace: "pre-line",
-                      marginBottom: 10,
-                    }}
-                  >
-                    {greeting}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: accentColor,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {accentText}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: bodyColor,
-                      lineHeight: 1.7,
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {body}
-                  </p>
-                </div>
-              </div>
-            ),
-          )}
+                    <div className="flex w-full flex-col items-center gap-3">
+                      <div className="flex h-[min(200px,54vw)] w-full items-center justify-center px-0.5">
+                        <img
+                          src={showcaseImage}
+                          alt={name}
+                          className="max-h-full w-auto max-w-[min(240px,88%)] object-contain"
+                        />
+                      </div>
+                      <div className="flex w-full flex-col items-center gap-0.5">
+                        <p
+                          className={cn(
+                            nanum,
+                            "text-center text-[20px] leading-[30px] font-extrabold",
+                          )}
+                          style={{ color: nameColor }}
+                        >
+                          {name}
+                        </p>
+                        <p
+                          className={cn(
+                            nanum,
+                            "text-center text-[14px] leading-[21px] font-extrabold",
+                          )}
+                          style={{ color: nameEnColor }}
+                        >
+                          {nameEn}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className="mt-2 flex w-full flex-col items-center gap-3 rounded-2xl px-3 py-4"
+                      style={{ backgroundColor: insetBg }}
+                    >
+                      <img
+                        src={sceneImage}
+                        alt=""
+                        className={cn(
+                          "h-auto w-auto max-w-full object-contain",
+                          id === "pudi"
+                            ? "max-h-[min(70px,18.5vw)]"
+                            : "max-h-[min(112px,30vw)]",
+                        )}
+                        aria-hidden
+                      />
+                      <div className="flex w-full flex-col items-center gap-2.5">
+                        <p
+                          className={cn(
+                            nanum,
+                            "text-center break-words whitespace-pre-line",
+                            id !== "pudi" &&
+                              "text-[20px] leading-[1.35] font-extrabold",
+                          )}
+                          style={
+                            id === "pudi"
+                              ? PUDI_INSET_MOBILE.greeting
+                              : { color: greetingColor }
+                          }
+                        >
+                          {greeting}
+                        </p>
+                        <p
+                          className={cn(
+                            nanum,
+                            "text-center break-words whitespace-pre-line",
+                            id !== "pudi" &&
+                              "text-base leading-6 font-extrabold",
+                          )}
+                          style={
+                            id === "pudi"
+                              ? PUDI_INSET_MOBILE.accent
+                              : { color: accentColor }
+                          }
+                        >
+                          {accentText}
+                        </p>
+                        <p
+                          className={cn(
+                            nanum,
+                            "text-center break-words whitespace-pre-line",
+                            id !== "pudi" &&
+                              "text-[14px] leading-[1.55] font-bold",
+                          )}
+                          style={
+                            id === "pudi"
+                              ? PUDI_INSET_MOBILE.body
+                              : { color: bodyColor }
+                          }
+                        >
+                          {body}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1608,126 +1691,111 @@ export default function BrandIntroScreen() {
         </PageContentMax>
       </section>
 
-      {/* ══ 섹션 5: 회사소개서 다운로드 (모바일) ══ */}
-      <section
-        className="block md:hidden"
-        style={{
-          backgroundColor: "#F5F2E8",
-          borderTop: "1px solid #DDD8C8",
-          padding: "48px 20px 60px",
-        }}
-      >
-        {/* 상단: 텍스트 */}
-        <div style={{ marginBottom: 28 }}>
-          <p
-            style={{
-              fontSize: 12,
-              color: "#777",
-              marginBottom: 10,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            풍림푸드를 더 자세히 알아보세요!
-          </p>
-          <h2
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: "#003F2B",
-              letterSpacing: "-0.04em",
-              lineHeight: 1.35,
-            }}
-          >
-            풍림푸드의 기업 철학, 사업 영역,
-            <br />
-            주요 제품 라인업을 확인하실 수 있습니다.
-          </h2>
-        </div>
-
-        {/* 하단: 다운로드 버튼 (세로 스택) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            { label: "회사소개서", size: "PDF, 12.5MB", href: "#" },
-            { label: "Company Brochure", size: "PDF, 12.5MB", href: "#" },
-          ].map(({ label, size, href }) => (
-            <a
-              key={label}
-              href={href}
-              download
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                backgroundColor: "#FFFFFF",
-                borderRadius: 12,
-                padding: "0 20px",
-                border: "1px solid #E0D9C8",
-                textDecoration: "none",
-                height: 76,
-                cursor: "pointer",
-              }}
+      {/* ══ 섹션 5: 회사소개서 다운로드 (모바일) — 전폭 유동 ══ */}
+      <section className="block bg-[#F4F2E5] px-3 py-6 md:hidden">
+        <div className="mx-auto flex w-full flex-col items-center gap-5">
+          <div className="flex w-full flex-col gap-2 text-left">
+            <p
+              className={cn(
+                nanum,
+                "text-[14px] leading-[18.2px] font-bold text-[#1F2121]",
+              )}
             >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: "#003F2B",
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
+              풍림푸드를 더 자세히 알아보세요!
+            </p>
+            <h2
+              className={cn(
+                nanum,
+                "text-[18px] leading-[23.4px] font-extrabold text-[#003F2B]",
+              )}
+            >
+              풍림푸드의 기업 철학, 사업 영역,
+              <br />
+              주요 제품 라인업을 확인하실 수 있습니다.
+            </h2>
+          </div>
+          <div className="flex w-full flex-col gap-2">
+            {[
+              {
+                label: "회사소개서",
+                size: "PDF, 12.5MB",
+                href: "#",
+                upper: true,
+              },
+              {
+                label: "Company Brochure",
+                size: "PDF, 12.5MB",
+                href: "#",
+                upper: false,
+              },
+            ].map(({ label, size, href, upper }) => (
+              <a
+                key={label}
+                href={href}
+                download
+                className="flex items-center justify-between gap-3 rounded-[10px] bg-white p-4 no-underline"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#003F2B]">
+                    <svg
+                      className="h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden
+                    >
+                      <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 2v6h6"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className={cn(
+                        nanum,
+                        "text-base leading-[22.4px] font-extrabold text-[#1F2121]",
+                        upper && "uppercase",
+                      )}
+                    >
+                      {label}
+                    </p>
+                    <p
+                      className={cn(
+                        nanum,
+                        "mt-1 text-[14px] leading-[21px] font-bold text-[#1F2121]",
+                      )}
+                    >
+                      {size}
+                    </p>
+                  </div>
+                </div>
+                <svg
+                  className="h-10 w-10 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
                   <path
-                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                    stroke="white"
+                    d="M5 18h14"
+                    stroke="#AAAAAA"
                     strokeWidth="2"
                     strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M14 2v6h6"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
                   />
                 </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <p
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: "#1A1A1A",
-                    letterSpacing: "-0.03em",
-                  }}
-                >
-                  {label}
-                </p>
-                <p style={{ fontSize: 11, color: "#999", marginTop: 2 }}>
-                  {size}
-                </p>
-              </div>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ flexShrink: 0 }}
-              >
-                <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
-                <path
-                  d="M5 18h14"
-                  stroke="#AAAAAA"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </a>
-          ))}
+              </a>
+            ))}
+          </div>
         </div>
       </section>
     </div>

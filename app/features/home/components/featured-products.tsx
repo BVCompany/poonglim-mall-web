@@ -1,6 +1,8 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+
+import { SectionTitleStar } from "~/core/components/section-title-star";
 import type { Product } from "~/features/products/lib/queries.server";
 
 // DB 데이터를 컴포넌트 내부 형식으로 변환
@@ -185,12 +187,9 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
             className="flex flex-1 flex-col text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-2xl"
             style={{ letterSpacing: "-0.04em" }}
           >
-            <img
-              src="/home/product-star.png"
-              alt=""
-              className="hidden flex-shrink-0 md:block"
-              width={21}
-              height={21}
+            <SectionTitleStar
+              variant="product"
+              className="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
             />
             <span>
               <span className="block md:inline">풍림푸드의 </span>

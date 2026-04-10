@@ -42,6 +42,16 @@ export async function getFeaturedProducts(limit = 10) {
   return rows.slice(0, limit);
 }
 
+/** 활성 제품이 1건이라도 있는지 (상세 목업 여부) */
+export async function hasAnyActiveProducts(): Promise<boolean> {
+  const rows = await db
+    .select({ id: products.product_id })
+    .from(products)
+    .where(eq(products.is_active, true))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** 제품 단건 */
 export async function getProductById(id: number) {
   const rows = await db

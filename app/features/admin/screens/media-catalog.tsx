@@ -2,7 +2,7 @@
  * Admin Catalog Management Screen
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/media-catalog";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -18,9 +18,10 @@ import { ImageUpload } from "~/core/components/image-upload";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "~/core/components/ui/dialog";
-import { Plus, Search, Trash2, FileDown, BookOpen } from "lucide-react";
+import { Plus, Search, Trash2, FileDown, BookOpen, Pencil } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
 import { catalogs } from "~/features/media/schema";
+import type { Catalog } from "~/features/media/lib/queries.server";
 import { eq, desc } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -46,6 +47,22 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false };
+    await db
+      .update(catalogs)
+      .set({
+        title: fd.get("title") as string,
+        description: (fd.get("description") as string) || null,
+        file_url: fd.get("file_url") as string,
+        thumbnail_url: (fd.get("thumbnail_url") as string) || null,
+        file_size: (fd.get("file_size") as string) || null,
+      })
+      .where(eq(catalogs.catalog_id, id));
+    return { success: true };
+  }
+
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) await db.delete(catalogs).where(eq(catalogs.catalog_id, id));
@@ -66,6 +83,7 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
   const { adminUser, dbCatalogs } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Catalog | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -75,19 +93,54 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
   });
   const fetcher = useFetcher();
 
+  const emptyForm = () => ({
+    title: "",
+    description: "",
+    file_url: "",
+    thumbnail_url: "",
+    file_size: "",
+  });
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    if (editingItem) {
+      setForm({
+        title: editingItem.title,
+        description: editingItem.description ?? "",
+        file_url: editingItem.file_url,
+        thumbnail_url: editingItem.thumbnail_url ?? "",
+        file_size: editingItem.file_size ?? "",
+      });
+    } else {
+      setForm(emptyForm());
+    }
+  }, [isAddModalOpen, editingItem]);
+
   const filtered = dbCatalogs.filter((c) =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleSaveCatalog = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.file_url) return;
+    if (!form.file_url.trim()) return;
     const fd = new FormData();
-    fd.append("intent", "create");
+    fd.append("intent", editingItem ? "update" : "create");
+    if (editingItem) fd.append("id", String(editingItem.catalog_id));
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
-    setForm({ title: "", description: "", file_url: "", thumbnail_url: "", file_size: "" });
+    setEditingItem(null);
+    setForm(emptyForm());
+  };
+
+  const openCreateCatalog = () => {
+    setEditingItem(null);
+    setIsAddModalOpen(true);
+  };
+
+  const openEditCatalog = (item: Catalog) => {
+    setEditingItem(item);
+    setIsAddModalOpen(true);
   };
 
   const handleDelete = (id: number) => {
@@ -120,7 +173,7 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
               <h1 className="text-2xl font-bold text-gray-900">카탈로그 관리</h1>
               <p className="text-sm text-gray-500 mt-1">총 {dbCatalogs.length}건</p>
             </div>
-            <Button onClick={() => setIsAddModalOpen(true)} className="bg-[#204E3A] hover:bg-[#1a3f2e]">
+            <Button onClick={openCreateCatalog} className="bg-[#204E3A] hover:bg-[#1a3f2e]">
               <Plus className="w-4 h-4 mr-2" />
               카탈로그 등록
             </Button>
@@ -167,18 +220,27 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
                     {item.file_size && (
                       <p className="text-xs text-gray-400">{item.file_size}</p>
                     )}
-                    <div className="flex gap-1.5 mt-3">
+                    <div className="flex flex-wrap gap-1.5 mt-3">
                       <a
                         href={item.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1"
+                        className="flex-1 min-w-[100px]"
                       >
                         <Button size="sm" variant="outline" className="w-full text-xs">
                           <FileDown className="w-3 h-3 mr-1" />
                           다운로드
                         </Button>
                       </a>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditCatalog(item)}
+                        className="text-xs px-2"
+                        aria-label="수정"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -205,12 +267,18 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
       </div>
 
       {/* Add Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+      <Dialog
+        open={isAddModalOpen}
+        onOpenChange={(open) => {
+          setIsAddModalOpen(open);
+          if (!open) setEditingItem(null);
+        }}
+      >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>카탈로그 등록</DialogTitle>
+            <DialogTitle>{editingItem ? "카탈로그 수정" : "카탈로그 등록"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAdd} className="space-y-4 mt-2">
+          <form onSubmit={handleSaveCatalog} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label>제목 *</Label>
               <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
@@ -256,8 +324,20 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">등록</Button>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1">취소</Button>
+              <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">
+                {editingItem ? "저장" : "등록"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingItem(null);
+                }}
+                className="flex-1"
+              >
+                취소
+              </Button>
             </div>
           </form>
         </DialogContent>

@@ -2,6 +2,8 @@ import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
+import { SectionTitleStar } from "~/core/components/section-title-star";
+
 interface CompanyIntroProps {
   image?: string | null;
   title?: string | null;
@@ -78,12 +80,9 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
                 className="mb-3 flex items-center gap-2 text-sm md:mb-4"
                 style={{ color: "#f1ecdb", letterSpacing: "-0.04em" }}
               >
-                <img
-                  src="/home/company-intro-star.png"
-                  alt=""
-                  className="hidden flex-shrink-0 md:block"
-                  width={14}
-                  height={14}
+                <SectionTitleStar
+                  variant="company"
+                  className="hidden h-3.5 w-3.5 flex-shrink-0 md:block"
                 />
                 회사소개
               </p>

@@ -28,6 +28,16 @@ export async function getRecipesByCategory(
     .orderBy(asc(recipes.sort_order));
 }
 
+/** 활성 레시피가 1건이라도 있는지 (상세 목업 여부) */
+export async function hasAnyActiveRecipes(): Promise<boolean> {
+  const rows = await db
+    .select({ id: recipes.recipe_id })
+    .from(recipes)
+    .where(eq(recipes.is_active, true))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** 단건 */
 export async function getRecipeById(id: number) {
   const rows = await db

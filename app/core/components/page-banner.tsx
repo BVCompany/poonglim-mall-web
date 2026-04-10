@@ -1,10 +1,10 @@
 /**
  * PageBanner — 각 페이지 상단 공통 배너 컴포넌트
  *
- * 히어로 섹션과 동일한 여백/max-width/라운드 처리:
- *   - 외부 padding: px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5
- *   - 최대 너비:    mx-auto md:max-w-[var(--hero-pc-width)] (PC 비율 스케일)
- *   - 라운드:       rounded-3xl md:rounded-[2rem]
+ * 히어로와 동일한 카드 폭·라운드:
+ *   - 외부: px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5 (히어로와 동일)
+ *   - 최대 너비: md:max-w-[var(--hero-pc-width)]
+ * 브레드크럼 좌표는 `app.css`의 `.page-banner-breadcrumb-x`로 로고와 정렬.
  */
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
@@ -59,13 +59,8 @@ export function PageBanner({
   const resolvedLinkText = dbBanner?.link_text ?? linkText;
 
   return (
-    /* 히어로 배너와 동일한 외부 여백 */
-    <div
-      className={`px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5 ${hideOnMobile ? "hidden md:block" : ""}`}
-    >
-      {/* 히어로 배너와 동일한 최대 너비 */}
+    <div className={`px-4 pt-2 md:px-8 md:pt-4 lg:px-2.5 ${hideOnMobile ? "hidden md:block" : ""}`}>
       <div className="mx-auto w-full md:max-w-[var(--hero-pc-width,1640px)]">
-        {/* 배너 카드 — 히어로와 동일한 라운드 */}
         <div
           className={`relative w-full overflow-hidden rounded-3xl bg-gray-700 md:rounded-[2rem] ${mobileHeightClassName}`}
           style={{
@@ -77,9 +72,11 @@ export function PageBanner({
           {/* 어두운 오버레이 */}
           <div className="absolute inset-0 bg-black/45" />
 
-          {/* 브레드크럼 — 좌상단 */}
+          {/* 브레드크럼 — 배너 폭 유지, 위치만 헤더 로고와 맞춤 (.page-banner-breadcrumb-x) */}
           {breadcrumb.length > 0 && (
-            <div className={`absolute left-6 top-4 z-10 md:left-10 ${hideBreadcrumbOnMobile ? "hidden md:flex" : "flex"}`}>
+            <div
+              className={`page-banner-breadcrumb-x absolute top-4 z-10 md:top-5 ${hideBreadcrumbOnMobile ? "hidden md:flex" : "flex"}`}
+            >
               <Breadcrumb
                 items={breadcrumb.filter((_, i) => i > 0).map((item) => ({
                   label: item.label,

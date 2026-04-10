@@ -3,16 +3,23 @@
  */
 import type { Route } from "./+types/notice-detail";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+} from "lucide-react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import {
   getAdjacentNotices,
   getNoticeById,
+  hasAnyActiveNotices,
   incrementNoticeViewCount,
 } from "../lib/queries.server";
 
@@ -95,25 +102,46 @@ const MOCK_ADJACENT: Record<
 };
 
 
-export async function loader({ params, request }: Route.LoaderArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
   const id = Number(params.id);
 
   const pageBanner = await getPageBanner("notice").catch(() => null);
+
+  let hasReal = false;
+  try {
+    hasReal = await hasAnyActiveNotices();
+  } catch {
+    hasReal = false;
+  }
 
   let notice = null;
   let prev: { notice_id: number; title: string } | null = null;
   let next: { notice_id: number; title: string } | null = null;
 
   try {
-    notice = await getNoticeById(id);
-    if (notice) {
+    const row = await getNoticeById(id);
+    if (row?.is_active) {
+      notice = row;
       await incrementNoticeViewCount(id);
       const adjacent = await getAdjacentNotices(id);
       prev = adjacent.prev;
       next = adjacent.next;
     }
   } catch {
-    // DB 미연결 시 더미 데이터 사용
+    /* DB 오류 시 목업 또는 404 */
+  }
+
+  if (!notice) {
+    if (hasReal) {
+      throw new Response("Not Found", { status: 404 });
+    }
+    const mock = MOCK_MAP[id];
+    if (!mock) {
+      throw new Response("Not Found", { status: 404 });
+    }
+    notice = mock as (typeof MOCK_MAP)[number];
+    prev = MOCK_ADJACENT[id]?.prev ?? null;
+    next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
   return { notice, prev, next, pageBanner, id };
@@ -137,24 +165,24 @@ function formatDateTime(val: string | Date) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
+const nanum = "font-[family-name:var(--font-nanum)]";
+
 export default function NoticeDetailScreen({
   loaderData,
 }: Route.ComponentProps) {
-  const {
-    notice: dbNotice,
-    prev: dbPrev,
-    next: dbNext,
-    pageBanner,
-    id,
-  } = loaderData;
+  const { notice, prev, next, pageBanner, id } = loaderData;
 
-  const notice = dbNotice ?? MOCK_MAP[id] ?? MOCK_MAP[12];
-  const prev = dbPrev ?? MOCK_ADJACENT[id]?.prev ?? null;
-  const next = dbNext ?? MOCK_ADJACENT[id]?.next ?? null;
+  const articleClassMobile = cn(
+    "prose prose-sm max-w-none text-[#1F2121]",
+    `${nanum} text-base font-normal leading-[22.4px]`,
+    "prose-p:leading-[22.4px] prose-headings:text-[#1F2121]",
+  );
+
+  const articleClassDesktop =
+    "prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10";
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
-      {/* ── 페이지 배너 ── */}
+    <div className="min-h-screen bg-[#F4F2E5]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="공지사항"
@@ -168,89 +196,223 @@ export default function NoticeDetailScreen({
         hideBreadcrumbOnMobile
       />
 
-      {/* ── 본문 ── */}
-      <PageContentMax className="pt-6 pb-[120px] md:pt-[100px] md:pb-[200px]">
-        {/* ── 제목 + 날짜 ── */}
-        <div
-          className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
-          style={{ borderBottom: "1px solid #D8D0BB" }}
-        >
-          <h1
-            className="text-lg leading-snug font-bold text-gray-900 md:text-2xl"
-            style={{ letterSpacing: "-0.02em" }}
-          >
-            {notice.title}
-          </h1>
-          <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
-            {formatDateTime(notice.created_at)}
-          </span>
-        </div>
-
-        {/* ── 작성자 / 조회수 ── */}
-        <div
-          className="flex items-center gap-3 py-3 text-xs text-gray-500 md:gap-5 md:py-4 md:text-sm"
-          style={{ borderBottom: "1px solid #D8D0BB" }}
-        >
-          <span>
-            글쓴이: <span className="text-gray-700">{notice.author}</span>
-          </span>
-          <span>
-            조회수: <span className="text-gray-700">{notice.view_count}</span>
-          </span>
-        </div>
-
-        {/* ── 본문 콘텐츠 ── */}
-        <div
-          className="prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10"
-          style={{ minHeight: "200px" }}
-          dangerouslySetInnerHTML={{ __html: notice.content }}
-        />
-
-        {/* ── 이전글 / 다음글 ── */}
-        <div
-          className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
-          style={{ borderTop: "1px solid #D8D0BB" }}
-        >
-          <div className="flex-1">
-            {prev ? (
-              <Link
-                to={`/support/notice/${prev.notice_id}`}
-                className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+      <PageContentMax className="pt-0 pb-[120px] md:pt-[100px] md:pb-[200px]">
+        {/* ── 모바일 본문 (Figma 375) ── */}
+        <div className="flex flex-col gap-0 md:hidden">
+          {/* 제목 + 날짜: 가로 여백은 PageContentMax(px-4) 한 번만 · 열 gap 20px · 날짜는 제목과 동일 왼쪽 정렬 */}
+          <div className="border-b border-[#EAE3C9] py-5">
+            <div className="flex flex-col items-start justify-center gap-5">
+              <div className="flex w-full items-center gap-3 self-stretch">
+                <h1
+                  className={cn(
+                    nanum,
+                    "min-w-0 flex-1 text-2xl font-extrabold leading-[31.2px] text-[#1F2121]",
+                  )}
+                >
+                  {notice.title}
+                </h1>
+              </div>
+              <p
+                className={cn(
+                  nanum,
+                  "w-full text-left text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]",
+                )}
               >
-                <span className="font-medium text-gray-400">이전글</span>
-                <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{prev.title}</span>
-                <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
-              </Link>
-            ) : (
-              <span className="text-sm text-gray-300">이전글이 없습니다.</span>
-            )}
+                {formatDateTime(notice.created_at)}
+              </p>
+            </div>
           </div>
 
-          <div className="flex-1 text-right">
-            {next ? (
-              <Link
-                to={`/support/notice/${next.notice_id}`}
-                className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-              >
-                <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{next.title}</span>
-                <span className="font-medium text-gray-400">다음글</span>
-                <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
-              </Link>
-            ) : (
-              <span className="text-sm text-gray-300">다음글이 없습니다.</span>
-            )}
+          <div className="border-b border-[#EAE3C9] pt-5 pb-[200px]">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span
+                  className={cn(
+                    nanum,
+                    "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
+                  )}
+                >
+                  <span>글쓴이:</span>
+                  <span>{notice.author}</span>
+                </span>
+                <span
+                  className={cn(
+                    nanum,
+                    "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
+                  )}
+                >
+                  <span>조회수:</span>
+                  <span>{notice.view_count}</span>
+                </span>
+              </div>
+              <div className="pt-2.5">
+                <div
+                  className={articleClassMobile}
+                  dangerouslySetInnerHTML={{ __html: notice.content }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-[60px]">
+            <div className="flex w-full flex-col gap-2.5 pt-10">
+              {prev ? (
+                <Link
+                  to={`/support/notice/${prev.notice_id}`}
+                  className={cn(
+                    nanum,
+                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden px-5 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B]",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{prev.title}</span>
+                  <span className="shrink-0">이전글</span>
+                  <ChevronUp
+                    className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </Link>
+              ) : (
+                <div
+                  className={cn(
+                    nanum,
+                    "flex h-[66px] items-center px-5 text-sm text-[#1F2121]/35",
+                  )}
+                >
+                  이전글이 없습니다.
+                </div>
+              )}
+
+              {next ? (
+                <Link
+                  to={`/support/notice/${next.notice_id}`}
+                  className={cn(
+                    nanum,
+                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden rounded-[40px] px-5 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B]",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{next.title}</span>
+                  <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
+                    <span>다음글</span>
+                    <ChevronDown
+                      className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  </div>
+                </Link>
+              ) : (
+                <div
+                  className={cn(
+                    nanum,
+                    "flex h-[66px] items-center justify-end rounded-[40px] px-5 text-sm text-[#1F2121]/35",
+                  )}
+                >
+                  다음글이 없습니다.
+                </div>
+              )}
+            </div>
+
+            <Link
+              to="/support/notice"
+              className={cn(
+                nanum,
+                "w-full rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors active:brightness-95",
+              )}
+            >
+              목록
+            </Link>
           </div>
         </div>
 
-        {/* 목록 버튼 */}
-        <div className="mt-6 flex justify-center">
-          <Link
-            to="/support/notice"
-            className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
-            style={{ backgroundColor: "#EAE3C9" }}
+        {/* ── 데스크탑 본문 ── */}
+        <div className="hidden md:block">
+          <div
+            className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
+            style={{ borderBottom: "1px solid #D8D0BB" }}
           >
-            목록
-          </Link>
+            <h1
+              className="text-lg leading-snug font-bold text-gray-900 md:text-2xl"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              {notice.title}
+            </h1>
+            <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
+              {formatDateTime(notice.created_at)}
+            </span>
+          </div>
+
+          <div
+            className="flex items-center gap-3 py-3 text-xs text-gray-500 md:gap-5 md:py-4 md:text-sm"
+            style={{ borderBottom: "1px solid #D8D0BB" }}
+          >
+            <span>
+              글쓴이: <span className="text-gray-700">{notice.author}</span>
+            </span>
+            <span>
+              조회수:{" "}
+              <span className="text-gray-700">{notice.view_count}</span>
+            </span>
+          </div>
+
+          <div
+            className={articleClassDesktop}
+            style={{ minHeight: "200px" }}
+            dangerouslySetInnerHTML={{ __html: notice.content }}
+          />
+
+          <div
+            className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
+            style={{ borderTop: "1px solid #D8D0BB" }}
+          >
+            <div className="flex-1">
+              {prev ? (
+                <Link
+                  to={`/support/notice/${prev.notice_id}`}
+                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+                >
+                  <span className="font-medium text-gray-400">이전글</span>
+                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
+                    {prev.title}
+                  </span>
+                  <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
+                </Link>
+              ) : (
+                <span className="text-sm text-gray-300">
+                  이전글이 없습니다.
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 text-right">
+              {next ? (
+                <Link
+                  to={`/support/notice/${next.notice_id}`}
+                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+                >
+                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
+                    {next.title}
+                  </span>
+                  <span className="font-medium text-gray-400">다음글</span>
+                  <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
+                </Link>
+              ) : (
+                <span className="text-sm text-gray-300">
+                  다음글이 없습니다.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <Link
+              to="/support/notice"
+              className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
+              style={{ backgroundColor: "#EAE3C9" }}
+            >
+              목록
+            </Link>
+          </div>
         </div>
       </PageContentMax>
     </div>

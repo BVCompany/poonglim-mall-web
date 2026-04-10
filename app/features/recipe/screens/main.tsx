@@ -8,6 +8,7 @@ import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import { getActiveRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
 import type { RecipeCategory } from "~/features/recipe-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
+import { SectionTitleStar } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
@@ -70,6 +71,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
           title="레시피"
           subtitle="풍림푸드 제품으로 만드는 다양한 요리를 경험해보세요"
           mobileHeightClassName="h-[375px] md:h-[clamp(200px,28vw,380px)]"
+          hideOnMobile={false}
           hideBreadcrumbOnMobile
           frostedLinkOnMobile
           dbBanner={pageBanner}
@@ -81,14 +83,17 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
       )}
 
       {/* ── 헤딩 + 검색 ── */}
-      <div className="px-4 pb-5 pt-10 md:px-8 md:pt-16 lg:px-2.5">
+      <div className="px-4 pb-5 pt-5 md:px-8 md:pt-16 lg:px-2.5">
         <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4">
           <h2
             className="flex items-center gap-2 font-bold text-gray-900"
             style={{ fontSize: pc1920(20, 36), letterSpacing: "-0.04em" }}
           >
-            <img src="/home/product-star.png" alt="" className="h-6 w-6 object-contain md:h-8 md:w-8" />
-            레시피
+            <SectionTitleStar
+              variant="product"
+              className="h-[21px] w-[21px] flex-shrink-0 md:h-8 md:w-8"
+            />
+            <span style={{ fontFamily: "NanumSquareRound", fontWeight: 800 }} className="md:font-bold md:[font-family:inherit]">레시피</span>
           </h2>
 
           {/* 검색 */}
@@ -116,9 +121,9 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    isActive ? "bg-[#F3BC1E] text-[#684B00]" : "bg-[#EAE3C9] text-[#7A5C00]"
+                    isActive ? "bg-[#F3BC1E] text-white" : "bg-white text-[#1F2121]"
                   }`}
-                  style={{ letterSpacing: "-0.03em" }}
+                  style={{ letterSpacing: "-0.03em", fontFamily: "NanumSquareRound", fontWeight: isActive ? 700 : 800 }}
                 >
                   {cat.name}
                   {showCount && cat.count > 0 && <span className="ml-0.5 opacity-70">({cat.count})</span>}
@@ -171,8 +176,11 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
       {/* ── 총 N개 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-8 lg:px-2.5">
         <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
-          <p className="text-sm font-medium text-gray-600">
-            총 <span className="font-bold text-[#02633E]">{currentCount}</span>개 레시피
+          <p className="text-sm font-medium text-gray-600 md:text-sm">
+            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
+            <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCount}</span>
+            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>개 레시피</span>
+            <span className="hidden md:inline">총 <span className="font-bold text-[#02633E]">{currentCount}</span>개 레시피</span>
           </p>
           <div className="flex items-center gap-2 md:hidden">
             <div className="relative">

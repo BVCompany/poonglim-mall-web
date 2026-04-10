@@ -264,8 +264,15 @@ export function NavigationBar({
   const isRecipeDetailRoute = /^\/recipe\/\d+$/.test(location.pathname);
   const isNoticeDetailRoute = /^\/support\/notice\/\d+$/.test(location.pathname);
   const isGradeCertDetailRoute = /^\/support\/grade-certificate\/\d+$/.test(location.pathname);
+  const isNewsDetailRoute = /^\/media\/news\/\d+$/.test(location.pathname);
+  const isEventDetailRoute = /^\/event\/\d+$/.test(location.pathname);
   const isDetailMobileHeaderRoute =
-    isProductDetailRoute || isRecipeDetailRoute || isNoticeDetailRoute || isGradeCertDetailRoute;
+    isProductDetailRoute ||
+    isRecipeDetailRoute ||
+    isNoticeDetailRoute ||
+    isGradeCertDetailRoute ||
+    isNewsDetailRoute ||
+    isEventDetailRoute;
 
   const detailHeaderConfig = isProductDetailRoute
     ? { label: "제품보기", to: "/products/all" }
@@ -275,7 +282,11 @@ export function NavigationBar({
         ? { label: "공지사항", to: "/support/notice" }
         : isGradeCertDetailRoute
           ? { label: "등급판정서", to: "/support/grade-certificate" }
-          : null;
+          : isNewsDetailRoute
+            ? { label: "보도자료", to: "/media/news" }
+            : isEventDetailRoute
+              ? { label: "이벤트", to: "/event" }
+              : null;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
@@ -302,68 +313,131 @@ export function NavigationBar({
 
   return (
     <>
-      <header
-        className="fixed left-0 right-0 top-0 z-50 w-full"
-        style={{ backgroundColor: "rgba(244, 242, 229, 0.97)" }}
-      >
-        {isSearchOpen ? (
-          /* ── 검색 모드 ── */
-          <form
-            onSubmit={handleSearchSubmit}
-            className="mx-auto flex h-[235px] w-full max-w-[1200px] flex-col justify-center border-b border-gray-200/60 px-4 md:px-8"
+      {isSearchOpen ? (
+        <>
+          {/* 모바일·태블릿: 시안 — 딤 + 흰 패널 + 하단 닫기(원형) */}
+          <div
+            className="fixed inset-0 z-[100] flex flex-col lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nav-search-mobile-title"
           >
-            <div className="flex items-center gap-4 md:gap-6">
-              {/* 로고 */}
-              <Link to="/" onClick={closeSearch} className="shrink-0">
-                <img
-                  src="/home/poonglim-logo-eng.png"
-                  alt="풍림푸드"
-                  className="h-[30px] w-auto object-contain sm:h-[34px]"
-                />
-              </Link>
-
-              <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
-                {/* 검색 입력 */}
-                <div className="flex min-w-0 w-full max-w-[640px] items-center rounded-full border border-[#0B5D42] bg-white px-5">
-                  <input
-                    ref={inputRef}
-                    autoFocus
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="검색어를 입력해주세요."
-                    className="h-10 w-full bg-transparent text-sm font-medium outline-none placeholder:text-gray-400 sm:h-11"
-                    style={{ letterSpacing: "-0.02em" }}
-                  />
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/20"
+              onClick={closeSearch}
+              aria-label="검색창 닫기"
+            />
+            <div className="relative z-[1] w-full bg-white shadow-sm">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="mx-auto flex w-full flex-col items-center px-4 pb-8 pt-2.5"
+              >
+                <div className="flex w-full flex-col items-center gap-2.5">
+                  <p
+                    id="nav-search-mobile-title"
+                    className="mx-auto max-w-[328px] text-center font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121]"
+                  >
+                    제품명, 레시피, 뉴스 등을 검색해보세요
+                  </p>
+                  <div className="flex w-full max-w-full items-center gap-1.5">
+                    <input
+                      ref={inputRef}
+                      autoFocus
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder="검색어를 입력해주세요."
+                      className="h-[42px] min-w-0 flex-1 rounded-full border border-[#02633E] bg-white px-5 py-2.5 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121] outline-none placeholder:font-bold placeholder:text-[#A3A3A3]"
+                      style={{ letterSpacing: "-0.02em" }}
+                    />
+                    <button
+                      type="submit"
+                      className="flex size-[42px] shrink-0 items-center justify-center rounded-full text-white transition-all hover:brightness-110"
+                      style={{ backgroundColor: "#02633E" }}
+                      aria-label="검색 실행"
+                    >
+                      <SearchIcon className="size-5" strokeWidth={1.8} />
+                    </button>
+                  </div>
                 </div>
-
-                {/* 검색 버튼 */}
-                <button
-                  type="submit"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-all hover:brightness-110 sm:h-11 sm:w-11"
-                  style={{ backgroundColor: "#02633E" }}
-                  aria-label="검색 실행"
-                >
-                  <SearchIcon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                </button>
-              </div>
-
-              {/* 닫기 버튼 */}
+              </form>
+            </div>
+            <div className="relative z-[1] flex flex-1 justify-center pt-6">
               <button
                 type="button"
                 onClick={closeSearch}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#1F2121] transition-colors hover:bg-black/5"
+                className="flex size-[42px] items-center justify-center rounded-full bg-white text-[#1F2121] shadow-[0_2px_12px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06]"
                 aria-label="검색 닫기"
               >
-                <XIcon className="h-5 w-5" strokeWidth={2} />
+                <XIcon className="size-[21px]" strokeWidth={1.4} />
               </button>
             </div>
+          </div>
 
-            <p className="pt-2 text-center text-xs text-gray-500" style={{ letterSpacing: "-0.02em" }}>
-              제품명, 레시피, 뉴스 등을 검색해보세요
-            </p>
-          </form>
-        ) : (
-          /* ── 일반 모드 ── */
+          {/* 데스크톱: 기존 헤더 내 검색 */}
+          <header
+            className="fixed left-0 right-0 top-0 z-50 hidden w-full lg:block"
+            style={{ backgroundColor: "rgba(244, 242, 229, 0.97)" }}
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="mx-auto flex h-[235px] w-full max-w-[1200px] flex-col justify-center border-b border-gray-200/60 px-4 md:px-8"
+            >
+              <div className="flex items-center gap-4 md:gap-6">
+                <Link to="/" onClick={closeSearch} className="shrink-0">
+                  <img
+                    src="/home/poonglim-logo-eng.png"
+                    alt="풍림푸드"
+                    className="h-[30px] w-auto object-contain sm:h-[34px]"
+                  />
+                </Link>
+
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+                  <div className="flex min-w-0 w-full max-w-[640px] items-center rounded-full border border-[#0B5D42] bg-white px-5">
+                    <input
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder="검색어를 입력해주세요."
+                      className="h-10 w-full bg-transparent text-sm font-medium outline-none placeholder:text-gray-400 sm:h-11"
+                      style={{ letterSpacing: "-0.02em" }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-all hover:brightness-110 sm:h-11 sm:w-11"
+                    style={{ backgroundColor: "#02633E" }}
+                    aria-label="검색 실행"
+                  >
+                    <SearchIcon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#1F2121] transition-colors hover:bg-black/5"
+                  aria-label="검색 닫기"
+                >
+                  <XIcon className="h-5 w-5" strokeWidth={2} />
+                </button>
+              </div>
+
+              <p
+                className="pt-2 text-center text-xs text-gray-500"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                제품명, 레시피, 뉴스 등을 검색해보세요
+              </p>
+            </form>
+          </header>
+        </>
+      ) : (
+        <header
+          className="fixed left-0 right-0 top-0 z-50 w-full"
+          style={{ backgroundColor: "rgba(244, 242, 229, 0.97)" }}
+        >
+          {/* ── 일반 모드 ── */}
           <div className={`mx-auto w-full min-w-0 md:max-w-[var(--pc-w-1680)] ${isDetailMobileHeaderRoute ? "hidden lg:block" : ""}`}>
             {/* ── TOP BAR — 데스크톱만 표시 ── */}
             <div className="hidden w-full lg:block" style={{ height: "40px" }}>
@@ -451,8 +525,8 @@ export function NavigationBar({
               </div>
             </nav>
           </div>
-        )}
-      </header>
+        </header>
+      )}
 
       {/* ── 제품 상세 전용 모바일/태블릿 헤더 ── */}
       {!isSearchOpen && isDetailMobileHeaderRoute && detailHeaderConfig && (

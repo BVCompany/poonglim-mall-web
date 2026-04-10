@@ -1,7 +1,7 @@
 /**
  * Home DB Queries (Server-side)
  */
-import { and, asc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 
 import db from "~/core/db/drizzle-client.server";
 import { banners, popups } from "../schema";
@@ -46,4 +46,9 @@ export async function getActivePopups() {
         or(sql`${popups.ended_at} IS NULL`, gte(popups.ended_at, now)),
       ),
     );
+}
+
+/** 관리자용: 기간·활성 무관 전체 */
+export async function getAllPopups() {
+  return db.select().from(popups).orderBy(desc(popups.created_at));
 }

@@ -28,9 +28,12 @@ interface PopupAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (popup: PopupFormData) => void;
+  mode?: "create" | "edit";
+  initial?: PopupFormData | null;
 }
 
 export interface PopupFormData {
+  popupId?: number;
   title: string;
   content: string;
   frequency: "once" | "daily" | "always";
@@ -41,12 +44,8 @@ export interface PopupFormData {
   isActive: boolean;
 }
 
-export function PopupAddModal({
-  open,
-  onOpenChange,
-  onSubmit,
-}: PopupAddModalProps) {
-  const [formData, setFormData] = useState<PopupFormData>({
+function emptyPopupForm(): PopupFormData {
+  return {
     title: "",
     content: "",
     frequency: "once",
@@ -55,27 +54,40 @@ export function PopupAddModal({
     imageUrl: "",
     linkUrl: "",
     isActive: true,
-  });
+  };
+}
 
-  // Reset form when modal closes
+export function PopupAddModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  mode = "create",
+  initial = null,
+}: PopupAddModalProps) {
+  const [formData, setFormData] = useState<PopupFormData>(emptyPopupForm);
+
   useEffect(() => {
     if (!open) {
-      setFormData({
-        title: "",
-        content: "",
-        frequency: "once",
-        startDate: "",
-        endDate: "",
-        imageUrl: "",
-        linkUrl: "",
-        isActive: true,
-      });
+      setFormData(emptyPopupForm());
+      return;
     }
-  }, [open]);
+    if (mode === "edit" && initial) {
+      setFormData({
+        ...emptyPopupForm(),
+        ...initial,
+        imageUrl: initial.imageUrl ?? "",
+        linkUrl: initial.linkUrl ?? "",
+      });
+      return;
+    }
+    if (mode === "create") {
+      setFormData(emptyPopupForm());
+    }
+  }, [open, mode, initial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, popupId: formData.popupId });
     onOpenChange(false);
   };
 
@@ -96,10 +108,16 @@ export function PopupAddModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 팝업 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {mode === "edit" ? "팝업 수정" : "새 팝업 추가"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form
+          key={mode === "edit" ? formData.popupId ?? "pe" : "pc"}
+          onSubmit={handleSubmit}
+          className="space-y-4 mt-4"
+        >
           <p className="text-sm text-gray-600">
             모달 팝업 정보를 입력하세요
           </p>
@@ -260,7 +278,7 @@ export function PopupAddModal({
               type="submit"
               className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
             >
-              추가
+              {mode === "edit" ? "저장" : "추가"}
             </Button>
           </div>
         </form>

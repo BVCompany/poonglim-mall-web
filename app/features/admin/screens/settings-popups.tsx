@@ -4,25 +4,31 @@
  * Allows admins to manage modal popups (view, create, edit, delete).
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/settings-popups";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
-import { PopupAddModal, type PopupFormData } from "../components/popup-add-modal";
+import {
+  PopupAddModal,
+  type PopupFormData,
+} from "../components/popup-add-modal";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
 import { Edit, Trash2, Plus, Search, Eye } from "lucide-react";
-import { getActivePopups } from "~/features/home/lib/queries.server";
+import {
+  getAllPopups,
+  type Popup as PopupRow,
+} from "~/features/home/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { popups as popupsTable } from "~/features/home/schema";
 import { eq } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbPopups = await getActivePopups().catch(() => []);
+  const dbPopups = await getAllPopups().catch(() => []);
   return { adminUser, dbPopups };
 }
 
@@ -35,11 +41,30 @@ export async function action({ request }: Route.ActionArgs) {
     await db.insert(popupsTable).values({
       title: fd.get("title") as string,
       content: (fd.get("content") as string) || null,
+      image_url: String(fd.get("imageUrl") ?? "").trim() || null,
       link_url: (fd.get("linkUrl") as string) || null,
       is_active: fd.get("isActive") !== "false",
       started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
       ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
     });
+    return { success: true };
+  }
+
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false };
+    await db
+      .update(popupsTable)
+      .set({
+        title: fd.get("title") as string,
+        content: (fd.get("content") as string) || null,
+        image_url: String(fd.get("imageUrl") ?? "").trim() || null,
+        link_url: String(fd.get("linkUrl") ?? "").trim() || null,
+        is_active: fd.get("isActive") !== "false",
+        started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
+        ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
+      })
+      .where(eq(popupsTable.popup_id, id));
     return { success: true };
   }
 
@@ -57,6 +82,22 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   return { success: false };
+}
+
+function mapPopupRowToForm(p: PopupRow): PopupFormData {
+  return {
+    popupId: p.popup_id,
+    title: p.title,
+    content: p.content ?? "",
+    frequency: "once",
+    startDate: p.started_at
+      ? new Date(p.started_at).toISOString().slice(0, 10)
+      : "",
+    endDate: p.ended_at ? new Date(p.ended_at).toISOString().slice(0, 10) : "",
+    imageUrl: p.image_url ?? "",
+    linkUrl: p.link_url ?? "",
+    isActive: p.is_active,
+  };
 }
 
 interface Popup {
@@ -91,7 +132,13 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbPopups } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingPopup, setEditingPopup] = useState<PopupRow | null>(null);
   const fetcher = useFetcher();
+
+  const editPopupInitial = useMemo(
+    () => (editingPopup ? mapPopupRowToForm(editingPopup) : null),
+    [editingPopup],
+  );
 
   const popups: Popup[] = dbPopups.length > 0
     ? dbPopups.map((p) => ({
@@ -112,16 +159,31 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
     popup.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddPopup = (popupData: PopupFormData) => {
+  const handlePopupSubmit = (popupData: PopupFormData) => {
     const fd = new FormData();
-    fd.append("intent", "create");
-    Object.entries(popupData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    if (popupData.popupId != null) {
+      fd.append("intent", "update");
+      fd.append("id", String(popupData.popupId));
+    } else {
+      fd.append("intent", "create");
+    }
+    fd.append("title", popupData.title);
+    fd.append("content", popupData.content);
+    fd.append("frequency", popupData.frequency);
+    fd.append("startDate", popupData.startDate);
+    fd.append("endDate", popupData.endDate);
+    fd.append("imageUrl", popupData.imageUrl ?? "");
+    fd.append("linkUrl", popupData.linkUrl ?? "");
+    fd.append("isActive", popupData.isActive ? "true" : "false");
     fetcher.submit(fd, { method: "POST" });
-    setIsAddModalOpen(false);
   };
 
   const handleEdit = (id: string) => {
-    console.log("Edit popup:", id);
+    const row = dbPopups.find((p) => String(p.popup_id) === id);
+    if (row) {
+      setIsAddModalOpen(false);
+      setEditingPopup(row);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -165,7 +227,10 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
               </div>
               <Button
                 className="gap-2 bg-[#204E3A] hover:bg-[#1a3f2e]"
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  setEditingPopup(null);
+                  setIsAddModalOpen(true);
+                }}
               >
                 <Plus className="h-4 w-4" />
                 팝업 추가
@@ -281,9 +346,16 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
 
       {/* Add Popup Modal */}
       <PopupAddModal
-        open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        onSubmit={handleAddPopup}
+        open={isAddModalOpen || editingPopup != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddModalOpen(false);
+            setEditingPopup(null);
+          }
+        }}
+        mode={editingPopup ? "edit" : "create"}
+        initial={editPopupInitial}
+        onSubmit={handlePopupSubmit}
       />
     </div>
   );

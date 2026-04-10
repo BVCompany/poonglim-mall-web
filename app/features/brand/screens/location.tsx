@@ -6,6 +6,8 @@ import { MapPin, Bus, Car, Check } from "lucide-react";
 import type { Route } from "./+types/location";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SectionTitleStar } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -34,15 +36,15 @@ interface LocationInfo {
   publicDesc: ReactNode;
 }
 
+/** 네비 검색어 강조 — 시안: #32AF32 · Nanum 800 */
 const HL = ({ children }: { children: ReactNode }) => (
-  <strong style={{ color: "#02633E", fontWeight: 600 }}>{children}</strong>
+  <strong className="font-[family-name:var(--font-nanum)] font-extrabold text-[#32AF32]">
+    {children}
+  </strong>
 );
 
 const SubwayBadge = ({ line }: { line: string }) => (
-  <span
-    className="mr-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
-    style={{ backgroundColor: "#BDB92F" }}
-  >
+  <span className="mr-0.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-0.5 font-[family-name:var(--font-nanum)] text-[13px] font-extrabold leading-[19.5px] text-white [background-color:#BDB193]">
     {line}
   </span>
 );
@@ -96,7 +98,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
   const loc = LOCATION_DATA[activeTab];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F2EB" }}>
+    <div className="min-h-screen bg-[#F4F2E5]">
       <PageBanner
         imageUrl="/banner/support_banner_temp.png"
         title="오시는 길"
@@ -113,15 +115,14 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
       {/* 모바일 전용 타이틀 */}
       <div className="px-4 pt-3 md:hidden">
         <div className="inline-flex items-center gap-1.5">
-          <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 object-contain" />
+          <SectionTitleStar className="h-3.5 w-3.5" />
           <h1 className="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]">오시는 길</h1>
         </div>
       </div>
 
       <PageContentMax className="py-6 md:py-10">
-
-        {/* ── 탭: 작은 pill 버튼 (모바일·PC 공통) ── */}
-        <div className="mb-6 flex gap-2 md:mb-8">
+        {/* ── 탭: 모바일 시안 px-4 py-3.5 · pill 12px/700 · 활성 #02633E + 체크 ── */}
+        <div className="mb-5 flex gap-2.5 px-0 py-3.5 max-md:px-0 md:mb-8 md:py-0">
           {TABS.map((tab) => {
             const isActive = activeTab === tab;
             return (
@@ -129,32 +130,50 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors"
-                style={
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-[40px] px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors",
                   isActive
-                    ? { backgroundColor: "#02633E", color: "#fff" }
-                    : { backgroundColor: "#EAE3C9", color: "#555" }
-                }
+                    ? "bg-[#02633E] text-white"
+                    : "bg-[#EAE3C9] text-[#1F2121]",
+                )}
               >
-                {isActive && <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />}
+                {isActive && (
+                  <Check className="h-3 w-3 shrink-0 text-white" strokeWidth={3} />
+                )}
                 {tab}
               </button>
             );
           })}
         </div>
 
-        {/* ── 메인 카드 ── */}
-        {/* 제목을 왼쪽 컬럼 내부에 두어 제목 탑과 지도 탑이 동일 레벨에서 시작 */}
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+        {/* ── 메인 카드: 모바일 지도 상단·rounded 10px / md 기존 가로 ── */}
+        <div className="overflow-hidden rounded-[10px] bg-white shadow-sm md:rounded-2xl">
           <div className="flex flex-col md:flex-row md:items-start">
+            {/* 지도 — 모바일 먼저, md에서는 오른쪽 */}
+            <div className="order-1 w-full px-4 pt-5 pb-0 md:order-2 md:px-8 md:py-8 md:pb-8 md:pl-0 md:pt-8">
+              <div className="h-[171px] w-full overflow-hidden rounded-[10px] sm:h-[220px] md:h-[510px] md:w-[920px] md:rounded-xl">
+                <iframe
+                  key={activeTab}
+                  src={loc.mapSrc}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title={`${loc.title} 지도`}
+                  className="h-full w-full"
+                />
+              </div>
+            </div>
 
-            {/* 왼쪽: 제목 + 구분선 + 정보 */}
-            <div className="flex-1 px-5 py-6 md:px-8 md:py-8">
-              {/* 제목 + 카카오맵 */}
-              <div className="mb-4 flex items-center gap-3 md:mb-5">
+            {/* 정보 — 모바일: 제목·카카오·주소·구분선·연락 세로 */}
+            <div className="order-2 flex-1 p-5 md:order-1 md:px-8 md:py-8">
+              <div className="mb-5 flex items-center gap-2.5 md:mb-5 md:gap-3">
                 <h2
-                  className="text-xl font-bold text-gray-900 md:text-[clamp(20px,calc(24*100vw/1920),24px)]"
-                  style={{ letterSpacing: "-0.04em" }}
+                  className={cn(
+                    "min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#1F2121] md:flex-none md:text-xl md:tracking-[-0.04em] lg:text-[clamp(20px,calc(24*100vw/1920),24px)]",
+                  )}
                 >
                   {loc.title}
                 </h2>
@@ -162,104 +181,136 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                   href={loc.kakaoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"
-                  style={{ backgroundColor: "#FFE000", color: "#3C1E1E" }}
+                  className={cn(
+                    "inline-flex h-10 shrink-0 items-center gap-2 rounded-[60px] bg-[#FAE100] pl-5 pr-3 py-2 font-[Pretendard,system-ui,sans-serif] text-sm font-medium text-[#1F2121]",
+                    "md:h-auto md:rounded-full md:bg-[#FFE000] md:px-3 md:py-1.5 md:text-xs md:font-bold md:text-[#3C1E1E]",
+                  )}
                 >
-                  <MapPin className="h-3 w-3" />
-                  카카오맵
+                  <span className="order-1 md:order-2">카카오맵</span>
+                  <MapPin
+                    className="order-2 size-5 md:order-1 md:size-3"
+                    strokeWidth={2}
+                  />
                 </a>
               </div>
 
-              {/* 구분선 */}
-              <div className="mb-5 border-t border-gray-100 md:mb-7" />
+              <p className="mb-0 font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121] md:hidden">
+                {loc.address}
+              </p>
 
-              {/* 정보 행 */}
-              <div className="space-y-5">
+              <div className="my-5 border-t border-[#1F2121]/20 pt-5 md:hidden" />
+
+              <div className="mb-5 hidden border-t border-gray-100 md:mb-7 md:block" />
+
+              <div className="space-y-3 md:space-y-5">
                 {(
                   [
-                    { label: "주소", value: <span className="text-gray-700">{loc.address}</span> },
+                    {
+                      label: "주소",
+                      value: <span className="text-gray-700">{loc.address}</span>,
+                    },
                     {
                       label: "TEL",
                       value: (
-                        <a href={`tel:${loc.tel}`} className="text-gray-700 hover:underline">
+                        <a
+                          href={`tel:${loc.tel}`}
+                          className="text-[#02633E] hover:underline md:text-gray-700"
+                        >
                           {loc.tel}
                         </a>
                       ),
                     },
-                    { label: "FAX", value: <span className="text-gray-700">{loc.fax}</span> },
-                    { label: "운영시간", value: <span className="text-gray-700">{loc.hours}</span> },
+                    {
+                      label: "FAX",
+                      value: <span className="text-[#02633E] md:text-gray-700">{loc.fax}</span>,
+                    },
                     {
                       label: "이메일",
                       value: (
-                        <a href={`mailto:${loc.email}`} className="text-gray-700 hover:underline">
+                        <a
+                          href={`mailto:${loc.email}`}
+                          className="text-[#02633E] hover:underline md:text-gray-700"
+                        >
                           {loc.email}
                         </a>
                       ),
                     },
+                    {
+                      label: "운영시간",
+                      value: (
+                        <span className="text-[#02633E] md:text-gray-700">{loc.hours}</span>
+                      ),
+                    },
                   ] satisfies { label: string; value: ReactNode }[]
                 ).map(({ label, value }) => (
-                  <div key={label} className="flex items-start gap-6 md:gap-10">
+                  <div
+                    key={label}
+                    className={cn(
+                      "flex flex-col gap-2.5 md:flex-row md:items-start md:gap-10",
+                      label === "주소" && "hidden md:flex",
+                    )}
+                  >
                     <span
-                      className="w-16 shrink-0 text-sm font-bold text-gray-800 md:w-20 md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
-                      style={{ letterSpacing: "-0.02em" }}
+                      className={cn(
+                        "w-auto shrink-0 font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#1F2121]",
+                        "md:w-20 md:text-sm md:font-bold md:text-gray-800 md:[letter-spacing:-0.02em] lg:text-[clamp(13px,calc(15*100vw/1920),15px)]",
+                      )}
                     >
                       {label}
                     </span>
-                    <span className="flex-1 text-sm md:text-[clamp(13px,calc(15*100vw/1920),15px)]">
+                    <span
+                      className={cn(
+                        "flex-1 font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 md:text-sm md:font-normal md:text-[clamp(13px,calc(15*100vw/1920),15px)]",
+                      )}
+                    >
                       {value}
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* 오른쪽: 지도 — 왼쪽 컬럼과 동일한 여백 */}
-            <div className="px-5 py-6 md:px-8 md:py-8 md:pl-0 md:shrink-0">
-            <div className="h-[260px] w-full overflow-hidden rounded-xl sm:h-[360px] md:h-[510px] md:w-[920px]">
-              <iframe
-                key={activeTab}
-                src={loc.mapSrc}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={`${loc.title} 지도`}
-                className="h-full w-full"
-              />
-            </div>
-            </div>
-
           </div>
         </div>
 
-        {/* ── 교통 안내 ── */}
-        <div className="mt-4 overflow-hidden rounded-2xl bg-white shadow-sm md:mt-5">
-          {/* 모바일: 세로 스택 */}
-          <div className="flex flex-col gap-4 px-5 py-5 md:hidden">
-            <div className="flex items-center gap-2">
-              <img src="/home/product-star.png" alt="" className="h-3.5 w-3.5 shrink-0 object-contain" />
-              <span className="text-sm font-bold text-gray-800" style={{ letterSpacing: "-0.04em" }}>
+        {/* ── 교통 안내: 모바일 베이지 배경·시안 타이포 / md 화이트 카드 ── */}
+        <div className="mt-5 md:mt-5 md:overflow-hidden md:rounded-2xl md:bg-white md:shadow-sm">
+          {/* 모바일 */}
+          <div className="flex flex-col md:hidden">
+            <div className="flex items-center gap-[11px] px-4 py-5">
+              <SectionTitleStar
+                className="h-[21px] w-[21px] shrink-0"
+                variant="brandIntro"
+              />
+              <span className="font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[30px] text-[#1F2121]">
                 {loc.transportLabel}
               </span>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#02633E" }}>
-                <Car className="h-4 w-4 text-white" />
+            <div className="flex flex-col gap-5 px-4 pb-8">
+              <div className="flex gap-5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#003F2B]">
+                  <Car className="size-[18px] text-white" strokeWidth={2} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <p className="font-[family-name:var(--font-nanum)] text-base font-extrabold uppercase leading-[22.4px] text-[#1F2121]">
+                    자가용 이용 시
+                  </p>
+                  <p className="font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121]">
+                    {loc.carDesc}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="mb-0.5 text-xs font-bold text-gray-500">자가용 이용 시</p>
-                <p className="text-xs leading-relaxed text-gray-600">{loc.carDesc}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#02633E" }}>
-                <Bus className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <p className="mb-0.5 text-xs font-bold text-gray-500">대중교통 이용 시</p>
-                <p className="text-xs leading-relaxed text-gray-600">{loc.publicDesc}</p>
+              <div className="flex items-start gap-5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#003F2B]">
+                  <Bus className="size-[18px] text-white" strokeWidth={2} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <p className="font-[family-name:var(--font-nanum)] text-base font-extrabold uppercase leading-[22.4px] text-[#1F2121]">
+                    대중교통 이용 시
+                  </p>
+                  <div className="flex flex-wrap items-start gap-0.5 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121]">
+                    {loc.publicDesc}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -268,7 +319,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
           <div className="hidden items-center gap-0 md:flex">
             {/* 레이블 */}
             <div className="flex shrink-0 items-center gap-2 px-8 py-6">
-              <img src="/home/product-star.png" alt="" className="h-[18px] w-[18px] shrink-0 object-contain" />
+              <SectionTitleStar className="h-[18px] w-[18px]" />
               <span
                 className="whitespace-nowrap text-sm font-bold text-gray-800"
                 style={{ letterSpacing: "-0.04em" }}
