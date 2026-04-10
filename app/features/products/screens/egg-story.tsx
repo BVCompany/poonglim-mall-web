@@ -1067,73 +1067,79 @@ function EggHeroMobile() {
   /* Figma 375×300 히어로 — 좌표·크기를 컨테이너 비율로 환산 (데스크탑과 동일 public 스파클 사용) */
   return (
     <div className="relative mx-auto min-h-[300px] w-full max-w-[375px] pt-5 pb-5 md:hidden">
-      <img
-        src="/home/product-star.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute top-0 left-[10.67%] aspect-square w-[5.75%] max-w-[22px] object-contain select-none"
-      />
-      <img
-        src="/home/intro-star.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute top-[86.33%] left-[22.93%] aspect-square w-[8.6%] max-w-[33px] object-contain select-none"
-      />
-      <img
-        src="/home/company-intro-star.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute top-[8.33%] left-[75.73%] aspect-square w-[10.9%] max-w-[41px] object-contain select-none"
-      />
-      <span
-        className="absolute top-[7.33%] left-[25.6%] z-10 rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
-        style={{
-          fontFamily: "NanumSquareRound, sans-serif",
-          lineHeight: "12px",
-        }}
-      >
-        건강한
-      </span>
-      <span
-        className="absolute top-[49%] left-[5.87%] z-10 rounded-[24px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
-        style={{
-          fontFamily: "NanumSquareRound, sans-serif",
-          lineHeight: "12px",
-        }}
-      >
-        믿을 수 있는
-      </span>
-      <span
-        className="absolute top-[27%] left-[76.27%] z-10 rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
-        style={{
-          fontFamily: "NanumSquareRound, sans-serif",
-          lineHeight: "12px",
-        }}
-      >
-        간편한
-      </span>
-      <p
-        className="absolute top-[13.67%] left-[35.73%] z-1 text-center text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
-        style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-      >
-        EGG
-      </p>
-      <p
-        className="absolute top-[35%] left-[14.93%] z-1 text-right text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
-        style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-      >
-        계란 이야기
-      </p>
-      <p
-        className="absolute top-[60.33%] left-1/2 w-[70.4%] max-w-[264px] -translate-x-1/2 text-center text-base leading-[25.6px] font-bold text-[#003F2B]"
-        style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-      >
-        작은 알 하나에 담긴 건강한 가치
-        <br />
-        풍림푸드는 매일 식탁에 오르는 계란의
-        <br />
-        가치를 연구합니다.
-      </p>
+      {/* 아래 레이어: 별 + 메인 타이포( transform 등으로 생기는 스택과 분리 ) */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="/home/product-star.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute top-0 left-[10.67%] aspect-square w-[5.75%] max-w-[22px] object-contain select-none"
+        />
+        <img
+          src="/home/intro-star.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute top-[86.33%] left-[22.93%] aspect-square w-[8.6%] max-w-[33px] object-contain select-none"
+        />
+        <img
+          src="/home/company-intro-star.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute top-[8.33%] left-[75.73%] aspect-square w-[10.9%] max-w-[41px] object-contain select-none"
+        />
+        <p
+          className="absolute top-[13.67%] left-[35.73%] text-center text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
+          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+        >
+          EGG
+        </p>
+        <p
+          className="absolute top-[35%] left-[14.93%] text-right text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
+          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+        >
+          계란 이야기
+        </p>
+        <p
+          className="absolute top-[60.33%] left-1/2 w-[70.4%] max-w-[264px] -translate-x-1/2 text-center text-base leading-[25.6px] font-bold text-[#003F2B]"
+          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+        >
+          작은 알 하나에 담긴 건강한 가치
+          <br />
+          풍림푸드는 매일 식탁에 오르는 계란의
+          <br />
+          가치를 연구합니다.
+        </p>
+      </div>
+      {/* 위 레이어: 플로팅 뱃지만 (항상 타이포 위에 그려짐) */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <span
+          className="absolute top-[7.33%] left-[25.6%] rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
+          style={{
+            fontFamily: "NanumSquareRound, sans-serif",
+            lineHeight: "12px",
+          }}
+        >
+          건강한
+        </span>
+        <span
+          className="absolute top-[49%] left-[5.87%] rounded-[24px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
+          style={{
+            fontFamily: "NanumSquareRound, sans-serif",
+            lineHeight: "12px",
+          }}
+        >
+          믿을 수 있는
+        </span>
+        <span
+          className="absolute top-[27%] left-[76.27%] rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
+          style={{
+            fontFamily: "NanumSquareRound, sans-serif",
+            lineHeight: "12px",
+          }}
+        >
+          간편한
+        </span>
+      </div>
     </div>
   );
 }
@@ -1394,116 +1400,114 @@ export default function EggStoryScreen() {
               borderRadius: px(40),
             }}
           >
-            {/* ── 장식 스파클 (1600×350 기준 % 좌표) ── */}
-            {/* product-star: left 351/1600=21.9%, top 18/350=5.1% */}
-            <img
-              src="/home/product-star.png"
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute select-none"
-              style={{
-                left: "21.9%",
-                top: "5.1%",
-                width: px(38, 16),
-                height: px(38, 16),
-              }}
-            />
-            {/* company-intro-star: left 1296/1600=81%, top 0 */}
-            <img
-              src="/home/company-intro-star.png"
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute select-none"
-              style={{
-                left: "81%",
-                top: 0,
-                width: px(72, 28),
-                height: px(72, 28),
-              }}
-            />
-            {/* intro-star: left 1037/1600=64.8%, top 219/350=62.6% */}
-            <img
-              src="/home/intro-star.png"
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute select-none"
-              style={{
-                left: "64.8%",
-                top: "62.6%",
-                width: px(53, 22),
-                height: px(53, 22),
-              }}
-            />
-
-            {/* ── 플로팅 뱃지 (1600×350 기준 % 좌표) ── */}
-            {/* 건강한: left 602/1600=37.6%, top 78/350=22.3% */}
-            {/* 믿을 수 있는: left 369/1600=23.1%, top 182/350=52% */}
-            {/* 간편한: left 1103/1600=68.9%, top 165/350=47.1% */}
-            {(
-              [
-                { text: "건강한", style: { left: "37.6%", top: "22.3%" } },
-                { text: "믿을 수 있는", style: { left: "23.1%", top: "52%" } },
-                { text: "간편한", style: { left: "68.9%", top: "47.1%" } },
-              ] as const
-            ).map(({ text, style: pos }) => (
-              <span
-                key={text}
+            {/* 아래 레이어: 스파클 + 중앙 타이틀 블록 */}
+            <div className="absolute inset-0 z-0">
+              {/* ── 장식 스파클 (1600×350 기준 % 좌표) ── */}
+              <img
+                src="/home/product-star.png"
+                alt=""
+                aria-hidden
                 className="pointer-events-none absolute select-none"
                 style={{
-                  ...pos,
-                  background: "white",
-                  borderRadius: "9999px",
-                  outline: "1px #1F2121 solid",
-                  padding: `${px(8, 4)} ${px(14, 8)}`,
-                  color: "#1F2121",
-                  fontSize: px(15, 10),
-                  fontFamily: "NanumSquareRound, sans-serif",
-                  fontWeight: 700,
-                  lineHeight: "1",
-                  whiteSpace: "nowrap",
+                  left: "21.9%",
+                  top: "5.1%",
+                  width: px(38, 16),
+                  height: px(38, 16),
                 }}
-              >
-                {text}
-              </span>
-            ))}
+              />
+              <img
+                src="/home/company-intro-star.png"
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute select-none"
+                style={{
+                  left: "81%",
+                  top: 0,
+                  width: px(72, 28),
+                  height: px(72, 28),
+                }}
+              />
+              <img
+                src="/home/intro-star.png"
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute select-none"
+                style={{
+                  left: "64.8%",
+                  top: "62.6%",
+                  width: px(53, 22),
+                  height: px(53, 22),
+                }}
+              />
 
-            {/* ── 텍스트 블록: 수평 중앙, top 78/350 = 22.3% ── */}
-            {/* 피그마: gap 30px between title and subtitle */}
-            <div
-              className="absolute right-0 left-0 flex flex-col items-center"
-              style={{
-                top: "22.3%",
-                gap: px(30, 10),
-                paddingLeft: "26%",
-                paddingRight: "26%",
-              }}
-            >
-              <h1
+              {/* ── 텍스트 블록: 수평 중앙, top 78/350 = 22.3% ── */}
+              <div
+                className="absolute right-0 left-0 flex flex-col items-center"
                 style={{
-                  color: "#003F2B",
-                  fontSize: px(100, 28),
-                  fontFamily: "NanumSquareRound, sans-serif",
-                  fontWeight: 800,
-                  lineHeight: px(140, 38),
-                  textAlign: "center",
-                  width: "100%",
+                  top: "22.3%",
+                  gap: px(30, 10),
+                  paddingLeft: "26%",
+                  paddingRight: "26%",
                 }}
               >
-                EGG 계란 이야기
-              </h1>
-              <p
-                style={{
-                  color: "#003F2B",
-                  fontSize: px(18, 11),
-                  fontFamily: "NanumSquareRound, sans-serif",
-                  fontWeight: 700,
-                  lineHeight: px(21.6, 16),
-                  textAlign: "center",
-                }}
-              >
-                작은 알 하나에 담긴 건강한 가치&nbsp;&nbsp;&nbsp; 풍림푸드는
-                매일 식탁에 오르는 계란의 가치를 연구합니다.
-              </p>
+                <h1
+                  style={{
+                    color: "#003F2B",
+                    fontSize: px(100, 28),
+                    fontFamily: "NanumSquareRound, sans-serif",
+                    fontWeight: 800,
+                    lineHeight: px(140, 38),
+                    textAlign: "center",
+                    width: "100%",
+                  }}
+                >
+                  EGG 계란 이야기
+                </h1>
+                <p
+                  style={{
+                    color: "#003F2B",
+                    fontSize: px(18, 11),
+                    fontFamily: "NanumSquareRound, sans-serif",
+                    fontWeight: 700,
+                    lineHeight: px(21.6, 16),
+                    textAlign: "center",
+                  }}
+                >
+                  작은 알 하나에 담긴 건강한 가치&nbsp;&nbsp;&nbsp; 풍림푸드는
+                  매일 식탁에 오르는 계란의 가치를 연구합니다.
+                </p>
+              </div>
+            </div>
+
+            {/* 위 레이어: 플로팅 뱃지 (건강한 / 믿을 수 있는 / 간편한) */}
+            <div className="pointer-events-none absolute inset-0 z-10">
+              {(
+                [
+                  { text: "건강한", style: { left: "37.6%", top: "22.3%" } },
+                  { text: "믿을 수 있는", style: { left: "23.1%", top: "52%" } },
+                  { text: "간편한", style: { left: "68.9%", top: "47.1%" } },
+                ] as const
+              ).map(({ text, style: pos }) => (
+                <span
+                  key={text}
+                  className="pointer-events-none absolute select-none"
+                  style={{
+                    ...pos,
+                    background: "white",
+                    borderRadius: "9999px",
+                    outline: "1px #1F2121 solid",
+                    padding: `${px(8, 4)} ${px(14, 8)}`,
+                    color: "#1F2121",
+                    fontSize: px(15, 10),
+                    fontFamily: "NanumSquareRound, sans-serif",
+                    fontWeight: 700,
+                    lineHeight: "1",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {text}
+                </span>
+              ))}
             </div>
           </div>
         </div>
