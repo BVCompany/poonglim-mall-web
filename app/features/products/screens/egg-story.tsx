@@ -767,11 +767,7 @@ function PhilosophySection() {
   const cardLineActive = (i: number) => visibleCount >= i + 2;
 
   const bgImgMotion: React.CSSProperties = {
-    filter: reduceMotion
-      ? "none"
-      : bgActive
-        ? "blur(6px)"
-        : "blur(0px)",
+    filter: reduceMotion ? "none" : bgActive ? "blur(6px)" : "blur(0px)",
     transform: reduceMotion
       ? "none"
       : bgActive
@@ -2211,7 +2207,7 @@ export default function EggStoryScreen() {
       {/* ══════════════════════════════════════════
           9. 풍림푸드의 계란 제품 CTA (Ivory)
       ══════════════════════════════════════════ */}
-      <section className="relative z-0 w-full overflow-hidden bg-[#EAE3C9] pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-[clamp(40px,calc(80*100vw/1920),80px)]">
+      <section className="relative z-0 w-full overflow-hidden bg-[#EAE3C9] pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-0">
         <div className="flex flex-col items-center gap-10 md:flex-row md:items-center md:gap-[clamp(32px,calc(120*100vw/1920),120px)]">
           {/* ── 좌: 텍스트 + CTA — 모바일만 좌우 패딩(무한 스크롤은 풀블리드) ── */}
           <div className="flex w-full max-w-full shrink-0 flex-col items-center gap-5 px-4 text-center md:w-[clamp(260px,calc(758*100vw/1920),758px)] md:items-start md:gap-[clamp(20px,calc(40*100vw/1920),40px)] md:px-0 md:text-left">
