@@ -6,7 +6,7 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function BulkInquiryScreen() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "구매문의" },

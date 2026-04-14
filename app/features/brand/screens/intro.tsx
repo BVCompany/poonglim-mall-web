@@ -8,14 +8,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { SectionTitleStar } from "~/core/components/section-title-star";
-import { pc1920 } from "~/core/lib/pc-fluid";
+import { SectionPageTitle } from "~/core/components/section-title-star";
+import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 
 /**
- * 회사소개 장식 스파클(히어로·대표 사진 등). 섹션 타이틀은 `SectionTitleStar variant="brandIntro"`(녹색 product-star).
+ * 회사소개 장식 스파클(히어로·대표 사진 등). 섹션 라벨은 `SectionPageTitle` + `starVariant="brandIntro"`.
  */
 const INTRO_SPARKLE = {
   star: "/intro/Vector.png",
@@ -62,21 +62,21 @@ const PHILOSOPHIES = [
     category: "품질 신뢰",
     desc: "HACCP, ISO 등 국제 인증을 통한 철저한 품질 관리 시스템 구축",
     image: "/intro/intro_img_02.png",
-    bg: "#FFFFFF",
+    bg: "#F0EEDD",
     highlight: false,
   },
   {
     category: "ESG 경영",
     desc: "환경을 생각하는 지속가능한 경영과 사회적 책임 실천",
     image: "/intro/intro_img_03.png",
-    bg: "#FFFFFF",
+    bg: "#F0EEDD",
     highlight: false,
   },
   {
     category: "혁신 추구",
     desc: "끊임없는 연구개발을 통한 혁신적인 제품과 기술 개발",
     image: "/intro/intro_img_04.png",
-    bg: "#ECC94B",
+    bg: "#FBE28A",
     highlight: true,
   },
   {
@@ -90,7 +90,7 @@ const PHILOSOPHIES = [
     category: "상생 협력",
     desc: "파트너사와의 동반성장을 통한 건전한 생태계 조성",
     image: "/intro/intro_img_06.png",
-    bg: "#FFFFFF",
+    bg: "#F0EEDD",
     highlight: false,
   },
 ];
@@ -135,27 +135,39 @@ const CHARACTERS = [
   },
 ];
 
-/** 푸디 인셋 스토리 카드 — 모바일 피그마 (font: NanumSquareRound = `nanum`) */
+/**
+ * 푸디 인셋 스토리 카드 — 모바일 시안 (NanumSquareRound / word-wrap)
+ * greeting 18/800/25.2 · accent 16/800/24 #F3BC1E · body 14/700/21
+ */
 const PUDI_INSET_MOBILE = {
   greeting: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontFamily: "var(--font-nanum), NanumSquareRound, system-ui, sans-serif",
+    fontSize: "18px",
     fontWeight: 800,
     lineHeight: "25.2px",
+    overflowWrap: "break-word",
   },
   accent: {
     color: "#F3BC1E",
-    fontSize: 16,
+    fontFamily: "var(--font-nanum), NanumSquareRound, system-ui, sans-serif",
+    fontSize: "16px",
     fontWeight: 800,
     lineHeight: "24px",
+    overflowWrap: "break-word",
   },
   body: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontFamily: "var(--font-nanum), NanumSquareRound, system-ui, sans-serif",
+    fontSize: "14px",
     fontWeight: 700,
     lineHeight: "21px",
+    overflowWrap: "break-word",
   },
-} as const;
+} as const satisfies Record<
+  string,
+  import("react").CSSProperties
+>;
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "회사소개 | 풍림푸드" }];
@@ -200,18 +212,16 @@ function Sparkle({
 const N = SLIDES.length;
 
 /**
- * 모바일 경영 철학 — 피그마 2×3 그리드 (행 우선: 좌→우)
- * 1행: 고객 중심(흰) · 품질 신뢰(연베이지)
- * 2행: ESG(연베이지) · 혁신 추구(연노랑)
- * 3행: 글로벌 진출(흰) · 상생 협력(연베이지)
+ * 모바일 경영 철학 — 2×3 그리드 (행 우선: 좌→우)
+ * 시안(IVORY-2 #F0EEDD / 혁신 #FBE28A / 흰 #FFFFFF) — PHILOSOPHIES와 동일 토큰
  */
 const PHILOSOPHY_MOBILE_GRID = [
   { category: "고객 중심", bg: "#FFFFFF" },
-  { category: "품질 신뢰", bg: "#E8EDD4" },
-  { category: "ESG 경영", bg: "#E8EDD4" },
-  { category: "혁신 추구", bg: "#F5EED0" },
+  { category: "품질 신뢰", bg: "#F0EEDD" },
+  { category: "ESG 경영", bg: "#F0EEDD" },
+  { category: "혁신 추구", bg: "#FBE28A" },
   { category: "글로벌 진출", bg: "#FFFFFF" },
-  { category: "상생 협력", bg: "#E8EDD4" },
+  { category: "상생 협력", bg: "#F0EEDD" },
 ] as const;
 
 /** CEO 무대 시안 (1460×690 기준 픽셀) — 리사이즈 시 동일 비율 유지 */
@@ -227,6 +237,13 @@ const CEO_BODY_H = 390;
 const CEO_QUOTE_OVERLAP = 28;
 /** 무대(1460) 기준 인용 박스 최소 left — 음수 left로 무대 밖으로 나가는 것 방지, 사진과 겹침 유지 */
 const CEO_QUOTE_MIN_LEFT = 70;
+/**
+ * PC 인용문을 시안 대비 추가로 왼쪽 이동(px @1460 무대 너비, 스케일 동기화).
+ * `idealLeft`가 음수라 `qLeft`가 CEO_QUOTE_MIN_LEFT에 붙는 경우가 많은데,
+ * 그때는 `max(qLeft - nudge, minLeftStage)`가 항상 minLeftStage가 되어 값 변경이 무시됨 →
+ * 계산 시 `relaxedMinLeft = minLeftStage - nudge`로 하한을 같이 낮춤.
+ */
+const CEO_QUOTE_NUDGE_LEFT_PX = 72;
 
 type CeoLayoutMetrics = {
   photoW: number;
@@ -287,9 +304,16 @@ export default function BrandIntroScreen() {
         qW = Math.max(220, idealRight - qLeft);
       }
 
-      const quoteLeft = qLeft;
+      const nudgeLeft = (CEO_QUOTE_NUDGE_LEFT_PX / CEO_STAGE_W) * w;
+      /* minLeftStage에만 붙어 있을 때는 max(qLeft-nudge, minLeftStage) === minLeftStage라 nudge 무효 → 하한 완화 */
+      const relaxedMinLeft = Math.max(0, minLeftStage - nudgeLeft);
+      const quoteLeft = Math.max(
+        qLeft - nudgeLeft,
+        relaxedMinLeft,
+        minLeftFromViewport,
+      );
       const quoteWFinal = qW;
-      const quoteFont = Math.min(56, Math.max(22, quoteWFinal * 0.084));
+      const quoteFont = Math.min(72, Math.max(28, quoteWFinal * 0.116));
 
       setCeoLayout({
         photoW,
@@ -337,7 +361,7 @@ export default function BrandIntroScreen() {
   }, []);
 
   return (
-    <div className="w-full bg-[#F4F2E5] md:bg-[#F5F2E8]">
+    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb items={[{ label: "회사소개" }]} />
 
       {/* ══════════════════════════════════════════
@@ -359,7 +383,7 @@ export default function BrandIntroScreen() {
           style={{
             top: "var(--header-height)",
             height: "calc(100vh - var(--header-height))",
-            background: "#F5F2E8",
+            background: "var(--site-chrome-header-bg, #F4F2E5)",
             display: "flex",
           }}
         >
@@ -538,7 +562,7 @@ export default function BrandIntroScreen() {
       </div>
 
       {/* ── 모바일 히어로: 시안 비율(clamp·vw·%), 좌우 패딩 안에서 전폭 유동 ── */}
-      <section className="md:hidden">
+      <section className="pb-10 md:hidden md:pb-0">
         <div className="flex w-full items-center justify-start px-3 py-6">
           <div className="flex w-full flex-col items-end gap-[clamp(28px,9vw,44px)]">
             <div className="flex w-full flex-col items-start gap-2.5 self-stretch">
@@ -655,24 +679,22 @@ export default function BrandIntroScreen() {
       </section>
 
       {/* ══ 섹션 2: CEO 인사말 (시안: 1600 래퍼 / 1460×690 무대 / 620×190·530×650·400×390) ══ */}
-      <section
-        className="hidden py-10 md:block md:py-14"
-        style={{ backgroundColor: "#F2F0E4" }}
-      >
+      <section className="hidden py-10 md:block md:py-14">
         <PageContentMax>
-          <div className="mb-6 flex items-center gap-2 md:mb-7">
-            <SectionTitleStar variant="brandIntro" className="h-4 w-4" />
-            <span
-              style={{
-                fontSize: pc1920(14, 28),
-                fontWeight: 700,
-                letterSpacing: "-0.04em",
-                color: "#003F2B",
-              }}
-            >
-              CEO 인사말
-            </span>
-          </div>
+          <SectionPageTitle
+            as="div"
+            preset="brandIntro"
+            starVariant="brandIntro"
+            className="mb-6 md:mb-7"
+            titleStyle={{
+              fontSize: pc1920(14, 28),
+              fontWeight: 700,
+              letterSpacing: "-0.04em",
+              color: "#1F2121",
+            }}
+          >
+            CEO 인사말
+          </SectionPageTitle>
 
           <div className="relative mx-auto w-full max-w-[var(--pc-stage-max)] overflow-visible">
             <div
@@ -765,10 +787,12 @@ export default function BrandIntroScreen() {
                       width: "100%",
                       fontSize: ceoLayout
                         ? ceoLayout.quoteFont
-                        : pc1920(22, 56),
+                        : pc1920(28, 72),
                       fontWeight: 800,
                       letterSpacing: "-0.04em",
-                      lineHeight: 1.14,
+                      lineHeight: ceoLayout
+                        ? `${ceoLayout.quoteFont * 1.3}px`
+                        : pc1920(36, 93.6),
                       color: "#003F2B",
                       textAlign: "center",
                       wordBreak: "keep-all",
@@ -795,30 +819,28 @@ export default function BrandIntroScreen() {
                         }
                   }
                 >
-                  <div className="mb-2.5 flex shrink-0 items-center gap-2">
-                    <SectionTitleStar
-                      variant="brandIntro"
-                      className="h-4 w-4"
-                    />
-                    <span
-                      style={{
-                        fontSize: pc1920(14, 28),
-                        fontWeight: 700,
-                        letterSpacing: "-0.04em",
-                        color: "#003F2B",
-                      }}
-                    >
-                      CEO 인사말
-                    </span>
-                  </div>
+                  <SectionPageTitle
+                    as="div"
+                    preset="brandIntro"
+                    starVariant="brandIntro"
+                    className="mb-2.5 shrink-0"
+                    titleStyle={{
+                      fontSize: pc1920(14, 28),
+                      fontWeight: 700,
+                      letterSpacing: "-0.04em",
+                      color: "#1F2121",
+                    }}
+                  >
+                    CEO 인사말
+                  </SectionPageTitle>
                   <div
                     className="min-h-0 flex-1 overflow-y-auto pr-0.5"
                     style={{
-                      color: "#1a2e28",
+                      color: "#1F2121",
                       fontSize: pc1920(11, 16),
-                      fontWeight: 500,
+                      fontWeight: 700,
                       letterSpacing: "-0.03em",
-                      lineHeight: 1.65,
+                      lineHeight: 1.5,
                     }}
                   >
                     <p>
@@ -843,11 +865,14 @@ export default function BrandIntroScreen() {
                       fontSize: pc1920(11, 18),
                       fontWeight: 400,
                       letterSpacing: "-0.04em",
+                      lineHeight: 1.5,
                       color: "#003F2B",
                     }}
                   >
                     풍림푸드 대표이사{" "}
-                    <span style={{ marginLeft: 10 }}>정연현</span>
+                    <span style={{ marginLeft: 10, fontWeight: 700 }}>
+                      정연현
+                    </span>
                   </p>
                 </div>
               </div>
@@ -857,25 +882,24 @@ export default function BrandIntroScreen() {
       </section>
 
       {/* 모바일 CEO — 인용은 초상 상단에 겹침, 스파클은 초상 영역 기준 배치 */}
-      <section className="bg-[#F2F0E4] md:hidden">
+      <section className="md:hidden">
         <div className="flex w-full flex-col items-start gap-0 px-3 pt-5 pb-6">
-          <div className="flex w-full items-center gap-[14px]">
-            <SectionTitleStar
-              variant="brandIntro"
-              className="h-[21px] w-[21px]"
-            />
-            <div
-              className={cn(
-                nanum,
-                "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
-              )}
-            >
-              CEO 인사말
-            </div>
-          </div>
+          <SectionPageTitle
+            as="div"
+            preset="none"
+            starVariant="brandIntro"
+            className="flex w-full items-center gap-[14px] pb-5"
+            markClassName="h-[21px] w-[21px]"
+            titleClassName={cn(
+              nanum,
+              "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+            )}
+          >
+            CEO 인사말
+          </SectionPageTitle>
 
           {/* 타이틀(아래 가장자리) ↔ 인용문 블록 영역: 시안 40px */}
-          <div className="relative mx-auto mt-[40px] w-full max-w-[min(320px,88vw)] overflow-visible pt-[clamp(20px,5.5vw,36px)]">
+          <div className="relative mx-auto mt-[60px] w-full max-w-[min(320px,88vw)] overflow-visible pt-[clamp(20px,5.5vw,36px)]">
             <div className="relative mx-auto aspect-[530/650] w-full max-w-[280px] overflow-visible">
               <blockquote
                 className={cn(
@@ -977,7 +1001,7 @@ export default function BrandIntroScreen() {
         className="hidden md:block"
         style={{
           backgroundColor: "#EAE3C9",
-          borderRadius: `${pc1920(20, 40)} ${pc1920(20, 40)} 0 0`,
+          borderRadius: `${pc1920(32, 60)} ${pc1920(32, 60)} 0 0`,
           marginBottom: 40,
         }}
       >
@@ -997,32 +1021,27 @@ export default function BrandIntroScreen() {
           >
             {/* 좌측: 레이블 + 제목 */}
             <div style={{ flex: 1, minWidth: 0, paddingTop: 8 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 20,
+              <SectionPageTitle
+                as="div"
+                preset="brandIntro"
+                starVariant="brandIntro"
+                className="mb-5"
+                rootStyle={{ gap: 8 }}
+                titleStyle={{
+                  fontSize: pc1920(14, 28),
+                  fontWeight: 700,
+                  letterSpacing: "-0.04em",
+                  color: "#1F2121",
                 }}
               >
-                <SectionTitleStar variant="brandIntro" className="h-4 w-4" />
-                <span
-                  style={{
-                    fontSize: pc1920(14, 28),
-                    fontWeight: 700,
-                    letterSpacing: "-0.04em",
-                    color: "#003F2B",
-                  }}
-                >
-                  경영 철학
-                </span>
-              </div>
+                경영 철학
+              </SectionPageTitle>
               <h2
                 style={{
                   fontSize: pc1920(22, 56),
                   fontWeight: 800,
                   letterSpacing: "-0.04em",
-                  lineHeight: 1.2,
+                  lineHeight: pc1920(30, 72.8),
                   color: "#003F2B",
                 }}
               >
@@ -1043,52 +1062,51 @@ export default function BrandIntroScreen() {
                 flexShrink: 0,
               }}
             >
-              {PHILOSOPHIES.map(({ category, desc, image, bg, highlight }) => (
+              {PHILOSOPHIES.map(({ category, desc, image, bg }) => (
                 <div
                   key={category}
                   style={{
                     backgroundColor: bg,
                     width: "100%",
                     height: pc1920(280, 520),
-                    borderRadius: pc1920(12, 20),
+                    borderRadius: pc1920(24, 40),
                     display: "flex",
                     flexDirection: "column",
-                    padding: pc1920(16, 28),
+                    padding: pc1920(20, 40),
                     overflow: "hidden",
                   }}
                 >
-                  {/* 뱃지 — 16px -4% 800 */}
-                  <span
+                  <div
                     style={{
-                      display: "inline-block",
-                      borderRadius: 100,
-                      padding: `${pc1920(2, 4)} ${pc1920(8, 12)}`,
-                      fontSize: pc1920(11, 16),
-                      fontWeight: 800,
-                      letterSpacing: "-0.04em",
-                      backgroundColor: highlight
-                        ? "rgba(0,0,0,0.08)"
-                        : "rgba(0,63,43,0.07)",
-                      color: "#003F2B",
-                      marginBottom: 16,
-                      alignSelf: "flex-start",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: pc1920(12, 20),
+                      alignSelf: "stretch",
                     }}
                   >
-                    {category}
-                  </span>
-                  {/* 설명 — 28px -4% 700 */}
-                  <p
-                    style={{
-                      fontSize: pc1920(14, 28),
-                      fontWeight: 700,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1.35,
-                      color: "#003F2B",
-                    }}
-                  >
-                    {desc}
-                  </p>
-                  {/* 아이콘 우하단 */}
+                    <span
+                      style={{
+                        fontSize: pc1920(11, 16),
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        lineHeight: pc1920(16, 24),
+                        color: "#02633E",
+                      }}
+                    >
+                      {category}
+                    </span>
+                    <p
+                      style={{
+                        fontSize: pc1920(14, 28),
+                        fontWeight: 700,
+                        letterSpacing: "-0.04em",
+                        lineHeight: pc1920(21, 42),
+                        color: "#1F2121",
+                      }}
+                    >
+                      {desc}
+                    </p>
+                  </div>
                   <div
                     style={{
                       marginTop: "auto",
@@ -1100,9 +1118,10 @@ export default function BrandIntroScreen() {
                       src={image}
                       alt={category}
                       style={{
-                        width: pc1920(72, 160),
-                        height: pc1920(72, 160),
+                        width: pc1920(120, 250),
+                        height: pc1920(120, 250),
                         objectFit: "contain",
+                        mixBlendMode: "darken",
                       }}
                     />
                   </div>
@@ -1117,20 +1136,19 @@ export default function BrandIntroScreen() {
       <section className="flex flex-col items-center overflow-hidden rounded-t-[24px] bg-[#EAE3C9] px-3 pt-6 pb-[40px] md:hidden">
         <div className="flex w-full flex-col items-stretch gap-4 self-stretch">
           <div className="flex flex-col items-start gap-2 self-stretch">
-            <div className="inline-flex w-full items-center gap-[14px] self-stretch">
-              <SectionTitleStar
-                variant="brandIntro"
-                className="h-[21px] w-[21px]"
-              />
-              <div
-                className={cn(
-                  nanum,
-                  "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
-                )}
-              >
-                경영 철학
-              </div>
-            </div>
+            <SectionPageTitle
+              as="div"
+              preset="none"
+              starVariant="brandIntro"
+              className="inline-flex w-full items-center gap-[14px] self-stretch"
+              markClassName="h-[21px] w-[21px]"
+              titleClassName={cn(
+                nanum,
+                "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+              )}
+            >
+              경영 철학
+            </SectionPageTitle>
             <h2
               className={cn(
                 nanum,
@@ -1191,7 +1209,7 @@ export default function BrandIntroScreen() {
       {/* ══ 섹션 4: 공식 캐릭터 (PC) ══ */}
       <section
         className="hidden md:block"
-        style={{ backgroundColor: "#F5F2E8", padding: `${pc1920(48, 100)} 0` }}
+        style={{ padding: `${pc1920(48, 100)} 0` }}
       >
         <div
           style={{
@@ -1200,36 +1218,37 @@ export default function BrandIntroScreen() {
             padding: `0 ${pc1920(20, 40)}`,
           }}
         >
-          {/* 헤더 */}
           <div style={{ textAlign: "center", marginBottom: pc1920(32, 64) }}>
             <h2
               style={{
-                fontSize: pc1920(28, 70),
+                fontSize: pc1920(32, 60),
                 fontWeight: 800,
                 color: "#003F2B",
                 letterSpacing: "-0.04em",
-                marginBottom: 12,
+                lineHeight: pc1920(44, 84),
+                marginBottom: pc1920(6, 10),
               }}
             >
               풍림푸드 공식 캐릭터
             </h2>
             <p
               style={{
-                fontSize: pc1920(11, 14),
-                color: "#C9A84C",
-                letterSpacing: "0.08em",
+                fontSize: pc1920(12, 16),
+                fontWeight: 400,
+                color: "#003F2B",
+                lineHeight: pc1920(14, 19.2),
+                letterSpacing: "-0.02em",
               }}
             >
               Poonglim Characters Story
             </p>
           </div>
 
-          {/* 캐릭터 카드 목록 */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: pc1920(10, 16),
+              gap: pc1920(16, 30),
             }}
           >
             {CHARACTERS.map(
@@ -1255,72 +1274,83 @@ export default function BrandIntroScreen() {
                   key={id}
                   style={{
                     backgroundColor: mainBg,
-                    borderRadius: pc1920(16, 24),
+                    borderRadius: pc1920(24, 40),
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: imageLeft ? "row" : "row-reverse",
-                    minHeight: pc1920(320, 500),
+                    alignItems: "center",
+                    gap: pc1920(12, 20),
+                    padding: pc1920(20, 40),
+                    minHeight: pc1920(380, 680),
                   }}
                 >
-                  {/* 캐릭터 쇼케이스 영역 */}
                   <div
                     style={{
-                      flex: "0 0 42%",
+                      flex: "1 1 0",
+                      minWidth: 0,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 8,
+                      gap: pc1920(10, 20),
                     }}
                   >
                     <img
                       src={showcaseImage}
                       alt={name}
                       style={{
-                        height: pc1920(160, 300),
+                        height: pc1920(180, 380),
+                        width: "auto",
+                        maxWidth: "100%",
                         objectFit: "contain",
                       }}
                     />
                     <p
                       style={{
-                        fontSize: pc1920(15, 24),
-                        fontWeight: 700,
+                        fontSize: pc1920(18, 32),
+                        fontWeight: 800,
                         color: nameColor,
                         letterSpacing: "-0.04em",
-                        marginTop: 8,
+                        lineHeight: pc1920(26, 48),
+                        textAlign: "center",
                       }}
                     >
                       {name}
                     </p>
                     <p
                       style={{
-                        fontSize: pc1920(11, 14),
+                        fontSize: pc1920(12, 16),
+                        fontWeight: 800,
                         color: nameEnColor,
+                        lineHeight: pc1920(16, 24),
+                        textAlign: "center",
                       }}
                     >
                       {nameEn}
                     </p>
                   </div>
 
-                  {/* 스토리 서브카드 */}
                   <div
                     style={{
-                      flex: 1,
-                      padding: pc1920(10, 16),
+                      flex: `0 0 ${pcMin(692)}`,
+                      maxWidth: "100%",
+                      alignSelf: "stretch",
                       display: "flex",
+                      minWidth: 0,
                     }}
                   >
                     <div
                       style={{
                         backgroundColor: insetBg,
-                        borderRadius: pc1920(12, 16),
+                        borderRadius: pc1920(24, 40),
                         flex: 1,
-                        padding: pc1920(20, 48),
+                        padding: pc1920(20, 40),
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
                         alignItems: "center",
                         textAlign: "center",
+                        gap: pc1920(16, 30),
                       }}
                     >
                       <img
@@ -1328,89 +1358,98 @@ export default function BrandIntroScreen() {
                         alt={`${name} scene`}
                         style={{
                           height:
-                            id === "pudi" ? pc1920(28, 58) : pc1920(44, 100),
+                            id === "pudi" ? pc1920(32, 69) : pc1920(48, 126),
+                          width: "auto",
+                          maxWidth: "100%",
                           objectFit: "contain",
-                          marginBottom:
-                            id === "pudi" ? pc1920(6, 14) : pc1920(10, 24),
                         }}
                       />
-                      <p
-                        style={
-                          id === "pudi"
-                            ? {
-                                fontFamily:
-                                  "var(--font-nanum), NanumSquareRound, sans-serif",
-                                fontSize: pc1920(16, 32),
-                                fontWeight: 800,
-                                color: "#FFFFFF",
-                                lineHeight: pc1920(22, 45),
-                                whiteSpace: "pre-line",
-                                marginBottom: pc1920(6, 14),
-                                overflowWrap: "break-word",
-                              }
-                            : {
-                                fontSize: pc1920(16, 32),
-                                fontWeight: 800,
-                                color: greetingColor,
-                                letterSpacing: "-0.04em",
-                                lineHeight: 1.25,
-                                whiteSpace: "pre-line",
-                                marginBottom: pc1920(6, 14),
-                              }
-                        }
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: pc1920(8, 12),
+                          width: "100%",
+                          alignItems: "center",
+                        }}
                       >
-                        {greeting}
-                      </p>
-                      <p
-                        style={
-                          id === "pudi"
-                            ? {
-                                fontFamily:
-                                  "var(--font-nanum), NanumSquareRound, sans-serif",
-                                fontSize: pc1920(14, 28),
-                                fontWeight: 800,
-                                color: "#F3BC1E",
-                                lineHeight: pc1920(20, 38),
-                                whiteSpace: "pre-line",
-                                marginBottom: pc1920(6, 14),
-                                overflowWrap: "break-word",
-                              }
-                            : {
-                                fontSize: pc1920(12, 18),
-                                fontWeight: 800,
-                                color: accentColor,
-                                letterSpacing: "-0.04em",
-                                marginBottom: pc1920(6, 14),
-                              }
-                        }
-                      >
-                        {accentText}
-                      </p>
-                      <p
-                        style={
-                          id === "pudi"
-                            ? {
-                                fontFamily:
-                                  "var(--font-nanum), NanumSquareRound, sans-serif",
-                                fontSize: pc1920(12, 18),
-                                fontWeight: 700,
-                                color: "#FFFFFF",
-                                lineHeight: pc1920(18, 27),
-                                whiteSpace: "pre-line",
-                                overflowWrap: "break-word",
-                              }
-                            : {
-                                fontSize: pc1920(11, 14),
-                                fontWeight: 700,
-                                letterSpacing: "-0.04em",
-                                color: bodyColor,
-                                lineHeight: 1.75,
-                                whiteSpace: "pre-line",
-                              }
-                        }
-                      >
-                        {body}
-                      </p>
+                        <p
+                          style={
+                            id === "pudi"
+                              ? {
+                                  fontFamily:
+                                    "var(--font-nanum), NanumSquareRound, sans-serif",
+                                  fontSize: pc1920(16, 32),
+                                  fontWeight: 800,
+                                  color: "#FFFFFF",
+                                  lineHeight: pc1920(22, 44.8),
+                                  whiteSpace: "pre-line",
+                                  overflowWrap: "break-word",
+                                }
+                              : {
+                                  fontSize: pc1920(16, 32),
+                                  fontWeight: 800,
+                                  color: greetingColor,
+                                  letterSpacing: "-0.04em",
+                                  lineHeight: pc1920(22, 44.8),
+                                  whiteSpace: "pre-line",
+                                }
+                          }
+                        >
+                          {greeting}
+                        </p>
+                        <p
+                          style={
+                            id === "pudi"
+                              ? {
+                                  fontFamily:
+                                    "var(--font-nanum), NanumSquareRound, sans-serif",
+                                  fontSize: pc1920(12, 18),
+                                  fontWeight: 800,
+                                  color: "#F3BC1E",
+                                  lineHeight: pc1920(16, 27),
+                                  whiteSpace: "pre-line",
+                                  overflowWrap: "break-word",
+                                }
+                              : {
+                                  fontSize: pc1920(12, 18),
+                                  fontWeight: 800,
+                                  color: accentColor,
+                                  letterSpacing: "-0.04em",
+                                  lineHeight: pc1920(16, 27),
+                                }
+                          }
+                        >
+                          {accentText}
+                        </p>
+                        <p
+                          style={
+                            id === "pudi"
+                              ? {
+                                  fontFamily:
+                                    "var(--font-nanum), NanumSquareRound, sans-serif",
+                                  fontSize: pc1920(11, 14),
+                                  fontWeight: 700,
+                                  color: "#FFFFFF",
+                                  lineHeight: pc1920(16, 21),
+                                  whiteSpace: "pre-line",
+                                  overflowWrap: "break-word",
+                                  maxWidth: pcMin(422),
+                                }
+                              : {
+                                  fontSize: pc1920(11, 14),
+                                  fontWeight: 700,
+                                  letterSpacing: "-0.04em",
+                                  color: bodyColor,
+                                  lineHeight: pc1920(16, 21),
+                                  whiteSpace: "pre-line",
+                                  maxWidth: pcMin(422),
+                                }
+                          }
+                        >
+                          {body}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1421,7 +1460,7 @@ export default function BrandIntroScreen() {
       </section>
 
       {/* ══ 섹션 4: 공식 캐릭터 (모바일) — 경영철학과 간격 40px(철학 pb) · 전폭 유동 ══ */}
-      <section className="bg-[#F4F2E5] pt-10 md:hidden">
+      <section className="pt-10 md:hidden">
         <div className="flex w-full flex-col px-3 pt-0 pb-6">
           <div className="flex w-full flex-col gap-4">
             <div className="flex w-full flex-col items-start gap-1">
@@ -1498,7 +1537,7 @@ export default function BrandIntroScreen() {
                     </div>
 
                     <div
-                      className="mt-2 flex w-full flex-col items-center gap-3 rounded-2xl px-3 py-4"
+                      className="mt-2 flex w-full flex-col items-center gap-3 rounded-2xl px-3 py-12"
                       style={{ backgroundColor: insetBg }}
                     >
                       <img
@@ -1506,8 +1545,9 @@ export default function BrandIntroScreen() {
                         alt=""
                         className={cn(
                           "h-auto w-auto max-w-full object-contain",
+                          /* 푸디 3캐릭터 행 — 모바일 시안 높이 ≈40px 스케일 (과대 시 이 값만 조절) */
                           id === "pudi"
-                            ? "max-h-[min(70px,18.5vw)]"
+                            ? "max-h-[min(42px,11.2vw)]"
                             : "max-h-[min(112px,30vw)]",
                         )}
                         aria-hidden
@@ -1569,10 +1609,7 @@ export default function BrandIntroScreen() {
       </section>
 
       {/* ══ 섹션 5: 회사소개서 다운로드 (PC) — 가로 1줄 유지: 텍스트 shrink(280~655) + 카드 flex로 비율 축소 ══ */}
-      <section
-        className="hidden md:block"
-        style={{ backgroundColor: "#F5F2E8" }}
-      >
+      <section className="hidden md:block">
         <PageContentMax
           className="py-12 pb-28 md:py-14 md:pb-32 lg:pb-40"
           innerClassName="flex w-full flex-nowrap items-center gap-x-[clamp(16px,1.375vw,22px)]"
@@ -1582,9 +1619,10 @@ export default function BrandIntroScreen() {
               style={{
                 fontSize: pc1920(14, 18),
                 fontWeight: 700,
-                color: "#222",
+                color: "#1F2121",
                 marginBottom: 16,
                 letterSpacing: "-0.04em",
+                lineHeight: pc1920(20, 23.4),
               }}
             >
               풍림푸드를 더 자세히 알아보세요!
@@ -1596,7 +1634,7 @@ export default function BrandIntroScreen() {
                 fontWeight: 800,
                 color: "#003F2B",
                 letterSpacing: "-0.04em",
-                lineHeight: 1.35,
+                lineHeight: pc1920(30, 44.8),
                 wordBreak: "keep-all",
                 overflowWrap: "break-word",
               }}
@@ -1616,17 +1654,19 @@ export default function BrandIntroScreen() {
                 key={label}
                 href={href}
                 download
-                className="box-border flex max-w-[min(457.5px,calc(457.5*100vw/1920))] min-w-0 flex-1 basis-0 cursor-pointer items-center gap-3 rounded-xl border border-[#E0D9C8] bg-white no-underline"
+                className="box-border flex max-w-[min(457.5px,calc(457.5*100vw/1920))] min-w-0 flex-1 basis-0 cursor-pointer items-center gap-3 border-0 bg-white no-underline"
                 style={{
-                  minHeight: pc1920(96, 133),
-                  padding: `${pc1920(12, 24)} ${pc1920(14, 24)}`,
+                  borderRadius: pc1920(14, 20),
+                  minHeight: pc1920(96, 120),
+                  padding: `${pc1920(16, 30)} ${pc1920(16, 30)}`,
                 }}
               >
                 <div
-                  className="flex shrink-0 items-center justify-center rounded-lg bg-[#003F2B]"
+                  className="flex shrink-0 items-center justify-center bg-[#003F2B]"
                   style={{
-                    width: pc1920(32, 44),
-                    height: pc1920(32, 44),
+                    borderRadius: pc1920(12, 20),
+                    width: pc1920(40, 52.67),
+                    height: pc1920(40, 52.67),
                   }}
                 >
                   <svg
@@ -1654,19 +1694,22 @@ export default function BrandIntroScreen() {
                   <p
                     className="break-words"
                     style={{
-                      fontSize: pc1920(12, 16),
-                      fontWeight: 700,
-                      color: "#1A1A1A",
+                      fontSize: pc1920(14, 18),
+                      fontWeight: 800,
+                      color: "#1F2121",
                       letterSpacing: "-0.03em",
+                      lineHeight: pc1920(20, 25.2),
                     }}
                   >
                     {label}
                   </p>
                   <p
                     style={{
-                      fontSize: pc1920(10, 12),
-                      color: "#999",
-                      marginTop: 3,
+                      fontSize: pc1920(12, 16),
+                      fontWeight: 700,
+                      color: "#1F2121",
+                      marginTop: 4,
+                      lineHeight: pc1920(18, 24),
                     }}
                   >
                     {size}
@@ -1692,7 +1735,7 @@ export default function BrandIntroScreen() {
       </section>
 
       {/* ══ 섹션 5: 회사소개서 다운로드 (모바일) — 전폭 유동 ══ */}
-      <section className="block bg-[#F4F2E5] px-3 py-6 md:hidden">
+      <section className="block px-3 py-6 md:hidden">
         <div className="mx-auto flex w-full flex-col items-center gap-5">
           <div className="flex w-full flex-col gap-2 text-left">
             <p

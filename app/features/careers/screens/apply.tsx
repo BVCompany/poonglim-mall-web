@@ -115,7 +115,7 @@ export default function CareerApplyScreen() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
         <div className="container mx-auto px-4 py-16">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -149,7 +149,7 @@ export default function CareerApplyScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "채용", href: "/careers/positions" },

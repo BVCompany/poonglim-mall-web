@@ -1,5 +1,6 @@
 import type { Route } from "./+types/navigation.layout";
 
+import type { CSSProperties } from "react";
 import { Suspense } from "react";
 import { Await, Outlet } from "react-router";
 
@@ -31,10 +32,28 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { userPromise: mockUserPromise, productCategories, recipeCategories };
 }
 
+/** 사이트 공통: 본문(셸)과 헤더 배경을 동일 톤으로 통일 (#F4F2E5) */
+const SITE_CHROME = {
+  shell: "#F4F2E5",
+  header: "#F4F2E5",
+} as const;
+
 export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
   const { userPromise, productCategories, recipeCategories } = loaderData;
+  const chrome = SITE_CHROME;
+
   return (
-    <div className="flex min-h-screen w-full flex-col justify-between" style={{ backgroundColor: "#F4F2E5", overflowX: "clip" }}>
+    <div
+      className="flex min-h-screen w-full flex-col justify-between"
+      style={
+        {
+          backgroundColor: chrome.shell,
+          "--site-chrome-bg": chrome.shell,
+          "--site-chrome-header-bg": chrome.header,
+          overflowX: "clip",
+        } as CSSProperties
+      }
+    >
       <Suspense fallback={<NavigationBar loading={true} productCategories={[]} recipeCategories={[]} />}>
         <Await resolve={userPromise}>
           {({ data: { user } }) =>

@@ -186,11 +186,11 @@ export default function Footer() {
   return (
     <footer className="w-full">
       {/*
-        모바일: 본문(Outlet)과 딥그린 푸터 사이 140px — navigation.layout 배경(#F4F2E5)과 동일.
+        모바일: 본문(Outlet)과 딥그린 푸터 사이 140px — navigation.layout의 --site-chrome-bg와 동일.
         페이지별 pb 중복 없이 여기서만 유지.
       */}
       <div
-        className="block h-[140px] w-full shrink-0 bg-[#F4F2E5] md:hidden"
+        className="block h-[140px] w-full shrink-0 bg-[var(--site-chrome-bg,#F4F2E5)] md:hidden"
         aria-hidden
       />
 

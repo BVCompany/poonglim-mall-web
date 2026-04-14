@@ -4,7 +4,7 @@ import type { Route } from "./+types/detail";
 import { getRecipeById, hasAnyActiveRecipes } from "../lib/queries.server";
 import { Clock3, Users } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 테스트용) ─────────────────────────────────────────
@@ -141,249 +141,333 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
   const metaChipClass =
     "inline-flex items-center gap-1 overflow-hidden rounded-full px-[12.58px] py-[7.19px] bg-white";
 
-  return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+  const servingsChip =
+    servings ? String(servings).replace(/~/g, "-") : null;
 
-      {/* ── 브레드크럼 ── */}
+  return (
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+
       <Breadcrumb
+        variant="productDetail"
         items={[
+          { label: "제품소개", href: "/products/all" },
           { label: "레시피", href: "/recipe/main" },
-          { label: categoryLabel, href: "/recipe/main" },
           { label: recipe.title },
         ]}
       />
 
-      {/* ── 본문 ── */}
-      <div className="mx-auto w-full max-w-[560px] space-y-5 px-4 pb-20 pt-5 md:max-w-[min(560px,calc(560*100vw/1920))] md:space-y-6 md:px-4 md:pt-0">
+      <div className="w-full px-4 pb-20 pt-4 md:px-[max(1rem,calc((100vw-min(750px,calc(750*100vw/1920)))/2))] md:pb-24 md:pt-[60px]">
+        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 md:max-w-[min(750px,calc(750*100vw/1920))] md:gap-[60px] md:px-0">
 
-        {/* ① 이미지 카드 */}
-        <div className="h-[343px] w-full overflow-hidden rounded-[20px] md:h-auto md:aspect-square md:rounded-3xl">
-          <img
-            src={imgError ? "/home/premium_egg.png" : (recipe.thumbnail_url ?? "/home/premium_egg.png")}
-            alt={recipe.title}
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        </div>
-
-        {/* ② 레시피 정보 카드 */}
-        <div className="rounded-[20px] p-5 md:rounded-3xl md:p-7" style={{ backgroundColor: "#EAE3C9" }}>
-
-          {/* 제목 */}
-          <h1 className="mb-2.5 flex items-center gap-2.5 leading-tight md:mb-3">
-            <SectionTitleStar
-              variant="product"
-              className="h-[21px] w-[21px] flex-shrink-0 md:h-5 md:w-5"
+          <div
+            className="h-[343px] w-full overflow-hidden md:aspect-square md:h-auto"
+            style={{ borderRadius: `clamp(20px, calc(80 * 100vw / 1920), 80px)` }}
+          >
+            <img
+              src={imgError ? "/home/premium_egg.png" : (recipe.thumbnail_url ?? "/home/premium_egg.png")}
+              alt={recipe.title}
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
             />
-            <span
-              className="md:hidden"
-              style={{
-                color: "#003F2B",
-                fontFamily: "NanumSquareRound",
-                fontWeight: 800,
-                fontSize: "20px",
-                lineHeight: "30px",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              {recipe.title}
-            </span>
-            <span
-              className="hidden font-extrabold md:inline"
-              style={{ fontSize: pc1920(20, 26), letterSpacing: "-0.03em", color: "#003F2B" }}
-            >
-              {recipe.title}
-            </span>
-          </h1>
-
-          {/* 설명 */}
-          {recipe.description && (
-            <>
-              <p
-                className="mb-4 md:hidden"
-                style={{ color: "#003F2B", fontSize: "16px", fontFamily: "NanumSquareRound", fontWeight: 700, lineHeight: "24px" }}
-              >
-                {recipe.description}
-              </p>
-              <p
-                className="mb-4 hidden leading-relaxed md:block"
-                style={{ color: "#003F2B", fontSize: `clamp(13px, calc(15 * 100vw / 1920), 15px)` }}
-              >
-                {recipe.description}
-              </p>
-            </>
-          )}
-
-          {/* 메타: 모바일 — 조리시간·인분만 / 데스크탑 — 카테고리·태그 포함 */}
-          <div className="flex flex-wrap items-center gap-2.5 md:gap-1.5">
-            {categoryLabel && (
-              <span
-                className="hidden items-center rounded-full border px-3 py-1 text-xs font-medium md:inline-flex"
-                style={{ borderColor: "#00000020", backgroundColor: "#ffffff", color: "#000000" }}
-              >
-                {categoryLabel}
-              </span>
-            )}
-            {cookTime && (
-              <span className={metaChipClass}>
-                <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#1F2121]" strokeWidth={2} />
-                <span style={{ color: "#1F2121", fontSize: "12px", fontFamily: "Pretendard", fontWeight: 500, lineHeight: "12px" }}>
-                  {cookTime}
-                </span>
-              </span>
-            )}
-            {servings && (
-              <span className={metaChipClass}>
-                <Users className="h-3.5 w-3.5 shrink-0 text-[#1F2121]" strokeWidth={2} />
-                <span style={{ color: "#1F2121", fontSize: "12px", fontFamily: "Pretendard", fontWeight: 500, lineHeight: "12px" }}>
-                  {servings}
-                </span>
-              </span>
-            )}
-            {tags.map((tag, i) => (
-              <span
-                key={i}
-                className="hidden items-center rounded-full px-3 py-1 text-xs font-medium md:inline-flex"
-                style={{ backgroundColor: "#003F2B18", color: "#003F2B", letterSpacing: "-0.02em" }}
-              >
-                {tag.startsWith("#") ? tag : `#${tag}`}
-              </span>
-            ))}
           </div>
-        </div>
 
-        {/* ③ 재료 카드 */}
-        {ingredients.length > 0 && (
-          <div className="rounded-[20px] p-5 md:rounded-3xl md:px-7 md:py-5" style={{ backgroundColor: "#EAE3C9" }}>
-            <h2 className="mb-2.5 font-extrabold md:mb-0 md:pb-4">
-              <span
-                className="md:hidden"
-                style={{
-                  color: "#003F2B",
-                  fontSize: "16px",
-                  fontFamily: "NanumSquareRound",
-                  fontWeight: 800,
-                  lineHeight: "24px",
-                  letterSpacing: "-0.03em",
-                }}
+          <div className="flex flex-col gap-5 md:gap-5">
+            <div
+              className="rounded-[20px] p-5 md:rounded-[40px] md:p-10"
+              style={{ backgroundColor: "#EAE3C9" }}
+            >
+              <SectionPageTitle
+                as="h1"
+                preset="none"
+                starVariant="product"
+                className="mb-2.5 flex items-start gap-2.5 leading-tight md:mb-0 md:items-center md:gap-3"
+                markClassName="mt-0.5 h-[21px] w-[21px] shrink-0 md:mt-0"
+                wrapTitle={false}
               >
-                재료
-              </span>
-              <span
-                className="hidden md:inline"
-                style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}
-              >
-                재료
-              </span>
-            </h2>
-            <div className="flex flex-col md:pt-0">
-              {ingredients.map((ing, i) => (
-                <div key={`${ing.name}-${i}`}>
-                  {i > 0 && <div className="h-px bg-white" />}
-                  <div
-                    className="flex items-start justify-between gap-5 py-2.5 md:py-4"
+                <span
+                  className="md:hidden"
+                  style={{
+                    color: "#003F2B",
+                    fontFamily: "NanumSquareRound, sans-serif",
+                    fontWeight: 800,
+                    fontSize: "20px",
+                    lineHeight: "30px",
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  {recipe.title}
+                </span>
+                <span
+                  className="hidden md:inline"
+                  style={{
+                    color: "#003F2B",
+                    fontFamily: "NanumSquareRound, sans-serif",
+                    fontWeight: 800,
+                    fontSize: pc1920(20, 36),
+                    lineHeight: pc1920(30, 54),
+                    letterSpacing: "-0.04em",
+                  }}
+                >
+                  {recipe.title}
+                </span>
+              </SectionPageTitle>
+
+              {recipe.description && (
+                <>
+                  <p
+                    className="mb-4 mt-3 md:hidden"
+                    style={{
+                      color: "#003F2B",
+                      fontSize: "16px",
+                      fontFamily: "NanumSquareRound, sans-serif",
+                      fontWeight: 700,
+                      lineHeight: "24px",
+                    }}
                   >
+                    {recipe.description}
+                  </p>
+                  <p
+                    className="mb-0 mt-3 hidden md:mb-0 md:mt-5 md:block"
+                    style={{
+                      color: "#003F2B",
+                      fontSize: pc1920(14, 16),
+                      fontFamily: "NanumSquareRound, sans-serif",
+                      fontWeight: 700,
+                      lineHeight: pc1920(21, 24),
+                    }}
+                  >
+                    {recipe.description}
+                  </p>
+                </>
+              )}
+
+              <div className="mt-4 flex flex-wrap items-center gap-2.5 md:mt-5 md:gap-6">
+                {categoryLabel && (
+                  <span
+                    className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium md:hidden"
+                    style={{ borderColor: "#00000020", backgroundColor: "#ffffff", color: "#000000" }}
+                  >
+                    {categoryLabel}
+                  </span>
+                )}
+                {cookTime && (
+                  <span className={metaChipClass}>
+                    <Clock3 className="h-3.5 w-3.5 shrink-0 text-[#1F2121]" strokeWidth={2} />
                     <span
                       style={{
-                        width: "160px",
-                        flexShrink: 0,
-                        color: "#003F2B",
-                        fontSize: "14px",
-                        fontFamily: "NanumSquareRound",
-                        fontWeight: 700,
-                        lineHeight: "21px",
-                      }}
-                      className="md:text-sm"
-                    >
-                      {ing.name}
-                    </span>
-                    <span
-                      className="text-right md:text-sm"
-                      style={{
-                        flex: 1,
                         color: "#1F2121",
-                        fontSize: "14px",
-                        fontFamily: "NanumSquareRound",
-                        fontWeight: 700,
-                        lineHeight: "21px",
+                        fontSize: "12px",
+                        fontFamily: "Pretendard, sans-serif",
+                        fontWeight: 500,
+                        lineHeight: "12px",
                       }}
                     >
-                      {ing.amount}
+                      {cookTime}
                     </span>
+                  </span>
+                )}
+                {servingsChip && (
+                  <span className={metaChipClass}>
+                    <Users className="h-3.5 w-3.5 shrink-0 text-[#1F2121]" strokeWidth={2} />
+                    <span
+                      style={{
+                        color: "#1F2121",
+                        fontSize: "12px",
+                        fontFamily: "Pretendard, sans-serif",
+                        fontWeight: 500,
+                        lineHeight: "12px",
+                      }}
+                    >
+                      {servingsChip}
+                    </span>
+                  </span>
+                )}
+                {tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium md:hidden"
+                    style={{ backgroundColor: "#003F2B18", color: "#003F2B", letterSpacing: "-0.02em" }}
+                  >
+                    {tag.startsWith("#") ? tag : `#${tag}`}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-8 md:gap-[60px]">
+              {ingredients.length > 0 && (
+                <div
+                  className="rounded-[20px] p-5 md:rounded-[40px] md:p-10"
+                  style={{ backgroundColor: "#EAE3C9" }}
+                >
+                  <h2 className="mb-2.5 md:mb-5">
+                    <span
+                      className="md:hidden"
+                      style={{
+                        color: "#003F2B",
+                        fontSize: "16px",
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        lineHeight: "24px",
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      재료
+                    </span>
+                    <span
+                      className="hidden md:inline"
+                      style={{
+                        color: "#003F2B",
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        fontSize: pc1920(18, 24),
+                        lineHeight: pc1920(27, 36),
+                        letterSpacing: "-0.04em",
+                      }}
+                    >
+                      재료
+                    </span>
+                  </h2>
+                  <div className="flex flex-col divide-y divide-white">
+                    {ingredients.map((ing, i) => (
+                      <div
+                        key={`${ing.name}-${i}`}
+                        className="flex items-start justify-between gap-5 py-2.5 first:pt-0 md:gap-5 md:py-5 md:first:pt-0"
+                      >
+                        <span
+                          className="w-[120px] shrink-0 md:w-[160px]"
+                          style={{
+                            color: "#003F2B",
+                            fontSize: "14px",
+                            fontFamily: "NanumSquareRound, sans-serif",
+                            fontWeight: 700,
+                            lineHeight: "21px",
+                          }}
+                        >
+                          <span className="md:hidden">{ing.name}</span>
+                          <span
+                            className="hidden md:inline"
+                            style={{ fontSize: pc1920(15, 18), lineHeight: pc1920(22.5, 27) }}
+                          >
+                            {ing.name}
+                          </span>
+                        </span>
+                        <span
+                          className="min-w-0 flex-1 text-right"
+                          style={{
+                            color: "#1F2121",
+                            fontSize: "14px",
+                            fontFamily: "NanumSquareRound, sans-serif",
+                            fontWeight: 700,
+                            lineHeight: "21px",
+                          }}
+                        >
+                          <span className="md:hidden">{ing.amount}</span>
+                          <span
+                            className="hidden md:inline"
+                            style={{ fontSize: pc1920(15, 18), lineHeight: pc1920(22.5, 27) }}
+                          >
+                            {ing.amount}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {steps.length > 0 && (
+                <div className="flex flex-col gap-2.5 pl-5 md:gap-[30px] md:pl-0">
+                  <h2>
+                    <span
+                      className="md:hidden"
+                      style={{
+                        color: "#003F2B",
+                        fontSize: "20px",
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        lineHeight: "30px",
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      만드는 법
+                    </span>
+                    <span
+                      className="hidden md:inline"
+                      style={{
+                        color: "#003F2B",
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        fontSize: pc1920(18, 24),
+                        lineHeight: pc1920(27, 36),
+                        letterSpacing: "-0.04em",
+                      }}
+                    >
+                      만드는 법
+                    </span>
+                  </h2>
+                  <ol className="flex flex-col gap-2.5 md:gap-5">
+                    {steps.map((s, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2.5 md:items-center md:gap-5"
+                      >
+                        <span
+                          className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full text-white md:h-10 md:w-10 md:min-w-10"
+                          style={{
+                            backgroundColor: "#003F2B",
+                            fontSize: "11px",
+                            fontFamily: "NanumSquareRound, sans-serif",
+                            fontWeight: 700,
+                            lineHeight: "16.5px",
+                          }}
+                        >
+                          <span className="md:hidden">{s.step ?? i + 1}</span>
+                          <span
+                            className="hidden md:inline"
+                            style={{ fontSize: pc1920(14, 16), lineHeight: pc1920(21, 24) }}
+                          >
+                            {s.step ?? i + 1}
+                          </span>
+                        </span>
+                        <p
+                          className="min-w-0 flex-1 text-[#1F2121]"
+                          style={{
+                            fontSize: "14px",
+                            fontFamily: "NanumSquareRound, sans-serif",
+                            fontWeight: 800,
+                            lineHeight: "21px",
+                            letterSpacing: "-0.015em",
+                          }}
+                        >
+                          <span className="md:hidden">{s.description}</span>
+                          <span
+                            className="hidden md:inline"
+                            style={{
+                              fontSize: pc1920(15, 18),
+                              lineHeight: pc1920(22.5, 27),
+                            }}
+                          >
+                            {s.description}
+                          </span>
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* ④ 만드는 법 */}
-        {steps.length > 0 && (
-          <div className="flex flex-col gap-2.5 pl-5 md:gap-4 md:pl-0 md:px-1 md:pb-2">
-            <h2>
-              <span
-                className="md:hidden"
-                style={{
-                  color: "#003F2B",
-                  fontSize: "20px",
-                  fontFamily: "NanumSquareRound",
-                  fontWeight: 800,
-                  lineHeight: "30px",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                만드는 법
-              </span>
-              <span
-                className="hidden font-bold md:inline"
-                style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em", color: "#003F2B" }}
-              >
-                만드는 법
-              </span>
-            </h2>
-            <ol className="flex flex-col gap-2.5 md:gap-1">
-              {steps.map((s, i) => (
-                <li key={i} className="flex items-center gap-2.5 md:items-start md:gap-4 md:py-2.5">
-                  <span
-                    className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full text-white md:h-6 md:w-6 md:text-xs"
-                    style={{
-                      backgroundColor: "#003F2B",
-                      fontSize: "11px",
-                      fontFamily: "NanumSquareRound",
-                      fontWeight: 700,
-                      lineHeight: "16.5px",
-                    }}
-                  >
-                    {s.step ?? i + 1}
-                  </span>
-                  <p
-                    className="flex-1 text-[#1F2121] md:text-sm md:leading-relaxed md:text-[#003F2B]"
-                    style={{
-                      fontSize: "14px",
-                      fontFamily: "NanumSquareRound",
-                      fontWeight: 800,
-                      lineHeight: "21px",
-                      letterSpacing: "-0.015em",
-                    }}
-                  >
-                    {s.description}
-                  </p>
-                </li>
-              ))}
-            </ol>
+          <div className="hidden pt-4 text-center md:block">
+            <Link
+              to="/recipe/main"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
+            >
+              ← 레시피 목록으로 돌아가기
+            </Link>
           </div>
-        )}
-
-        {/* 목록으로 */}
-        <div className="hidden pt-2 text-center md:block">
-          <Link
-            to="/recipe/main"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
-          >
-            ← 레시피 목록으로 돌아가기
-          </Link>
         </div>
-
       </div>
     </div>
   );

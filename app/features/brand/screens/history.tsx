@@ -6,7 +6,8 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/history";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { pc1920, pcMin } from "~/core/lib/pc-fluid";
+import { SectionPageTitle } from "~/core/components/section-title-star";
+import { pcMin } from "~/core/lib/pc-fluid";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export function meta(_: Route.MetaArgs) {
@@ -44,22 +45,6 @@ const MILESTONES = [
     image: "/intro/history02.png",
     imageWidth: 360,
     imageHeight: 450,
-  },
-  {
-    id: "period-2006",
-    period: "2006 ~ 2010",
-    achievements: [
-      "사명 변경(풍림식업 → 풍림푸드)",
-      "알가열성형제품 국내 최초 축산물 HACCP 획득",
-      "영지란/젤리류 사업 시작",
-      "자체 항생제 검사(CHRAM-II) 시스템 도입",
-      "농림수산식품부 장관상 수상(축산물 HACCP 우수업체 선정)",
-      "계란파우더(SD) 설비 도입",
-      "축산물 HACCP 운용 우수업체 선정(알가공품/알가열성형제품 부문 수상)",
-    ],
-    image: null as string | null,
-    imageWidth: 0,
-    imageHeight: 0,
   },
   {
     id: "period-2011",
@@ -168,19 +153,19 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
     if (!el) return;
     isScrollingTo.current = true;
     setActivePeriod(id);
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
     setTimeout(() => {
       isScrollingTo.current = false;
     }, 900);
   }
 
   return (
-    <div className="w-full bg-[#F5F2E8]">
+    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       {/* 배너 */}
       <PageBanner
         imageUrl="/intro/history_banner.png"
         title="연혁"
-        subtitle="풍림푸드의 성장 여정을 소개합니다."
+        subtitle="1994년부터 현재까지, 30년간의 성장 과정"
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "회사소개", href: "/brand" },
@@ -190,7 +175,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      <PageContentMax className="pt-10 pb-8 md:py-14">
+      <PageContentMax className="pt-10 pb-8 md:pb-14 md:pt-0">
         {/* ── 모바일: 시안(375) — 히어로 + 타임라인 점 + 아코디언 카드 (#EAE3C9) ── */}
         <div className="md:hidden">
           <div className="flex flex-col gap-3 pb-5">
@@ -277,143 +262,118 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* PC: 풍림푸드의 발자취 */}
-        <div className="mb-8 hidden items-center gap-1.5 md:mb-10 md:inline-flex">
-          <img src="/home/product-star.png" alt="" className="h-4 w-4 object-contain" />
-          <span className="text-[18px] font-semibold tracking-[-0.02em] text-[#1F2121] md:text-[clamp(16px,calc(20*100vw/1920),20px)]">
-            풍림푸드의 발자취
-          </span>
-        </div>
-
-        {/* ── 연혁 탭바 (PC만) ── */}
-        <div
-          ref={tabsRef}
-          className="mb-10 hidden items-center overflow-x-auto rounded-xl px-4 py-3 md:mb-14 md:flex md:px-6 md:py-4"
-          style={{ backgroundColor: "#F5C842", scrollbarWidth: "none" }}
+        {/* PC: 풍림푸드의 발자취 (시안: 스파클 + 36/54) */}
+        <SectionPageTitle
+          as="h2"
+          preset="large"
+          className="hidden pb-[30px] pt-[100px] md:flex"
         >
-          {MILESTONES.map(({ id, period }, idx) => {
-            const isActive = activePeriod === id;
-            return (
-              <Fragment key={id}>
-                <button
-                  data-id={id}
-                  type="button"
-                  onClick={() => scrollToSection(id)}
-                  className="shrink-0 whitespace-nowrap rounded-full text-sm font-semibold transition-all md:text-[clamp(13px,calc(15*100vw/1920),15px)]"
-                  style={
-                    isActive
-                      ? {
-                          backgroundColor: "#fff",
-                          color: "#1F2121",
-                          padding: "8px 22px",
-                          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                        }
-                      : { color: "#fff", padding: "8px 14px" }
-                  }
-                >
-                  {period}
-                </button>
-                {/* 탭 사이 가로 연결선 — 흰색 */}
-                {idx < MILESTONES.length - 1 && (
-                  <div
-                    className="mx-1 h-px flex-1 shrink"
-                    style={{ backgroundColor: "#fff", minWidth: 12, opacity: 0.6 }}
-                  />
-                )}
-              </Fragment>
-            );
-          })}
-        </div>
+          풍림푸드의 발자취
+        </SectionPageTitle>
 
-        {/* ── 연혁 섹션 목록 ──
-            PC 구조: [연도 flex-1 우정렬] [타임라인 w-8 중앙] [업적+이미지 flex-1]
-            dot 컬럼이 페이지 정중앙. 섹션 내부 dot → 아래 수직선, 섹션 간 선 없음 */}
-        <div>
-          {MILESTONES.map(({ id, period, achievements, image, imageWidth, imageHeight }, idx) => (
-            <Fragment key={id}>
-              <section
-                id={id}
-                ref={(el) => {
-                  if (el) sectionRefs.current.set(id, el);
-                  else sectionRefs.current.delete(id);
-                }}
+        {/* ── 연혁 기간 탭바 (PC) — flex + space-between(양끝 정렬) · 비활성=바와 동색 · pill 뒤 흰 선 — sticky ── */}
+        <div className="sticky top-[var(--header-height)] z-40 -mx-4 mb-10 hidden bg-[var(--site-chrome-header-bg,#F4F2E5)] py-2 md:mx-0 md:mb-14 md:block">
+          <div className="rounded-[40px] bg-[#F3BC1E] px-4 py-5 md:px-[60px]">
+            <div className="relative">
+              <div
+                className="pointer-events-none absolute top-1/2 right-0 left-0 z-0 h-px -translate-y-1/2 bg-white"
+                aria-hidden
+              />
+              <div
+                ref={tabsRef}
+                className="relative z-[1] flex w-full min-w-0 items-center justify-between gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {/* PC 레이아웃 — dot 컬럼이 정중앙 */}
-                <div className="hidden md:flex">
-                  {/* 연도 — flex-1, 우정렬 */}
-                  <div className="flex flex-1 items-start justify-end pr-8 pt-4">
-                    <h2
-                      className="text-[clamp(26px,calc(36*100vw/1920),36px)] font-bold leading-tight"
-                      style={{ color: "#02633E", letterSpacing: "-0.04em" }}
+                {MILESTONES.map(({ id, period }) => {
+                  const isActive = activePeriod === id;
+                  return (
+                    <button
+                      key={id}
+                      data-id={id}
+                      type="button"
+                      onClick={() => scrollToSection(id)}
+                      className={`relative z-[1] shrink-0 whitespace-nowrap rounded-[40px] px-5 py-2.5 text-center font-[family-name:var(--font-nanum)] text-lg leading-[27px] transition-colors ${
+                        isActive
+                          ? "bg-white font-extrabold text-[#1F2121]"
+                          : "bg-[#F3BC1E] font-bold text-white"
+                      }`}
                     >
                       {period}
-                    </h2>
-                  </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
 
-                  {/* 타임라인 컬럼 — dot + 섹션 내부 수직선 (섹션 바닥까지) */}
-                  <div className="flex w-8 shrink-0 flex-col items-center">
-                    <div className="h-4" />
-                    {/* 첫 dot만 노란색, 나머지는 #02633E */}
-                    <div
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: idx === 0 ? "#F5C842" : "#02633E" }}
-                    />
-                    {/* 섹션 내부 수직선 — dot에서 섹션 바닥까지 */}
-                    <div className="w-px flex-1" style={{ backgroundColor: "#C8C8C8" }} />
-                  </div>
+        {/* ── 연혁 섹션 목록 (PC: 좌 연도 / 중앙 도트·세로선 / 우 본문·이미지, 구간 간격 100px) ── */}
+        <div className="flex flex-col gap-[100px]">
+          {MILESTONES.map(({ id, period, achievements, image, imageWidth, imageHeight }) => (
+            <section
+              key={id}
+              id={id}
+              ref={(el) => {
+                if (el) sectionRefs.current.set(id, el);
+                else sectionRefs.current.delete(id);
+              }}
+              className="scroll-mt-[calc(var(--header-height)+7.5rem)]"
+            >
+              {/* PC 레이아웃 — 시안: 좌 연도 60/78 #003F2B, 중앙 도트+세로선, 우측 본문 20/30 */}
+              <div className="hidden md:flex md:items-stretch md:justify-between md:gap-0">
+                <div className="flex min-w-0 max-w-[715px] flex-[1_1_0] flex-col items-end px-[30px] pt-5">
+                  <h3 className="text-center font-[family-name:var(--font-nanum)] text-[clamp(36px,calc(60*100vw/1920),60px)] font-extrabold leading-[78px] text-[#003F2B]">
+                    {period}
+                  </h3>
+                </div>
 
-                  {/* 업적 → 이미지 (세로 배치) */}
-                  <div className="flex-1 pb-10 pl-8 pt-4">
-                    <ul className="space-y-3">
-                      {achievements.map((a, i) => (
-                        <li key={i} className="flex items-start gap-2.5">
-                          <span
-                            className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: "#02633E" }}
-                          />
-                          <span
-                            className="text-[clamp(13px,calc(15*100vw/1920),15px)] leading-relaxed"
-                            style={{ color: "#02633E" }}
-                          >
-                            {a}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {image && (
-                      <div
-                        className="mt-8 overflow-hidden rounded-xl"
-                        style={{
-                          width: pcMin(imageWidth),
-                          height: pcMin(imageHeight),
-                          maxWidth: "100%",
-                        }}
-                      >
-                        <img
-                          src={image}
-                          alt={`${period} 연혁`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+                {/* 타임라인: 세로선 최상단·최하단에 도트 — 선은 그 사이 flex-1 / 활성만 상단 노란 29px(border 6 white/40), 상·하단 끝 녹색 8px */}
+                <div className="flex w-[36px] shrink-0 flex-col items-center self-stretch pt-5">
+                  <div className="h-4 shrink-0" aria-hidden />
+                  <div
+                    className="flex h-[29px] shrink-0 items-center justify-center"
+                    aria-hidden
+                  >
+                    {activePeriod === id ? (
+                      <div className="box-border size-[29px] shrink-0 rounded-full border-[6px] border-white/40 bg-[#F3BC1E]" />
+                    ) : (
+                      <div className="size-2 shrink-0 rounded-full bg-[#02633E]" />
                     )}
                   </div>
-                </div>
-              </section>
-
-              {/* PC 섹션 사이 — 선 없이 회색 dot만, dot 컬럼과 수평 위치 일치 */}
-              {idx < MILESTONES.length - 1 && (
-                <div
-                  className="hidden md:flex items-center"
-                  style={{ minHeight: pc1920(32, 48) }}
-                >
-                  <div className="flex-1" />
-                  <div className="flex w-8 shrink-0 justify-center">
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#C8C8C8" }} />
+                  <div
+                    className="w-px min-h-[48px] flex-1 bg-[#02633E]/30"
+                    aria-hidden
+                  />
+                  <div
+                    className="flex h-[29px] shrink-0 items-center justify-center"
+                    aria-hidden
+                  >
+                    <div className="size-2 shrink-0 rounded-full bg-[#02633E]" />
                   </div>
-                  <div className="flex-1" />
                 </div>
-              )}
-            </Fragment>
+
+                <div className="min-w-0 flex-[1_1_0] px-[30px] pt-5">
+                  <p className="max-w-[655px] whitespace-pre-line font-[family-name:var(--font-nanum)] text-[20px] font-bold leading-[30px] text-[#003F2B]">
+                    {achievements.join("\n")}
+                  </p>
+                  {image && (
+                    <div
+                      className="mt-5 overflow-hidden rounded-[40px]"
+                      style={{
+                        width: pcMin(imageWidth),
+                        height: pcMin(imageHeight),
+                        maxWidth: "100%",
+                      }}
+                    >
+                      <img
+                        src={image}
+                        alt={`${period} 연혁`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
           ))}
         </div>
 

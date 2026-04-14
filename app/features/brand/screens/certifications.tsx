@@ -1,6 +1,7 @@
 /**
  * 품질 & 인증 페이지
- * 배너: PageBanner와 동일한 여백 구조, 1840×800 커스텀 이미지 + 하단 텍스트 오버레이
+ * 배경: 헤더와 동일(--site-chrome-header-bg / #F4F2E5)
+ * PC: 1600 타이틀 밴드(60/40r) · 1840×800 히어로 · 4카드 600·gap20
  */
 import type { Route } from "./+types/certifications";
 import type { ReactNode } from "react";
@@ -17,6 +18,7 @@ import { cn } from "~/core/lib/utils";
 import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 
 const nanum = "font-[family-name:var(--font-nanum)]";
+const pretendard = "font-[Pretendard,system-ui,sans-serif]";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "품질 & 인증 | 풍림푸드" }];
@@ -45,13 +47,7 @@ const MOCK_QUALITY_ITEMS: {
 }[] = [
   {
     title: "식품안전",
-    desc: (
-      <>
-        HACCP, FSSC 22000 인증을 통해 원료 입고부터 출하까지
-        <br />
-        전 과정을 철저히 관리합니다.
-      </>
-    ),
+    desc: "HACCP, FSSC 22000 인증을 통해 원료 입고부터 출하까지 전 과정을 철저히 관리합니다.",
     image: "/certification/safety_img_transparent.png",
     bg: "#FBE28A",
   },
@@ -116,7 +112,7 @@ type TabKey = (typeof TABS)[number]["key"];
 
 type CertListItem = (typeof MOCK_CERT_ITEMS)[number];
 
-/** 인증서 탭 카드 — 시안: p20·rounded-30·gap20 / 이미지 h270·rounded-10 / 제목 14px 800 #1F2121 */
+/** 인증서 탭 카드 — 모바일(슬라이드): 기존 시안 / PC(그리드): 1920 시안 px를 100vw/1920로 스케일 */
 function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" | "grid" }) {
   const { image_url, title } = item;
   return (
@@ -126,7 +122,13 @@ function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" |
         "inline-flex w-full max-w-full flex-col items-center gap-5 rounded-[30px] bg-white p-5",
         variant === "slide" &&
           "w-[min(303px,calc(100vw-2.75rem))] shrink-0 snap-start",
-        variant === "grid" && "md:min-h-0",
+        variant === "grid" &&
+          cn(
+            "md:min-h-0",
+            "md:gap-[min(20px,calc(20*100vw/1920))]",
+            "md:rounded-[min(35.16px,calc(35.16*100vw/1920))]",
+            "md:p-[min(20px,calc(20*100vw/1920))]",
+          ),
       )}
     >
       <div
@@ -134,17 +136,29 @@ function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" |
           "flex w-full shrink-0 flex-col items-stretch gap-[18px]",
           "h-[270px]",
           variant === "grid" &&
-            "md:h-[clamp(270px,calc(345*100vw/1920),345px)]",
+            "md:gap-[min(18px,calc(18*100vw/1920))] md:h-[min(345px,calc(345*100vw/1920))]",
         )}
       >
         <img
           src={image_url ?? ""}
           alt={title}
-          className="h-full w-full rounded-[10px] object-contain object-center"
+          className={cn(
+            "h-full w-full object-contain object-center",
+            "rounded-[10px]",
+            variant === "grid" &&
+              "md:rounded-[min(10px,calc(10*100vw/1920))]",
+          )}
         />
       </div>
-      <div className="flex w-full flex-col items-center gap-[10px] self-stretch">
-        <p className="w-full text-center text-[14px] font-extrabold leading-[21px] text-[#1F2121]">
+      <div
+        className={cn(
+          "flex w-full flex-col items-center self-stretch",
+          variant === "slide" && "gap-[10px]",
+          variant === "grid" &&
+            "md:gap-[min(10.55px,calc(10.55*100vw/1920))]",
+        )}
+      >
+        <p className="w-full break-words text-center text-[14px] font-extrabold leading-[21px] text-[#1F2121]">
           {title}
         </p>
       </div>
@@ -166,19 +180,41 @@ export default function CertificationsScreen({
   ) as typeof MOCK_CERT_ITEMS;
 
   return (
-    <div className="w-full bg-[#F4F2E5] md:bg-[#F5F2E8]">
+    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "회사소개", href: "/brand/intro" },
           { label: "품질 & 인증" },
         ]}
       />
-      {/* ── 페이지 타이틀 (PC) ── */}
-      <div className="hidden py-10 text-center md:block md:py-14">
-        <h1 className="text-[36px] leading-tight font-bold tracking-tight text-[#02633E] md:text-[clamp(32px,calc(52*100vw/1920),52px)]">
+
+      {/* PC: 1600 컬럼 · 상단 타이틀 밴드(바깥 60r · 안 40r) + 히어로와 gap 20 */}
+      <PageContentMax className="hidden pb-5 md:block">
+        <div className="mx-auto flex h-[min(300px,calc(300*100vw/1920))] w-full max-w-full flex-col rounded-[60px] px-10">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[40px]">
+            <div className={cn("flex w-full max-w-[487px] flex-col gap-2.5 text-center")}>
+              <h1
+                className={cn(
+                  nanum,
+                  "text-[clamp(40px,calc(60*100vw/1920),60px)] font-extrabold leading-[1.4] text-[#003F2B] md:leading-[84px]",
+                )}
+              >
+                품질 & 인증
+              </h1>
+              <p className={cn(nanum, "text-base font-normal leading-[19.2px] text-[#003F2B]")}>
+                30년 전통의 품질 관리 노하우와 국내외 공인 인증
+              </p>
+            </div>
+          </div>
+        </div>
+      </PageContentMax>
+
+      {/* 모바일: 페이지 타이틀 (375) */}
+      <div className="px-4 py-8 text-center md:hidden">
+        <h1 className={cn(nanum, "text-[36px] font-bold leading-tight tracking-tight text-[#02633E]")}>
           품질 & 인증
         </h1>
-        <p className="mt-3 text-sm text-gray-500 md:text-base">
+        <p className={cn(nanum, "mt-3 text-sm text-[#1F2121]/70")}>
           30년 전통의 품질 관리 노하우와 국내외 공인 인증
         </p>
       </div>
@@ -235,11 +271,11 @@ export default function CertificationsScreen({
         </div>
       </div>
 
-      {/* ── 커스텀 배너 — PC만 ── */}
-      <div className="hidden px-4 pt-2 md:block md:px-8 md:pt-4 lg:px-2.5">
-        <div className="mx-auto w-full" style={{ maxWidth: "var(--hero-pc-width)" }}>
+      {/* ── PC 히어로: 1840×800 · 라운드 40 · 딥그린 타이포(시안) ── */}
+      <div className="hidden md:block md:px-10 md:pb-4">
+        <div className="mx-auto w-full max-w-[var(--hero-pc-width)]">
           <div
-            className="relative overflow-hidden rounded-3xl md:rounded-[2rem]"
+            className="relative overflow-hidden rounded-[40px]"
             style={{ aspectRatio: "1840 / 800" }}
           >
             <img
@@ -247,86 +283,96 @@ export default function CertificationsScreen({
               alt="품질 & 인증 배너"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 px-6 pb-7 md:px-12 md:pb-10">
-              <h2 className="mb-1.5 text-[18px] font-bold text-white md:text-[clamp(16px,calc(30*100vw/1920),30px)]">
-                품질은 약속입니다
-              </h2>
-              <p className="max-w-xs text-xs leading-relaxed text-white/80 md:max-w-xl md:text-sm">
-                풍림푸드는 30년간 쌓아온 기술력과 엄격한 품질 관리를 바탕으로
-                고객의 식탁에 신선하고 안전한 제품을 제공합니다.
-              </p>
+            <div
+              className={cn(
+                "absolute inset-x-0 bottom-0 flex flex-col",
+                "pt-[min(60px,calc(60*100vw/1920))] pb-[min(80px,calc(80*100vw/1920))]",
+                "pl-[min(120px,calc(120*100vw/1920))] pr-[min(120px,calc(120*100vw/1920))]",
+              )}
+            >
+              <div className={cn("flex max-w-[min(727px,100%)] flex-col gap-2.5")}>
+                <h2
+                  className={cn(
+                    nanum,
+                    "text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-tight text-[#003F2B] md:leading-[44.8px]",
+                  )}
+                >
+                  품질은 약속입니다
+                </h2>
+                <p className={cn(nanum, "text-base font-normal leading-[19.2px] text-[#003F2B]")}>
+                  풍림푸드는 1994년 창업 이래 &quot;품질이 곧 신뢰&quot;라는 철학 아래, 엄격한 품질
+                  관리 시스템을 구축해 왔습니다.
+                  <br />
+                  단순히 인증을 획득하는 것을 넘어, 매일의 생산 현장에서 그 기준을 실천하는 것이
+                  진정한 품질이라고 믿습니다.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ══ 섹션 1: 품질 약속 카드 (모바일 시안: px16·py40·카드 간 gap10, 카드 p20·justify-center) ══ */}
-      <div className="mx-auto w-full max-w-full px-4 py-10 md:max-w-[min(1208px,calc(1208*100vw/1920))] md:pb-20 md:pt-16">
-        <div className="flex w-full flex-col items-start justify-start gap-2.5 md:grid md:grid-cols-2 md:gap-2">
+      {/* ══ 섹션 1: 품질 약속 카드 — PC 시안: p40·r40·col·center·gap20 / 제목 28·42·800 / 본문 16·700·24 / 310 이미지 darken ══ */}
+      <PageContentMax className="py-10 md:rounded-[60px] md:py-[min(100px,calc(100*100vw/1920))]">
+        <div className="flex w-full flex-col items-start justify-start gap-2.5 md:mx-auto md:grid md:max-w-[1220px] md:grid-cols-2 md:gap-5">
           {MOCK_QUALITY_ITEMS.map(({ title, desc, image, bg }) => (
             <div
               key={title}
               className={cn(
                 "w-full min-w-0 self-stretch overflow-hidden rounded-[20px] p-5",
-                /* 모바일: 가로 줄 — flex(블록)로 유지해 텍스트 열 너비 버그 방지, 시각은 시안과 동일 */
                 "flex flex-row items-start justify-center gap-2.5",
-                "md:h-[clamp(320px,calc(520*100vw/1920),520px)] md:min-h-0 md:flex-col md:justify-start md:gap-0 md:p-0 md:rounded-2xl",
+                "md:h-[min(520px,calc(520*100vw/1920))] md:min-h-0 md:flex-col md:items-center md:justify-center md:gap-5 md:rounded-[40px] md:p-10",
               )}
               style={{ backgroundColor: bg }}
             >
               <div
                 className={cn(
                   "flex min-h-0 min-w-0 flex-1 basis-0 flex-col items-start justify-start gap-2.5",
-                  "md:basis-auto md:gap-0 md:px-8 md:pt-8",
+                  "md:basis-auto md:w-full md:gap-5",
                 )}
               >
-                <div className="flex w-full min-w-0 flex-col justify-end md:contents">
-                  <h3
-                    className={cn(
-                      nanum,
-                      "break-words text-[18px] font-extrabold leading-[27px] text-[#1F2121]",
-                      "md:mb-3 md:font-bold md:tracking-[-0.02em] md:text-[clamp(16px,calc(22*100vw/1920),22px)]",
-                    )}
-                  >
-                    {title}
-                  </h3>
-                </div>
-                <p
+                <h3
                   className={cn(
                     nanum,
-                    "w-full min-w-0 self-stretch break-words text-[14px] font-bold leading-[21px] text-[#1F2121]",
-                    "md:font-normal md:text-gray-700 md:text-[clamp(13px,calc(15*100vw/1920),15px)]",
+                    "w-full break-words text-[18px] font-extrabold leading-[27px] text-[#1F2121] md:min-h-[42px] md:self-stretch md:text-[28px] md:font-extrabold md:leading-[42px]",
+                  )}
+                >
+                  {title}
+                </h3>
+                <div
+                  className={cn(
+                    nanum,
+                    "w-full min-w-0 self-stretch break-words text-[14px] font-bold leading-[21px] text-[#1F2121] md:self-stretch md:text-base md:font-bold md:leading-6 md:text-[#1F2121]",
                   )}
                 >
                   {desc}
-                </p>
+                </div>
               </div>
-              <div className="shrink-0 md:flex md:flex-1 md:items-end md:justify-center md:px-8 md:pb-8">
+              <div className="flex shrink-0 md:w-full md:justify-center">
                 <img
                   src={image}
                   alt={title}
                   width={120}
                   height={120}
-                  className="h-[120px] w-[120px] shrink-0 object-contain mix-blend-darken md:h-[min(310px,calc(310*100vw/1920))] md:w-[min(310px,calc(310*100vw/1920))] md:max-w-full md:mix-blend-normal"
+                  className="h-[120px] w-[120px] shrink-0 object-contain mix-blend-darken md:h-[min(310px,calc(310*100vw/1920))] md:w-[min(310px,calc(310*100vw/1920))] md:max-w-full md:mix-blend-darken"
                 />
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </PageContentMax>
 
       {/* ══ 섹션 2: 주요 인증 및 수상내역 ══
           컨테이너에 수평 패딩 없음 → 수상내역 카드가 1600px 전체 사용.
           타이틀·탭·인증서 그리드는 요소 단위로 px-4 md:px-0 적용. */}
-      <PageContentMax className="pb-16 md:pb-20">
-        {/* 섹션 헤더 — gutter는 PageContentMax만 사용 (모바일 이중 px 방지) */}
+      <PageContentMax className="pb-16 md:pb-[min(100px,calc(100*100vw/1920))] md:pt-[min(60px,calc(60*100vw/1920))]">
+        {/* 섹션 헤더 — PC 시안: 60/84 · #003F2B */}
         <div className="mb-8 flex flex-col gap-2.5 py-5 text-left md:mb-10 md:py-0 md:text-center">
           <h2
             className={cn(
               nanum,
               "text-[18px] font-extrabold leading-[30px] text-[#003F2B]",
-              "md:mb-3 md:text-[clamp(26px,calc(42*100vw/1920),42px)] md:font-bold md:leading-tight md:tracking-[-0.03em] md:text-[#02633E]",
+              "md:text-[clamp(36px,calc(60*100vw/1920),60px)] md:font-extrabold md:leading-[84px]",
             )}
           >
             주요 인증 및 수상내역
@@ -334,14 +380,14 @@ export default function CertificationsScreen({
           <p
             className={cn(
               nanum,
-              "text-[14px] font-bold leading-[16.8px] text-[#1F2121] md:text-base md:font-normal md:leading-normal md:text-gray-500",
+              "text-[14px] font-bold leading-[16.8px] text-[#1F2121] md:text-base md:font-normal md:leading-[19.2px] md:text-[#003F2B]",
             )}
           >
             국내외 공인 기관의 엄격한 인증과 수상을 통해 품질을 인정받았습니다
           </p>
         </div>
 
-        {/* 탭 — 모바일: 12px 6px 패딩 · 12px 글자 (시안) */}
+        {/* 탭 — 모바일 기존 / PC: Pretendard 16/24 · 비활성 배경 없음 */}
         <div className="mb-8 flex gap-2.5 md:mb-10">
           {TABS.map(({ key, label }) => (
             <button
@@ -349,11 +395,12 @@ export default function CertificationsScreen({
               type="button"
               onClick={() => setActiveTab(key)}
               className={cn(
-                nanum,
-                "rounded-full px-3 py-1.5 text-[12px] font-bold leading-[18px] transition-all md:px-5 md:py-2 md:text-sm md:font-semibold",
+                "rounded-full px-3 py-1.5 text-[12px] leading-[18px] transition-all",
+                "md:px-5 md:py-2 md:text-base md:leading-6",
+                pretendard,
                 activeTab === key
-                  ? "bg-[#02633E] text-white"
-                  : "bg-transparent text-[#1F2121] md:bg-[#EAE3C9] md:text-[#555]",
+                  ? "bg-[#02633E] font-bold text-white md:font-bold"
+                  : "bg-transparent font-bold text-[#1F2121] md:font-medium",
               )}
             >
               {label}
@@ -387,41 +434,41 @@ export default function CertificationsScreen({
               ))}
             </div>
 
-            <div className="hidden md:flex md:h-[clamp(420px,calc(894*100vw/1920),894px)] md:flex-row md:gap-4">
+            <div className="hidden md:flex md:h-[clamp(420px,calc(894*100vw/1920),894px)] md:flex-row md:gap-5">
               {awards.map(({ id, title, image_url }) => (
                 <Fragment key={id}>
                   <div
-                    className="flex items-center justify-center rounded-2xl p-8 md:h-full md:w-[min(533px,calc(533*100vw/1920))] md:shrink-0"
+                    className={cn(
+                      nanum,
+                      "flex items-center justify-center rounded-[40px] md:h-full md:w-[min(533px,calc(533*100vw/1920))] md:shrink-0 md:p-10",
+                    )}
                     style={{ backgroundColor: "#EAE3C9", minHeight: 280 }}
                   >
                     <h3
-                      className="text-center font-bold text-[#003F2B]"
-                      style={{
-                        fontSize: pc1920(20, 32),
-                        letterSpacing: "-0.04em",
-                        lineHeight: 1.4,
-                      }}
+                      className={cn(
+                        nanum,
+                        "break-words text-center text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-[44.8px] text-[#003F2B]",
+                      )}
+                      style={{ letterSpacing: "-0.04em" }}
                     >
                       {title}
                     </h3>
                   </div>
 
                   <div
-                    className="flex flex-1 items-center justify-center rounded-2xl bg-white md:h-full"
+                    className="flex flex-1 items-center justify-center rounded-[60px] bg-white md:h-full"
                     style={{
-                      padding: pc1920(16, 32),
+                      padding: pc1920(24, 60),
                       minHeight: 280,
                     }}
                   >
                     <img
                       src={image_url ?? ""}
                       alt={title}
-                      className="object-contain"
+                      className="max-h-full w-full rounded-[60px] object-contain"
                       style={{
                         maxWidth: pcMin(1017),
                         maxHeight: pcMin(774),
-                        width: "100%",
-                        height: "100%",
                       }}
                     />
                   </div>

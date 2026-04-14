@@ -3,12 +3,7 @@
  */
 import type { Route } from "./+types/notice-detail";
 
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
@@ -144,7 +139,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
-  return { notice, prev, next, pageBanner, id };
+  return { notice, prev, next, pageBanner };
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -170,7 +165,7 @@ const nanum = "font-[family-name:var(--font-nanum)]";
 export default function NoticeDetailScreen({
   loaderData,
 }: Route.ComponentProps) {
-  const { notice, prev, next, pageBanner, id } = loaderData;
+  const { notice, prev, next, pageBanner } = loaderData;
 
   const articleClassMobile = cn(
     "prose prose-sm max-w-none text-[#1F2121]",
@@ -178,15 +173,12 @@ export default function NoticeDetailScreen({
     "prose-p:leading-[22.4px] prose-headings:text-[#1F2121]",
   );
 
-  const articleClassDesktop =
-    "prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10";
-
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="공지사항"
-        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+        subtitle="계란 등급판정 결과를 공개하여 품질 신뢰를 높이고 있습니다"
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "고객지원", href: "/support" },
@@ -196,7 +188,7 @@ export default function NoticeDetailScreen({
         hideBreadcrumbOnMobile
       />
 
-      <PageContentMax className="pt-0 pb-[120px] md:pt-[100px] md:pb-[200px]">
+      <PageContentMax className="pt-0 pb-[120px] md:pb-[100px] md:pt-[60px]">
         {/* ── 모바일 본문 (Figma 375) ── */}
         <div className="flex flex-col gap-0 md:hidden">
           {/* 제목 + 날짜: 가로 여백은 PageContentMax(px-4) 한 번만 · 열 gap 20px · 날짜는 제목과 동일 왼쪽 정렬 */}
@@ -325,93 +317,121 @@ export default function NoticeDetailScreen({
           </div>
         </div>
 
-        {/* ── 데스크탑 본문 ── */}
-        <div className="hidden md:block">
-          <div
-            className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
-            style={{ borderBottom: "1px solid #D8D0BB" }}
-          >
-            <h1
-              className="text-lg leading-snug font-bold text-gray-900 md:text-2xl"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              {notice.title}
-            </h1>
-            <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
-              {formatDateTime(notice.created_at)}
-            </span>
-          </div>
-
-          <div
-            className="flex items-center gap-3 py-3 text-xs text-gray-500 md:gap-5 md:py-4 md:text-sm"
-            style={{ borderBottom: "1px solid #D8D0BB" }}
-          >
-            <span>
-              글쓴이: <span className="text-gray-700">{notice.author}</span>
-            </span>
-            <span>
-              조회수:{" "}
-              <span className="text-gray-700">{notice.view_count}</span>
-            </span>
-          </div>
-
-          <div
-            className={articleClassDesktop}
-            style={{ minHeight: "200px" }}
-            dangerouslySetInnerHTML={{ __html: notice.content }}
-          />
-
-          <div
-            className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
-            style={{ borderTop: "1px solid #D8D0BB" }}
-          >
-            <div className="flex-1">
-              {prev ? (
-                <Link
-                  to={`/support/notice/${prev.notice_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="font-medium text-gray-400">이전글</span>
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
-                    {prev.title}
-                  </span>
-                  <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  이전글이 없습니다.
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 text-right">
-              {next ? (
-                <Link
-                  to={`/support/notice/${next.notice_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
-                    {next.title}
-                  </span>
-                  <span className="font-medium text-gray-400">다음글</span>
-                  <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  다음글이 없습니다.
-                </span>
-              )}
+        <div className="hidden md:flex md:flex-col md:gap-[30px]">
+          <div className="border-b border-[#EAE3C9]">
+            <div className="flex items-start justify-between gap-5 px-[30px] pb-[30px] pt-5">
+              <h1
+                className={cn(
+                  nanum,
+                  "min-w-0 flex-1 text-2xl font-extrabold leading-[31.2px] text-[#1F2121]",
+                )}
+              >
+                {notice.title}
+              </h1>
+              <time
+                className={cn(
+                  nanum,
+                  "shrink-0 text-center text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]",
+                )}
+                dateTime={String(notice.created_at)}
+              >
+                {formatDateTime(notice.created_at)}
+              </time>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center">
-            <Link
-              to="/support/notice"
-              className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
-              style={{ backgroundColor: "#EAE3C9" }}
-            >
-              목록
-            </Link>
+          {/* 시안: padding-bottom 200px · 내부 column gap 20px · rounded-[40px] 래퍼 안 gap 30px */}
+          <div className="flex flex-col gap-5 border-b border-[#EAE3C9] pb-[200px]">
+            <div className="flex flex-col rounded-[40px]">
+              <div className="flex flex-col gap-[30px] px-[30px]">
+                <div className="flex min-h-[41px] flex-wrap items-center gap-[9px]">
+                  <span
+                    className={cn(
+                      nanum,
+                      "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
+                    )}
+                  >
+                    <span>글쓴이:</span>
+                    <span>{notice.author}</span>
+                  </span>
+                  <span
+                    className={cn(
+                      nanum,
+                      "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
+                    )}
+                  >
+                    <span>조회수:</span>
+                    <span>{notice.view_count}</span>
+                  </span>
+                </div>
+                <div
+                  className={articleClassMobile}
+                  dangerouslySetInnerHTML={{ __html: notice.content }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-[60px]">
+            <div className="flex w-full max-w-full items-center justify-center gap-[60px] pt-[100px]">
+              <div className="min-w-0 flex-1">
+                {prev ? (
+                  <Link
+                    to={`/support/notice/${prev.notice_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <ChevronLeft
+                      className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="shrink-0">이전글</span>
+                    <span className="min-w-0 flex-1 truncate">{prev.title}</span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
+
+              <Link
+                to="/support/notice"
+                className={cn(
+                  nanum,
+                  "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
+                )}
+              >
+                목록
+              </Link>
+
+              <div className="min-w-0 flex-1">
+                {next ? (
+                  <Link
+                    to={`/support/notice/${next.notice_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-right">
+                      {next.title}
+                    </span>
+                    <span className="flex w-[92px] shrink-0 items-center justify-between">
+                      <span>다음글</span>
+                      <ChevronRight
+                        className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </PageContentMax>

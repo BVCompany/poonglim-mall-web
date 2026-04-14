@@ -1,16 +1,16 @@
 /**
  * 보도자료 목록 페이지
- * - 주요 보도: breakout 슬라이더 (뷰포트 오른쪽 끝까지 확장)
- * - 전체 보도자료: SearchBar + 카드 목록 + 페이지네이션
- * - 데이터: media.news 테이블 (type = "press" | "news")
+ * - 주요 보도: PC 좌열 이미지(클립 좌30·내부15·D9·하단 그라데이션 78%+50%·태그 30px)·딥그린은 호버
+ * - 전체 보도자료: PC 검색(360px 필+그린 보더·분리 검색 버튼) · 목록 카드도 호버 시 딥그린
+ * - 데이터: media.news 테이블
  */
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Route } from "./+types/news";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { cn } from "~/core/lib/utils";
 import db from "~/core/db/drizzle-client.server";
@@ -53,7 +53,8 @@ const PAGE_SIZE = 4;
 /* 주요 보도 카드 — PC: 1040×520 / 모바일 시안: 310px 너비·세로 스택·간격 10 */
 const CARD_W = 1040;
 const CARD_H = 520;
-const CARD_GAP = 24;
+/** PC 시안: 카드 간격 20px */
+const CARD_GAP = 20;
 const MOBILE_FEATURED_W = 310;
 const MOBILE_FEATURED_GAP = 10;
 
@@ -68,12 +69,6 @@ function getTypeLabel(type: string) {
   return LEGACY_LABEL[type] ?? type;
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  press: "#02633E",
-  news: "#003F2B",
-  announcement: "#F3BC1E",
-};
-
 function formatDate(d: string | Date | null) {
   if (!d) return "";
   return new Date(d)
@@ -87,6 +82,23 @@ function formatDate(d: string | Date | null) {
 }
 
 const nanum = "font-[family-name:var(--font-nanum)]";
+
+/** 모바일 보도 카드용 임시 이미지 (PC는 thumbnail_url 유지) */
+const MOBILE_PRESS_PLACEHOLDER_IMAGES = [
+  "/home/product-star.png",
+  "/home/product-buljangran.png",
+  "/home/product-egg-white-grilled.png",
+  "/home/product-caramel-pudding.png",
+  "/home/product-squeeze-egg-salad.png",
+  "/intro/egg01.png",
+  "/intro/egg03.png",
+  "/recipe/recipe01.png",
+] as const;
+
+function pressMobilePlaceholderSrc(newsId: number) {
+  const i = Math.abs(newsId) % MOBILE_PRESS_PLACEHOLDER_IMAGES.length;
+  return MOBILE_PRESS_PLACEHOLDER_IMAGES[i]!;
+}
 
 function featuredScrollStepPx() {
   if (typeof window === "undefined") return CARD_W + CARD_GAP;
@@ -209,12 +221,12 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       {/* ── 배너 ── */}
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
         title="보도자료"
-        subtitle="풍림푸드의 최신 뉴스와 미디어 자료를 확인하세요."
+        subtitle="풍림푸드의 최신 소식과 보도자료를 확인하세요."
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "홍보센터" },
@@ -224,30 +236,32 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      <PageContentMax className="pb-12 pt-0 md:pt-12">
-        <div className="flex flex-col max-md:gap-[50px]">
+      <PageContentMax className="pb-12 pt-0 md:pt-12 lg:pt-[100px]">
+        <div className="flex flex-col max-md:gap-[50px] lg:gap-0">
           {/* ── 주요 보도 — 모바일: 타이틀 행 ↔ 캐러셀 gap 10px (시안) ── */}
-          <div className="flex flex-col max-md:gap-2.5">
-            <div
+          <div className="flex flex-col max-md:gap-2.5 lg:gap-[30px]">
+            <SectionPageTitle
+              as="h2"
+              preset="none"
+              starVariant="product"
               className={cn(
                 nanum,
-                "flex items-center gap-[11px] px-0 pt-5 md:mb-5 md:gap-2 md:pt-0",
+                "flex items-center gap-[11px] px-0 pt-5 md:mb-5 md:gap-2 md:pt-0 lg:mb-0 lg:gap-5 lg:pt-0",
               )}
+              markClassName="h-[21px] w-[21px] shrink-0 object-contain md:h-6 md:w-6 lg:h-[21px] lg:w-[21px]"
+              titleClassName="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]"
             >
-              <SectionTitleStar variant="product" className="h-[21px] w-[21px] md:h-6 md:w-6" />
-              <h2 className="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900">
-                주요 보도
-              </h2>
-            </div>
+              주요 보도
+            </SectionPageTitle>
 
             {/*
-              슬라이더 브레이크아웃 — PC·태블릿: 좌 패딩 상쇄 + 우측 뷰포트 확장
-              모바일: 좌는 본문 패딩 유지(ml-0, pl-0), 우만 패딩 상쇄 → 카드가 화면 끝까지 이어져 다음 카드가 잘림
+              슬라이더 — 좌측은 본문(타이틀·별)과 동일 선상(PageContentMax 내부 시작선).
+              우측만 margin으로 뷰포트까지 확장해 다음 카드가 잘림.
             */}
-            <div className="-ml-4 overflow-hidden sm:-ml-6 lg:-ml-10 lg:[margin-right:calc(-50vw+50%)] max-md:!ml-0 max-sm:-mr-4 sm:max-md:-mr-6">
+            <div className="overflow-hidden lg:[margin-right:calc(-50vw+50%)] max-sm:-mr-4 sm:max-md:-mr-6">
               <div
                 ref={scrollRef}
-                className="scrollbar-hide flex max-md:min-h-[463px] overflow-x-auto pb-4 pl-4 max-md:pl-0 sm:pl-6 lg:pl-10 max-md:gap-[10px] md:min-h-0 md:gap-6"
+                className="scrollbar-hide flex max-md:min-h-[463px] overflow-x-auto pb-4 pl-0 max-md:gap-[10px] md:min-h-0 md:gap-6 lg:gap-5"
                 style={{
                   scrollSnapType: "x proximity",
                 }}
@@ -257,62 +271,105 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                     key={item.news_id}
                     to={`/media/news/${item.news_id}`}
                     className={cn(
-                      "group flex shrink-0 cursor-pointer overflow-hidden bg-[#EAE3C9]",
-                      "w-[310px] flex-col rounded-[30px] max-md:snap-start",
+                      "group flex shrink-0 cursor-pointer overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300",
+                      "w-[310px] flex-col max-md:snap-start",
                       "md:h-[520px] md:w-[1040px] md:flex-row md:rounded-2xl",
+                      /* PC: 캡슐 60px — 딥그린 프레임은 호버 시(시안 첫 카드) */
+                      "lg:h-auto lg:min-h-[520px] lg:w-[1040px] lg:items-start lg:rounded-[60px] lg:bg-[#EAE3C9] lg:hover:bg-[#003F2B]",
                     )}
                     style={{ scrollSnapAlign: "start" }}
                   >
-                    {/* 모바일: 이미지(310) + 시안 중간 여백(약 17px) / PC: 좌 50% */}
-                    <div className="flex w-full shrink-0 flex-col max-md:w-[310px] md:h-full md:w-1/2">
-                      <div className="relative h-[310px] w-full shrink-0 overflow-hidden rounded-t-[30px] md:h-full md:rounded-none">
-                        {item.thumbnail_url ? (
-                          <img
-                            src={item.thumbnail_url}
-                            alt={item.title}
-                            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-[#D5CEB4]" />
+                    {/* 이미지: PC 시안 — 클립(좌 30px 라운드) · 내부 15px · #D9D9D9 · 이중 하단 그라데이션 · 태그 좌상단 ~30px */}
+                    <div
+                      className={cn(
+                        "relative flex w-full shrink-0 flex-col max-md:w-[310px] md:h-full md:w-1/2",
+                        "lg:w-[520px] lg:shrink-0 lg:bg-[#EAE3C9] lg:rounded-tl-[40px] lg:rounded-bl-[40px]",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "relative w-full shrink-0",
+                          "h-[310px] rounded-t-[30px]",
+                          "md:h-full md:min-h-0 md:rounded-none",
+                          "lg:h-[520px] lg:w-[520px]",
                         )}
-                        <span
+                      >
+                        <div
                           className={cn(
-                            "absolute left-4 top-4 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif] md:hidden",
+                            "absolute inset-0 overflow-hidden",
+                            "rounded-t-[30px] md:rounded-none",
+                            "lg:rounded-bl-[30px] lg:rounded-tl-[30px]",
                           )}
-                          style={{ backgroundColor: "#003F2B", lineHeight: "12px" }}
                         >
-                          {getTypeLabel(item.type)}
-                        </span>
+                          <div
+                            className="absolute inset-0 rounded-t-[20px] bg-[#D9D9D9] md:rounded-none lg:rounded-[15px]"
+                            aria-hidden
+                          />
+                          <img
+                            src={pressMobilePlaceholderSrc(item.news_id)}
+                            alt=""
+                            aria-hidden
+                            className={cn(
+                              "absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100",
+                              "rounded-t-[20px] md:rounded-none lg:rounded-[15px]",
+                              "md:hidden",
+                            )}
+                          />
+                          {item.thumbnail_url ? (
+                            <img
+                              src={item.thumbnail_url}
+                              alt={item.title}
+                              className={cn(
+                                "absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100",
+                                "rounded-t-[20px] md:rounded-none lg:rounded-[15px]",
+                                "hidden md:block",
+                              )}
+                            />
+                          ) : (
+                            <div
+                              className={cn(
+                                "absolute inset-0 bg-[#D9D9D9] md:rounded-none lg:rounded-[15px]",
+                                "hidden rounded-t-[20px] md:block",
+                              )}
+                            />
+                          )}
+                          <div
+                            className="pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-[rgba(0,0,0,0.78)] to-transparent md:rounded-none lg:rounded-[15px]"
+                            aria-hidden
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-black/50 to-transparent md:rounded-none lg:rounded-[15px]"
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 lg:left-[30px] lg:top-[30px]">
+                          <span className="inline-flex whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-2 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]">
+                            {getTypeLabel(item.type)}
+                          </span>
+                        </div>
                       </div>
-                      {/* 시안 카드1: 이미지~본문 사이 스페이서(26.83×16.69) — 모바일만 */}
                       <div
                         className="hidden max-md:block max-md:h-[17px] max-md:w-[27px] max-md:shrink-0"
                         aria-hidden
                       />
                     </div>
 
-                    {/* 텍스트 — 모바일: 하단만 radius 30·내부 gap 20(본문↔날짜)·제목↔요약 gap 10 */}
                     <div
                       className={cn(
                         nanum,
-                        "flex flex-1 flex-col justify-between gap-5 p-5 transition-colors duration-300 max-md:rounded-b-[30px]",
+                        "flex flex-1 flex-col justify-between gap-5 p-5 max-md:rounded-b-[30px]",
+                        "transition-colors duration-300",
                         "md:justify-between md:bg-[#EAE3C9] md:p-8 md:group-hover:bg-[#003F2B]",
+                        "lg:h-[520px] lg:w-[520px] lg:flex-none lg:shrink-0 lg:justify-between lg:gap-0 lg:rounded-br-[40px] lg:rounded-tr-[40px] lg:bg-[#EAE3C9] lg:p-[56.5px] lg:group-hover:bg-[#003F2B]",
                       )}
                     >
-                      <div className="flex flex-col gap-2.5 md:gap-4">
-                        <span
-                          className="hidden w-fit whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold text-white md:inline-flex"
-                          style={{ backgroundColor: TYPE_COLOR[item.type] ?? "#02633E" }}
-                        >
-                          {getTypeLabel(item.type)}
-                        </span>
-
+                      <div className="flex min-h-0 flex-1 flex-col gap-2.5 md:gap-4 lg:justify-start lg:gap-[22px]">
                         <h3
                           className={cn(
                             "min-w-0 font-bold text-[#1F2121]",
-                            /* 모바일: 전체 보도자료 카드 제목과 동일 — 한 줄 + 말줄임 */
                             "max-md:truncate max-md:text-base max-md:leading-6",
                             "md:text-2xl md:leading-snug md:text-gray-900 md:line-clamp-4 md:transition-colors md:duration-300 md:group-hover:text-white",
+                            "lg:line-clamp-4 lg:text-2xl lg:font-bold lg:leading-9 lg:text-[#1F2121] lg:group-hover:text-white",
                           )}
                           style={{ letterSpacing: "-0.04em" }}
                         >
@@ -323,9 +380,9 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                           <p
                             className={cn(
                               "min-w-0 text-[#1F2121]",
-                              /* 모바일: 전체 보도자료 카드 요약과 동일 — 2줄 + 말줄임 */
                               "max-md:line-clamp-2 max-md:text-xs max-md:font-normal max-md:leading-[18px]",
                               "text-sm font-normal leading-[21px] md:leading-relaxed md:text-gray-600 md:line-clamp-3 md:transition-colors md:duration-300 md:group-hover:text-white/75",
+                              "lg:line-clamp-4 lg:text-base lg:font-normal lg:leading-6 lg:group-hover:text-white/90",
                             )}
                             style={{ letterSpacing: "-0.04em" }}
                           >
@@ -336,7 +393,9 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
 
                       <span
                         className={cn(
-                          "block text-xs font-normal leading-[16.8px] text-[#1F2121] md:text-sm md:text-gray-400 md:transition-colors md:duration-300 md:group-hover:text-white/50",
+                          "block shrink-0 text-xs font-normal leading-[16.8px] text-[#1F2121]",
+                          "md:text-sm md:text-gray-400 md:transition-colors md:duration-300 md:group-hover:text-white/50",
+                          "lg:text-sm lg:leading-[19.6px] lg:text-[#1F2121] lg:group-hover:text-white/80",
                         )}
                       >
                         {formatDate(item.published_at ?? item.created_at)}
@@ -347,50 +406,78 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
 
-            <div className="mt-4 hidden gap-2 md:flex">
+            <div className="mt-4 hidden overflow-hidden rounded-[40px] md:inline-flex">
               <button
                 type="button"
                 onClick={prevSlide}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E]"
+                className="flex h-[52px] w-[52px] items-center justify-center bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
                 aria-label="이전"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
               </button>
+              <div className="h-[52px] w-px shrink-0 bg-[#E2E0D0]" aria-hidden />
               <button
                 type="button"
                 onClick={nextSlide}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E]"
+                className="flex h-[52px] w-[52px] items-center justify-center bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
                 aria-label="다음"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
               </button>
             </div>
           </div>
 
           {/* ── 전체 보도자료 ── */}
-          <section className="max-md:pt-0 md:pb-12 md:pt-14">
-            <div className="mb-5 flex max-md:mb-2.5 md:mb-5 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
-              <div
+          <section className="max-md:pt-0 md:pb-12 md:pt-14 lg:pt-[100px]">
+            <div className="mb-5 flex max-md:mb-2.5 md:mb-5 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4 lg:mb-10 lg:items-center lg:gap-10">
+              <SectionPageTitle
+                as="h2"
+                preset="none"
+                starVariant="product"
                 className={cn(
                   nanum,
-                  "flex items-center gap-[11px] pt-5 md:gap-2 md:pt-0",
+                  "flex items-center gap-[11px] pt-5 md:gap-2 md:pt-0 lg:gap-5 lg:pt-0",
                 )}
+                markClassName="h-[21px] w-[21px] shrink-0 object-contain md:h-6 md:w-6 lg:h-[21px] lg:w-[21px]"
+                wrapTitle={false}
               >
-                <SectionTitleStar variant="product" className="h-[21px] w-[21px] md:h-6 md:w-6" />
-                <h2 className="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900">
+                <span className="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]">
                   전체 보도자료
-                  <span className="ml-2 text-[18px] font-extrabold text-[#1F2121] md:text-lg md:font-normal md:text-gray-400">
+                  <span className="ml-2 text-[18px] font-extrabold text-[#1F2121] md:text-lg md:font-normal md:text-gray-400 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]">
                     ({filtered.length})
                   </span>
-                </h2>
-              </div>
+                </span>
+              </SectionPageTitle>
 
-              <div className="hidden min-w-0 md:block">
+              <div className="hidden min-w-0 md:block lg:hidden">
                 <SearchBar
                   value={searchInput}
                   onChange={setSearchInput}
                   onSearch={handleSearch}
                 />
+              </div>
+
+              {/* PC 시안: 360px 흰 필 + 1px 그린 보더, 원형 검색 버튼 분리 */}
+              <div className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="검색어를 입력해주세요."
+                  className={cn(
+                    nanum,
+                    "h-auto w-[360px] shrink-0 rounded-[60px] border border-[#02633E] bg-white px-10 py-5 text-base font-bold leading-6 text-[#02633E] outline-none placeholder:text-[#02633E] placeholder:opacity-90",
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="flex shrink-0 items-center justify-center rounded-[60px] bg-[#02633E] p-5 text-white transition-all hover:brightness-110 active:scale-[0.99]"
+                  aria-label="검색"
+                >
+                  <Search className="h-6 w-6" strokeWidth={2} />
+                </button>
               </div>
             </div>
 
@@ -402,7 +489,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
               <div
                 key={`${slideDir}-${slideIndex}`}
                 className={cn(
-                  "flex flex-col max-md:gap-5 md:gap-3",
+                  "flex flex-col max-md:gap-5 md:gap-3 lg:gap-5",
                   slideDir === "next"
                     ? "animate-[slideInFromRight_280ms_ease-out]"
                     : "animate-[slideInFromLeft_280ms_ease-out]",
@@ -414,61 +501,67 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                     to={`/media/news/${item.news_id}`}
                     className={cn(
                       "group flex w-full cursor-pointer overflow-hidden transition-colors duration-300",
-                      /* 모바일 시안: inline-flex 느낌의 가로 카드, 좌우 열 간 별도 gap 없음 */
                       "max-md:items-center max-md:rounded-[20px] max-md:bg-[#EAE3C9]",
-                      "md:h-[235px] md:items-center md:rounded-2xl md:bg-white md:hover:bg-[#003F2B]",
+                      "md:h-[235px] md:rounded-2xl md:bg-white md:hover:bg-[#003F2B]",
+                      "lg:h-[235px] lg:rounded-[40px] lg:bg-[#EAE3C9] lg:hover:bg-[#003F2B]",
                     )}
                   >
-                    <div className="flex w-full max-md:items-center md:contents">
-                      {/* 시안: 썸네일 열 — stretch, pl/pt/pb 20px, 내부 gap 10px */}
-                      <div className="flex shrink-0 max-md:self-stretch max-md:items-start max-md:gap-2.5 max-md:pl-5 max-md:pt-5 max-md:pb-5 md:mx-3 md:self-center md:pl-0 md:pt-0 md:pb-0">
-                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14.88px] md:h-[215px] md:w-[215px] md:rounded-xl">
+                    <div className="flex w-full flex-1 flex-row items-center max-md:min-h-0 md:h-full md:min-h-0 md:items-stretch">
+                      <div
+                        className={cn(
+                          "flex shrink-0 max-md:self-stretch max-md:items-start max-md:gap-2.5 max-md:pl-5 max-md:pt-5 max-md:pb-5",
+                          "md:mx-3 md:items-center md:self-stretch md:pl-0 md:pt-0 md:pb-0",
+                          "lg:mx-0 lg:items-center lg:px-2.5 lg:py-0",
+                        )}
+                      >
+                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14.88px] md:h-[215px] md:w-[215px] md:rounded-xl lg:rounded-[40px]">
+                          <img
+                            src={pressMobilePlaceholderSrc(item.news_id)}
+                            alt=""
+                            aria-hidden
+                            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 md:hidden lg:group-hover:scale-100"
+                          />
                           {item.thumbnail_url ? (
                             <img
                               src={item.thumbnail_url}
                               alt={item.title}
-                              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                              className="hidden h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 md:block lg:group-hover:scale-100"
                             />
                           ) : (
-                            <div className="h-full w-full bg-[#EAE3C9] md:group-hover:bg-[#1a3d2b]" />
+                            <div className="hidden h-full w-full bg-[#EAE3C9] md:block" />
                           )}
                         </div>
                       </div>
 
-                      {/* 시안: 본문 열 — flex-1, padding 20px, flex-col gap 10px */}
                       <div
                         className={cn(
                           nanum,
                           "flex min-w-0 flex-1 flex-col max-md:gap-2.5 max-md:p-5",
                           "md:justify-center md:gap-2 md:px-6 md:pl-6",
+                          "lg:gap-10 lg:p-[30px]",
                         )}
                       >
+                        <span className="inline-flex min-h-[28px] w-fit min-w-[56px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-1.5 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif] md:hidden">
+                          {getTypeLabel(item.type)}
+                        </span>
+
                         <span
                           className={cn(
-                            "inline-flex min-h-[28px] w-fit min-w-[56px] shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif] md:hidden",
+                            "hidden w-fit whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium leading-3 transition-colors duration-300 [font-family:Pretendard,system-ui,sans-serif] md:inline-flex md:items-center",
+                            "md:bg-[#EAE3C9] md:text-[#003F2B] md:group-hover:bg-white/15 md:group-hover:text-[#EAE3C9]",
+                            "lg:bg-[#003F2B] lg:text-white lg:group-hover:bg-white/15 lg:group-hover:text-white",
                           )}
-                          style={{ backgroundColor: "#003F2B", lineHeight: "12px" }}
                         >
                           {getTypeLabel(item.type)}
                         </span>
 
-                        <span
-                          className="hidden w-fit whitespace-nowrap rounded-full px-3 font-bold transition-colors duration-300 md:inline-flex md:h-7 md:items-center md:bg-[#EAE3C9] md:text-[#003F2B] md:group-hover:bg-white/15 md:group-hover:text-[#EAE3C9]"
-                          style={{
-                            fontSize: "12px",
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {getTypeLabel(item.type)}
-                        </span>
-
-                        {/* 시안: 뱃지 다음 블록 gap 12px — (제목↔요약 gap 8px) + 날짜 */}
-                        <div className="flex flex-col max-md:gap-3 md:gap-0">
-                          <div className="flex flex-col gap-2">
+                        <div className="flex flex-col max-md:gap-3 md:gap-0 lg:gap-6">
+                          <div className="flex flex-col gap-2 lg:gap-3">
                             <p
                               className={cn(
-                                "min-w-0 truncate font-bold text-[#1F2121] md:mt-[22px] md:transition-colors md:duration-300 md:group-hover:text-[#EAE3C9]",
-                                "text-base leading-6 md:text-xl",
+                                "min-w-0 truncate font-bold text-[#1F2121]",
+                                "text-base leading-6 md:mt-[22px] md:text-xl md:transition-colors md:duration-300 md:group-hover:text-[#EAE3C9]",
+                                "lg:mt-0 lg:text-xl lg:font-bold lg:leading-[30px] lg:transition-colors lg:duration-300 lg:group-hover:text-white",
                               )}
                               style={{ letterSpacing: "-0.04em" }}
                             >
@@ -477,8 +570,8 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                             {item.summary && (
                               <p
                                 className={cn(
-                                  "text-[#1F2121] md:truncate md:transition-colors md:duration-300 md:group-hover:text-[#EAE3C9]",
-                                  "line-clamp-2 text-xs font-normal leading-[18px] md:text-sm",
+                                  "line-clamp-2 text-xs font-normal leading-[18px] text-[#1F2121] md:text-sm md:truncate md:transition-colors md:duration-300 md:group-hover:text-[#EAE3C9]",
+                                  "lg:text-sm lg:leading-[21px] lg:transition-colors lg:duration-300 lg:group-hover:text-white/90",
                                 )}
                                 style={{ letterSpacing: "-0.04em" }}
                               >
@@ -489,6 +582,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                           <span
                             className={cn(
                               "text-[10px] font-normal leading-[14px] text-[#1F2121] md:mt-[20px] md:text-sm md:text-gray-400 md:transition-colors md:duration-300 md:group-hover:text-[#EAE3C9]/60",
+                              "lg:text-sm lg:leading-[19.6px] lg:text-[#1F2121] lg:transition-colors lg:duration-300 lg:group-hover:text-white/80",
                             )}
                           >
                             {formatDate(item.published_at ?? item.created_at)}
@@ -515,28 +609,28 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
             {totalSlides > 1 && (
               <>
                 <div className="mt-6 hidden items-center gap-3 md:flex">
-                  <div className="inline-flex overflow-hidden rounded-full bg-white shadow-sm">
+                  <div className="inline-flex overflow-hidden rounded-[40px] bg-white">
                     <button
                       type="button"
                       onClick={goPrevSlide}
                       disabled={slideIndex === 0}
-                      className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/70 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-[52px] w-[52px] items-center justify-center text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="이전 슬라이드"
                     >
-                      <ChevronLeft className="h-5 w-5" />
+                      <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
                     </button>
-                    <div className="w-px shrink-0 bg-[#EAE3C9]" aria-hidden />
+                    <div className="h-[52px] w-px shrink-0 bg-[#E2E0D0]" aria-hidden />
                     <button
                       type="button"
                       onClick={goNextSlide}
                       disabled={slideIndex === totalSlides - 1}
-                      className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/70 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-[52px] w-[52px] items-center justify-center text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="다음 슬라이드"
                     >
-                      <ChevronRight className="h-5 w-5" />
+                      <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
                     </button>
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 lg:hidden">
                     <span className="font-bold text-[#003F2B]">{slideIndex + 1}</span>
                     {" / "}
                     {totalSlides}

@@ -6,7 +6,7 @@ import { Form, useActionData, useNavigation } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 
@@ -17,13 +17,10 @@ const TOUR_INFO: {
   num: string;
   title: string;
   body: ReactNode;
-  /** 데스크톱 그리드용 한 줄 요약 */
-  desc: string;
 }[] = [
   {
     num: "1",
     title: "견학공장",
-    desc: "충청북도 진천군 이월면 공동길 51-21 (본사/공장)",
     body: (
       <>
         <span className="font-bold">충청북도 진천군 이월면 공동길 51-21 </span>
@@ -35,7 +32,6 @@ const TOUR_INFO: {
   {
     num: "2",
     title: "견학기간",
-    desc: "견학기간(3~6월, 9~11월)\n(7~8월, 12~2월은 견학을 실시하지 않습니다)",
     body: (
       <>
         <span className="font-bold">견학기간3~6월, 9~11월 </span>
@@ -49,7 +45,6 @@ const TOUR_INFO: {
   {
     num: "3",
     title: "견학시간",
-    desc: "오전 10:00 / 오후 14:00\n(약 1시간 30분 소요)",
     body: (
       <>
         <span className="font-bold">오전 10:00 / 오후 14:00</span>
@@ -61,7 +56,6 @@ const TOUR_INFO: {
   {
     num: "4",
     title: "견학대상",
-    desc: "10명 이상 단체\n(단, 유아/어린이 체험 견학 시 가능)",
     body: (
       <>
         <span className="font-bold">10명 이상 단체 </span>
@@ -73,7 +67,6 @@ const TOUR_INFO: {
   {
     num: "5",
     title: "견학인원",
-    desc: "1회당 40명 (최소 10명)",
     body: (
       <>
         <span className="font-bold">1회당 40명 </span>
@@ -85,7 +78,6 @@ const TOUR_INFO: {
   {
     num: "6",
     title: "견학문의",
-    desc: "043-533-2285",
     body: (
       <span className="font-bold">
         043-533-2285
@@ -112,9 +104,6 @@ const NOTICES = [
   "공장 내 촬영은 담당자 안내에 따라주세요.",
 ];
 
-const FACTORY_OPTIONS = ["충북 진천공장", "전북 완주공장"];
-const PURPOSE_OPTIONS = ["견학", "업무방문", "기타"];
-
 const EMAIL_DOMAINS = [
   "직접입력",
   "gmail.com",
@@ -124,24 +113,27 @@ const EMAIL_DOMAINS = [
   "nate.com",
 ] as const;
 
-/** 모바일 시안: 60px·10px·Nanum 16·#003F2B */
+/** 모바일: 60·10·Nanum·#003F2B / PC 견학신청 시안: Nanum 18·#1F2121·테두리 없음 (입사지원과 동계열) */
 const ftInputClass = cn(
   "w-full border border-[#E5E0D4] bg-white outline-none transition-colors",
   "rounded-lg px-4 py-3 text-sm focus:border-[#02633E] focus:ring-1 focus:ring-[#02633E]",
   "max-lg:h-[60px] max-lg:rounded-[10px] max-lg:border-0 max-lg:px-4 max-lg:py-[18px]",
   "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-normal max-lg:leading-5 max-lg:text-[#003F2B]",
   "max-lg:placeholder:text-[#003F2B]/55 max-lg:focus:ring-2 max-lg:focus:ring-[#02633E]",
+  "lg:h-[60px] lg:rounded-[10px] lg:border-0 lg:px-4 lg:py-[18px]",
+  "lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:font-normal lg:leading-5 lg:text-[#1F2121]",
+  "lg:placeholder:text-[#1F2121]/60 lg:focus:ring-2 lg:focus:ring-[#02633E]",
 );
 
 const ftStarClass =
-  "font-[Pretendard,system-ui,sans-serif] text-base font-medium text-[#F3372C]";
+  "font-[Pretendard,system-ui,sans-serif] text-base font-medium text-[#F3372C] lg:text-xl lg:font-medium";
+
+/** PC 폼 라벨 — Nanum 20 bold */
+const ftLabelPc =
+  "lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black";
 
 const labelCls =
   "mb-1.5 block text-sm font-semibold tracking-[-0.03em] text-gray-800";
-const inputCls =
-  "w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none focus:border-[#02633E] focus:ring-1 focus:ring-[#02633E]";
-const selectCls =
-  "w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none focus:border-[#02633E] appearance-none cursor-pointer";
 
 export const meta: Route.MetaFunction = () => [
   { title: "공장견학 | 풍림푸드" },
@@ -220,59 +212,60 @@ export default function FactoryTourScreen() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
-      {/* ── 브레드크럼 + 타이틀 ── */}
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+      {/* ── 브레드크럼 + PC(lg+) 히어로 텍스트 배너 — 모바일 텍스트 배너 제거됨 ── */}
       <section>
         <Breadcrumb
+          variant="productDetail"
           items={[
-            { label: "회사소개", href: "/brand/intro" },
+            { label: "홍보센터", href: "/media/news" },
             { label: "공장견학" },
           ]}
         />
 
-        <PageContentMax
-          className="hidden py-12 text-center md:py-16 lg:block"
-          innerClassName="text-center"
-        >
-          <h1
-            className="tracking-[-0.04em]"
-            style={{
-              color: "#003F2B",
-              fontSize: pc1920(32, 60),
-              fontWeight: 800,
-            }}
-          >
-            공장견학
-          </h1>
-          <p
-            className="mt-3 tracking-[-0.02em]"
-            style={{
-              color: "#003F2B",
-              fontSize: pc1920(12, 16),
-              fontWeight: 400,
-            }}
-          >
-            풍림푸드의 생산 현장을 직접 눈으로 확인하세요.
-          </p>
+        <PageContentMax className="hidden lg:block lg:pt-0 lg:pb-6">
+          <div className="flex min-h-[240px] w-full flex-col items-center justify-center overflow-hidden px-10 py-12">
+            <div className="flex max-w-[487px] flex-col items-center justify-center gap-[30px] text-center">
+              <h1
+                className="font-[family-name:var(--font-nanum)] font-extrabold tracking-[-0.04em] text-[#003F2B]"
+                style={{
+                  fontSize: pc1920(32, 60),
+                  lineHeight: pc1920(48, 84),
+                }}
+              >
+                공장견학
+              </h1>
+              <p
+                className="font-[family-name:var(--font-nanum)] font-normal tracking-[-0.02em] text-[#003F2B]"
+                style={{
+                  fontSize: pc1920(12, 16),
+                  lineHeight: pc1920(18, 19.2),
+                }}
+              >
+                신선한 달걀이 어떻게 안전한 제품으로 만들어지는지 직접
+                확인해보세요
+              </p>
+            </div>
+          </div>
         </PageContentMax>
       </section>
 
       {/* ── 섹션 1: 견학 안내 ── */}
       <section>
-        <PageContentMax className="py-6 pb-10 lg:py-14 lg:pb-20">
+        <PageContentMax className="py-6 pb-10 lg:py-[100px]">
           {/* 모바일 시안 */}
           <div className="flex flex-col gap-10 lg:hidden">
             {/* 제목과 히어로 이미지 사이 간격 없음 */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-[11px] px-0 pt-5 pb-0">
-                <SectionTitleStar
-                  variant="brandIntro"
-                  className="h-[21px] w-[21px] shrink-0"
-                />
-                <h2 className="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-[#1F2121]">
-                  풍림 공장견학 안내
-                </h2>
-              </div>
+              <SectionPageTitle
+                as="h2"
+                preset="default"
+                starVariant="brandIntro"
+                className="px-0 pb-4"
+                titleClassName="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-[#1F2121]"
+              >
+                풍림 공장견학 안내
+              </SectionPageTitle>
               <div className="overflow-hidden rounded-[30px]">
                 <img
                   src="/visit/00.png"
@@ -303,54 +296,52 @@ export default function FactoryTourScreen() {
             </div>
           </div>
 
-          {/* 데스크톱 */}
-          <div className="hidden flex-col gap-[10px] lg:flex lg:flex-row lg:gap-[clamp(16px,calc(70*100vw/1920),70px)]">
-            <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-2xl lg:aspect-auto lg:h-[min(650px,calc(650*100vw/1920))] lg:w-[min(650px,calc(650*100vw/1920))]">
+          {/* 데스크톱 — 왼쪽 정사각 이미지 높이에 맞춰 오른쪽 2×3 카드를 3행 균등 분할(min-h-0으로 행 높이는 이미지 기준) */}
+          <div
+            className={cn(
+              "hidden items-stretch gap-[30px] lg:grid",
+              "lg:grid-cols-[minmax(0,min(650px,42vw))_minmax(0,1fr)]",
+            )}
+          >
+            <div className="relative aspect-square min-h-0 w-full min-w-0 overflow-hidden rounded-[10px]">
               <img
                 src="/visit/00.png"
                 alt="충북 진천공장 전경"
                 className="h-full w-full object-cover"
               />
-              <div
-                className="absolute right-0 bottom-0 left-0 px-6 py-4"
-                style={{
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.55), transparent)",
-                }}
-              >
-                <p className="text-sm font-semibold text-white">
-                  풍림 공장견학 안내
-                </p>
+              <div className="absolute right-0 bottom-0 left-0 flex flex-col gap-6 px-6 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12 xl:px-10 xl:pt-10 xl:pb-[70px]">
+                <div className="inline-flex w-fit max-w-[calc(100%-2rem)] rounded-[40px] bg-black/20 px-4 py-2 xl:px-5 xl:py-2.5">
+                  <p className="font-[family-name:var(--font-nanum)] text-lg leading-8 font-extrabold text-white xl:text-2xl xl:leading-9">
+                    풍림 공장견학 안내
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="grid flex-1 grid-cols-1 gap-[10px] sm:grid-cols-2 lg:grid-cols-2">
+            <div
+              className={cn(
+                "grid h-full min-h-0 min-w-0 grid-cols-2 gap-[10px] self-stretch",
+                "[grid-template-rows:repeat(3,minmax(0,1fr))]",
+              )}
+            >
               {TOUR_INFO.map((item) => (
                 <div
                   key={item.num}
-                  className="flex w-full flex-col justify-center rounded-2xl px-5 py-6 sm:px-8 sm:py-7 lg:h-[clamp(160px,calc(210*100vw/1920),210px)] lg:w-[min(455px,calc(455*100vw/1920))]"
-                  style={{ backgroundColor: "#ffffff" }}
+                  className="flex h-full min-h-0 min-w-0 flex-col gap-5 rounded-[10px] bg-white px-10 py-[30px]"
                 >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                      style={{ backgroundColor: "#02633E" }}
-                    >
+                  <div className="flex min-w-0 shrink-0 items-start gap-3">
+                    <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-[#003F2B] font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-white">
                       {item.num}
                     </span>
-                    <p
-                      className="tracking-[-0.04em] text-gray-900"
-                      style={{ fontSize: pc1920(14, 20), fontWeight: 800 }}
-                    >
+                    <p className="min-w-0 font-[family-name:var(--font-nanum)] text-xl leading-[30px] font-extrabold text-[#003F2B]">
                       {item.title}
                     </p>
                   </div>
-                  <p
-                    className="mt-3 leading-relaxed tracking-[-0.04em] whitespace-pre-line text-gray-600"
-                    style={{ fontSize: pc1920(12, 18), fontWeight: 700 }}
-                  >
-                    {item.desc}
-                  </p>
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-y-auto">
+                    <div className="font-[family-name:var(--font-nanum)] text-lg leading-[27px] break-words text-[#1F2121]">
+                      {item.body}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -360,25 +351,67 @@ export default function FactoryTourScreen() {
 
       {/* ── 섹션 2: 한눈에 보는 공장견학 ── */}
       <section className="bg-[#003F2B]">
-        <PageContentMax className="pt-5 pb-10 md:py-16 lg:pt-12">
+        <PageContentMax className="pt-5 pb-10 md:py-16 lg:py-[100px] lg:pt-[100px]">
           {/* 모바일: 노란 포인트 + 가로 스크롤 */}
           <div className="lg:hidden">
-            <div className="flex items-center gap-[11px] px-0 py-5">
-              <SectionTitleStar
-                variant="intro"
-                className="h-[21px] w-[21px] shrink-0"
-              />
-              <h2 className="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-white">
-                한눈에 보는 공장견학
-              </h2>
+            <SectionPageTitle
+              as="h2"
+              preset="default"
+              starVariant="yellowStar"
+              className="px-0 py-5"
+              titleClassName="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-white"
+            >
+              한눈에 보는 공장견학
+            </SectionPageTitle>
+            {/* PageContentMax 우측 gutter(px-4/md:px-6)만큼 당겨 슬라이드가 화면 오른쪽까지 붙도록 */}
+            <div className="max-lg:-mr-4 md:max-lg:-mr-6">
+              <div className="flex gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {SCENE_PHOTOS.map((photo, i) => (
+                  <div
+                    key={photo.label}
+                    className="flex w-[min(243px,calc(100vw-5rem))] shrink-0 snap-start snap-always flex-col gap-3"
+                  >
+                    <div className="aspect-[243/400] w-full overflow-hidden rounded-[10px]">
+                      <img
+                        src={photo.src}
+                        alt={photo.label}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold text-[#003F2B]">
+                        {i + 1}
+                      </span>
+                      <span className="font-[family-name:var(--font-nanum)] text-lg leading-[23.4px] font-bold text-white">
+                        {photo.label}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          </div>
+
+          {/* 데스크톱 */}
+          <div className="hidden lg:block">
+            <SectionPageTitle
+              as="h2"
+              preset="none"
+              starVariant="yellowStar"
+              className="mb-[30px] flex items-start gap-2.5"
+              markClassName="mt-2.5 h-[21px] w-[21px] shrink-0"
+              titleClassName="max-w-[1200px] font-[family-name:var(--font-nanum)] text-[28px] font-bold leading-[42px] text-white"
+            >
+              한눈에 보는 공장견학
+            </SectionPageTitle>
+
+            <div className="flex gap-5">
               {SCENE_PHOTOS.map((photo, i) => (
                 <div
                   key={photo.label}
-                  className="flex w-[min(243px,calc(100vw-5rem))] shrink-0 snap-start snap-always flex-col gap-3"
+                  className="flex min-w-0 flex-1 flex-col gap-3"
                 >
-                  <div className="aspect-[243/400] w-full overflow-hidden rounded-[10px]">
+                  <div className="aspect-[385/634] w-full overflow-hidden rounded-[10px]">
                     <img
                       src={photo.src}
                       alt={photo.label}
@@ -386,48 +419,10 @@ export default function FactoryTourScreen() {
                     />
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold text-[#003F2B]">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-[#003F2B]">
                       {i + 1}
                     </span>
-                    <span className="font-[family-name:var(--font-nanum)] text-lg leading-[23.4px] font-bold text-white">
-                      {photo.label}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 데스크톱 */}
-          <div className="hidden lg:block">
-            <div className="mb-8 flex items-center gap-2">
-              <SectionTitleStar variant="onDark" className="h-5 w-5" />
-              <h2
-                className="text-2xl tracking-[-0.04em] text-white md:text-[clamp(20px,calc(24*100vw/1920),24px)]"
-                style={{ fontWeight: 800 }}
-              >
-                한눈에 보는 공장견학
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {SCENE_PHOTOS.map((photo, i) => (
-                <div key={photo.label} className="flex flex-col gap-3">
-                  <div className="aspect-[385/634] w-full overflow-hidden rounded-2xl lg:aspect-auto lg:h-[clamp(280px,calc(634*100vw/1920),634px)] lg:w-[min(385px,calc(385*100vw/1920))]">
-                    <img
-                      src={photo.src}
-                      alt={photo.label}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                      style={{ backgroundColor: "#ffffff", color: "#003F2B" }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-sm font-medium text-white">
+                    <span className="font-[family-name:var(--font-nanum)] text-xl leading-[26px] font-bold text-white">
                       {photo.label}
                     </span>
                   </div>
@@ -440,49 +435,50 @@ export default function FactoryTourScreen() {
 
       {/* ── 섹션 3: 견학 신청 ── */}
       <section>
-        <PageContentMax className="py-10 md:py-16 lg:py-20">
-          <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-[clamp(24px,calc(70*100vw/1920),70px)]">
-            {/* 데스크톱: 왼쪽 안내 카드 */}
-            <div className="hidden w-full shrink-0 rounded-2xl bg-white px-6 py-8 md:px-10 md:py-10 lg:block lg:w-[min(580px,calc(580*100vw/1920))]">
-              <h2
-                className="mb-3 tracking-[-0.04em] text-gray-900"
-                style={{ fontSize: pc1920(16, 24), fontWeight: 800 }}
-              >
-                견학신청하기
-              </h2>
-              <p className="mb-6 text-sm leading-relaxed text-gray-600">
-                현재 견학 신청을 받고 있습니다.
-                <br />
-                참여를 원하시는 분은 오른쪽 신청서를 작성해 주세요.
-              </p>
-              <hr className="mb-8 border-gray-300" />
-
-              <div>
-                <div className="mb-5 flex items-center gap-2">
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                    style={{ backgroundColor: "#02633E" }}
-                  >
-                    !
-                  </span>
-                  <p
-                    className="tracking-[-0.04em] text-gray-900"
-                    style={{ fontSize: pc1920(14, 16), fontWeight: 700 }}
-                  >
-                    공장견학 유의사항
+        <PageContentMax className="py-10 md:py-16 lg:py-[100px]">
+          <div
+            className={cn(
+              "grid w-full min-w-0 gap-10",
+              "lg:grid-cols-[minmax(0,min(580px,48%))_minmax(0,1fr)]",
+              "lg:items-start lg:gap-8 xl:gap-12 2xl:gap-[100px]",
+              /* 1920+ : 좌·우 열 고정 + 총폭 1430으로 묶어 가운데 정렬 */
+              "min-[1920px]:mx-auto min-[1920px]:max-w-[1430px] min-[1920px]:grid-cols-[580px_minmax(0,750px)] min-[1920px]:gap-[100px]",
+            )}
+          >
+            {/* 데스크톱: 왼쪽 안내 카드 (시안: 최대 580·rounded 40·p 반응형) */}
+            <div className="hidden w-full max-w-[580px] min-w-0 rounded-[40px] bg-white lg:block lg:justify-self-start lg:p-8 xl:p-10 2xl:p-[60px]">
+              <div className="flex flex-col gap-10">
+                <div className="flex flex-col gap-3">
+                  <h2 className="font-[family-name:var(--font-nanum)] text-[28px] leading-[42px] font-extrabold text-[#1F2121]">
+                    견학신청하기
+                  </h2>
+                  <p className="font-[family-name:var(--font-nanum)] text-lg leading-[27px] font-bold text-[#1F2121]">
+                    현재 견학 신청을 받고 있습니다.
+                    <br />
+                    참여를 원하시는 분은 오른쪽 신청서를 작성해 주세요.
                   </p>
                 </div>
-                <ul className="space-y-3">
-                  {NOTICES.map((n, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-sm leading-relaxed text-gray-600"
-                    >
-                      <span className="shrink-0">-</span>
-                      <span>{n}</span>
-                    </li>
-                  ))}
-                </ul>
+
+                <div className="border-t border-[#1F2121]/20 pt-10">
+                  <div className="mb-5 flex items-center gap-2.5">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#003F2B] font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-white">
+                      !
+                    </span>
+                    <p className="font-[family-name:var(--font-nanum)] text-lg leading-[27px] font-extrabold text-[#003F2B]">
+                      공장견학 유의사항
+                    </p>
+                  </div>
+                  <ul className="flex flex-col gap-1">
+                    {NOTICES.map((n, i) => (
+                      <li
+                        key={i}
+                        className="font-[family-name:var(--font-nanum)] text-base leading-6 font-normal text-[#1F2121]"
+                      >
+                        - {n}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -518,8 +514,8 @@ export default function FactoryTourScreen() {
               </div>
             </div>
 
-            {/* 신청 폼 */}
-            <div className="w-full min-w-0 shrink-0 lg:w-[min(750px,calc(750*100vw/1920))]">
+            {/* 신청 폼 — 고정 750px+shrink-0는 좁은 PC에서 가로 오버플로 유발 → 1열에서 줄어들 수 있게 */}
+            <div className="w-full max-w-[750px] min-w-0 lg:justify-self-start">
               {submitted ? (
                 <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 text-center lg:rounded-2xl">
                   <div
@@ -536,7 +532,10 @@ export default function FactoryTourScreen() {
                   </p>
                 </div>
               ) : (
-                <Form method="post" className="space-y-4 lg:space-y-4">
+                <Form
+                  method="post"
+                  className="min-w-0 space-y-4 lg:space-y-[30px]"
+                >
                   {/* ── 모바일 전용 필드 ── */}
                   <div className={cn("space-y-5", "lg:hidden")}>
                     <div>
@@ -748,181 +747,220 @@ export default function FactoryTourScreen() {
                     </div>
                   </div>
 
-                  {/* ── 데스크톱 전용 필드 ── */}
-                  <div className={cn("hidden space-y-4", "lg:block")}>
-                    <div>
-                      <label className={labelCls}>견학날짜 선택</label>
+                  {/* ── PC 전용 필드 — 시안과 모바일 동일 필드·name (비활성으로 중복 제출 방지) ── */}
+                  <div className={cn("hidden flex-col gap-5", "lg:flex")}>
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-0.5">
+                          <span className={ftLabelPc}>단체/기관명</span>
+                          <span className={ftStarClass}>*</span>
+                        </div>
+                        <span className="shrink-0 text-right font-[family-name:var(--font-nanum)] text-[13px] font-normal text-black">
+                          <span className="text-[#F3372C]">* </span>
+                          필수 입력사항
+                        </span>
+                      </div>
                       <input
-                        type="date"
-                        name="date"
+                        type="text"
+                        name="organization"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        className={inputCls}
-                        style={{ borderColor: "#E5E0D4" }}
+                        placeholder="예 : 00초등학교"
+                        className={ftInputClass}
                       />
                     </div>
 
-                    <div>
-                      <label className={labelCls}>공장명 *</label>
-                      <select
-                        name="factory"
-                        required={!mobile}
-                        disabled={formLocked || mobile}
-                        className={selectCls}
-                        style={{ borderColor: "#E5E0D4" }}
-                      >
-                        <option value="">선택해주세요</option>
-                        {FACTORY_OPTIONS.map((f) => (
-                          <option key={f} value={f}>
-                            {f}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>방문목적 *</label>
-                      <select
-                        name="purpose"
-                        required={!mobile}
-                        disabled={formLocked || mobile}
-                        className={selectCls}
-                        style={{ borderColor: "#E5E0D4" }}
-                      >
-                        <option value="">선택해주세요</option>
-                        {PURPOSE_OPTIONS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>단체명 *</label>
-                        <input
-                          type="text"
-                          name="organization"
-                          required={!mobile}
-                          disabled={formLocked || mobile}
-                          placeholder="단체명을 입력해 주세요"
-                          className={inputCls}
-                          style={{ borderColor: "#E5E0D4" }}
-                        />
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>담당자 성함</span>
+                        <span className={ftStarClass}>*</span>
                       </div>
-                      <div>
-                        <label className={labelCls}>수량</label>
-                        <input
-                          type="number"
-                          name="quantity"
-                          min="1"
-                          disabled={formLocked || mobile}
-                          placeholder="수량"
-                          className={inputCls}
-                          style={{ borderColor: "#E5E0D4" }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label className={labelCls}>방문인원 *</label>
-                        <span className="text-xs text-gray-400">
-                          최소 10명, 최대 30명
-                        </span>
-                      </div>
-                      <select
-                        name="participants"
-                        required={!mobile}
-                        disabled={formLocked || mobile}
-                        className={selectCls}
-                        style={{ borderColor: "#E5E0D4" }}
-                      >
-                        <option value="">인원 선택</option>
-                        {Array.from({ length: 5 }, (_, i) => (i + 2) * 5).map(
-                          (n) => (
-                            <option key={n} value={n}>
-                              {n}명
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>방문 *</label>
-                      <select
-                        name="visit_time"
-                        required={!mobile}
-                        disabled={formLocked || mobile}
-                        className={selectCls}
-                        style={{ borderColor: "#E5E0D4" }}
-                      >
-                        <option value="">시간 선택</option>
-                        <option value="오전 10:00">오전 10:00</option>
-                        <option value="오후 14:00">오후 14:00</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>담당자명 *</label>
                       <input
                         type="text"
                         name="manager_name"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="담당자명을 입력해 주세요"
-                        className={inputCls}
-                        style={{ borderColor: "#E5E0D4" }}
+                        placeholder="홍길동"
+                        className={ftInputClass}
                       />
                     </div>
 
-                    <div>
-                      <label className={labelCls}>연락처 *</label>
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>연락처</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
                       <input
                         type="tel"
                         name="phone"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="연락처를 입력해 주세요"
-                        className={inputCls}
-                        style={{ borderColor: "#E5E0D4" }}
+                        placeholder="연락처를 입력해주세요."
+                        className={ftInputClass}
                       />
                     </div>
 
-                    <div>
-                      <label className={labelCls}>문의사항</label>
+                    <div className="flex flex-col gap-5">
+                      <label
+                        className={cn(labelCls, ftLabelPc, "lg:mb-0 lg:block")}
+                      >
+                        이메일
+                      </label>
+                      <div className="flex w-full min-w-0 flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
+                        <input
+                          name="email_local"
+                          value={emailLocal}
+                          onChange={(e) => setEmailLocal(e.target.value)}
+                          disabled={formLocked || mobile}
+                          placeholder="이메일을 입력해주세요."
+                          autoComplete="email"
+                          className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
+                        />
+                        <span className="font-[family-name:var(--font-nanum)] text-xl font-bold text-black lg:shrink-0">
+                          @
+                        </span>
+                        <select
+                          name="email_domain"
+                          value={emailDomain}
+                          onChange={(e) => setEmailDomain(e.target.value)}
+                          disabled={formLocked || mobile}
+                          className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
+                        >
+                          <option value="">직접입력</option>
+                          {EMAIL_DOMAINS.slice(1).map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                        {emailDomain === "" && (
+                          <input
+                            name="email_domain_custom"
+                            value={emailDomainCustom}
+                            onChange={(e) =>
+                              setEmailDomainCustom(e.target.value)
+                            }
+                            disabled={formLocked || mobile}
+                            placeholder=" "
+                            className={cn(
+                              ftInputClass,
+                              "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px]",
+                            )}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>희망 견학일</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
+                      <div
+                        className={cn(
+                          ftInputClass,
+                          "flex items-center gap-2.5 !py-0 lg:!px-4",
+                        )}
+                      >
+                        <input
+                          type="date"
+                          name="date"
+                          required={!mobile}
+                          disabled={formLocked || mobile}
+                          className="min-w-0 flex-1 border-0 bg-transparent p-0 font-[family-name:var(--font-nanum)] text-[18px] outline-none focus:ring-0 lg:text-[#1F2121]"
+                        />
+                        <CalendarDays
+                          className="size-6 shrink-0 text-[#2A343D]"
+                          aria-hidden
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>희망 시간대</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
+                      <select
+                        name="visit_time"
+                        required={!mobile}
+                        disabled={formLocked || mobile}
+                        className={ftInputClass}
+                      >
+                        <option value="">선택</option>
+                        <option value="오전 10:00">오전 10:00</option>
+                        <option value="오후 14:00">오후 14:00</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>예상 인원</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
+                      <input
+                        type="number"
+                        name="participants_mobile"
+                        min={10}
+                        max={40}
+                        required={!mobile}
+                        disabled={formLocked || mobile}
+                        placeholder="예 : 30"
+                        className={ftInputClass}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>견학 목적</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
+                      <input
+                        type="text"
+                        name="purpose_text"
+                        required={!mobile}
+                        disabled={formLocked || mobile}
+                        placeholder="예 : 현장학습, 기업탐방 등"
+                        className={ftInputClass}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                      <div className="flex items-center gap-0.5">
+                        <span className={ftLabelPc}>요청사항</span>
+                        <span className={ftStarClass}>*</span>
+                      </div>
                       <textarea
                         name="message"
-                        rows={4}
+                        required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="문의사항을 자유롭게 입력해 주세요."
-                        className="w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm outline-none focus:border-[#02633E] focus:ring-1 focus:ring-[#02633E]"
-                        style={{ borderColor: "#E5E0D4" }}
+                        rows={6}
+                        placeholder="기타 문의사항이나 요청사항을 입력해주세요"
+                        className={cn(
+                          ftInputClass,
+                          "h-auto min-h-[200px] resize-none lg:py-[18px]",
+                        )}
                       />
                     </div>
                   </div>
 
-                  {/* 개인정보 동의 */}
-                  <label className="flex cursor-pointer items-start gap-3 rounded-[10px] bg-[#EAE3C9] p-5 lg:rounded-none lg:bg-transparent lg:p-0">
+                  {/* 개인정보 동의 — PC 시안: bg black/10·px 30·rounded 10 */}
+                  <label
+                    className={cn(
+                      "flex min-w-0 cursor-pointer items-start gap-3 rounded-[10px] bg-[#EAE3C9] p-5",
+                      "lg:items-center lg:gap-3 lg:bg-black/10 lg:px-[30px] lg:py-5",
+                    )}
+                  >
                     <input
                       type="checkbox"
                       checked={privacyAgreed}
                       onChange={(e) => setPrivacyAgreed(e.target.checked)}
-                      className="mt-0.5 size-[18px] shrink-0 rounded-full border border-[#DDDDDD] accent-[#02633E]"
+                      className="mt-0.5 size-[18px] shrink-0 rounded-full border border-[#DDDDDD] accent-[#02633E] lg:mt-0"
                     />
-                    <span className="font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold text-[#1F2121] lg:text-xs lg:font-normal lg:text-gray-600">
-                      <span className="lg:hidden">
-                        개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
-                        답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후
-                        파기됩니다
-                      </span>
-                      <span className="hidden lg:inline">
-                        <strong className="text-gray-800">[필수]</strong>{" "}
-                        개인정보 수집 및 이용에 동의합니다. 견학 신청을 위한
-                        개인정보(이름, 연락처 등)를 수집·이용합니다.
-                      </span>
+                    <span className="min-w-0 font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold break-words text-[#1F2121] lg:font-[Pretendard,system-ui,sans-serif] lg:text-lg lg:leading-normal lg:font-medium">
+                      개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
+                      답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후
+                      파기됩니다
                     </span>
                   </label>
 
@@ -930,13 +968,14 @@ export default function FactoryTourScreen() {
                     <p className="text-sm text-red-500">{actionData.error}</p>
                   )}
 
-                  <div className="flex justify-center pt-2 lg:pt-2">
+                  <div className="flex justify-center pt-2 lg:pt-[30px]">
                     <button
                       type="submit"
                       disabled={formLocked || !privacyAgreed || isSubmitting}
                       className={cn(
                         "w-full rounded-full px-12 py-3.5 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40",
-                        "max-lg:rounded-[60px] max-lg:px-10 max-lg:py-5 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-lg max-lg:leading-[23.4px] max-lg:font-extrabold lg:w-auto",
+                        "max-lg:rounded-[60px] max-lg:px-10 max-lg:py-5 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-lg max-lg:leading-[23.4px] max-lg:font-extrabold",
+                        "lg:w-auto lg:rounded-[60px] lg:px-10 lg:py-5 lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:leading-[23.4px] lg:font-extrabold",
                       )}
                       style={{ backgroundColor: "#02633E" }}
                     >

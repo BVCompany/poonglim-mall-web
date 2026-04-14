@@ -4,7 +4,7 @@ import type { Route } from "./+types/detail";
 import { getProductById, hasAnyActiveProducts } from "../lib/queries.server";
 import { ArrowUpRight } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 / 테스트용) ─────────────────────────────────────
@@ -125,9 +125,10 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
   const shopUrl = (product as any).shop_url;
 
   return (
-    <div className="min-h-screen bg-[#F5F2EB]">
-      {/* ── 브레드크럼 ── */}
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+      {/* ── 브레드크럼 (PC 시안: Home > …, 하단 #EAE3C9) ── */}
       <Breadcrumb
+        variant="productDetail"
         items={[
           { label: "제품소개", href: "/products/all" },
           ...(categoryLabel ? [{ label: categoryLabel, href: "/products/all" }] : []),
@@ -135,81 +136,84 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
         ]}
       />
 
-      {/* ── 본문 컨테이너 ── */}
-      <div
-        className="mx-auto w-full max-w-[560px] px-4 pb-20 pt-4 md:max-w-[min(750px,calc(750*100vw/1920))]"
-        style={{ paddingTop: `clamp(16px, calc(60 * 100vw / 1920), 60px)` }}
-      >
+      {/* ── 본문: 모바일 px-4 / PC는 750px 카드만 뷰포트 중앙 ── */}
+      <div className="w-full px-4 pb-20 pt-4 md:px-[max(1rem,calc((100vw-min(750px,calc(750*100vw/1920)))/2))] md:pt-[60px]">
+        <div className="mx-auto w-full max-w-[560px] md:max-w-[min(750px,calc(750*100vw/1920))] md:px-0">
 
-        {/* ① 이미지 카드 */}
+        {/* ① 이미지 카드 — PC: 웜톤 그라데이션 + 라운드 80px */}
         <div
-          className="h-[343px] w-full overflow-hidden md:aspect-square md:h-auto"
+          className="h-[343px] w-full overflow-hidden md:flex md:aspect-square md:h-auto md:items-center md:justify-center md:bg-gradient-to-br md:from-[#FFF0D8] md:via-[#FFE4B5] md:to-[#F5D78A]"
           style={{ borderRadius: `clamp(20px, calc(80 * 100vw / 1920), 80px)` }}
         >
           <img
             src={imgError ? "/home/premium_egg.png" : (product.image_url ?? "/home/premium_egg.png")}
             alt={product.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover md:max-h-full md:w-full md:object-contain"
             onError={() => setImgError(true)}
           />
         </div>
 
-        {/* 카드 섹션 — 이미지와의 간격: 모바일 16px / 데스크탑 최대 60px */}
+        {/* 카드 섹션 — 이미지와의 간격: 모바일 16px / PC 시안 60px */}
         <div
-          className="space-y-4 md:space-y-5"
+          className="space-y-4 md:space-y-[60px]"
           style={{ marginTop: `clamp(16px, calc(60 * 100vw / 1920), 60px)` }}
         >
 
-          {/* ② 제품 정보 카드 — 배경 #EAE3C9 */}
+          {/* ② 제품 정보 카드 — 배경 #EAE3C9, 내부 간격 시안 40px */}
           <div
+            className="flex flex-col gap-8 md:gap-10"
             style={{
               backgroundColor: "#EAE3C9",
               borderRadius: `clamp(20px, calc(40 * 100vw / 1920), 40px)`,
               padding: `clamp(20px, calc(40 * 100vw / 1920), 40px)`,
             }}
           >
+            <div className="flex flex-col gap-3 md:gap-3">
             {/* 제품명 */}
-            <h1
-              className="mb-3 flex items-center gap-2.5 leading-tight"
-              style={{ color: "#003F2B", letterSpacing: "-0.03em" }}
+            <SectionPageTitle
+              as="h1"
+              preset="none"
+              starVariant="product"
+              className="flex items-start gap-2.5 md:gap-5"
+              rootStyle={{ color: "#003F2B", letterSpacing: "-0.03em" }}
+              markClassName="mt-2.5 h-[21px] w-[21px] flex-shrink-0 md:mt-2.5"
+              wrapTitle={false}
             >
-              <SectionTitleStar
-                variant="product"
-                className="h-[21px] w-[21px] flex-shrink-0"
-              />
               <span
+                className="min-w-0 flex-1"
                 style={{
-                  fontFamily: "NanumSquareRound",
+                  fontFamily: "NanumSquareRound, sans-serif",
                   fontWeight: 800,
                   fontSize: `clamp(20px, calc(36 * 100vw / 1920), 36px)`,
-                  lineHeight: 1.5,
+                  lineHeight: `clamp(30px, calc(54 * 100vw / 1920), 54px)`,
                 }}
               >
                 {product.name}
               </span>
-            </h1>
+            </SectionPageTitle>
 
             {/* 설명 */}
             <p
-              className="mb-4 leading-[1.5]"
-              style={{ color: "#003F2B", fontSize: "16px", fontFamily: "NanumSquareRound", fontWeight: 700, lineHeight: "24px" }}
+              className="leading-6"
+              style={{ color: "#003F2B", fontSize: "16px", fontFamily: "NanumSquareRound, sans-serif", fontWeight: 700, lineHeight: "24px" }}
             >
               {product.description}
             </p>
+            </div>
 
-            {/* 인증 태그 */}
+            {/* 인증 태그 — 시안: 흰 pill + 얇은 테두리, gap 24px */}
             {certifications.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5 pt-2 md:gap-6 md:pt-5">
                 {certifications.map((cert, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center overflow-hidden rounded-full px-[12.58px] py-[7.19px]"
+                    className="inline-flex items-center overflow-hidden rounded-full border border-[#D6D2C4] bg-white px-[13px] py-[7px]"
                     style={{
-                      backgroundColor: "#ffffff",
                       color: "#1F2121",
                       fontSize: `clamp(11px, calc(12 * 100vw / 1920), 12px)`,
-                      fontFamily: "Pretendard",
+                      fontFamily: "Pretendard, system-ui, sans-serif",
                       fontWeight: 500,
+                      lineHeight: "12px",
                     }}
                   >
                     {cert}
@@ -218,9 +222,9 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               </div>
             )}
 
-            {/* 일반 태그 — 데스크탑만 표시 */}
+            {/* 해시 태그 — 시안 PC에는 없음, 모바일만 */}
             {tags.length > 0 && (
-              <div className="mb-6 hidden flex-wrap items-center gap-1.5 md:flex">
+              <div className="flex flex-wrap items-center gap-1.5 md:hidden">
                 {tags.map((tag, i) => (
                   <span
                     key={i}
@@ -233,41 +237,41 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               </div>
             )}
 
-            {/* 풍림몰 구매 버튼 */}
+            {/* 풍림몰 구매 버튼 — 시안 높이 74px, radius 35px, 24px 볼드 */}
             {shopUrl ? (
               <a
                 href={shopUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-4 rounded-full transition-all hover:brightness-110"
+                className="flex h-[60px] w-full items-center justify-center gap-4 rounded-[35px] uppercase transition-all hover:brightness-110 md:h-[74px] md:gap-4"
                 style={{
                   backgroundColor: "#003F2B",
                   color: "#ffffff",
                   fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
-                  fontFamily: "NanumSquareRound",
+                  fontFamily: "NanumSquareRound, sans-serif",
                   fontWeight: 700,
+                  lineHeight: 1.4,
                   padding: "20px",
-                  borderRadius: "35px",
                 }}
               >
                 풍림몰 구매
-                <ArrowUpRight className="h-[14px] w-[14px]" strokeWidth={2.5} />
+                <ArrowUpRight className="h-[14px] w-[14px] shrink-0 text-[#FDFDF5]" strokeWidth={2.5} />
               </a>
             ) : (
               <div
-                className="flex w-full cursor-not-allowed items-center justify-center gap-4"
+                className="flex h-[60px] w-full cursor-not-allowed items-center justify-center gap-4 rounded-[35px] uppercase md:h-[74px]"
                 style={{
                   backgroundColor: "#003F2B55",
                   color: "#003F2B99",
                   fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
-                  fontFamily: "NanumSquareRound",
+                  fontFamily: "NanumSquareRound, sans-serif",
                   fontWeight: 700,
+                  lineHeight: 1.4,
                   padding: "20px",
-                  borderRadius: "35px",
                 }}
               >
                 풍림몰 구매
-                <ArrowUpRight className="h-[14px] w-[14px]" strokeWidth={2.5} />
+                <ArrowUpRight className="h-[14px] w-[14px] shrink-0" strokeWidth={2.5} />
               </div>
             )}
           </div>
@@ -288,9 +292,9 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                   style={{
                     color: "#003F2B",
                     fontSize: `clamp(16px, calc(24 * 100vw / 1920), 24px)`,
-                    fontFamily: "NanumSquareRound",
+                    fontFamily: "NanumSquareRound, sans-serif",
                     fontWeight: 800,
-                    lineHeight: 1.5,
+                    lineHeight: `clamp(24px, calc(36 * 100vw / 1920), 36px)`,
                     marginBottom: `clamp(12px, calc(30 * 100vw / 1920), 30px)`,
                   }}
                 >
@@ -299,7 +303,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                 <div className="flex flex-col">
                   {specs.map((spec, i) => (
                     <div key={spec.label}>
-                      {i > 0 && <div className="h-px bg-white" />}
+                      {i > 0 && <div className="h-px w-full bg-white" />}
                       <div
                         className="flex items-start justify-between gap-5"
                         style={{ paddingTop: `clamp(10px, calc(20 * 100vw / 1920), 20px)`, paddingBottom: `clamp(10px, calc(20 * 100vw / 1920), 20px)` }}
@@ -307,25 +311,26 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                         <span
                           style={{
                             width: "160px",
+                            maxWidth: "42%",
                             flexShrink: 0,
                             color: "#003F2B",
                             fontSize: `clamp(14px, calc(18 * 100vw / 1920), 18px)`,
-                            fontFamily: "NanumSquareRound",
+                            fontFamily: "NanumSquareRound, sans-serif",
                             fontWeight: 700,
-                            lineHeight: 1.5,
+                            lineHeight: "27px",
                           }}
                         >
                           {spec.label}
                         </span>
                         <span
-                          className="text-right"
+                          className="min-w-0 text-right"
                           style={{
                             flex: 1,
                             color: "#1F2121",
                             fontSize: `clamp(14px, calc(18 * 100vw / 1920), 18px)`,
-                            fontFamily: "NanumSquareRound",
+                            fontFamily: "NanumSquareRound, sans-serif",
                             fontWeight: 700,
-                            lineHeight: 1.5,
+                            lineHeight: "27px",
                           }}
                         >
                           {spec.value}
@@ -364,6 +369,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
             </Link>
           </div>
 
+        </div>
         </div>
       </div>
     </div>

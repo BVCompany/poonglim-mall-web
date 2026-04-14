@@ -206,7 +206,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
     "prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10";
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="보도자료"
