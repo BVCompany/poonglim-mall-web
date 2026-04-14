@@ -32,7 +32,7 @@ const MOCK_RESULTS = [
 
 export default function SafetyTestScreen() {
   return (
-    <div className="min-h-screen bg-[#F5F2EB]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "고객지원", href: "/support" },

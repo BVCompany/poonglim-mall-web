@@ -134,7 +134,7 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
     : MOCK_FAQS;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb items={[{ label: "고객지원" }]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">

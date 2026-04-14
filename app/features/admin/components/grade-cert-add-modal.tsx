@@ -187,7 +187,7 @@ export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initia
               파일 첨부 <span className="ml-1 text-xs font-normal text-gray-400">(PDF, Excel, HWP 등 최대 50MB)</span>
             </Label>
             {form.file_name ? (
-              <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#003F2B] bg-[#F5F2EB] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#003F2B] bg-[#EAE3C9] px-4 py-3">
                 <Paperclip className="h-4 w-4 shrink-0 text-[#003F2B]" />
                 <span className="flex-1 truncate text-sm text-[#003F2B]">{form.file_name}</span>
                 <button
@@ -210,7 +210,7 @@ export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initia
                 />
                 <label
                   htmlFor="cert-file-input"
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 transition-colors hover:border-[#003F2B] hover:bg-[#F5F2EB] hover:text-[#003F2B]"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 transition-colors hover:border-[#003F2B] hover:bg-[#EAE3C9] hover:text-[#003F2B]"
                 >
                   {uploading ? (
                     <span className="animate-pulse">업로드 중...</span>

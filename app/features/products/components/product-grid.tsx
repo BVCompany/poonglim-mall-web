@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 
+import { pcMin } from "~/core/lib/pc-fluid";
+
 const PAGE_SIZE = 8; // 한 페이지당 표시 제품 수
 
 interface Product {
@@ -53,10 +55,10 @@ const MOCK_PRODUCTS: Product[] = [
 
 /** 사용자 지정 배지 색상 */
 const BADGE_STYLE: Record<string, string> = {
-  BEST: "bg-[#f4f2e5] text-[#204E3A]",
-  NEW:  "bg-[#ffd55d] text-[#1a1a1a]",
+  BEST: "bg-[#EAE3C9] text-[#1F2121]",
+  NEW:  "bg-[#FFD55D] text-[#1F2121]",
   SALE: "bg-orange-500 text-white",
-  B2B:  "bg-[#32af32] text-white",
+  B2B:  "bg-[#32AF32] text-white",
 };
 
 interface ProductGridProps {
@@ -157,7 +159,7 @@ export function ProductGrid({
       <div
         key={animKey}
         style={slideInStyle}
-        className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-[10px] lg:grid-cols-4"
       >
         {pageItems.map((product) => (
           <ProductCard key={product.id} product={product} />
@@ -167,26 +169,26 @@ export function ProductGrid({
       {/* 페이지네이션 버튼 — 메인 슬라이드 네비와 동일한 디자인 */}
       {totalPages > 1 && (
         <div className="mt-8 flex items-center gap-3">
-          <div className="inline-flex overflow-hidden rounded-full bg-white">
+          <div className="inline-flex overflow-hidden rounded-full bg-white md:rounded-none">
             <button
               onClick={() => currentPage > 1 && goPage(currentPage - 1, "prev")}
               disabled={currentPage <= 1}
-              className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/50 disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-bl-[40px] md:rounded-tl-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
               aria-label="이전 페이지"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>
-            <div className="w-px shrink-0 bg-[#EAE3C9]" aria-hidden />
+            <div className="w-px shrink-0 bg-[#EAE3C9] md:bg-[#E2E0D0]" aria-hidden />
             <button
               onClick={() => currentPage < totalPages && goPage(currentPage + 1, "next")}
               disabled={currentPage >= totalPages}
-              className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/50 disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-br-[40px] md:rounded-tr-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
               aria-label="다음 페이지"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>
           </div>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 md:hidden">
             <span className="font-bold text-[#003F2B]">{currentPage}</span>
             {" / "}
             {totalPages}
@@ -208,12 +210,12 @@ function ProductCard({ product }: { product: Product }) {
   return (
     /* 카드 루트 — 클릭 시 상세 페이지로 바로 이동 */
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-2xl md:bg-[#EDEBE4]"
+      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-[40px] md:shadow-none"
       onClick={() => navigate(`/products/${product.id}`, { viewTransition: true })}
     >
 
-      {/* ① 이미지 영역 */}
-      <div className="relative aspect-square overflow-hidden bg-[#EAE3C9] md:bg-[#EDEBE4]">
+      {/* ① 이미지 영역 — PC 시안: 카드 폭 대비 세로 비율 약 360/392 */}
+      <div className="relative aspect-square overflow-hidden bg-[#EAE3C9] md:aspect-[392/360]">
         <div className="absolute inset-0 flex items-center justify-center p-3 md:p-6">
           <img
             src={imgError ? "/home/premium_egg.png" : product.image}
@@ -225,11 +227,12 @@ function ProductCard({ product }: { product: Product }) {
 
         {/* 배지 — 좌상단 */}
         {badges.length > 0 && (
-          <div className="absolute left-2 top-2 z-10 flex gap-1 md:left-3 md:top-3">
+          <div className="absolute left-2 top-2 z-10 flex gap-1 md:left-5 md:top-5 md:gap-[5px]">
             {badges.map((b) => (
               <span
                 key={b}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold md:px-2.5 md:text-[11px] ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium md:px-[13px] md:py-[7px] md:text-xs md:font-medium ${BADGE_STYLE[b] ?? "bg-gray-500 text-white"}`}
+                style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
               >
                 {b}
               </span>
@@ -264,26 +267,27 @@ function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* ② 텍스트 영역 */}
-      <div className="px-2.5 pb-2.5 pt-2.5 md:px-4 md:pb-5 md:pt-4">
+      <div className="px-2.5 pb-2.5 pt-2.5 md:px-10 md:pb-10 md:pt-0">
         <h3
-          className="mb-1 line-clamp-2 leading-[1.3] tracking-[-0.02em] text-gray-900 md:leading-snug md:tracking-[-0.015em]"
+          className="mb-1 line-clamp-2 leading-[1.3] tracking-[-0.02em] text-gray-900 md:leading-[26px] md:tracking-[-0.015em]"
           style={{ fontSize: "15px", fontFamily: "NanumSquareRound", fontWeight: 800 }}
         >
           <span className="md:hidden">{product.name}</span>
           <span className="hidden text-[20px] md:inline">{product.name}</span>
         </h3>
         <p
-          className="mb-2 line-clamp-1 tracking-[-0.02em] text-gray-500 md:mb-2.5 md:tracking-[-0.015em]"
+          className="mb-2 line-clamp-1 tracking-[-0.02em] text-gray-500 md:mb-2.5 md:text-[#1F2121] md:tracking-[-0.015em]"
           style={{ fontSize: "12px", fontFamily: "NanumSquareRound", fontWeight: 400 }}
         >
           <span className="md:hidden">{product.description}</span>
-          <span className="hidden text-[16px] md:inline">{product.description}</span>
+          <span className="hidden text-[16px] md:inline md:leading-[22.4px]">{product.description}</span>
         </p>
-        <div className="flex flex-wrap gap-1">
-          {product.tags.slice(0, 3).map((tag, i) => (
+        <div className="flex flex-wrap gap-1 md:gap-1.5">
+          {product.tags.slice(0, 4).map((tag, i) => (
             <span
               key={i}
-              className="rounded-full bg-[#F4F2E5] px-2 py-0.5 text-[10px] font-medium tracking-[-0.02em] text-[#555] md:text-[12px]"
+              className={`rounded-full bg-[#EAE3C9] px-2 py-0.5 text-[10px] font-medium tracking-[-0.02em] text-[#555] md:px-[13px] md:py-[7px] md:text-xs md:text-[#1F2121] ${i === 3 ? "hidden md:inline-flex" : ""}`}
+              style={{ fontFamily: "Pretendard, system-ui, sans-serif" }}
             >
               {tag.startsWith("#") ? tag : `#${tag}`}
             </span>
@@ -291,38 +295,62 @@ function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
 
-      {/* ③ 카드 전체 호버 오버레이 — 카드 루트 기준 absolute inset-0 */}
-      <div className="absolute inset-0 z-20 hidden flex-col items-center justify-center gap-3 rounded-2xl bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:flex">
-
-        {/* 상세보기 — #ffd55d */}
+      {/* ③ 카드 전체 호버 오버레이 — PC 시안: 반투명 #2C383A 40%, 원형 CTA 140px */}
+      <div
+        className="absolute inset-0 z-20 hidden flex-row items-center justify-center gap-2.5 rounded-[40px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:flex"
+        style={{ backgroundColor: "rgba(44, 56, 58, 0.4)" }}
+      >
         <Link
           to={`/products/${product.id}`}
-          className="flex h-12 w-[170px] items-center justify-center rounded-full font-bold text-[#1a1a1a] transition-all hover:brightness-105"
-          style={{ backgroundColor: "#ffd55d", fontSize: "15px" }}
+          className="flex shrink-0 items-center justify-center rounded-full px-3 text-center font-bold uppercase leading-tight text-[#1F2121] transition-all hover:brightness-105"
+          style={{
+            backgroundColor: "#FFD55D",
+            width: pcMin(140),
+            height: pcMin(140),
+            fontSize: pcMin(16),
+            fontFamily: "NanumSquareRound, sans-serif",
+            fontWeight: 700,
+          }}
           viewTransition
+          onClick={(e) => e.stopPropagation()}
         >
           상세보기
         </Link>
 
-        {/* 풍림몰 — #2DB96B */}
         {product.shopUrl ? (
           <a
             href={product.shopUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-12 w-[170px] items-center justify-center gap-0.5 rounded-full font-bold text-white transition-all hover:brightness-105"
-            style={{ backgroundColor: "#2DB96B", fontSize: "15px" }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex shrink-0 items-center justify-center gap-0.5 rounded-full px-2 text-center font-bold uppercase leading-tight text-white transition-all hover:brightness-105"
+            style={{
+              backgroundColor: "#32AF32",
+              width: pcMin(140),
+              height: pcMin(140),
+              fontSize: pcMin(16),
+              fontFamily: "NanumSquareRound, sans-serif",
+              fontWeight: 700,
+            }}
           >
             풍림몰
-            <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
+            <ArrowUpRight className="shrink-0" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
           </a>
         ) : (
           <div
-            className="flex h-12 w-[170px] items-center justify-center gap-0.5 rounded-full font-bold text-white/50"
-            style={{ backgroundColor: "#2DB96B55", fontSize: "15px" }}
+            onClick={(e) => e.stopPropagation()}
+            className="flex shrink-0 items-center justify-center gap-0.5 rounded-full px-2 text-center font-bold uppercase leading-tight text-white/50"
+            style={{
+              backgroundColor: "rgba(50, 175, 50, 0.35)",
+              width: pcMin(140),
+              height: pcMin(140),
+              fontSize: pcMin(16),
+              fontFamily: "NanumSquareRound, sans-serif",
+              fontWeight: 700,
+            }}
           >
             풍림몰
-            <ArrowUpRight className="h-5 w-5 opacity-50" strokeWidth={2.5} />
+            <ArrowUpRight className="shrink-0 opacity-50" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import type { News } from "~/features/media/lib/queries.server";
 
 type NewsCategory = "공지사항" | "이언론" | "보도자료" | "이벤트";
@@ -140,19 +140,20 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
       <div className="mx-auto w-full max-w-[var(--content-max-width)] px-4 sm:px-6">
         {/* Section Header - 모바일: 별 없음, 2줄 타이틀, 화살표만 / PC: 별+타이틀, 전체보기+화살표 */}
         <div className="mb-5 flex flex-row items-end justify-between gap-4 md:mb-10 md:justify-between">
-          <h2
+          <SectionPageTitle
+            as="h2"
+            preset="none"
+            starVariant="product"
             className="flex flex-1 flex-col text-lg font-bold leading-tight text-black md:flex-row md:items-center md:gap-2 md:text-2xl"
-            style={{ letterSpacing: "-0.04em" }}
+            rootStyle={{ letterSpacing: "-0.04em" }}
+            markClassName="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
+            wrapTitle={false}
           >
-            <SectionTitleStar
-              variant="product"
-              className="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
-            />
             <span>
               <span className="block md:inline">풍림푸드 새로운소식을</span>
               <span className="block md:inline">가장 먼저 만나보세요</span>
             </span>
-          </h2>
+          </SectionPageTitle>
           <Link
             to="/media"
             className="flex flex-shrink-0 items-center text-[#003F2B] transition-colors hover:text-[#2DB96B]"
@@ -240,7 +241,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
               <button
                 onClick={scrollLeft}
                 disabled={!canScrollLeft}
-                className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/50 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="이전"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -249,7 +250,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
               <button
                 onClick={scrollRight}
                 disabled={!canScrollRight}
-                className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#F4F2E5]/50 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
                 aria-label="다음"
               >
                 <ChevronRight className="h-5 w-5" />

@@ -7,6 +7,7 @@ import type { Route } from "./+types/grade-certificate-detail";
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
   getAdjacentCerts,
@@ -37,7 +38,7 @@ const MOCK_MAP: Record<
     tab: "current",
     cert_type: "액란",
     title: "02/25 등급판정서 (액란용)",
-    content: "등급판정서를 올려드리오니 업무에 참고 부탁드립니다.",
+    content: "02/25 등급판정서를 올려드리오니 업무에 참고 부탁드립니다.",
     author: "풍림푸드",
     file_url: "#",
     file_name: "6004-02250002.pdf",
@@ -118,7 +119,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
-  return { cert, prev, next, pageBanner, id };
+  return { cert, prev, next, pageBanner };
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -138,15 +139,34 @@ function formatDateTime(val: string | Date) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
+const nanum = "font-[family-name:var(--font-nanum)]";
+const pretendard = "font-[Pretendard,system-ui,sans-serif]";
+
+function certBodyHtml(content: string) {
+  if (/<[a-z][\s\S]*>/i.test(content)) return content;
+  return content.replace(/\n/g, "<br/>");
+}
+
 export default function GradeCertDetailScreen({ loaderData }: Route.ComponentProps) {
-  const { cert, prev, next, pageBanner, id } = loaderData;
+  const { cert, prev, next, pageBanner } = loaderData;
+
+  const hasRealFileUrl = Boolean(
+    cert.file_url && cert.file_url !== "#" && cert.file_url.length > 0,
+  );
+  const fileHref = hasRealFileUrl ? String(cert.file_url) : null;
+
+  const articleClassPc = cn(
+    "prose prose-sm max-w-none text-[#1F2121]",
+    `${nanum} text-base font-normal leading-[22.4px]`,
+    "prose-p:leading-[22.4px] prose-headings:text-[#1F2121]",
+  );
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
         title="등급판정서"
-        subtitle="계란 농장판정 결과를 공개하여 품질 신뢰를 높이고 있습니다."
+        subtitle="계란 등급판정 결과를 공개하여 품질 신뢰를 높이고 있습니다"
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "고객지원", href: "/support" },
@@ -156,7 +176,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
         hideBreadcrumbOnMobile
       />
 
-      <PageContentMax className="max-md:pt-0 pb-[120px] pt-6 md:pt-[100px] md:pb-[200px]">
+      <PageContentMax className="pt-0 pb-[120px] md:pb-[100px] md:pt-[60px]">
         <SupportArticleDetailMobile
           title={cert.title}
           createdAt={cert.created_at}
@@ -184,98 +204,163 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
           listHref="/support/grade-certificate"
         />
 
-        <div className="hidden md:block">
-          <div
-            className="flex flex-col gap-1 pb-4 md:flex-row md:items-start md:justify-between md:gap-6 md:pb-5"
-            style={{ borderBottom: "1px solid #D8D0BB" }}
-          >
-            <h1
-              className="text-lg font-bold leading-snug text-gray-900 md:text-2xl"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              {cert.title}
-            </h1>
-            <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
-              {formatDateTime(cert.created_at)}
-            </span>
-          </div>
-
-          <div
-            className="flex flex-col gap-3 py-3 text-xs text-gray-500 md:flex-row md:items-center md:justify-between md:gap-5 md:py-4 md:text-sm"
-            style={{ borderBottom: "1px solid #D8D0BB" }}
-          >
-            <div className="flex items-center gap-3 md:gap-5">
-              <span>
-                글쓴이: <span className="text-gray-700">{cert.author}</span>
-              </span>
-              <span>
-                조회수: <span className="text-gray-700">{cert.view_count}</span>
-              </span>
-            </div>
-
-            {cert.file_name && (
-              <a
-                href={cert.file_url ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all hover:brightness-95 active:scale-95 md:px-4 md:py-2 md:text-xs"
-                style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+        {/* PC — 라이트 톤(페이지 #F4F2E5). 시안 HTML: 제목·본문 #1F2121, 첨부 pill #EAE3C9, 네비 #003F2B */}
+        <div className="hidden md:flex md:flex-col md:gap-[30px]">
+          <div className="border-b border-[#EAE3C9]">
+            <div className="flex items-start justify-between gap-5 px-[30px] pb-[30px] pt-5">
+              <h1
+                className={cn(
+                  nanum,
+                  "min-w-0 flex-1 text-xl font-extrabold leading-[26px] text-[#1F2121]",
+                )}
               >
-                <span>첨부 {cert.file_name}</span>
-                <Download className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              </a>
-            )}
-          </div>
-
-          <div
-            className="prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10"
-            style={{ minHeight: "200px" }}
-            dangerouslySetInnerHTML={{ __html: cert.content.replace(/\n/g, "<br/>") }}
-          />
-
-          <div
-            className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
-            style={{ borderTop: "1px solid #D8D0BB" }}
-          >
-            <div className="flex-1">
-              {prev ? (
-                <Link
-                  to={`/support/grade-certificate/${prev.cert_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="font-medium text-gray-400">이전글</span>
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{prev.title}</span>
-                  <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">이전글이 없습니다.</span>
-              )}
-            </div>
-
-            <div className="flex-1 text-right">
-              {next ? (
-                <Link
-                  to={`/support/grade-certificate/${next.cert_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">{next.title}</span>
-                  <span className="font-medium text-gray-400">다음글</span>
-                  <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">다음글이 없습니다.</span>
-              )}
+                {cert.title}
+              </h1>
+              <time
+                className={cn(
+                  nanum,
+                  "shrink-0 text-center text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]",
+                )}
+                dateTime={String(cert.created_at)}
+              >
+                {formatDateTime(cert.created_at)}
+              </time>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center">
-            <Link
-              to="/support/grade-certificate"
-              className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
-              style={{ backgroundColor: "#EAE3C9" }}
-            >
-              목록
-            </Link>
+          <div className="flex flex-col gap-5 pb-[200px]">
+            <div className="flex flex-col rounded-[40px]">
+              <div className="flex flex-col gap-[30px] px-[30px]">
+                <div className="flex w-full min-w-0 items-center gap-5">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-[9px]">
+                    <div
+                      className={cn(
+                        pretendard,
+                        "flex items-start gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121]",
+                      )}
+                    >
+                      <span>글쓴이:</span>
+                      <span>{cert.author}</span>
+                    </div>
+                    <div
+                      className={cn(
+                        pretendard,
+                        "flex items-start gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121]",
+                      )}
+                    >
+                      <span>조회수:</span>
+                      <span>{cert.view_count}</span>
+                    </div>
+                  </div>
+                  {cert.file_name ? (
+                    fileHref ? (
+                      <a
+                        href={fileHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex shrink-0 items-center gap-[10px] rounded-[40px] bg-[#EAE3C9] px-5 py-2.5 transition-opacity hover:opacity-90"
+                      >
+                        <span
+                          className={cn(
+                            nanum,
+                            "text-base font-extrabold leading-[20.8px] text-[#1F2121]",
+                          )}
+                        >
+                          첨부 {cert.file_name}
+                        </span>
+                        <Download
+                          className="h-3.5 w-3.5 shrink-0 text-[#02633E]"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                      </a>
+                    ) : (
+                      <span className="inline-flex shrink-0 items-center gap-[10px] rounded-[40px] bg-[#EAE3C9] px-5 py-2.5">
+                        <span
+                          className={cn(
+                            nanum,
+                            "text-base font-extrabold leading-[20.8px] text-[#1F2121]",
+                          )}
+                        >
+                          첨부 {cert.file_name}
+                        </span>
+                        <Download
+                          className="h-3.5 w-3.5 shrink-0 text-[#02633E]"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                      </span>
+                    )
+                  ) : null}
+                </div>
+                <div
+                  className={articleClassPc}
+                  dangerouslySetInnerHTML={{ __html: certBodyHtml(cert.content) }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-[60px]">
+            <div className="flex w-full max-w-full items-center justify-center gap-[60px] pt-[100px]">
+              <div className="min-w-0 flex-1">
+                {prev ? (
+                  <Link
+                    to={`/support/grade-certificate/${prev.cert_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <ChevronLeft
+                      className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="shrink-0">이전글</span>
+                    <span className="min-w-0 flex-1 truncate">{prev.title}</span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
+
+              <Link
+                to="/support/grade-certificate"
+                className={cn(
+                  nanum,
+                  "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
+                )}
+              >
+                목록
+              </Link>
+
+              <div className="min-w-0 flex-1">
+                {next ? (
+                  <Link
+                    to={`/support/grade-certificate/${next.cert_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-right">
+                      {next.title}
+                    </span>
+                    <span className="flex w-[92px] shrink-0 items-center justify-between">
+                      <span>다음글</span>
+                      <ChevronRight
+                        className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </PageContentMax>

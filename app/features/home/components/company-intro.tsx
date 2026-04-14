@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 
 interface CompanyIntroProps {
   image?: string | null;
@@ -76,16 +76,17 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
           <div className="absolute inset-0 flex flex-col justify-between p-5 md:justify-start md:p-14 lg:px-30 lg:py-20">
             {/* 상단: 카테고리 + 타이틀 묶음 */}
             <div>
-              <p
+              <SectionPageTitle
+                as="p"
+                preset="none"
+                starVariant="company"
                 className="mb-3 flex items-center gap-2 text-sm md:mb-4"
-                style={{ color: "#f1ecdb", letterSpacing: "-0.04em" }}
+                rootStyle={{ color: "#f1ecdb", letterSpacing: "-0.04em" }}
+                markClassName="hidden h-3.5 w-3.5 flex-shrink-0 md:block"
+                wrapTitle={false}
               >
-                <SectionTitleStar
-                  variant="company"
-                  className="hidden h-3.5 w-3.5 flex-shrink-0 md:block"
-                />
                 회사소개
-              </p>
+              </SectionPageTitle>
               <h2
                 className="max-w-md text-[18px] font-bold break-keep md:mb-8 md:text-[24px]"
                 style={{

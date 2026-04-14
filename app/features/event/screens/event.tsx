@@ -3,11 +3,14 @@
  */
 import { Fragment, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Check, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { Route } from "./+types/event";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SearchBar } from "~/core/components/search-bar";
+import { SectionPageTitle } from "~/core/components/section-title-star";
+import { pc1920 } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 import { getEvents } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -317,7 +320,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="이벤트"
@@ -331,58 +334,65 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         hideBreadcrumbOnMobile
       />
 
-      {/* ── 본문 ── */}
-      <PageContentMax className="max-md:pb-16 max-md:pt-0 py-0 md:py-10">
+      <SectionPageTitle
+        as="h1"
+        preset="default"
+        className="px-4 pt-5 md:hidden"
+      >
+        이벤트
+      </SectionPageTitle>
 
-        {/* ── 필터 탭 + 검색 ── */}
-        <div className="mb-5 flex flex-col gap-4 max-md:mb-0 max-md:gap-0 md:flex-row md:items-center md:justify-between">
-          {/* 모바일 시안: px-4 py-3.5, 가로 스크롤 탭 */}
-          <div className="scrollbar-hide -mx-1 flex gap-2.5 overflow-x-auto px-1 py-3.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:py-0">
-            {TABS.map((t) => {
-              const isActive = t === activeTab;
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => handleTabChange(t)}
-                  className={cn(
-                    nanum,
-                    "flex shrink-0 items-center gap-2 rounded-[40px] px-3 py-1.5 text-xs font-bold leading-[18px] transition-colors",
-                    "md:h-[43px] md:px-5 md:text-lg md:font-medium",
-                  )}
-                  style={{
-                    letterSpacing: "-0.04em",
-                    ...(isActive
-                      ? { backgroundColor: "#02633E", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#1F2121" }),
-                  }}
-                >
-                  {isActive && (
-                    <Check className="h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" strokeWidth={2.5} />
-                  )}
-                  {t}
-                </button>
-              );
-            })}
+      {/* ── 본문 ── */}
+      <PageContentMax className="max-md:pb-16 max-md:pt-0 py-6 md:pb-10 md:pt-[60px]">
+
+        {/* ── 필터 탭 + 검색 (PC: 공지사항 목록과 동일) ── */}
+        <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
+          <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
+            <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:py-3.5 max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 md:py-0 [&::-webkit-scrollbar]:hidden">
+              {TABS.map((t) => {
+                const isActive = t === activeTab;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleTabChange(t)}
+                    className={cn(
+                      nanum,
+                      "flex shrink-0 items-center rounded-[40px] px-3 py-1.5 text-xs font-bold leading-[18px] transition-colors",
+                      "md:px-4 md:py-2 md:font-[Pretendard,system-ui,sans-serif] md:text-lg md:leading-[27px]",
+                      isActive && "gap-2 md:gap-1.5",
+                      isActive ? "md:font-bold" : "md:font-medium",
+                    )}
+                    style={{
+                      letterSpacing: "-0.04em",
+                      ...(isActive
+                        ? { backgroundColor: "#02633E", color: "#fff" }
+                        : { backgroundColor: "#EAE3C9", color: "#1F2121" }),
+                    }}
+                  >
+                    {isActive && (
+                      <Check
+                        className="h-3 w-3 shrink-0 text-white md:h-4 md:w-4"
+                        strokeWidth={2.5}
+                        aria-hidden
+                      />
+                    )}
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <input
-              type="text"
+          <div className="hidden md:flex md:shrink-0">
+            <SearchBar
+              className="md:gap-[min(6px,calc(6*100vw/1920))]"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="검색어를 입력해주세요."
-              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+              onChange={setInputValue}
+              onSearch={handleSearch}
+              inputClassName="border-0 py-5 font-bold text-[#1F2121] placeholder:font-bold placeholder:text-[#1F2121] md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(360px,calc(360*100vw/1920))] md:px-10 md:font-[NanumSquareRound,sans-serif] md:text-base md:leading-6"
+              buttonClassName="md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(64px,calc(64*100vw/1920))] md:p-5"
             />
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
-              style={{ backgroundColor: "#02633E" }}
-            >
-              <Search className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
@@ -392,7 +402,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
             해당 이벤트가 없습니다.
           </div>
         ) : (
-          <div className="flex flex-col gap-2 max-md:gap-5 max-md:pt-0 md:gap-2">
+          <div className="flex flex-col gap-2.5 max-md:gap-5 md:gap-[10px]">
             {paginated.map((event, idx) => {
               const num = filtered.length - ((page - 1) * ITEMS_PER_PAGE + idx);
               const statusStyle = STATUS_STYLE[event.status];
@@ -461,7 +471,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                         </p>
                         <span
                           className={cn(
-                            "inline-flex w-fit rounded-full bg-[#F4F2E5] px-1.5 py-1 font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]",
+                            "inline-flex w-fit rounded-full bg-[#EAE3C9] px-1.5 py-1 font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]",
                             isEnded ? "text-[10px] leading-[10px]" : "text-xs leading-3",
                           )}
                         >
@@ -486,40 +496,52 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                     ) : null}
                   </Link>
 
-                  {/* PC 테이블형 행 */}
+                  {/* PC 행 — 공지사항 목록과 동일 레이아웃 */}
                   <Link
                     to={`/event/${event.event_id}`}
-                    className="group hidden grid-cols-[80px_1fr_200px_120px_56px] items-center gap-4 rounded-xl px-5 py-4 transition-all hover:brightness-[0.97] md:grid"
-                    style={{ backgroundColor: "#F0EEDD" }}
+                    className="group hidden items-center gap-5 rounded-[10px] bg-[#EAE3C9] p-[30px] transition-all hover:brightness-[0.98] md:flex"
                   >
-                    <div className="text-center">
-                      <span className="text-sm text-gray-400">{num}</span>
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      {badgeLabel && (
-                        <span
-                          className="shrink-0 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                          style={{ backgroundColor: "#02633E", color: "#fff" }}
-                        >
-                          {badgeLabel}
-                        </span>
-                      )}
-                      <span className="truncate text-sm font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
-                        {event.title}
+                    <div className="flex w-[65px] shrink-0 justify-center">
+                      <span className="text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
+                        {num}
                       </span>
                     </div>
-                    <span className="text-center text-xs text-gray-400">
-                      {formatPeriod(event.started_at, event.ended_at)}
-                    </span>
-                    <div className="flex justify-center">
+                    <div className="flex min-w-0 flex-1 items-center gap-5">
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        {badgeLabel ? (
+                          <span
+                            className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-white [font-family:Pretendard,system-ui,sans-serif]"
+                            style={{ backgroundColor: "#02633E" }}
+                          >
+                            {badgeLabel}
+                          </span>
+                        ) : null}
+                        <span
+                          className="min-w-0 flex-1 font-[NanumSquareRound,sans-serif] font-bold text-[#1F2121] transition-colors group-hover:text-[#02633E]"
+                          style={{
+                            fontSize: pc1920(16, 20),
+                            lineHeight: pc1920(24, 30),
+                          }}
+                        >
+                          {event.title}
+                        </span>
+                      </div>
+                      <span className="w-[min(200px,calc(200*100vw/1920))] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal leading-[19.6px] text-[#1F2121]">
+                        {formatPeriod(event.started_at, event.ended_at)}
+                      </span>
                       <span
-                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-                        style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
+                        className="inline-flex min-w-[65px] shrink-0 items-center justify-center rounded-full px-3 py-2 text-center text-[12px] font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]"
+                        style={{
+                          backgroundColor: statusStyle.bg,
+                          color: statusStyle.color,
+                        }}
                       >
                         {event.status}
                       </span>
+                      <span className="w-[65px] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] tabular-nums text-[#1F2121]">
+                        {event.view_count}
+                      </span>
                     </div>
-                    <span className="text-right text-xs text-gray-400">{event.view_count}</span>
                   </Link>
                 </Fragment>
               );
@@ -527,49 +549,42 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {/* ── 페이지네이션 (모바일 시안: 흰 원 48px + 숫자 #003F2B extrabold) ── */}
-        <div className="mt-10 flex items-center justify-center gap-2 max-md:gap-[30px] max-md:pt-10">
+        {/* ── 페이지네이션 — 공지사항 목록과 동일 ── */}
+        <div className="mt-10 flex items-center justify-center gap-[30px] md:pt-10">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30 max-md:h-12 max-md:w-12 max-md:rounded-[40px] max-md:border-0"
+            aria-label="이전 페이지"
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronLeft
-              className="h-4 w-4 text-[#02633E] max-md:h-[18px] max-md:w-[18px]"
-              strokeWidth={2}
-            />
+            <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
 
-          <div className="flex items-center gap-1.5 max-md:gap-4">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPage(p)}
-                className={cn(
-                  nanum,
-                  "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-colors",
-                  p === page
-                    ? "bg-[#02633E] text-white max-md:bg-transparent max-md:text-base max-md:font-extrabold max-md:leading-[20.8px] max-md:text-[#003F2B]"
-                    : "text-[#555] max-md:text-sm max-md:font-normal",
-                )}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-label={`${p}페이지`}
+              aria-current={p === page ? "page" : undefined}
+              className={cn(
+                "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
+                p === page ? "opacity-100" : "opacity-50 hover:opacity-80",
+              )}
+            >
+              {p}
+            </button>
+          ))}
 
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E] disabled:opacity-30 max-md:h-12 max-md:w-12 max-md:rounded-[40px] max-md:border-0"
+            aria-label="다음 페이지"
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronRight
-              className="h-4 w-4 text-[#02633E] max-md:h-[18px] max-md:w-[18px]"
-              strokeWidth={2}
-            />
+            <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
         </div>
       </PageContentMax>

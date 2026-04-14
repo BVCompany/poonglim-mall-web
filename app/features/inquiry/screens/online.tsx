@@ -6,7 +6,7 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function OnlineInquiryScreen() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "구매문의" },
@@ -22,7 +22,7 @@ export default function OnlineInquiryScreen() {
       </section>
 
       {/* Purchase Options */}
-      <section className="bg-background py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-2">
             {/* B2C Section */}
@@ -155,7 +155,7 @@ export default function OnlineInquiryScreen() {
       </section>
 
       {/* Contact Form */}
-      <section className="bg-background py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <div className="mx-auto w-full max-w-2xl md:max-w-[min(672px,calc(672*100vw/1920))]">
             <div className="mb-8 text-center">

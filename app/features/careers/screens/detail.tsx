@@ -46,7 +46,7 @@ export default function CareerDetailScreen({ loaderData }: Route.ComponentProps)
     : "상시 모집";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "채용", href: "/careers/positions" },

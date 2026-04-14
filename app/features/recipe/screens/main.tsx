@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Route } from "./+types/main";
 import { RecipeGrid } from "../components/recipe-grid";
@@ -8,7 +8,7 @@ import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import { getActiveRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
 import type { RecipeCategory } from "~/features/recipe-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
@@ -62,53 +62,60 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
   const currentCount = categories.find((c) => c.id === selectedCategory)?.count ?? totalCount;
 
   return (
-    <div className="min-h-screen bg-[#F5F2EB]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
 
       {/* ── 페이지 배너 ── */}
       {showBanner && (
         <PageBanner
           imageUrl="/banner/recipe_banner_temp.png"
           title="레시피"
-          subtitle="풍림푸드 제품으로 만드는 다양한 요리를 경험해보세요"
-          mobileHeightClassName="h-[375px] md:h-[clamp(200px,28vw,380px)]"
-          hideOnMobile={false}
-          hideBreadcrumbOnMobile
-          frostedLinkOnMobile
+          subtitle="풍림푸드 제품으로 만드는 다양한 요리를 만나보세요"
           dbBanner={pageBanner}
           breadcrumb={[
             { label: "Home", href: "/" },
+            { label: "제품소개", href: "/products/all" },
             { label: "레시피" },
           ]}
         />
       )}
 
-      {/* ── 헤딩 + 검색 ── */}
-      <div className="px-4 pb-5 pt-5 md:px-8 md:pt-16 lg:px-2.5">
-        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4">
-          <h2
-            className="flex items-center gap-2 font-bold text-gray-900"
-            style={{ fontSize: pc1920(20, 36), letterSpacing: "-0.04em" }}
+      {/* ── 헤딩 + 검색 (PC 시안: 60px 상단, 1600 정렬) ── */}
+      <div className="px-4 pb-5 pt-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))] md:pb-10 md:pt-[60px]">
+        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4 md:gap-5">
+          <SectionPageTitle
+            as="h2"
+            preset="none"
+            starVariant="product"
+            className="flex items-center gap-[11px] font-bold md:gap-5"
+            rootStyle={{
+              fontSize: pc1920(20, 36),
+              letterSpacing: "-0.04em",
+              color: "#003F2B",
+              fontFamily: "NanumSquareRound, sans-serif",
+              fontWeight: 800,
+              lineHeight: pc1920(30, 54),
+            }}
+            markClassName="h-[21px] w-[21px] flex-shrink-0 md:h-[21px] md:w-[21px]"
+            wrapTitle={false}
           >
-            <SectionTitleStar
-              variant="product"
-              className="h-[21px] w-[21px] flex-shrink-0 md:h-8 md:w-8"
-            />
-            <span style={{ fontFamily: "NanumSquareRound", fontWeight: 800 }} className="md:font-bold md:[font-family:inherit]">레시피</span>
-          </h2>
+            레시피
+          </SectionPageTitle>
 
-          {/* 검색 */}
           <div className="hidden md:block">
             <SearchBar
+              className="md:gap-[min(30px,calc(30*100vw/1920))]"
               value={searchInput}
               onChange={setSearchInput}
               onSearch={() => setSearchQuery(searchInput)}
+              inputClassName="min-h-0 border border-[#02633E] py-5 font-bold placeholder:font-bold placeholder:text-[#02633E] md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(360px,calc(360*100vw/1920))] md:px-10"
+              buttonClassName="md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(64px,calc(64*100vw/1920))] md:p-5"
             />
           </div>
         </div>
       </div>
 
-      {/* ── 카테고리 탭 바 ── */}
-      <div className="px-4 pb-5 md:px-8 lg:px-2.5">
+      {/* ── 카테고리 탭 바 — PC: #F3BC1E, radius 40px, 활성 흰 배경·#1F2121 800 ── */}
+      <div className="px-4 pb-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
         <div className="mx-auto max-w-[var(--content-max-width)]">
 
           {/* 모바일 탭 */}
@@ -132,9 +139,8 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             })}
           </div>
 
-          {/* 데스크탑 탭 */}
           <div
-            className="hidden items-center overflow-x-auto rounded-full px-4 py-3 scrollbar-none md:flex md:px-5 md:py-4"
+            className="scrollbar-hide hidden items-center overflow-x-auto rounded-[40px] px-4 py-3 md:flex md:gap-[min(60px,calc(60*100vw/1920))] md:px-[min(60px,calc(60*100vw/1920))] md:py-5"
             style={{ backgroundColor: "#F3BC1E" }}
           >
             {categories.map((cat, idx) => {
@@ -143,50 +149,67 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
               const showCount = isAll || isActive;
 
               return (
-                <div key={cat.id} className="flex flex-shrink-0 items-center">
+                <Fragment key={cat.id}>
                   {idx === 1 && (
-                    <span className="mx-3 h-5 w-px flex-shrink-0 bg-black/20 md:mx-4" />
+                    <span
+                      aria-hidden
+                      className="h-[22px] w-px shrink-0 self-center bg-white/90"
+                    />
                   )}
-                  <button
-                    onClick={() => setSelectedCategory(cat.id)}
-                    style={{
-                      fontSize: pc1920(15, 18),
-                      letterSpacing: "-0.04em",
-                      color: isActive ? "#7A5C00" : undefined,
-                    }}
-                    className={`
-                      flex-shrink-0 whitespace-nowrap rounded-full px-6 py-2.5 font-bold transition-all duration-150 md:px-7 md:py-3
-                      ${isActive ? "bg-white" : "text-black/70 hover:bg-black/10 hover:text-black"}
-                    `}
-                  >
-                    {cat.name}
-                    {showCount && cat.count > 0 && (
-                      <span className="ml-0.5" style={{ opacity: 0.6 }}>
-                        ({cat.count})
-                      </span>
-                    )}
-                  </button>
-                </div>
+                  <div className="flex flex-shrink-0 items-center">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      style={{
+                        fontSize: pc1920(15, 18),
+                        letterSpacing: "-0.04em",
+                        color: isActive ? "#1F2121" : undefined,
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: isActive ? 800 : 700,
+                      }}
+                      className={`
+                        flex-shrink-0 whitespace-nowrap rounded-[40px] border-0 px-5 py-2.5 shadow-none outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#003F2B]/30 md:px-5 md:py-2.5
+                        ${isActive ? "bg-white" : "text-white hover:bg-white/15"}
+                      `}
+                    >
+                      {cat.name}
+                      {showCount && cat.count > 0 && (
+                        <span className="ml-0.5">({cat.count})</span>
+                      )}
+                    </button>
+                  </div>
+                </Fragment>
               );
             })}
           </div>
         </div>
       </div>
 
-      {/* ── 총 N개 / 모바일 정렬행 ── */}
-      <div className="px-4 pb-4 md:px-8 lg:px-2.5">
+      <div className="px-4 pb-4 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
         <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600 md:text-sm">
             <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
             <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCount}</span>
             <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>개 레시피</span>
-            <span className="hidden md:inline">총 <span className="font-bold text-[#02633E]">{currentCount}</span>개 레시피</span>
+            <span
+              className="hidden md:inline"
+              style={{
+                fontFamily: "NanumSquareRound, sans-serif",
+                fontSize: pc1920(14, 18),
+                lineHeight: 1.5,
+                color: "#003F2B",
+                fontWeight: 700,
+              }}
+            >
+              총{" "}
+              <span style={{ fontWeight: 800 }}>{currentCount}개의 레시피</span>
+            </span>
           </p>
           <div className="flex items-center gap-2 md:hidden">
             <div className="relative">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-full bg-[#F5F2EB] px-3 py-1 text-xs font-medium text-black"
+                className="inline-flex items-center gap-1 rounded-full bg-[#EAE3C9] px-3 py-1 text-xs font-medium text-black"
                 onClick={() => setIsSortOpen((prev) => !prev)}
               >
                 {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ?? "추천순"}
@@ -215,14 +238,13 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             <img
               src="/product/sort_icon.png"
               alt="정렬 아이콘"
-              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[#F5F2EB] object-contain p-1.5"
+              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[#EAE3C9] object-contain p-1.5"
             />
           </div>
         </div>
       </div>
 
-      {/* ── 레시피 그리드 ── */}
-      <div className="px-4 pb-16 md:px-8 lg:px-2.5">
+      <div className="px-4 pb-16 md:mt-[30px] md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
         <div className="mx-auto max-w-[var(--content-max-width)]">
           <RecipeGrid
             selectedCategory={selectedCategory}

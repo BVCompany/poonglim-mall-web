@@ -6,7 +6,7 @@ export default function ConvenienceScreen() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <Breadcrumb
         items={[
           { label: "제품소개", href: "/products/all" },
@@ -26,7 +26,7 @@ export default function ConvenienceScreen() {
       </section>
 
       {/* Products Grid */}
-      <section className="bg-background py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <ProductGrid selectedCategory="convenience" searchQuery="" />
         </div>

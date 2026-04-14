@@ -50,7 +50,7 @@
 html,
 body {
   @apply dark:bg-background;
-  background-color: #f4f2e5;
+  background-color: var(--site-chrome-header-bg, #f4f2e5);
 }
 
 /* ── 전역 유동 레이아웃 (Fluid Layout) ── */
@@ -64,6 +64,8 @@ body {
 }
 
 :root {
+  /* 헤더·본문 공통 크롬 배경 (navigation.layout에서 동일 값으로 덮어씀) */
+  --site-chrome-header-bg: #f4f2e5;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -85,7 +87,7 @@ body {
   --pc-w-1640: 1640px;
 
   /* Brand Colors */
-  --brand-cream: #fdfdf5;
+  --brand-cream: #f4f2e5;
   --brand-green: #003F2B;
   --brand-green-light: oklch(0.42 0.082 155);
   --brand-green-dark: oklch(0.22 0.065 155);
@@ -144,14 +146,15 @@ body {
 
 @media (min-width: 1024px) {
   :root {
-    --header-height: 108px;
+    /* 상단 유틸 44px + 메인 행(로고 56px) + 하단 여백 20px — navigation-bar PC 시안 */
+    --header-height: 120px;
   }
 }
 
 /*
- * PageBanner: 배너 카드 폭은 --hero-pc-width 그대로 두고,
- * 브레드크럼만 헤더 메인 네비(로고) 시작선과 맞춤.
- * md: 네비 px-6·배너 px-8, lg: 네비 px-10·배너 px-2.5 반영.
+ * PageBanner: 브레드크럼 첫 글자 = 헤더 로고 왼쪽.
+ * 로고는 max-w(--content-max-width) 박스 시작선에 붙음 → 배너 카드(100% 폭) 기준
+ * left = (카드폭 - 본문 max) / 2. (구 pc-w-1680 기준은 1600과 40px 어긋남)
  */
 .page-banner-breadcrumb-x {
   /* <640px: 헤더 px-3 vs 배너 px-4 */
@@ -166,13 +169,7 @@ body {
 
 @media (min-width: 768px) {
   .page-banner-breadcrumb-x {
-    left: calc(0.5 * (var(--hero-pc-width) - var(--pc-w-1680)) - 8px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .page-banner-breadcrumb-x {
-    left: calc(0.5 * (var(--hero-pc-width) - var(--pc-w-1680)) + 30px);
+    left: max(0px, calc((100% - var(--content-max-width)) / 2));
   }
 }
 

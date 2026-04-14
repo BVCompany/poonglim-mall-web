@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SectionPageTitle } from "~/core/components/section-title-star";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "계란이야기 | 풍림푸드" }];
@@ -19,6 +19,9 @@ export function meta(_: Route.MetaArgs) {
 /* ── 공통 clamp 헬퍼 ── */
 const px = (base: number, min = base * 0.4) =>
   `clamp(${Math.round(min)}px,calc(${base}*100vw/1920),${base}px)`;
+
+/** 네비·sticky 타이틀 등 상단 고정 요소의 top 오프셋(px) — 계란 구조 섹션과 동일 기준 */
+const EGG_STORY_NAV_SAFE_TOP = 80;
 
 /* ── 데이터 ── */
 const nutrients = [
@@ -51,7 +54,6 @@ const eggParts = [
     title: "난막",
     desc: "계란 내부를 보호하는 얇은 막입니다.",
     bg: "#FDF7DA",
-    titleSize: 24,
     img: "/intro/egg04.png",
   },
 ];
@@ -81,7 +83,7 @@ const eggFoods = [
   {
     name: "샐러드",
     sub: "Egg + Delight",
-    bg: "#F4F2E5",
+    bg: "var(--site-chrome-header-bg, #F4F2E5)",
     img1: "/intro/prd04-1.png",
     img2: "/intro/prd04-2.png",
   },
@@ -186,9 +188,12 @@ function EggPartsSection() {
    * - 모든 카드와 스페이서가 동일한 부모의 직접 자식이어야 함
    * - 각 카드의 top 오프셋을 점진적으로 늘려 겹쳐 쌓임
    * - 부모 컨테이너가 충분히 길어야 마지막 카드까지 sticky 유지됨
+   * - 섹션 타이틀이 sticky로 상단에 고정되므로 카드 sticky top은 그 아래부터 시작
    */
   const STRIP_H = 88; /* 이전 카드 제목이 노출되는 영역(px) */
-  const BASE_TOP = 80; /* 네비바 여유 */
+  /** sticky 타이틀(pt 110 + 60px급 제목 + pb 24) 아래 첫 카드 top — 겹침 방지 */
+  const TITLE_STICKY_BAND = 230;
+  const BASE_TOP = EGG_STORY_NAV_SAFE_TOP + TITLE_STICKY_BAND;
 
   const stickyTop = (i: number) => `${BASE_TOP + i * STRIP_H}px`;
 
@@ -197,7 +202,7 @@ function EggPartsSection() {
       style={{
         paddingLeft: px(160),
         paddingRight: px(160),
-        paddingTop: px(60),
+        paddingTop: px(16),
         paddingBottom: px(100),
       }}
     >
@@ -237,10 +242,10 @@ function EggPartsSection() {
                 <h3
                   style={{
                     color: "#1F2121",
-                    fontSize: px(part.titleSize ?? 28, 18),
+                    fontSize: px(28, 18),
                     fontFamily: "NanumSquareRound, sans-serif",
                     fontWeight: 800,
-                    lineHeight: px((part.titleSize ?? 28) * 1.5, 24),
+                    lineHeight: px(42, 24),
                     alignSelf: "stretch",
                   }}
                 >
@@ -324,7 +329,8 @@ function FoodSection() {
     return () => observer.disconnect();
   }, []);
 
-  const STRIP_H = 96; /* 이전 카드 타이틀이 노출되는 높이(px) */
+  /* 클수록 카드별 sticky top 간격이 넓어져 겹침이 줄고, 아래 카드들이 더 많이 드러남 */
+  const STRIP_H = 60;
   const BASE_TOP = 80;
   const stickyTop = (i: number) => `${BASE_TOP + i * STRIP_H}px`;
 
@@ -691,15 +697,26 @@ function NutrientsSection() {
 }
 
 /* ══════════════════════════════════════════════════════
-   계란 철학 섹션 — 배경 이미지 + 스크롤 순차 페이드인
+   계란 철학 섹션 — 배경 블러 + 이미지/텍스트 떠오름 + 품질→안전→연구 순차
    ══════════════════════════════════════════════════════
-   순서: 타이틀(1) → 품질 카드(2) → 안전 카드(3) → 연구 카드(4)
-   IntersectionObserver 로 섹션이 뷰포트에 들어오는 순간 한 번만 트리거
+   - 진입 시 배경: 살짝 확대 + 약한 블러(가독성은 오버레이로 유지)
+   - 타이틀 → 카드 3장 순차, 카드 안에서는 제목 후 본문이 짧게 이어짐
+   - prefers-reduced-motion: 블러·이동 최소화
 */
 function PhilosophySection() {
   const [visibleCount, setVisibleCount] = useState(0);
+  const [bgActive, setBgActive] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const triggered = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduceMotion(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -709,51 +726,122 @@ function PhilosophySection() {
       ([entry]) => {
         if (entry.isIntersecting && !triggered.current) {
           triggered.current = true;
-          setVisibleCount(1); // 타이틀
-          setTimeout(() => setVisibleCount(2), 350); // 품질
-          setTimeout(() => setVisibleCount(3), 650); // 안전
-          setTimeout(() => setVisibleCount(4), 950); // 연구
+          setBgActive(true);
+          setVisibleCount(1);
+          const step = reduceMotion ? 80 : 420;
+          setTimeout(() => setVisibleCount(2), step);
+          setTimeout(() => setVisibleCount(3), step * 2);
+          setTimeout(() => setVisibleCount(4), step * 3);
           observer.disconnect();
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.22, rootMargin: "0px 0px -8% 0px" },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [reduceMotion]);
 
-  const fade = (threshold: number): React.CSSProperties => ({
+  const easeFloat = "cubic-bezier(0.22, 1, 0.36, 1)";
+  const risePx = reduceMotion ? 8 : 44;
+  const durTitle = reduceMotion ? "0.35s" : "0.85s";
+  const durCard = reduceMotion ? "0.35s" : "0.8s";
+
+  const fadeRise = (threshold: number): React.CSSProperties => ({
     opacity: visibleCount >= threshold ? 1 : 0,
-    transform: visibleCount >= threshold ? "translateY(0)" : "translateY(28px)",
-    transition: "opacity 0.7s ease, transform 0.7s ease",
+    transform:
+      visibleCount >= threshold ? "translateY(0)" : `translateY(${risePx}px)`,
+    transition: reduceMotion
+      ? "opacity 0.35s ease"
+      : `opacity ${durCard} ${easeFloat}, transform ${durCard} ${easeFloat}`,
   });
+
+  const fadeTitle: React.CSSProperties = {
+    opacity: visibleCount >= 1 ? 1 : 0,
+    transform: visibleCount >= 1 ? "translateY(0)" : `translateY(${risePx}px)`,
+    transition: reduceMotion
+      ? "opacity 0.35s ease"
+      : `opacity ${durTitle} ${easeFloat}, transform ${durTitle} ${easeFloat}`,
+  };
+
+  const cardLineActive = (i: number) => visibleCount >= i + 2;
+
+  const bgImgMotion: React.CSSProperties = {
+    filter: reduceMotion
+      ? "none"
+      : bgActive
+        ? "blur(6px)"
+        : "blur(0px)",
+    transform: reduceMotion
+      ? "none"
+      : bgActive
+        ? "translateY(2.5%) scale(1.04)"
+        : "translateY(1.5%) scale(1)",
+    transition: reduceMotion
+      ? "none"
+      : "filter 1.05s ease, transform 1.2s ease",
+  };
 
   return (
     <section
       ref={sectionRef}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      {/* ── 배경 이미지 ── */}
-      <img
-        src="/intro/back01.png"
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center",
-        }}
-      />
-      {/* 가독성을 위한 어두운 녹색 오버레이 */}
+      {/* ── 배경 이미지: PC는 섹션 풀 커버 유지 · 모바일만 상단 프레이밍·높이 분리 ── */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0, 40, 24, 0.72)",
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src="/intro/back01.png"
+          alt=""
+          aria-hidden
+          className="md:hidden"
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "-6%",
+            width: "120%",
+            height: "118%",
+            marginLeft: "-60%",
+            objectFit: "cover",
+            objectPosition: "50% 22%",
+            ...bgImgMotion,
+          }}
+        />
+        <img
+          src="/intro/back01.png"
+          alt=""
+          aria-hidden
+          className="hidden md:block"
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "52%",
+            width: "110%",
+            height: "110%",
+            marginLeft: "-55%",
+            marginTop: "-55%",
+            objectFit: "cover",
+            objectPosition: "50% 62%",
+            ...bgImgMotion,
+          }}
+        />
+      </div>
+      {/* 가독성 — 블러 시 살짝 진하게 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: reduceMotion
+            ? "rgba(0, 40, 24, 0.72)"
+            : bgActive
+              ? "rgba(0, 40, 24, 0.78)"
+              : "rgba(0, 40, 24, 0.68)",
+          transition: reduceMotion ? "none" : "background 1s ease",
         }}
       />
 
@@ -765,10 +853,9 @@ function PhilosophySection() {
           zIndex: 1,
         }}
       >
-        {/* 타이틀 페이드인 */}
         <h2
           style={{
-            ...fade(1),
+            ...fadeTitle,
             color: "white",
             fontSize: px(60, 24),
             fontFamily: "NanumSquareRound, sans-serif",
@@ -781,14 +868,13 @@ function PhilosophySection() {
           풍림푸드의 계란 철학
         </h2>
 
-        {/* 카드 3장 순차 페이드인 */}
         <div className="flex flex-col gap-3 lg:flex-row lg:gap-[clamp(12px,calc(20*100vw/1920),20px)]">
           {eggPhilosophy.map((item, i) => (
             <div
               key={item.title}
               className="min-h-0 w-full lg:w-auto"
               style={{
-                ...fade(i + 2),
+                ...fadeRise(i + 2),
                 flex: "1 1 0",
                 display: "flex",
                 flexDirection: "column",
@@ -813,6 +899,13 @@ function PhilosophySection() {
                   fontWeight: 800,
                   lineHeight: px(72.8, 25.2),
                   textAlign: "center",
+                  opacity: cardLineActive(i) ? 1 : 0,
+                  transform: cardLineActive(i)
+                    ? "translateY(0)"
+                    : `translateY(${Math.round(risePx * 0.65)}px)`,
+                  transition: reduceMotion
+                    ? "opacity 0.3s ease"
+                    : `opacity 0.55s ${easeFloat} 0s, transform 0.55s ${easeFloat} 0s`,
                 }}
               >
                 {item.title}
@@ -826,6 +919,13 @@ function PhilosophySection() {
                   lineHeight: px(30, 21),
                   textAlign: "center",
                   whiteSpace: "pre-line",
+                  opacity: cardLineActive(i) ? 1 : 0,
+                  transform: cardLineActive(i)
+                    ? "translateY(0)"
+                    : `translateY(${Math.round(risePx * 0.55)}px)`,
+                  transition: reduceMotion
+                    ? "opacity 0.3s ease"
+                    : `opacity 0.55s ${easeFloat} 0.14s, transform 0.55s ${easeFloat} 0.14s`,
                 }}
               >
                 {item.desc}
@@ -1236,15 +1336,15 @@ function EggPartsSectionMobile() {
 function NutrientsSectionMobile() {
   return (
     <section className="bg-[#EAE3C9] py-10 md:hidden">
-      <div className="mb-5 flex items-center gap-[11px] px-4 pb-5">
-        <SectionTitleStar variant="intro" className="h-[21px] w-[21px]" />
-        <h2
-          className="text-[18px] leading-[30px] font-extrabold text-[#003F2B]"
-          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-        >
-          계란의 주요 영양소
-        </h2>
-      </div>
+      <SectionPageTitle
+        as="h2"
+        preset="default"
+        starVariant="intro"
+        className="mb-5 px-4 pb-5"
+        titleClassName="text-[18px] leading-[30px] font-extrabold text-[#003F2B] font-[family-name:var(--font-nanum)]"
+      >
+        계란의 주요 영양소
+      </SectionPageTitle>
       <div className="grid grid-cols-2 gap-0 px-4">
         {nutrients.map((n) => (
           <div
@@ -1289,15 +1389,15 @@ function NutrientsSectionMobile() {
 function FoodSectionMobile() {
   return (
     <section className="bg-[#02633E] py-10 md:hidden">
-      <div className="mb-5 flex items-center gap-[11px] px-4">
-        <SectionTitleStar variant="intro" className="h-[21px] w-[21px]" />
-        <h2
-          className="text-[18px] leading-[30px] font-extrabold text-[#EAE3C9]"
-          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-        >
-          계란은 다양한 음식에 활용됩니다
-        </h2>
-      </div>
+      <SectionPageTitle
+        as="h2"
+        preset="default"
+        starVariant="intro"
+        className="mb-5 px-4"
+        titleClassName="text-[18px] leading-[30px] font-extrabold text-[#EAE3C9] font-[family-name:var(--font-nanum)]"
+      >
+        계란은 다양한 음식에 활용됩니다
+      </SectionPageTitle>
       <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch]">
         {eggFoods.map((food) => (
           <div
@@ -1344,20 +1444,16 @@ function SectionTitleMobile({
   omitHorizontalPadding?: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center gap-[11px] pb-5 md:hidden ${omitHorizontalPadding ? "" : "px-4"}`}
+    <SectionPageTitle
+      as="h2"
+      preset="default"
+      starVariant="intro"
+      className={`pb-5 md:hidden ${omitHorizontalPadding ? "" : "px-4"}`}
+      titleStyle={{ color: titleColor }}
+      titleClassName="text-[18px] leading-[30px] font-extrabold font-[family-name:var(--font-nanum)]"
     >
-      <SectionTitleStar variant="intro" className="h-[21px] w-[21px]" />
-      <h2
-        className="text-[18px] leading-[30px] font-extrabold"
-        style={{
-          fontFamily: "NanumSquareRound, sans-serif",
-          color: titleColor,
-        }}
-      >
-        {title}
-      </h2>
-    </div>
+      {title}
+    </SectionPageTitle>
   );
 }
 
@@ -1366,9 +1462,10 @@ function SectionTitleMobile({
    ══════════════════════════════════════════════════════ */
 export default function EggStoryScreen() {
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
-      {/* ── 브레드크럼 ── */}
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+      {/* ── 브레드크럼 (PC: 제품 상세와 동일 productDetail 시안) ── */}
       <Breadcrumb
+        variant="productDetail"
         items={[
           { label: "제품소개", href: "/products/all" },
           { label: "계란이야기" },
@@ -1379,7 +1476,7 @@ export default function EggStoryScreen() {
           1. HERO
           피그마: pt-160 pb-100 px-40, 내부 1600×350 박스
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-[#F4F2E5]">
+      <section className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
         <EggHeroMobile />
         {/* 외부 여백 래퍼 — pt:160 pb:100 px:40 */}
         <div
@@ -1484,7 +1581,10 @@ export default function EggStoryScreen() {
               {(
                 [
                   { text: "건강한", style: { left: "37.6%", top: "22.3%" } },
-                  { text: "믿을 수 있는", style: { left: "23.1%", top: "52%" } },
+                  {
+                    text: "믿을 수 있는",
+                    style: { left: "23.1%", top: "52%" },
+                  },
                   { text: "간편한", style: { left: "68.9%", top: "47.1%" } },
                 ] as const
               ).map(({ text, style: pos }) => (
@@ -1641,7 +1741,7 @@ export default function EggStoryScreen() {
           3. 계란은 이렇게 이루어져 있습니다
              (스크롤 sticky 스태킹 인터랙션)
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-[#F4F2E5]">
+      <section className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
         <div className="py-[50px] md:hidden">
           <SectionTitleMobile
             title="계란은 이렇게 이루어져 있습니다"
@@ -1650,12 +1750,16 @@ export default function EggStoryScreen() {
           <EggPartsSectionMobile />
         </div>
         <div className="hidden md:block">
-          {/* 섹션 헤더 */}
+          {/* 스크롤 시 상단에 고정되어 sticky 카드 인터랙션 중에도 타이틀 유지 */}
           <div
             className="flex items-center justify-center gap-[clamp(12px,calc(20*100vw/1920),20px)]"
             style={{
+              position: "sticky",
+              top: EGG_STORY_NAV_SAFE_TOP,
+              zIndex: 45,
+              backgroundColor: "var(--site-chrome-header-bg,#F4F2E5)",
               paddingTop: px(110),
-              paddingBottom: px(60),
+              paddingBottom: px(24),
               paddingLeft: px(160),
               paddingRight: px(160),
             }}
@@ -2107,10 +2211,10 @@ export default function EggStoryScreen() {
       {/* ══════════════════════════════════════════
           9. 풍림푸드의 계란 제품 CTA (Ivory)
       ══════════════════════════════════════════ */}
-      <section className="relative z-0 w-full overflow-hidden bg-[#EAE3C9] px-4 pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-[clamp(40px,calc(80*100vw/1920),80px)]">
+      <section className="relative z-0 w-full overflow-hidden bg-[#EAE3C9] pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-[clamp(40px,calc(80*100vw/1920),80px)]">
         <div className="flex flex-col items-center gap-10 md:flex-row md:items-center md:gap-[clamp(32px,calc(120*100vw/1920),120px)]">
-          {/* ── 좌: 텍스트 + CTA (피그마: width 758px, gap 40px) ── */}
-          <div className="flex w-full max-w-full shrink-0 flex-col items-center gap-5 text-center md:w-[clamp(260px,calc(758*100vw/1920),758px)] md:items-start md:gap-[clamp(20px,calc(40*100vw/1920),40px)] md:text-left">
+          {/* ── 좌: 텍스트 + CTA — 모바일만 좌우 패딩(무한 스크롤은 풀블리드) ── */}
+          <div className="flex w-full max-w-full shrink-0 flex-col items-center gap-5 px-4 text-center md:w-[clamp(260px,calc(758*100vw/1920),758px)] md:items-start md:gap-[clamp(20px,calc(40*100vw/1920),40px)] md:px-0 md:text-left">
             <div className="flex flex-col gap-2.5 md:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
               <h2
                 style={{

@@ -3,19 +3,15 @@
  */
 import type { Route } from "./+types/resources";
 
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Search,
-} from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
-import { SectionTitleStar } from "~/core/components/section-title-star";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SearchBar } from "~/core/components/search-bar";
+import { SectionPageTitle } from "~/core/components/section-title-star";
+import { pc1920 } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
@@ -26,6 +22,10 @@ import {
 /** 모바일 카드 메타 뱃지 — Figma: #F0EEDD · px12 py6 · Pretendard 11/500 · lh 11 */
 const RESOURCE_META_BADGE_CLASS =
   "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-1.5 text-center text-[11px] font-medium leading-[11px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
+
+/** PC 목록 행 — 공지사항 목록과 동일 톤 */
+const PC_META_BADGE_CLASS =
+  "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-2 text-center text-[12px] font-medium leading-3 text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "자료실 | 풍림푸드" }];
@@ -182,7 +182,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   const totalCount = filtered.length;
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
         title="자료실"
@@ -197,70 +197,68 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
       />
 
       {/* 모바일 상단 타이틀 (Figma 375) */}
-      <div className="flex items-center gap-[11px] px-4 pt-5 md:hidden">
-        <SectionTitleStar className="h-[21px] w-[21px]" />
-        <h1 className="font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[30px] text-[#1F2121]">
-          자료실
-        </h1>
-      </div>
+      <SectionPageTitle
+        as="h1"
+        preset="default"
+        className="px-4 pt-5 md:hidden"
+      >
+        자료실
+      </SectionPageTitle>
 
-      <PageContentMax className="max-md:pt-0 py-6 md:py-10">
-        <div className="mb-0 flex flex-col gap-4 md:mb-5 md:flex-row md:items-center md:justify-between">
-          <div className="inline-flex w-full max-w-full flex-col items-start justify-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
-            <div className="inline-flex w-full min-w-0 max-w-full flex-nowrap items-center gap-[10px] overflow-x-auto overscroll-x-contain [scrollbar-width:none] md:flex-wrap md:overflow-visible md:gap-2 [&::-webkit-scrollbar]:hidden">
-            {CATEGORIES.map((cat) => {
-              const isActive = cat === activeCategory;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setActiveCategory(cat);
-                    setInputValue("");
-                    setQuery("");
-                  }}
-                  className={cn(
-                    "inline-flex shrink-0 items-center rounded-[40px] px-3 py-1.5 text-center font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors md:h-[43px] md:px-5 md:text-lg md:font-medium",
-                    isActive && "gap-2",
-                  )}
-                  style={
-                    isActive
-                      ? { backgroundColor: "#02633E", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#1F2121" }
-                  }
-                >
-                  {isActive && (
-                    <Check
-                      className="h-3 w-3 shrink-0 text-white md:h-3.5 md:w-3.5"
-                      strokeWidth={2.5}
-                      aria-hidden
-                    />
-                  )}
-                  {cat}
-                </button>
-              );
-            })}
+      <PageContentMax className="max-md:pt-0 py-6 md:pb-10 md:pt-[60px]">
+        <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
+          <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
+            <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 [&::-webkit-scrollbar]:hidden">
+              {CATEGORIES.map((cat) => {
+                const isActive = cat === activeCategory;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory(cat);
+                      setInputValue("");
+                      setQuery("");
+                    }}
+                    className={cn(
+                      "flex shrink-0 items-center rounded-[40px] px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors",
+                      "md:px-4 md:py-2 md:font-[Pretendard,system-ui,sans-serif] md:text-lg md:leading-[27px]",
+                      isActive && "gap-2 md:gap-1.5",
+                      isActive ? "md:font-bold" : "md:font-medium",
+                    )}
+                    style={{
+                      letterSpacing: "-0.04em",
+                      ...(isActive
+                        ? { backgroundColor: "#02633E", color: "#fff" }
+                        : {
+                            backgroundColor: "#EAE3C9",
+                            color: "#1F2121",
+                          }),
+                    }}
+                  >
+                    {isActive && (
+                      <Check
+                        className="h-3 w-3 shrink-0 text-white md:h-4 md:w-4"
+                        strokeWidth={2.5}
+                        aria-hidden
+                      />
+                    )}
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <input
-              type="text"
+          <div className="hidden md:flex md:shrink-0">
+            <SearchBar
+              className="md:gap-[min(6px,calc(6*100vw/1920))]"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="검색어를 입력해주세요."
-              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+              onChange={setInputValue}
+              onSearch={handleSearch}
+              inputClassName="border-0 py-5 font-bold text-[#1F2121] placeholder:font-bold placeholder:text-[#1F2121] md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(360px,calc(360*100vw/1920))] md:px-10 md:font-[NanumSquareRound,sans-serif] md:text-base md:leading-6"
+              buttonClassName="md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(64px,calc(64*100vw/1920))] md:p-5"
             />
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
-              style={{ backgroundColor: "#02633E" }}
-              aria-label="검색"
-            >
-              <Search className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
@@ -269,7 +267,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             {query ? "검색 결과가 없습니다." : "등록된 자료가 없습니다."}
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5 md:gap-2">
+          <div className="flex flex-col gap-2.5 md:gap-[10px]">
             {paginated.map((file, idx) => {
               const displayNum =
                 totalCount - ((page - 1) * ITEMS_PER_PAGE + idx);
@@ -291,10 +289,11 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                           {file.title}
                         </div>
                       </Link>
-                      <div className="inline-flex w-full min-w-0 max-w-full items-center gap-2.5 self-stretch">
+                      {/* flex-1 제거: 다운로드가 날짜·용량 메타 바로 옆에 붙도록 */}
+                      <div className="inline-flex w-full min-w-0 max-w-full flex-wrap items-center gap-2.5 self-stretch">
                         <Link
                           to={`/support/resources/${file.id}`}
-                          className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5"
+                          className="inline-flex min-w-0 flex-wrap items-center gap-2.5"
                         >
                           <span className={RESOURCE_META_BADGE_CLASS}>
                             {file.category}
@@ -310,7 +309,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                           href={file.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex h-[14px] w-[14px] shrink-0 items-center justify-center text-[#F3BC1E] transition-opacity hover:opacity-80"
+                          className="inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center text-[#F3BC1E] transition-opacity hover:opacity-80"
                           aria-label={`${file.title} 다운로드`}
                         >
                           <Download className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
@@ -319,45 +318,52 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                     </div>
                   </div>
 
-                  {/* PC 테이블형 행 */}
-                  <div
-                    className="group hidden grid-cols-[56px_1fr_100px_120px_56px_40px] items-center gap-4 rounded-xl px-5 py-4 md:grid"
-                    style={{ backgroundColor: "#F0EEDD" }}
-                  >
-                    <div className="text-center text-sm text-gray-600">
-                      {displayNum}
-                    </div>
+                  {/* PC 행 — 공지사항 목록과 동일 레이아웃(다운로드는 Link 밖 형제 요소) */}
+                  <div className="group hidden items-center gap-5 rounded-[10px] bg-[#EAE3C9] p-[30px] transition-all hover:brightness-[0.98] md:flex">
                     <Link
                       to={`/support/resources/${file.id}`}
-                      className="truncate text-sm font-medium text-gray-800 transition-colors hover:text-[#02633E]"
+                      className="flex min-w-0 flex-1 items-center gap-5 no-underline"
                     >
-                      {file.title}
+                      <div className="flex w-[65px] shrink-0 justify-center">
+                        <span className="text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
+                          {displayNum}
+                        </span>
+                      </div>
+                      <div className="flex min-w-0 flex-1 items-center gap-5">
+                        <span
+                          className="min-w-0 flex-1 font-[NanumSquareRound,sans-serif] font-bold text-[#1F2121] transition-colors group-hover:text-[#02633E]"
+                          style={{
+                            fontSize: pc1920(16, 20),
+                            lineHeight: pc1920(24, 30),
+                          }}
+                        >
+                          {file.title}
+                        </span>
+                        <span
+                          className={cn(
+                            PC_META_BADGE_CLASS,
+                            "w-[65px] min-w-[65px] justify-center",
+                          )}
+                        >
+                          {file.category}
+                        </span>
+                        <span className="w-20 shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
+                          {file.date}
+                        </span>
+                        <span className="w-[65px] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] tabular-nums text-[#1F2121]">
+                          {file.size}
+                        </span>
+                      </div>
                     </Link>
-                    <div className="text-center">
-                      <span
-                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                      >
-                        {file.category}
-                      </span>
-                    </div>
-                    <span className="whitespace-nowrap text-center text-xs tabular-nums text-gray-400">
-                      {file.date}
-                    </span>
-                    <span className="text-right text-xs text-gray-400">
-                      {file.size}
-                    </span>
-                    <div>
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center text-gray-400 transition-colors hover:text-[#02633E]"
-                        aria-label={`${file.title} 다운로드`}
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </div>
+                    <a
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center text-[#F3BC1E] transition-opacity hover:opacity-80"
+                      aria-label={`${file.title} 다운로드`}
+                    >
+                      <Download className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                    </a>
                   </div>
                 </Fragment>
               );
@@ -365,24 +371,16 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {/* 페이지네이션 — 모바일: 공지 시안과 동일 (48·흰 원·녹색 쉐브론 · 숫자만 #003F2B 16/800) */}
-        <div className="mt-10 flex items-center justify-center max-md:gap-[30px] md:gap-1.5">
+        {/* 페이지네이션 — 공지사항 목록과 동일 */}
+        <div className="mt-10 flex items-center justify-center gap-[30px] md:pt-10">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
             aria-label="이전 페이지"
-            className={cn(
-              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
-              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
-              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
-            )}
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronLeft
-              className="h-[18px] w-[18px] md:h-4 md:w-4"
-              strokeWidth={2}
-              aria-hidden
-            />
+            <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -393,12 +391,8 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
               aria-label={`${p}페이지`}
               aria-current={p === page ? "page" : undefined}
               className={cn(
-                "flex items-center justify-center font-[family-name:var(--font-nanum)] transition-colors",
-                "max-md:min-h-12 max-md:min-w-10 max-md:bg-transparent max-md:px-2 max-md:text-base max-md:leading-[20.8px] max-md:font-extrabold max-md:text-[#003F2B]",
-                "md:h-9 md:w-9 md:rounded-full md:text-sm md:font-medium",
-                p === page
-                  ? "md:bg-[#02633E] md:text-white"
-                  : "md:bg-transparent md:text-[#555]",
+                "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
+                p === page ? "opacity-100" : "opacity-50 hover:opacity-80",
               )}
             >
               {p}
@@ -410,17 +404,9 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             aria-label="다음 페이지"
-            className={cn(
-              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
-              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
-              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
-            )}
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronRight
-              className="h-[18px] w-[18px] md:h-4 md:w-4"
-              strokeWidth={2}
-              aria-hidden
-            />
+            <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
         </div>
       </PageContentMax>

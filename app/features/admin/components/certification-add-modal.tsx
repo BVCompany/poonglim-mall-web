@@ -206,7 +206,7 @@ export function CertificationAddModal({ open, onOpenChange, onSubmit, editId, in
                 />
                 <label
                   htmlFor="cert-image-input"
-                  className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-8 text-sm text-gray-500 transition-colors hover:border-[#003F2B] hover:bg-[#F5F2EB] hover:text-[#003F2B]"
+                  className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-8 text-sm text-gray-500 transition-colors hover:border-[#003F2B] hover:bg-[#EAE3C9] hover:text-[#003F2B]"
                 >
                   {uploading ? (
                     <span className="animate-pulse">업로드 중...</span>

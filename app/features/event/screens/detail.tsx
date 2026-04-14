@@ -11,13 +11,13 @@ import {
   ChevronUp,
   Headphones,
   MapPin,
-  Phone,
   Share2,
 } from "lucide-react";
 import { Link, data } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { pc1920 } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -186,10 +186,14 @@ function getEventStatus(started_at: Date | null, ended_at: Date | null) {
   return "진행중";
 }
 
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  진행중: { bg: "#02633E", color: "#fff" },
-  예정: { bg: "#C9A84C", color: "#fff" },
-  종료: { bg: "#AAAAAA", color: "#fff" },
+/** PC 상단 상태 뱃지 — 시안: Light-Green #32AF32 · Pretendard 16/24 (진행중/예정), 종료는 딥그린 */
+const STATUS_STYLE_PC_DETAIL: Record<
+  "진행중" | "예정" | "종료",
+  { bg: string; color: string }
+> = {
+  진행중: { bg: "#32AF32", color: "#fff" },
+  예정: { bg: "#32AF32", color: "#fff" },
+  종료: { bg: "#003F2B", color: "#fff" },
 };
 
 /** 모바일 시안 — 목록 카드와 동일 색상 */
@@ -235,7 +239,6 @@ export default function EventDetailScreen({
     event.started_at ? new Date(event.started_at) : null,
     event.ended_at ? new Date(event.ended_at) : null,
   );
-  const statusStyle = STATUS_STYLE[status];
   const badgeLabel = event.badge ? BADGE_LABEL[event.badge] : null;
 
   const periodStr = (() => {
@@ -265,8 +268,11 @@ export default function EventDetailScreen({
   const infoIconClass =
     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#003F2B]";
 
+  const infoIconClassPc =
+    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#003F2B]";
+
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <div className="hidden md:block">
         <Breadcrumb
           items={[
@@ -492,178 +498,205 @@ export default function EventDetailScreen({
           </div>
         </div>
 
-        {/* ── 데스크톱 ── */}
+        {/* ── 데스크톱 — PC 시안: 1200 컬럼 · 상단 뱃지/타이틀/구분선/메타·공유/아이콘 정보/이미지/본문/이전·목록·다음 ── */}
         <div className="hidden md:block">
-          <div className="pb-12 text-center">
-            <div className="mb-4 flex items-center justify-center gap-2">
-              <span
-                className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold"
-                style={{
-                  backgroundColor: statusStyle.bg,
-                  color: statusStyle.color,
-                }}
-              >
-                {status}
-              </span>
-              {badgeLabel ? (
-                <span
-                  className="inline-block rounded-full px-4 py-1.5 text-sm font-semibold"
-                  style={{ backgroundColor: "#02633E", color: "#fff" }}
-                >
-                  {badgeLabel}
-                </span>
-              ) : null}
-            </div>
-            <h1
-              className="text-[28px] font-bold text-gray-900"
-              style={{ letterSpacing: "-0.02em", lineHeight: 1.35 }}
-            >
-              {event.title}
-            </h1>
-          </div>
-
-          <div style={{ borderTop: "1px solid #D8D0BB" }} />
-
-          <div className="flex items-center justify-between py-4">
-            <span className="text-sm text-gray-400">
-              {formatDateTime(event.created_at)}
-            </span>
-            <button
-              type="button"
-              onClick={handleShare}
-              className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs text-gray-500 transition-colors hover:border-[#02633E] hover:text-[#02633E]"
-              style={{ borderColor: "#D8D0BB", backgroundColor: "#fff" }}
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              공유
-            </button>
-          </div>
-
-          {(periodStr || location || contact) && (
+          <div className="mx-auto w-full max-w-[min(1200px,calc(1200*100vw/1920))]">
             <div
-              className="flex flex-col gap-2.5 py-5"
-              style={{ borderBottom: "1px solid #D8D0BB" }}
-            >
-              {periodStr ? (
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#02633E]">
-                    <Calendar className="h-3.5 w-3.5 text-white" />
-                  </span>
-                  <span className="w-8 shrink-0 font-medium text-gray-400">
-                    기간
-                  </span>
-                  <span>{periodStr}</span>
-                </div>
-              ) : null}
-              {location ? (
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#02633E]">
-                    <MapPin className="h-3.5 w-3.5 text-white" />
-                  </span>
-                  <span className="w-8 shrink-0 font-medium text-gray-400">
-                    장소
-                  </span>
-                  <span>{location}</span>
-                </div>
-              ) : null}
-              {contact ? (
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#02633E]">
-                    <Phone className="h-3.5 w-3.5 text-white" />
-                  </span>
-                  <span className="w-8 shrink-0 font-medium text-gray-400">
-                    문의
-                  </span>
-                  <span>{contact}</span>
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          {event.thumbnail_url ? (
-            <div className="mt-8 overflow-hidden rounded-xl">
-              <img
-                src={event.thumbnail_url}
-                alt={event.title}
-                className="w-full object-cover"
-              />
-            </div>
-          ) : null}
-
-          {bodyIsHtml ? (
-            <div
-              className="event-content py-10 text-gray-700"
-              style={{ minHeight: "200px", fontSize: "15px" }}
-              dangerouslySetInnerHTML={{ __html: event.content }}
-            />
-          ) : (
-            <div
-              className="py-10 text-gray-700"
+              className="flex flex-col items-center gap-5 text-center"
               style={{
-                minHeight: "200px",
-                whiteSpace: "pre-line",
-                fontSize: "15px",
-                lineHeight: "1.8",
+                paddingLeft: pc1920(16, 30),
+                paddingRight: pc1920(16, 30),
+                paddingBottom: pc1920(40, 60),
               }}
             >
-              {event.content}
-            </div>
-          )}
-
-          <div
-            className="flex flex-col gap-3 pt-8 md:flex-row md:items-center md:gap-4"
-            style={{ borderTop: "1px solid #D8D0BB" }}
-          >
-            <div className="flex-1">
-              {prev ? (
-                <Link
-                  to={`/event/${prev.event_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span
+                  className="inline-flex rounded-[40px] px-5 py-2 text-base font-bold leading-6 text-white [font-family:Pretendard,system-ui,sans-serif]"
+                  style={{
+                    backgroundColor: STATUS_STYLE_PC_DETAIL[status].bg,
+                    color: STATUS_STYLE_PC_DETAIL[status].color,
+                  }}
                 >
-                  <ChevronLeft className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5" />
-                  <span className="shrink-0 font-medium text-gray-400">
-                    이전글
-                  </span>
-                  <span className="line-clamp-1 max-w-[260px]">
-                    {prev.title}
-                  </span>
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  이전글이 없습니다.
+                  {status}
                 </span>
-              )}
-            </div>
-
-            <div className="flex justify-center">
-              <Link
-                to="/event"
-                className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
-                style={{ backgroundColor: "#EAE3C9" }}
+                {badgeLabel ? (
+                  <span className="inline-flex rounded-[40px] bg-[#02633E] px-5 py-2 text-base font-bold leading-6 text-white [font-family:Pretendard,system-ui,sans-serif]">
+                    {badgeLabel}
+                  </span>
+                ) : null}
+              </div>
+              <h1
+                className="w-full font-[NanumSquareRound,sans-serif] font-extrabold text-[#1F2121]"
+                style={{
+                  fontSize: pc1920(36, 60),
+                  lineHeight: pc1920(44, 78),
+                  letterSpacing: "-0.04em",
+                }}
               >
-                목록
-              </Link>
+                {event.title}
+              </h1>
             </div>
 
-            <div className="flex-1 text-right">
-              {next ? (
+            <div className="border-t border-[#EAE3C9] pt-[30px]">
+              <div
+                className="flex flex-col gap-[60px] border-b border-[#EAE3C9]"
+                style={{ paddingBottom: pc1920(48, 100) }}
+              >
+                <div className="flex flex-col gap-[30px]">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <span className="font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[19.6px] text-[#1F2121]">
+                      {formatDateTime(event.created_at)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="inline-flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-5 py-2.5 font-[NanumSquareRound,sans-serif] text-base font-extrabold leading-[20.8px] text-[#1F2121] transition-colors hover:brightness-[0.98]"
+                      aria-label="공유"
+                    >
+                      공유
+                      <Share2
+                        className="h-5 w-5 shrink-0 text-[#4F4F4F]"
+                        strokeWidth={1.5}
+                        aria-hidden
+                      />
+                    </button>
+                  </div>
+
+                  {(periodStr || location || contact) && (
+                    <div className="flex flex-col gap-5">
+                      {periodStr ? (
+                        <div className="flex flex-wrap items-center gap-5">
+                          <span className={infoIconClassPc}>
+                            <Calendar className="h-5 w-5 text-white" aria-hidden />
+                          </span>
+                          <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
+                              기간
+                            </span>
+                            <span className="font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
+                              {periodStr}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                      {location ? (
+                        <div className="flex flex-wrap items-center gap-5">
+                          <span className={infoIconClassPc}>
+                            <MapPin className="h-5 w-5 text-white" aria-hidden />
+                          </span>
+                          <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
+                              장소
+                            </span>
+                            <span className="font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
+                              {location}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                      {contact ? (
+                        <div className="flex flex-wrap items-center gap-5">
+                          <span className={infoIconClassPc}>
+                            <Headphones className="h-5 w-5 text-white" aria-hidden />
+                          </span>
+                          <div className="flex min-w-0 flex-wrap items-center gap-3">
+                            <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
+                              문의
+                            </span>
+                            <span className="break-words font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
+                              {contact}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+
+                {event.thumbnail_url ? (
+                  <div
+                    className="w-full overflow-hidden rounded-none"
+                    style={{ aspectRatio: "1200 / 586" }}
+                  >
+                    <img
+                      src={event.thumbnail_url}
+                      alt={event.title}
+                      className="h-full w-full object-cover object-center"
+                    />
+                  </div>
+                ) : null}
+
+                {bodyIsHtml ? (
+                  <div
+                    className="event-content min-h-[200px] font-[NanumSquareRound,sans-serif] text-base font-normal leading-[22.4px] text-[#1F2121]"
+                    dangerouslySetInnerHTML={{ __html: event.content }}
+                  />
+                ) : (
+                  <div
+                    className="min-h-[200px] whitespace-pre-line font-[NanumSquareRound,sans-serif] text-base font-normal leading-[22.4px] text-[#1F2121]"
+                  >
+                    {event.content}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="flex flex-col items-center gap-[60px]"
+              style={{ paddingTop: pc1920(48, 100) }}
+            >
+              <div className="flex w-full flex-wrap items-center justify-center gap-[30px] md:flex-nowrap md:gap-[60px]">
+                <div className="min-w-0 flex-1 basis-[280px]">
+                  {prev ? (
+                    <Link
+                      to={`/event/${prev.event_id}`}
+                      className="flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] font-[NanumSquareRound,sans-serif] text-base font-bold leading-[20.8px] text-[#003F2B] no-underline transition-opacity hover:opacity-80"
+                    >
+                      <ChevronLeft
+                        className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                      <span className="shrink-0">이전글</span>
+                      <span className="min-w-0 flex-1 truncate">{prev.title}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex h-[66px] items-center px-10 text-base text-[#1F2121]/35">
+                      이전글이 없습니다.
+                    </div>
+                  )}
+                </div>
+
                 <Link
-                  to={`/event/${next.event_id}`}
-                  className="group inline-flex items-center justify-end gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
+                  to="/event"
+                  className="inline-flex shrink-0 items-center justify-center rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 font-[NanumSquareRound,sans-serif] text-base font-extrabold leading-[20.8px] text-[#003F2B] no-underline transition-colors hover:brightness-[0.98]"
                 >
-                  <span className="line-clamp-1 max-w-[260px]">
-                    {next.title}
-                  </span>
-                  <span className="shrink-0 font-medium text-gray-400">
-                    다음글
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  목록
                 </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  다음글이 없습니다.
-                </span>
-              )}
+
+                <div className="min-w-0 flex-1 basis-[280px]">
+                  {next ? (
+                    <Link
+                      to={`/event/${next.event_id}`}
+                      className="flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] font-[NanumSquareRound,sans-serif] text-base font-bold leading-[20.8px] text-[#003F2B] no-underline transition-opacity hover:opacity-80"
+                    >
+                      <span className="min-w-0 flex-1 truncate">{next.title}</span>
+                      <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
+                        <span>다음글</span>
+                        <ChevronRight
+                          className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex h-[66px] items-center justify-end px-10 text-base text-[#1F2121]/35">
+                      다음글이 없습니다.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

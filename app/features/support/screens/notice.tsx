@@ -3,11 +3,13 @@
  */
 import { Fragment, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { ChevronLeft, ChevronRight, Check, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import type { Route } from "./+types/notice";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { SectionTitleStar } from "~/core/components/section-title-star";
+import { SearchBar } from "~/core/components/search-bar";
+import { SectionPageTitle } from "~/core/components/section-title-star";
+import { pc1920 } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -19,7 +21,12 @@ export const meta: Route.MetaFunction = () => [
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const category = url.searchParams.get("category") ?? "전체보기";
-  const normalizedCategory = category === "전체" ? "전체보기" : category;
+  const normalizedCategory =
+    category === "전체"
+      ? "전체보기"
+      : category === "외식업계"
+        ? "이벤트"
+        : category;
 
   const [dbNotices, pageBanner] = await Promise.all([
     getNotices(normalizedCategory === "전체보기" ? undefined : normalizedCategory).catch(() => []),
@@ -45,14 +52,13 @@ const MOCK_NOTICES = [
   { notice_id: 1,  category: "공지",   title: "풍림푸드 B2B 신규 서비스 런칭 안내", tags: ["B2B"],                created_at: "2026-01-10", view_count: 176, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
 ];
 
-const CATEGORIES = ["전체보기", "공지", "안내", "외식업계"] as const;
+const CATEGORIES = ["전체보기", "공지", "안내", "이벤트"] as const;
 
-/** 모바일 시안 라벨(URL·로직 값은 `CATEGORIES` 유지) */
 const CATEGORY_DISPLAY: Record<string, string> = {
-  전체보기: "전체 보기",
+  전체보기: "전체보기",
   공지: "공지",
   안내: "안내",
-  외식업계: "외식업체",
+  이벤트: "이벤트",
 };
 
 const ITEMS_PER_PAGE = 9;
@@ -127,11 +133,11 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
   );
 
   return (
-    <div className="min-h-screen bg-[#F4F2E5]">
+    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="공지사항"
-        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요."
+        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요"
         breadcrumb={[
           { label: "Home", href: "/" },
           { label: "고객지원", href: "/support" },
@@ -142,20 +148,20 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
       />
 
       {/* 모바일 전용 상단 타이틀 (Figma 375) */}
-      <div className="flex items-center gap-[11px] px-4 pt-5 md:hidden">
-        <SectionTitleStar className="h-[21px] w-[21px]" />
-        <h1 className="font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[30px] text-[#1F2121]">
-          공지사항
-        </h1>
-      </div>
+      <SectionPageTitle
+        as="h1"
+        preset="default"
+        className="px-4 pt-5 md:hidden"
+      >
+        공지사항
+      </SectionPageTitle>
 
       {/* ── 본문 ── */}
-      <PageContentMax className="max-md:pt-0 py-6 md:py-10">
+      <PageContentMax className="max-md:pt-0 py-6 md:pb-10 md:pt-[60px]">
 
-        {/* ── 필터 탭 + 검색 (모바일 시안: 열 래퍼 pt-14 pb-20만 — 하단 여백은 pb-5에 맡기고 mb-5와 이중 적용하지 않음) ── */}
-        <div className="mb-0 flex flex-col gap-4 md:mb-5 md:flex-row md:items-center md:justify-between">
+        <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
-            <div className="flex w-full flex-wrap items-center gap-[10px] md:max-w-none md:gap-2">
+            <div className="flex w-full flex-wrap items-center gap-[10px] md:max-w-none md:gap-2.5">
               {CATEGORIES.map((cat) => {
                 const isActive = cat === activeCategory;
                 return (
@@ -164,8 +170,10 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                     onClick={() => handleCategoryChange(cat)}
                     type="button"
                     className={cn(
-                      "flex items-center rounded-[40px] px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors md:h-[43px] md:px-5 md:text-lg md:font-medium",
+                      "flex items-center rounded-[40px] px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs font-bold leading-[18px] transition-colors",
+                      "md:px-4 md:py-2 md:font-[Pretendard,system-ui,sans-serif] md:text-lg md:leading-[27px]",
                       isActive && "gap-2 md:gap-1.5",
+                      isActive ? "md:font-bold" : "md:font-medium",
                     )}
                     style={{
                       letterSpacing: "-0.04em",
@@ -178,10 +186,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                     }}
                   >
                     {isActive && (
-                      <Check
-                        className="h-3 w-3 shrink-0 text-white md:h-3.5 md:w-3.5"
-                        strokeWidth={2.5}
-                      />
+                      <Check className="h-3 w-3 shrink-0 text-white md:h-4 md:w-4" strokeWidth={2.5} />
                     )}
                     {CATEGORY_DISPLAY[cat] ?? cat}
                   </button>
@@ -190,23 +195,15 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <input
-              type="text"
+          <div className="hidden md:flex md:shrink-0">
+            <SearchBar
+              className="md:gap-[min(6px,calc(6*100vw/1920))]"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="검색어를 입력해주세요."
-              className="h-16 w-64 rounded-full border-0 bg-white px-5 text-sm outline-none"
+              onChange={setInputValue}
+              onSearch={handleSearch}
+              inputClassName="border-0 py-5 font-bold text-[#1F2121] placeholder:font-bold placeholder:text-[#1F2121] md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(360px,calc(360*100vw/1920))] md:px-10 md:font-[NanumSquareRound,sans-serif] md:text-base md:leading-6"
+              buttonClassName="md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(64px,calc(64*100vw/1920))] md:p-5"
             />
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:brightness-110 active:scale-95"
-              style={{ backgroundColor: "#02633E" }}
-            >
-              <Search className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
@@ -216,7 +213,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             검색 결과가 없습니다.
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5 md:gap-2">
+          <div className="flex flex-col gap-2.5 md:gap-[10px]">
             {paginated.map((notice, rowIndex) => {
               const pinLabel = getPinLabel(notice);
               const displayNum = regularRankMap.get(notice.notice_id) ?? 0;
@@ -226,7 +223,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                 rowIndex === firstPinnedRowIndexInPage;
 
               const metaBadgeClass =
-                "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-1.5 text-center text-[11px] font-medium leading-[11px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
+                "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-2 text-center text-[12px] font-medium leading-3 text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
 
               return (
                 <Fragment key={notice.notice_id}>
@@ -281,39 +278,38 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                       </div>
                     </div>
                   </Link>
-                  {/* PC 테이블형 행 */}
                   <Link
                     to={`/support/notice/${notice.notice_id}`}
-                    className="group hidden grid-cols-[100px_1fr_100px_120px_56px] items-center gap-4 rounded-xl px-5 py-4 transition-all hover:brightness-[0.97] md:grid"
-                    style={{ backgroundColor: "#F0EEDD" }}
+                    className="group hidden items-center gap-5 rounded-[10px] bg-[#EAE3C9] p-[30px] transition-all hover:brightness-[0.98] md:flex"
                   >
-                    <div className="text-center">
+                    <div className="flex w-[65px] shrink-0 justify-center">
                       {pinLabel ? (
-                        <span
-                          className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-                          style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
-                        >
-                          {pinLabel}
-                        </span>
+                        <span className={metaBadgeClass}>{pinLabel}</span>
                       ) : (
-                        <span className="text-sm text-gray-400">{displayNum}</span>
+                        <span
+                          className="text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]"
+                        >
+                          {displayNum}
+                        </span>
                       )}
                     </div>
-                    <span className="truncate text-sm font-medium text-gray-800 transition-colors group-hover:text-[#02633E]">
-                      {notice.title}
-                    </span>
-                    <div className="hidden text-center sm:block">
+                    <div className="flex min-w-0 flex-1 items-center gap-5">
                       <span
-                        className="inline-block rounded-full px-3 py-1 text-xs font-semibold"
-                        style={{ backgroundColor: "#EAE3C9", color: "#003F2B" }}
+                        className="min-w-0 flex-1 font-[NanumSquareRound,sans-serif] font-bold text-[#1F2121] transition-colors group-hover:text-[#02633E]"
+                        style={{ fontSize: pc1920(16, 20), lineHeight: pc1920(24, 30) }}
                       >
+                        {notice.title}
+                      </span>
+                      <span className={cn(metaBadgeClass, "w-[65px] min-w-[65px] justify-center")}>
                         {notice.category}
                       </span>
+                      <span className="w-20 shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
+                        {formatDate(notice.created_at)}
+                      </span>
+                      <span className="w-[65px] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] tabular-nums text-[#1F2121]">
+                        {notice.view_count}
+                      </span>
                     </div>
-                    <span className="hidden text-center text-xs text-gray-400 md:block">
-                      {formatDate(notice.created_at)}
-                    </span>
-                    <span className="text-right text-xs text-gray-400">{notice.view_count}</span>
                   </Link>
                 </Fragment>
               );
@@ -322,23 +318,15 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         )}
 
         {/* ── 페이지네이션 (모바일 시안: pt-40 상당 간격 · gap-30 · 48 흰 원 + 녹색 2px 쉐브론 · 페이지 숫자는 원 없이 #003F2B 16/800) ── */}
-        <div className="mt-10 flex items-center justify-center max-md:gap-[30px] md:gap-1.5">
+        <div className="mt-10 flex items-center justify-center gap-[30px] md:pt-10">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
             aria-label="이전 페이지"
-            className={cn(
-              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
-              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
-              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
-            )}
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronLeft
-              className="h-[18px] w-[18px] md:h-4 md:w-4"
-              strokeWidth={2}
-              aria-hidden
-            />
+            <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -349,14 +337,8 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
               aria-label={`${p}페이지`}
               aria-current={p === page ? "page" : undefined}
               className={cn(
-                "flex items-center justify-center font-[family-name:var(--font-nanum)] transition-colors",
-                /* 모바일: 시안과 같이 숫자만, 16px / 800 / #003F2B */
-                "max-md:min-h-12 max-md:min-w-10 max-md:bg-transparent max-md:px-2 max-md:text-base max-md:leading-[20.8px] max-md:font-extrabold max-md:text-[#003F2B]",
-                /* 데스크탑: 기존 원형 버튼 */
-                "md:h-9 md:w-9 md:rounded-full md:text-sm md:font-medium",
-                p === page
-                  ? "md:bg-[#02633E] md:text-white"
-                  : "md:bg-transparent md:text-[#555]",
+                "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
+                p === page ? "opacity-100" : "opacity-50 hover:opacity-80",
               )}
             >
               {p}
@@ -368,17 +350,9 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             aria-label="다음 페이지"
-            className={cn(
-              "flex shrink-0 items-center justify-center bg-white text-[#02633E] transition-colors disabled:opacity-30",
-              "h-12 w-12 rounded-[40px] max-md:overflow-hidden",
-              "md:h-9 md:w-9 md:rounded-full md:border md:border-gray-300 md:text-gray-500 md:hover:border-[#02633E] md:hover:text-[#02633E]",
-            )}
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
-            <ChevronRight
-              className="h-[18px] w-[18px] md:h-4 md:w-4"
-              strokeWidth={2}
-              aria-hidden
-            />
+            <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
           </button>
         </div>
       </PageContentMax>
