@@ -9,35 +9,9 @@ import { Link } from "react-router";
 
 import { cn } from "~/core/lib/utils";
 
-/* ── 링크 데이터 ── */
-const footerLinks = {
-  company: [
-    { name: "회사소개", href: "/brand/intro" },
-    { name: "연혁", href: "/brand/history" },
-    { name: "인증현황", href: "/brand/certifications" },
-    { name: "공장 견학", href: "/brand/factory" },
-    { name: "채용정보", href: "/careers/positions" },
-  ],
-  products: [
-    { name: "액란 제품", href: "/products/egg" },
-    { name: "푸딩 시리즈", href: "/products/pudding", underline: true },
-    { name: "간편식", href: "/products/convenient" },
-    { name: "전체제품", href: "/products/all" },
-  ],
-  support: [
-    { name: "FAQ", href: "/support" },
-    { name: "문의하기", href: "/support/inquiry" },
-    { name: "자료실", href: "/support/resources" },
-    { name: "고객후기", href: "/support/reviews" },
-  ],
-  business: [
-    { name: "B2B상담", href: "/inquiry/b2b" },
-    { name: "대량구매", href: "/inquiry/bulk" },
-    { name: "파트너십", href: "/inquiry/partnership" },
-    { name: "수발주시스템", href: "http://wos.freshegg.co.kr/", external: true },
-    { name: "수출문의", href: "/inquiry/export" },
-  ],
-};
+/* ── 링크 데이터 (PC·태블릿 푸터 네비 — navigation-bar의 헤더 메뉴와 동일 구성) ── */
+const EGG_SAFETY_EXTERNAL =
+  "https://www.foodsafetykorea.go.kr/portal/fooddanger/eggHazardList.do?menu_grp=MENU_NEW02&menu_no=3497";
 
 /* ── 연락처 데이터 ── */
 const contactGroups = [
@@ -67,10 +41,43 @@ const contactGroups = [
 type NavLink = { name: string; href: string; external?: boolean; underline?: boolean };
 
 const navSections: { title: string; links: NavLink[] }[] = [
-  { title: "회사정보", links: footerLinks.company },
-  { title: "제품정보", links: footerLinks.products },
-  { title: "고객지원", links: footerLinks.support },
-  { title: "B2B/파트너십", links: footerLinks.business },
+  {
+    title: "회사소개",
+    links: [
+      { name: "회사소개", href: "/brand/intro" },
+      { name: "연혁", href: "/brand/history" },
+      { name: "품질 & 인증", href: "/brand/certifications" },
+      { name: "채용", href: "/careers/positions" },
+      { name: "오시는 길", href: "/brand/location" },
+    ],
+  },
+  {
+    title: "제품소개",
+    links: [
+      { name: "계란이야기", href: "/products/egg-story" },
+      { name: "제품보기", href: "/products/all" },
+      { name: "레시피", href: "/recipe/main" },
+    ],
+  },
+  {
+    title: "홍보센터",
+    links: [
+      { name: "보도자료", href: "/media/news" },
+      { name: "이벤트", href: "/event" },
+      { name: "견학신청", href: "/brand/factory-tour" },
+    ],
+  },
+  {
+    title: "고객지원",
+    links: [
+      { name: "공지사항", href: "/support/notice" },
+      { name: "자료실", href: "/support/resources" },
+      { name: "계란안전성검사결과", href: EGG_SAFETY_EXTERNAL, external: true },
+      { name: "등급판정서", href: "/support/grade-certificate" },
+      { name: "FAQ", href: "/support/faq" },
+      { name: "문의하기", href: "/support/contact" },
+    ],
+  },
 ];
 
 /* ── 공통 타이포 ── */

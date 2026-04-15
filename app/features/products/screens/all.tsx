@@ -77,7 +77,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         title="계란이야기"
         subtitle="대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"
         mobileSubtitle={"대한민국 대표 계란\n풍림푸드 계란 이야기를 들어볼래요?"}
-        linkUrl="/brand/intro"
+        linkUrl="/products/egg-story"
         linkText="자세히 보기"
         mobileHeightClassName="max-md:h-[375px]"
         hideOnMobile={false}
@@ -87,7 +87,11 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
           { label: "Home", href: "/" },
           { label: "제품소개" },
         ]}
-        dbBanner={pageBanner}
+        dbBanner={
+          pageBanner
+            ? { ...pageBanner, link_url: "/products/egg-story" }
+            : null
+        }
       />
 
       {/* ── 배너 아래 여백 확보 + 제품 카테고리 헤더 + 검색 (PC: 시안 1600px 중앙 + 상단 60px) ── */}
