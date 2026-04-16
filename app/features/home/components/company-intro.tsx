@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 
 interface CompanyIntroProps {
   image?: string | null;
@@ -57,9 +58,11 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
       {/* 모바일: 100% - 양쪽 1rem 패딩, 343:460 비율 / PC: 16:6 */}
       <div className="relative aspect-[343/460] overflow-hidden rounded-2xl md:aspect-[16/6] md:min-h-[360px] md:rounded-[2.5rem]">
         <div
-          className={`absolute inset-0 origin-center ${
-            visible ? "animate-hero-unfold" : "opacity-0"
-          }`}
+          className={cn(
+            "absolute inset-0 origin-center",
+            /* 메인 히어로와 동일: 모바일·PC 모두 clip + 살짝 상승 + 페이드 — app.css .animate-hero-unfold-main */
+            visible ? "animate-hero-unfold-main" : "opacity-0",
+          )}
         >
           <img
             src={image || DEFAULT_IMAGE}

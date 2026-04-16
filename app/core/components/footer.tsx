@@ -197,7 +197,7 @@ export default function Footer() {
         페이지별 pb 중복 없이 여기서만 유지.
       */}
       <div
-        className="block h-[140px] w-full shrink-0 bg-[var(--site-chrome-bg,#F4F2E5)] md:hidden"
+        className="block h-[140px] w-full shrink-0 bg-[var(--site-chrome-bg,#FDFDF5)] md:hidden"
         aria-hidden
       />
 

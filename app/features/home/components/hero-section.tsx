@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Banner } from "~/features/home/lib/queries.server";
 
@@ -62,7 +62,11 @@ const MOCK_SLIDES = [
 ];
 
 export function HeroSection({ banners = [] }: HeroSectionProps) {
-  const slides = banners.length > 0 ? banners.map(dbBannerToSlide) : MOCK_SLIDES;
+  const slides = useMemo(
+    () => (banners.length > 0 ? banners.map(dbBannerToSlide) : MOCK_SLIDES),
+    [banners],
+  );
+  const slideCount = slides.length;
 
   const [current, setCurrent] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
@@ -70,17 +74,24 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
 
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    if (slideCount <= 1) return;
     timerRef.current = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length);
+      setCurrent((prev) => (prev + 1) % slideCount);
     }, 5000);
   };
+
+  /* 배너 개수가 바뀌면 인덱스 보정 + 자동 슬라이드 타이머 재시작 */
+  useEffect(() => {
+    setCurrent((c) => (c >= slideCount ? 0 : c));
+  }, [slideCount]);
 
   useEffect(() => {
     startTimer();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [slideCount]);
 
   const goTo = (index: number) => {
     setCurrent(index);
@@ -94,7 +105,7 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
     /* 모바일: 343×460 비율 / PC: 1840×800 비율로 가로·세로 함께 스케일 */
     <section className="min-h-[calc(100vw*460/343)] w-full bg-[var(--brand-cream)] px-4 pt-2 md:h-auto md:min-h-0 md:px-8 md:pt-4 lg:px-2.5">
       <div
-        className="animate-hero-unfold relative mx-auto max-h-[calc(100dvh-var(--header-height)-16px)] w-full md:aspect-[1840/800] md:max-h-[var(--hero-pc-height)] md:max-w-[var(--hero-pc-width)]"
+        className="animate-hero-unfold-main relative mx-auto max-h-[calc(100dvh-var(--header-height)-16px)] w-full md:aspect-[1840/800] md:max-h-[var(--hero-pc-height)] md:max-w-[var(--hero-pc-width)]"
         style={{ aspectRatio: "343/460" }}
       >
         {/* 슬라이드 카드: 모바일 rounded-2xl, 데스크톱 rounded-3xl */}
@@ -130,13 +141,13 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
                 viewTransition
               >
                 <p
-                  className="text-sm font-medium text-[var(--brand-green)] opacity-80 group-hover:opacity-100 transition-opacity md:text-[16px]"
+                  className="text-sm font-medium text-[var(--brand-green)] opacity-90 group-hover:opacity-100 transition-opacity md:text-[18px]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].category}
                 </p>
                 <h1
-                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] underline-offset-4 group-hover:underline md:text-[32px] md:break-keep"
+                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] underline-offset-4 group-hover:underline md:break-keep md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].title1} {slides[current].title2}
@@ -145,13 +156,13 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
             ) : (
               <div className="flex flex-col gap-2.5">
                 <p
-                  className="text-sm font-medium text-[var(--brand-green)] opacity-80 md:text-[16px]"
+                  className="text-sm font-medium text-[var(--brand-green)] opacity-90 md:text-[18px]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].category}
                 </p>
                 <h1
-                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] md:text-[32px] md:break-keep"
+                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] md:break-keep md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].title1} {slides[current].title2}

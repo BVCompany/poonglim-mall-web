@@ -1,6 +1,6 @@
 /**
  * 품질 & 인증 페이지
- * 배경: 헤더와 동일(--site-chrome-header-bg / #F4F2E5)
+ * 배경: 헤더와 동일(--site-chrome-header-bg / #FDFDF5)
  * PC: 1600 타이틀 밴드(60/40r) · 1840×800 히어로 · 4카드 600·gap20
  */
 import type { Route } from "./+types/certifications";
@@ -180,7 +180,7 @@ export default function CertificationsScreen({
   ) as typeof MOCK_CERT_ITEMS;
 
   return (
-    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className="w-full bg-[var(--site-chrome-header-bg,#FDFDF5)]">
       <Breadcrumb
         items={[
           { label: "회사소개", href: "/brand/intro" },

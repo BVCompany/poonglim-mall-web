@@ -7,6 +7,7 @@ import type { Route } from "./+types/grade-certificate-detail";
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
@@ -162,7 +163,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
   );
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
         title="등급판정서"
@@ -204,7 +205,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
           listHref="/support/grade-certificate"
         />
 
-        {/* PC — 라이트 톤(페이지 #F4F2E5). 시안 HTML: 제목·본문 #1F2121, 첨부 pill #EAE3C9, 네비 #003F2B */}
+        {/* PC — 라이트 톤(페이지 #FDFDF5). 시안 HTML: 제목·본문 #1F2121, 첨부 pill #EAE3C9, 네비 #003F2B */}
         <div className="hidden md:flex md:flex-col md:gap-[30px]">
           <div className="border-b border-[#EAE3C9]">
             <div className="flex items-start justify-between gap-5 px-[30px] pb-[30px] pt-5">

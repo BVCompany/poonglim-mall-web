@@ -3,6 +3,8 @@
  * 피그마 시안 기반 — 1920px 기준 clamp() 반응형
  * 계란 구조 섹션: 스크롤 sticky 스태킹 + fade-in 인터랙션
  */
+import type { CSSProperties } from "react";
+
 import type { Route } from "./+types/egg-story";
 
 import { ArrowUpRight } from "lucide-react";
@@ -11,6 +13,9 @@ import { Link } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
+import { useBrandPhilosophyReveal } from "~/features/home/lib/brand-philosophy-reveal";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "계란이야기 | 풍림푸드" }];
@@ -19,6 +24,24 @@ export function meta(_: Route.MetaArgs) {
 /* ── 공통 clamp 헬퍼 ── */
 const px = (base: number, min = base * 0.4) =>
   `clamp(${Math.round(min)}px,calc(${base}*100vw/1920),${base}px)`;
+
+/**
+ * sticky 스택용 세로 스페이서 — 순수 vh만 쓰면 브라우저 축소(줌 아웃) 시 뷰포트가 커지며
+ * 빈 여백이 비정상적으로 벌어짐 → vh와 px 상한을 min으로 묶음
+ */
+const EGG_SCROLL_SPACER_BETWEEN = "min(70vh, 680px)";
+const EGG_SCROLL_SPACER_TAIL = "min(40vh, 420px)";
+
+/** 데스크톱 본문 가로 상한 — 축소 줌·초와이드에서 flex 자식·이미지 행이 과도하게 늘어나지 않게 */
+const eggDesktopContentInnerClass =
+  "mx-auto w-full max-w-[min(100%,var(--content-max-width))]";
+
+/** 영양소 섹션 전체 높이(vh)의 px 상한 — 브라우저 축소로 vh만 비대해질 때만 완화 */
+function eggNutrientsSectionHeightCss(itemCount: number): string {
+  const vhUnits = itemCount * 75 + 100;
+  const pxCap = itemCount * 560 + 5200;
+  return `min(${vhUnits}vh, ${pxCap}px)`;
+}
 
 /** 네비·sticky 타이틀 등 상단 고정 요소의 top 오프셋(px) — 계란 구조 섹션과 동일 기준 */
 const EGG_STORY_NAV_SAFE_TOP = 80;
@@ -83,7 +106,7 @@ const eggFoods = [
   {
     name: "샐러드",
     sub: "Egg + Delight",
-    bg: "var(--site-chrome-header-bg, #F4F2E5)",
+    bg: "var(--site-chrome-header-bg, #FDFDF5)",
     img1: "/intro/prd04-1.png",
     img2: "/intro/prd04-2.png",
   },
@@ -153,7 +176,7 @@ function StarDeco({
    계란 구조 섹션 — 스크롤 sticky 스태킹 + fade-in
    ══════════════════════════════════════════════════════
    구조:
-   - 각 카드 앞에 70vh 스페이서(첫 카드 제외)를 두어
+   - 각 카드 앞에 EGG_SCROLL_SPACER_BETWEEN(≈70vh, px 상한) 스페이서를 두어
      IntersectionObserver가 카드마다 다른 스크롤 위치에서 발화
    - position: sticky + 점진적 top 오프셋으로 카드가 겹쳐 쌓임
    - opacity: 0 → 1, translateY(80px) → 0 fade-slide-in
@@ -286,7 +309,7 @@ function EggPartsSection() {
               card,
               <div
                 key={`spacer-${i}`}
-                style={{ height: "70vh" }}
+                style={{ height: EGG_SCROLL_SPACER_BETWEEN }}
                 aria-hidden
               />,
             ];
@@ -294,7 +317,7 @@ function EggPartsSection() {
           return [card];
         })}
         {/* 마지막 카드가 화면에 안착한 뒤 다음 섹션으로 자연스럽게 이어지도록 여유 공간 확보 */}
-        <div style={{ height: "40vh" }} aria-hidden />
+        <div style={{ height: EGG_SCROLL_SPACER_TAIL }} aria-hidden />
       </div>
     </div>
   );
@@ -335,9 +358,13 @@ function FoodSection() {
   const stickyTop = (i: number) => `${BASE_TOP + i * STRIP_H}px`;
 
   return (
-    <section style={{ background: "#02633E" }}>
+    <section
+      className={cn(SECTION_VIEWPORT_BLEED, "min-w-0")}
+      style={{ background: "#02633E" }}
+    >
       {/* ── 정적 헤더 ── */}
       <div
+        className={eggDesktopContentInnerClass}
         style={{
           paddingTop: px(110),
           paddingLeft: px(160),
@@ -384,7 +411,7 @@ function FoodSection() {
         }}
       >
         {/* 단일 컨테이너 — 모든 카드·스페이서 직접 자식 */}
-        <div>
+        <div className={eggDesktopContentInnerClass}>
           {eggFoods.flatMap((food, i) => {
             const card = (
               <div
@@ -499,14 +526,14 @@ function FoodSection() {
                 card,
                 <div
                   key={`food-spacer-${i}`}
-                  style={{ height: "70vh" }}
+                  style={{ height: EGG_SCROLL_SPACER_BETWEEN }}
                   aria-hidden
                 />,
               ];
             }
             return [card];
           })}
-          <div style={{ height: "40vh" }} aria-hidden />
+          <div style={{ height: EGG_SCROLL_SPACER_TAIL }} aria-hidden />
         </div>
       </div>
     </section>
@@ -517,10 +544,9 @@ function FoodSection() {
    영양소 섹션 — 스크롤 시 항목 순차 페이드인
    ══════════════════════════════════════════════════════
    구조:
-   - 전체 섹션 height = (항목 수 × 75vh) + 100vh 로 스크롤 거리 확보
+   - 전체 섹션 height = min((항목×75+100)vh, pxCap) 로 스크롤 거리 확보(줌 시 vh 폭주 방지)
    - 내부 레이아웃은 position:sticky + height:100vh 으로 뷰포트에 고정
-   - scroll 이벤트로 섹션 상단에서 얼마나 내려왔는지 계산
-   - 75vh 스크롤마다 다음 항목이 페이드인
+   - scroll: 실제 offsetHeight 대비 진행률로 항목 노출(높이 min()과 동기)
 */
 function NutrientsSection() {
   const [visibleCount, setVisibleCount] = useState(0);
@@ -538,8 +564,12 @@ function NutrientsSection() {
 
       /* 섹션 상단이 뷰포트 상단을 지나친 거리(px) */
       const scrolledPast = Math.max(0, -rect.top);
-      /* 75vh 스크롤마다 항목 하나씩 추가 */
-      const itemsToShow = 1 + Math.floor(scrolledPast / (vh * 0.75));
+      const scrollRange = Math.max(1, el.offsetHeight - vh);
+      const progress = Math.min(1, scrolledPast / scrollRange);
+      const itemsToShow = Math.min(
+        nutrients.length,
+        Math.max(1, Math.ceil(progress * nutrients.length)),
+      );
 
       setVisibleCount((prev) =>
         Math.max(prev, Math.min(nutrients.length, itemsToShow)),
@@ -554,11 +584,11 @@ function NutrientsSection() {
   return (
     <section
       ref={sectionRef}
+      className={cn(SECTION_VIEWPORT_BLEED, "min-w-0")}
       style={{
         position: "relative",
         background: "#EAE3C9",
-        /* 충분한 스크롤 거리: 항목당 75vh + 초기 100vh */
-        height: `${nutrients.length * 75 + 100}vh`,
+        height: eggNutrientsSectionHeightCss(nutrients.length),
       }}
     >
       {/* ── sticky 콘텐츠 패널 ── */}
@@ -696,12 +726,269 @@ function NutrientsSection() {
   );
 }
 
+/* 데스크톱: 타이틀만 먼저 → 스크롤로 4 → STEP → 단계 순 (visibleCount 0 = 타이틀만) */
+const JOURNEY_SCROLL_STAGES = 2 + steps.length;
+/** 스크롤 트랙: 타이틀 전용 1구간 + 등장 단계(JOURNEY_SCROLL_STAGES)만큼 */
+const JOURNEY_SECTION_HEIGHT_VH = (JOURNEY_SCROLL_STAGES + 1) * 44 + 72;
+
+const JOURNEY_SECTION_HEIGHT_CSS = `min(${JOURNEY_SECTION_HEIGHT_VH}vh, 7200px)`;
+
+function eggJourneyRevealStyle(
+  visibleCount: number,
+  minStage: number,
+): CSSProperties {
+  const on = visibleCount >= minStage;
+  return {
+    opacity: on ? 1 : 0,
+    transform: on ? "translateY(0)" : "translateY(20px)",
+    transition:
+      "opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)",
+    pointerEvents: on ? "auto" : "none",
+  };
+}
+
+function EggJourneyScrollSection() {
+  return (
+    <>
+      {/* 모바일 — 인터랙션 없음, 기존과 동일 */}
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "w-full min-w-0 bg-white px-4 py-10 md:hidden",
+        )}
+      >
+        <SectionTitleMobile
+          omitHorizontalPadding
+          title="계란이 식탁에 오기까지"
+        />
+        <div className="mx-auto flex w-full flex-col">
+          {steps.map((step, idx) => (
+            <div
+              key={step.name}
+              className="inline-flex w-full items-center justify-start rounded-[10px] bg-white py-5"
+            >
+              <div className="inline-flex min-w-0 flex-1 flex-col items-start gap-3">
+                <div className="inline-flex items-center gap-2.5">
+                  <div
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#003F2B] text-center text-[14px] leading-[21px] font-bold text-white"
+                    style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+                  >
+                    {idx + 1}
+                  </div>
+                  <span
+                    className="text-[18px] leading-[27px] font-extrabold text-[#003F2B]"
+                    style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+                  >
+                    {step.name}
+                  </span>
+                </div>
+                <p
+                  className="w-full text-[16px] leading-6 font-bold text-[#1F2121]"
+                  style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+                >
+                  {step.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <EggJourneyDesktopScrollSection />
+    </>
+  );
+}
+
+function EggJourneyDesktopScrollSection() {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+
+      if (rect.top >= vh) return;
+
+      const scrolledPast = Math.max(0, -rect.top);
+      const scrollRange = Math.max(1, el.offsetHeight - vh);
+      const progress = Math.min(1, Math.max(0, scrolledPast / scrollRange));
+      /* 0 = 타이틀만 … 실제 섹션 높이(min(vh,px))와 동기 */
+      const itemsToShow = Math.min(
+        JOURNEY_SCROLL_STAGES,
+        Math.floor(progress * (JOURNEY_SCROLL_STAGES + 1)),
+      );
+
+      setVisibleCount((prev) => Math.max(prev, itemsToShow));
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "relative hidden w-full min-w-0 bg-white md:block",
+      )}
+      style={{
+        height: JOURNEY_SECTION_HEIGHT_CSS,
+      }}
+    >
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "flex-start",
+          background: "white",
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingTop: `clamp(40px,calc(100 * 100vw / 1920),100px)`,
+          paddingBottom: `clamp(64px,calc(160 * 100vw / 1920),160px)`,
+          paddingLeft: px(160),
+          paddingRight: px(160),
+        }}
+      >
+        <div className="mx-auto w-full" style={{ maxWidth: px(1600) }}>
+          <div className="mb-[clamp(24px,calc(60*100vw/1920),60px)] flex items-start gap-[clamp(8px,calc(10*100vw/1920),10px)]">
+            <h2
+              style={{
+                color: "#1F2121",
+                fontSize: px(60, 24),
+                fontFamily: "NanumSquareRound, sans-serif",
+                fontWeight: 800,
+                lineHeight: px(90, 32),
+              }}
+            >
+              계란이 <br />
+              식탁에 오기까지
+            </h2>
+            <div style={{ marginTop: px(22, 10) }}>
+              <StarDeco />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div
+              style={{
+                minWidth: px(412, 60),
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <p
+                style={{
+                  color: "#1F2121",
+                  fontSize: px(100, 36),
+                  fontFamily: "NanumSquareRound, sans-serif",
+                  fontWeight: 700,
+                  lineHeight: px(130, 48),
+                  ...eggJourneyRevealStyle(visibleCount, 1),
+                }}
+              >
+                4
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: px(30, 16),
+              }}
+            >
+              {steps.map((step, i) => (
+                <div
+                  key={step.name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: px(40, 16),
+                    width: px(716, 300),
+                    ...eggJourneyRevealStyle(visibleCount, 3 + i),
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#1F2121",
+                      fontSize: px(60, 20),
+                      fontFamily: "NanumSquareRound, sans-serif",
+                      fontWeight: 800,
+                      lineHeight: px(78, 28),
+                      flexShrink: 0,
+                    }}
+                  >
+                    {step.name}
+                  </span>
+                  <p
+                    style={{
+                      color: "#1F2121",
+                      fontSize: px(20, 13),
+                      fontFamily: "NanumSquareRound, sans-serif",
+                      fontWeight: 700,
+                      lineHeight: px(30, 18),
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    {step.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                minWidth: px(412, 60),
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <p
+                style={{
+                  color: "#1F2121",
+                  fontSize: px(100, 36),
+                  fontFamily: "NanumSquareRound, sans-serif",
+                  fontWeight: 800,
+                  lineHeight: px(130, 48),
+                  ...eggJourneyRevealStyle(visibleCount, 2),
+                }}
+              >
+                STEP
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ══════════════════════════════════════════════════════
-   계란 철학 섹션 — 배경 블러 + 이미지/텍스트 떠오름 + 품질→안전→연구 순차
+   계란 철학 섹션 — 배경 + 이미지/텍스트 떠오름 + 품질→안전→연구 순차
    ══════════════════════════════════════════════════════
-   - 진입 시 배경: 살짝 확대 + 약한 블러(가독성은 오버레이로 유지)
+   - 배경: 섹션에 고정(fill + cover), 모바일/PC 각각 objectPosition만 분리
+   - 진입 시 배경: 미세 스케일 + 살짝 페이드(선택 블러). 세로 translate 없음 → 프레이밍이 흔들리지 않음
    - 타이틀 → 카드 3장 순차, 카드 안에서는 제목 후 본문이 짧게 이어짐
-   - prefers-reduced-motion: 블러·이동 최소화
+   - prefers-reduced-motion: 블러·스케일·페이드 최소화
 */
 function PhilosophySection() {
   const [visibleCount, setVisibleCount] = useState(0);
@@ -766,24 +1053,22 @@ function PhilosophySection() {
 
   const cardLineActive = (i: number) => visibleCount >= i + 2;
 
-  const bgImgMotion: React.CSSProperties = {
-    filter: reduceMotion ? "none" : bgActive ? "blur(6px)" : "blur(0px)",
-    transform: reduceMotion
-      ? "none"
-      : bgActive
-        ? "translateY(2.5%) scale(1.04)"
-        : "translateY(1.5%) scale(1)",
-    transition: reduceMotion
-      ? "none"
-      : "filter 1.05s ease, transform 1.2s ease",
-  };
+  const bgImgMotion: React.CSSProperties = reduceMotion
+    ? { opacity: 1, filter: "none", transform: "none", transition: "none" }
+    : {
+        opacity: bgActive ? 1 : 0.88,
+        filter: bgActive ? "blur(6px)" : "blur(0px)",
+        transform: bgActive ? "scale(1.045)" : "scale(1)",
+        transition: "filter 1.05s ease, opacity 1s ease, transform 1.2s ease",
+      };
 
   return (
     <section
       ref={sectionRef}
+      className={cn(SECTION_VIEWPORT_BLEED, "min-w-0")}
       style={{ position: "relative", overflow: "hidden" }}
     >
-      {/* ── 배경 이미지: PC는 섹션 풀 커버 유지 · 모바일만 상단 프레이밍·높이 분리 ── */}
+      {/* ── 배경 이미지: 섹션 전체에 고정(fill). 모바일/PC는 objectPosition만 분리 ── */}
       <div
         style={{
           position: "absolute",
@@ -798,13 +1083,11 @@ function PhilosophySection() {
           className="md:hidden"
           style={{
             position: "absolute",
-            left: "50%",
-            top: "-6%",
-            width: "120%",
-            height: "118%",
-            marginLeft: "-60%",
+            inset: 0,
+            width: "100%",
+            height: "100%",
             objectFit: "cover",
-            objectPosition: "50% 22%",
+            objectPosition: "50% 42%",
             ...bgImgMotion,
           }}
         />
@@ -815,14 +1098,11 @@ function PhilosophySection() {
           className="hidden md:block"
           style={{
             position: "absolute",
-            left: "50%",
-            top: "52%",
-            width: "110%",
-            height: "110%",
-            marginLeft: "-55%",
-            marginTop: "-55%",
+            inset: 0,
+            width: "100%",
+            height: "100%",
             objectFit: "cover",
-            objectPosition: "50% 62%",
+            objectPosition: "50% 56%",
             ...bgImgMotion,
           }}
         />
@@ -843,7 +1123,10 @@ function PhilosophySection() {
 
       {/* ── 콘텐츠 ── */}
       <div
-        className="px-4 py-12 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-[clamp(44px,calc(110*100vw/1920),110px)]"
+        className={cn(
+          eggDesktopContentInnerClass,
+          "px-4 py-12 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-[clamp(44px,calc(110*100vw/1920),110px)]",
+        )}
         style={{
           position: "relative",
           zIndex: 1,
@@ -877,7 +1160,7 @@ function PhilosophySection() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: `clamp(10px,calc(40*100vw/1920),40px)`,
-                minHeight: "clamp(140px, 28vw, 520px)",
+                minHeight: "clamp(140px, min(28vw, 22rem), 520px)",
                 borderRadius: px(40, 10),
                 outline: "1px white solid",
                 outlineOffset: "-1px",
@@ -1107,7 +1390,7 @@ function MarqueeRow({
   );
 }
 
-/* CTA 마퀴 — 모바일 가로: m_product01~06(위) / 07~12(아래), 데스크탑 세로: 기존 제품 컷 */
+/* CTA 마퀴 — 모바일 가로·데스크톱 세로 모두 m_product01~12 (좌/위 01~06, 우/아래 07~12) */
 const ctaMarqueeMobileSetTopSrc = [
   "/intro/m_product01.png",
   "/intro/m_product02.png",
@@ -1126,23 +1409,16 @@ const ctaMarqueeMobileSetBottomSrc = [
   "/intro/m_product12.png",
 ] as const;
 
-const ctaMarqueeSet1 = [
-  { src: "/intro/product03.png", h: px(420, 160) },
-  { src: "/intro/product01.png", h: px(340, 130) },
-  { src: "/intro/product05.jpg", h: px(380, 140) },
-  { src: "/intro/product02.jpg", h: px(280, 110) },
-  { src: "/intro/product04.png", h: px(310, 120) },
-  { src: "/intro/product06.jpg", h: px(360, 140) },
-] as const;
-
-const ctaMarqueeSet2 = [
-  { src: "/intro/product06.jpg", h: px(360, 140) },
-  { src: "/intro/product02.jpg", h: px(420, 160) },
-  { src: "/intro/product04.png", h: px(300, 110) },
-  { src: "/intro/product01.png", h: px(380, 140) },
-  { src: "/intro/product05.jpg", h: px(250, 100) },
-  { src: "/intro/product03.png", h: px(340, 130) },
-] as const;
+/* 데스크톱 세로 마퀴: 좌(↑) m_product01~06, 우(↓) m_product07~12 */
+const CTA_DESKTOP_MARQUEE_IMG_H = px(340, 130);
+const ctaMarqueeSet1 = ctaMarqueeMobileSetTopSrc.map((src) => ({
+  src,
+  h: CTA_DESKTOP_MARQUEE_IMG_H,
+}));
+const ctaMarqueeSet2 = ctaMarqueeMobileSetBottomSrc.map((src) => ({
+  src,
+  h: CTA_DESKTOP_MARQUEE_IMG_H,
+}));
 
 const ctaMarqueeMobileGap = px(20, 10);
 const ctaMarqueeMobileRowItem = {
@@ -1158,61 +1434,94 @@ function ctaMarqueeMobileRowItems(srcs: readonly string[]) {
   }));
 }
 
-/* ── 모바일 전용 (Figma 375) — 데스크탑은 md 이상에서 기존 섹션 유지 ── */
-function EggHeroMobile() {
-  /* Figma 375×300 히어로 — 좌표·크기를 컨테이너 비율로 환산 (데스크탑과 동일 public 스파클 사용) */
+type EggHeroReveal = Pick<
+  ReturnType<typeof useBrandPhilosophyReveal>,
+  "slideStyle" | "badgeStyle" | "sparkleStyle"
+>;
+
+/* ── 모바일 전용 (Figma 375) — 메인 BrandPhilosophy와 동일 스크롤 등장 인터랙션 ── */
+function EggHeroMobile({
+  slideStyle,
+  badgeStyle,
+  sparkleStyle,
+}: EggHeroReveal) {
   return (
-    <div className="relative mx-auto min-h-[300px] w-full max-w-[375px] pt-5 pb-5 md:hidden">
-      {/* 아래 레이어: 별 + 메인 타이포( transform 등으로 생기는 스택과 분리 ) */}
+    <div className="relative mx-auto mb-8 min-h-[300px] w-full max-w-[375px] pt-5 pb-5 md:hidden">
       <div className="absolute inset-0 z-0">
         <img
-          src="/home/product-star.png"
+          src="/intro/Vector-1.png"
           alt=""
           aria-hidden
           className="pointer-events-none absolute top-0 left-[10.67%] aspect-square w-[5.75%] max-w-[22px] object-contain select-none"
+          style={sparkleStyle(100, { top: 0, left: "10.67%" })}
         />
         <img
-          src="/home/intro-star.png"
+          src="/intro/Vector-2.png"
           alt=""
           aria-hidden
           className="pointer-events-none absolute top-[86.33%] left-[22.93%] aspect-square w-[8.6%] max-w-[33px] object-contain select-none"
+          style={sparkleStyle(220, {
+            top: "86.33%",
+            left: "22.93%",
+          })}
         />
         <img
-          src="/home/company-intro-star.png"
+          src="/intro/Vector.png"
           alt=""
           aria-hidden
           className="pointer-events-none absolute top-[8.33%] left-[75.73%] aspect-square w-[10.9%] max-w-[41px] object-contain select-none"
+          style={sparkleStyle(340, {
+            top: "8.33%",
+            left: "75.73%",
+          })}
         />
-        <p
-          className="absolute top-[13.67%] left-[35.73%] text-center text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
-          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+        <div
+          className="absolute top-[13.67%] left-[35.73%]"
+          style={slideStyle(320)}
         >
-          EGG
-        </p>
-        <p
-          className="absolute top-[35%] left-[14.93%] text-right text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
-          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-        >
-          계란 이야기
-        </p>
-        <p
-          className="absolute top-[60.33%] left-1/2 w-[70.4%] max-w-[264px] -translate-x-1/2 text-center text-base leading-[25.6px] font-bold text-[#003F2B]"
-          style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-        >
-          작은 알 하나에 담긴 건강한 가치
-          <br />
-          풍림푸드는 매일 식탁에 오르는 계란의
-          <br />
-          가치를 연구합니다.
-        </p>
+          <p
+            className="text-center text-[56px] leading-[56px] font-extrabold text-[#003F2B]"
+            style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+          >
+            EGG
+          </p>
+        </div>
+        {/* 바깥: 가로만 중앙 정렬 / 안쪽: slide-up-fade(translate Y) — 같은 요소에 translate-x와 두면 애니메이션과 충돌 */}
+        <div className="absolute top-[35%] right-0 left-0 z-[1] flex justify-center px-4">
+          <div
+            className="w-full max-w-[min(100%,343px)]"
+            style={slideStyle(400)}
+          >
+            <p
+              className="text-center text-[clamp(40px,12.2vw,56px)] leading-[1.1] font-extrabold text-[#003F2B]"
+              style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+            >
+              계란 이야기
+            </p>
+          </div>
+        </div>
+        <div className="absolute top-[60.33%] right-0 left-0 flex justify-center px-4">
+          <div className="w-full max-w-[300px]" style={slideStyle(520)}>
+            <p
+              className="text-center text-base leading-[25.6px] font-bold text-[#003F2B]"
+              style={{ fontFamily: "NanumSquareRound, sans-serif" }}
+            >
+              작은 알 하나에 담긴 건강한 가치
+              <br />
+              풍림푸드는 매일 식탁에 오르는 계란의
+              <br />
+              가치를 연구합니다.
+            </p>
+          </div>
+        </div>
       </div>
-      {/* 위 레이어: 플로팅 뱃지만 (항상 타이포 위에 그려짐) */}
       <div className="pointer-events-none absolute inset-0 z-10">
         <span
           className="absolute top-[7.33%] left-[25.6%] rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
           style={{
             fontFamily: "NanumSquareRound, sans-serif",
             lineHeight: "12px",
+            ...badgeStyle(780),
           }}
         >
           건강한
@@ -1222,6 +1531,7 @@ function EggHeroMobile() {
           style={{
             fontFamily: "NanumSquareRound, sans-serif",
             lineHeight: "12px",
+            ...badgeStyle(940),
           }}
         >
           믿을 수 있는
@@ -1231,10 +1541,151 @@ function EggHeroMobile() {
           style={{
             fontFamily: "NanumSquareRound, sans-serif",
             lineHeight: "12px",
+            ...badgeStyle(1100),
           }}
         >
           간편한
         </span>
+      </div>
+    </div>
+  );
+}
+
+/** PC 히어로 — 동일 스크롤 트리거 + 슬라이드/뱃지 애니메이션 */
+function EggHeroDesktop({
+  slideStyle,
+  badgeStyle,
+  sparkleStyle,
+}: EggHeroReveal) {
+  const badgeList = [
+    { text: "건강한", style: { left: "37.6%", top: "22.3%" } as const },
+    { text: "믿을 수 있는", style: { left: "23.1%", top: "52%" } as const },
+    { text: "간편한", style: { left: "68.9%", top: "47.1%" } as const },
+  ] as const;
+
+  return (
+    <div
+      className="hidden flex-col items-center md:flex"
+      style={{
+        paddingTop: px(160),
+        paddingBottom: px(100),
+        paddingLeft: px(40),
+        paddingRight: px(40),
+      }}
+    >
+      <div
+        className="relative w-full overflow-hidden"
+        style={{
+          maxWidth: px(1600),
+          height: px(350, 140),
+          borderRadius: px(40),
+        }}
+      >
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/intro/Vector-1.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute select-none"
+            style={sparkleStyle(100, {
+              left: "21.9%",
+              top: "5.1%",
+              width: px(38, 16),
+              height: px(38, 16),
+            })}
+          />
+          <img
+            src="/intro/Vector-2.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute select-none"
+            style={sparkleStyle(240, {
+              left: "81%",
+              top: 0,
+              width: px(72, 28),
+              height: px(72, 28),
+            })}
+          />
+          <img
+            src="/intro/Vector.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute select-none"
+            style={sparkleStyle(360, {
+              left: "64.8%",
+              top: "62.6%",
+              width: px(53, 22),
+              height: px(53, 22),
+            })}
+          />
+
+          <div
+            className="absolute right-0 left-0 flex flex-col items-center"
+            style={{
+              top: "22.3%",
+              gap: px(30, 10),
+              paddingLeft: "26%",
+              paddingRight: "26%",
+            }}
+          >
+            <div className="w-full" style={slideStyle(420)}>
+              <h1
+                style={{
+                  color: "#003F2B",
+                  fontSize: px(100, 28),
+                  fontFamily: "NanumSquareRound, sans-serif",
+                  fontWeight: 800,
+                  lineHeight: px(140, 38),
+                  textAlign: "center",
+                  width: "100%",
+                }}
+              >
+                EGG 계란 이야기
+              </h1>
+            </div>
+            <div className="w-full" style={slideStyle(620)}>
+              <p
+                style={{
+                  color: "#003F2B",
+                  fontSize: px(18, 11),
+                  fontFamily: "NanumSquareRound, sans-serif",
+                  fontWeight: 700,
+                  lineHeight: px(21.6, 16),
+                  textAlign: "center",
+                }}
+              >
+                작은 알 하나에 담긴 건강한 가치
+                <br />
+                풍림푸드는 매일 식탁에 오르는 계란의 가치를 연구합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {badgeList.map(({ text, style: pos }, i) => (
+            <span
+              key={text}
+              className="pointer-events-none absolute select-none"
+              style={{
+                ...pos,
+                background: "white",
+                borderRadius: "9999px",
+                outline: "1px #1F2121 solid",
+                padding: `${px(8, 4)} ${px(14, 8)}`,
+                color: "#1F2121",
+                fontSize: px(15, 10),
+                fontFamily: "NanumSquareRound, sans-serif",
+                fontWeight: 700,
+                lineHeight: "1",
+                whiteSpace: "nowrap",
+                ...badgeStyle(820 + i * 140),
+              }}
+            >
+              {text}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1331,7 +1782,12 @@ function EggPartsSectionMobile() {
 
 function NutrientsSectionMobile() {
   return (
-    <section className="bg-[#EAE3C9] py-10 md:hidden">
+    <section
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-w-0 bg-[#EAE3C9] py-10 md:hidden",
+      )}
+    >
       <SectionPageTitle
         as="h2"
         preset="default"
@@ -1384,7 +1840,12 @@ function NutrientsSectionMobile() {
 
 function FoodSectionMobile() {
   return (
-    <section className="bg-[#02633E] py-10 md:hidden">
+    <section
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-w-0 bg-[#02633E] py-10 md:hidden",
+      )}
+    >
       <SectionPageTitle
         as="h2"
         preset="default"
@@ -1457,8 +1918,18 @@ function SectionTitleMobile({
    메인 페이지
    ══════════════════════════════════════════════════════ */
 export default function EggStoryScreen() {
+  const { sectionRef, slideStyle, badgeStyle, sparkleStyle } =
+    useBrandPhilosophyReveal({ minTriggerPx: 0 });
+
+  const heroReveal = { slideStyle, badgeStyle, sparkleStyle };
+
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       {/* ── 브레드크럼 (PC: 제품 상세와 동일 productDetail 시안) ── */}
       <Breadcrumb
         variant="productDetail"
@@ -1469,152 +1940,27 @@ export default function EggStoryScreen() {
       />
 
       {/* ══════════════════════════════════════════
-          1. HERO
-          피그마: pt-160 pb-100 px-40, 내부 1600×350 박스
+          1. HERO — 메인 BrandPhilosophy와 동일 스크롤 등장
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
-        <EggHeroMobile />
-        {/* 외부 여백 래퍼 — pt:160 pb:100 px:40 */}
-        <div
-          className="hidden flex-col items-center md:flex"
-          style={{
-            paddingTop: px(160),
-            paddingBottom: px(100),
-            paddingLeft: px(40),
-            paddingRight: px(40),
-          }}
-        >
-          {/* 내부 1600×350 박스 — overflow hidden, border-radius 40 */}
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              maxWidth: px(1600),
-              height: px(350, 140),
-              borderRadius: px(40),
-            }}
-          >
-            {/* 아래 레이어: 스파클 + 중앙 타이틀 블록 */}
-            <div className="absolute inset-0 z-0">
-              {/* ── 장식 스파클 (1600×350 기준 % 좌표) ── */}
-              <img
-                src="/home/product-star.png"
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute select-none"
-                style={{
-                  left: "21.9%",
-                  top: "5.1%",
-                  width: px(38, 16),
-                  height: px(38, 16),
-                }}
-              />
-              <img
-                src="/home/company-intro-star.png"
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute select-none"
-                style={{
-                  left: "81%",
-                  top: 0,
-                  width: px(72, 28),
-                  height: px(72, 28),
-                }}
-              />
-              <img
-                src="/home/intro-star.png"
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute select-none"
-                style={{
-                  left: "64.8%",
-                  top: "62.6%",
-                  width: px(53, 22),
-                  height: px(53, 22),
-                }}
-              />
-
-              {/* ── 텍스트 블록: 수평 중앙, top 78/350 = 22.3% ── */}
-              <div
-                className="absolute right-0 left-0 flex flex-col items-center"
-                style={{
-                  top: "22.3%",
-                  gap: px(30, 10),
-                  paddingLeft: "26%",
-                  paddingRight: "26%",
-                }}
-              >
-                <h1
-                  style={{
-                    color: "#003F2B",
-                    fontSize: px(100, 28),
-                    fontFamily: "NanumSquareRound, sans-serif",
-                    fontWeight: 800,
-                    lineHeight: px(140, 38),
-                    textAlign: "center",
-                    width: "100%",
-                  }}
-                >
-                  EGG 계란 이야기
-                </h1>
-                <p
-                  style={{
-                    color: "#003F2B",
-                    fontSize: px(18, 11),
-                    fontFamily: "NanumSquareRound, sans-serif",
-                    fontWeight: 700,
-                    lineHeight: px(21.6, 16),
-                    textAlign: "center",
-                  }}
-                >
-                  작은 알 하나에 담긴 건강한 가치&nbsp;&nbsp;&nbsp; 풍림푸드는
-                  매일 식탁에 오르는 계란의 가치를 연구합니다.
-                </p>
-              </div>
-            </div>
-
-            {/* 위 레이어: 플로팅 뱃지 (건강한 / 믿을 수 있는 / 간편한) */}
-            <div className="pointer-events-none absolute inset-0 z-10">
-              {(
-                [
-                  { text: "건강한", style: { left: "37.6%", top: "22.3%" } },
-                  {
-                    text: "믿을 수 있는",
-                    style: { left: "23.1%", top: "52%" },
-                  },
-                  { text: "간편한", style: { left: "68.9%", top: "47.1%" } },
-                ] as const
-              ).map(({ text, style: pos }) => (
-                <span
-                  key={text}
-                  className="pointer-events-none absolute select-none"
-                  style={{
-                    ...pos,
-                    background: "white",
-                    borderRadius: "9999px",
-                    outline: "1px #1F2121 solid",
-                    padding: `${px(8, 4)} ${px(14, 8)}`,
-                    color: "#1F2121",
-                    fontSize: px(15, 10),
-                    fontFamily: "NanumSquareRound, sans-serif",
-                    fontWeight: 700,
-                    lineHeight: "1",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {text}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+      <section
+        ref={sectionRef}
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "w-full min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+        )}
+      >
+        <EggHeroMobile {...heroReveal} />
+        <EggHeroDesktop {...heroReveal} />
       </section>
 
       {/* ══════════════════════════════════════════
           2. 자연이 만든 완전식품, 계란 (Yellow)
       ══════════════════════════════════════════ */}
       <section
-        className="w-full overflow-hidden"
-        style={{ background: "#F3BC1E" }}
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "w-full min-w-0 overflow-hidden bg-[#F3BC1E]",
+        )}
       >
         <div className="px-4 py-10 md:hidden">
           <EggIntroYellowMobile />
@@ -1628,7 +1974,12 @@ export default function EggStoryScreen() {
             paddingBottom: px(100),
           }}
         >
-          <div className="flex flex-col items-start gap-[clamp(12px,calc(20*100vw/1920),20px)] lg:flex-row">
+          <div
+            className={cn(
+              eggDesktopContentInnerClass,
+              "flex flex-col items-start gap-[clamp(12px,calc(20*100vw/1920),20px)] lg:flex-row",
+            )}
+          >
             {/* 좌측 2×2 이미지 그리드 */}
             <div className="flex flex-1 flex-col gap-[clamp(12px,calc(20*100vw/1920),20px)]">
               {["img01", "img02"].map((name) => (
@@ -1673,18 +2024,22 @@ export default function EggStoryScreen() {
             >
               <img
                 src="/intro/img05.png"
-                alt="자연이 만든 완전식품 계란"
-                className="absolute inset-0 h-full w-full object-cover"
+                alt="자엘이 만든 완전식품 계란"
+                className="absolute inset-0 z-0 h-full w-full object-cover"
               />
+              {/* 텍스트 블록 뒤 가독성 — 중앙 타원 + 상·하 약한 딤 */}
               <div
-                className="absolute inset-0"
+                className="pointer-events-none absolute inset-0 z-[1]"
                 style={{
-                  background:
-                    "linear-gradient(179deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 70%)",
+                  background: [
+                    "radial-gradient(ellipse 95% 70% at 50% 42%, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.22) 48%, transparent 72%)",
+                    "linear-gradient(180deg, rgba(0,0,0,0.14) 0%, transparent 32%, transparent 58%, rgba(0,0,0,0.2) 100%)",
+                  ].join(", "),
                 }}
+                aria-hidden
               />
               <div
-                className="absolute flex flex-col items-center gap-[clamp(8px,calc(10*100vw/1920),10px)] text-center"
+                className="absolute z-[2] flex flex-col items-center gap-[clamp(8px,calc(10*100vw/1920),10px)] text-center"
                 style={{ left: "15%", top: "34%", right: "5%" }}
               >
                 <p
@@ -1737,7 +2092,12 @@ export default function EggStoryScreen() {
           3. 계란은 이렇게 이루어져 있습니다
              (스크롤 sticky 스태킹 인터랙션)
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "w-full min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+        )}
+      >
         <div className="py-[50px] md:hidden">
           <SectionTitleMobile
             title="계란은 이렇게 이루어져 있습니다"
@@ -1753,7 +2113,7 @@ export default function EggStoryScreen() {
               position: "sticky",
               top: EGG_STORY_NAV_SAFE_TOP,
               zIndex: 45,
-              backgroundColor: "var(--site-chrome-header-bg,#F4F2E5)",
+              backgroundColor: "var(--site-chrome-header-bg,#FDFDF5)",
               paddingTop: px(110),
               paddingBottom: px(24),
               paddingLeft: px(160),
@@ -1797,255 +2157,259 @@ export default function EggStoryScreen() {
       {/* ══════════════════════════════════════════
           6. 좋은 계란을 고르는 방법 (White)
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-white">
-        <div
-          className="hidden items-center justify-center gap-[clamp(12px,calc(20*100vw/1920),20px)] md:flex"
-          style={{
-            paddingTop: px(100),
-            paddingLeft: px(160),
-            paddingRight: px(160),
-          }}
-        >
-          <StarDeco />
-          <h2
-            style={{
-              color: "#003F2B",
-              fontSize: px(60, 24),
-              fontFamily: "NanumSquareRound, sans-serif",
-              fontWeight: 800,
-              lineHeight: px(84, 32),
-              textAlign: "center",
-            }}
-          >
-            좋은 계란을 고르는 방법
-          </h2>
-        </div>
-
-        {/* 모바일: px-16 py-40 · 데스크탑: 좌우 대형 패딩 + 상단 간격 */}
-        {/* ── 피그마 모바일: 전폭 유동 열, 행 높이 140, gap 10, radius 10 ── */}
-        {/* ── 피그마 데스크탑: gap-20, 좌 풀높이 + 우 2×320 ── */}
-        <div className="px-4 pt-10 pb-10 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:pt-[clamp(24px,calc(60*100vw/1920),60px)] md:pb-[clamp(44px,calc(110*100vw/1920),110px)]">
-          <SectionTitleMobile
-            omitHorizontalPadding
-            title="좋은 계란을 고르는 방법"
-          />
+      <section
+        className={cn(SECTION_VIEWPORT_BLEED, "w-full min-w-0 bg-white")}
+      >
+        <div className={eggDesktopContentInnerClass}>
           <div
-            className="mt-0 flex flex-col gap-[10px] md:mt-0 md:flex-row md:gap-[clamp(8px,calc(20*100vw/1920),20px)]"
+            className="hidden items-center justify-center gap-[clamp(12px,calc(20*100vw/1920),20px)] md:flex"
             style={{
-              alignItems: "stretch",
+              paddingTop: px(100),
+              paddingLeft: px(160),
+              paddingRight: px(160),
             }}
           >
-            {/* ── 왼쪽: flex:1 풀하이트 카드 (choice01 / 껍질 상태 확인) ── */}
-            <div
-              className="flex h-[140px] md:h-auto md:min-h-0"
-              style={{ flex: "1 1 0" }}
-            >
-              <div
-                className="h-full min-h-0 md:h-auto md:min-h-0 md:flex-1"
-                style={{
-                  flex: 1,
-                  borderRadius: px(40, 10),
-                  overflow: "hidden",
-                  position: "relative",
-                }}
-              >
-                <img
-                  src="/intro/choice01.png"
-                  alt="껍질 상태 확인"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-                {/* 하단 그라데이션 */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
-                  }}
-                />
-                {/* 텍스트 오버레이 — 모바일 시안: padding 20 근사(px 26.05) */}
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: px(40, 20),
-                    left: px(40, 20),
-                    right: px(40, 20),
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: px(12, 10),
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "white",
-                      fontSize: px(28, 18),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 800,
-                      lineHeight: px(39.2, 25.2),
-                    }}
-                  >
-                    껍질 상태 확인
-                  </h3>
-                  <p
-                    style={{
-                      color: "white",
-                      fontSize: px(20, 14),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 700,
-                      lineHeight: px(30, 21),
-                    }}
-                  >
-                    껍질이 깨지지 않고 깨끗한 계란을 선택하세요.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── 오른쪽: flex:1 컬럼, 상하 카드 각각 flex:1 ── */}
-            <div
-              className="flex flex-col gap-[10px] md:gap-[clamp(8px,calc(20*100vw/1920),20px)]"
+            <StarDeco />
+            <h2
               style={{
-                flex: "1 1 0",
+                color: "#003F2B",
+                fontSize: px(60, 24),
+                fontFamily: "NanumSquareRound, sans-serif",
+                fontWeight: 800,
+                lineHeight: px(84, 32),
+                textAlign: "center",
               }}
             >
-              {/* 상단: choice02 / 냉장 보관 제품 선택 — 모바일 높이 140px */}
+              좋은 계란을 고르는 방법
+            </h2>
+          </div>
+
+          {/* 모바일: px-16 py-40 · 데스크탑: 좌우 대형 패딩 + 상단 간격 */}
+          {/* ── 피그마 모바일: 전폭 유동 열, 행 높이 140, gap 10, radius 10 ── */}
+          {/* ── 피그마 데스크탑: gap-20, 좌 풀높이 + 우 2×320 ── */}
+          <div className="px-4 pt-10 pb-10 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:pt-[clamp(24px,calc(60*100vw/1920),60px)] md:pb-[clamp(44px,calc(110*100vw/1920),110px)]">
+            <SectionTitleMobile
+              omitHorizontalPadding
+              title="좋은 계란을 고르는 방법"
+            />
+            <div
+              className="mt-0 flex flex-col gap-[10px] md:mt-0 md:flex-row md:gap-[clamp(8px,calc(20*100vw/1920),20px)]"
+              style={{
+                alignItems: "stretch",
+              }}
+            >
+              {/* ── 왼쪽: flex:1 풀하이트 카드 (choice01 / 껍질 상태 확인) ── */}
               <div
-                className="h-[140px] shrink-0 md:h-[clamp(140px,calc(320*100vw/1920),320px)]"
-                style={{
-                  borderRadius: px(40, 10),
-                  overflow: "hidden",
-                  position: "relative",
-                }}
+                className="flex h-[140px] md:h-auto md:min-h-0"
+                style={{ flex: "1 1 0" }}
               >
-                <img
-                  src="/intro/choice02.png"
-                  alt="냉장 보관 제품 선택"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-                {/* 모바일: 상단에서 아래로 흐려짐 — 시안 linear-gradient 30% → 0 at 60% */}
                 <div
-                  className="absolute inset-0 md:hidden"
+                  className="h-full min-h-0 md:h-auto md:min-h-0 md:flex-1"
                   style={{
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 60%)",
-                  }}
-                />
-                <div
-                  className="absolute inset-0 hidden md:block"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: px(30, 20),
-                    left: px(40, 26),
-                    right: px(40, 26),
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: px(12, 10),
+                    flex: 1,
+                    borderRadius: px(40, 10),
+                    overflow: "hidden",
+                    position: "relative",
                   }}
                 >
-                  <h3
+                  <img
+                    src="/intro/choice01.png"
+                    alt="껍질 상태 확인"
                     style={{
-                      color: "white",
-                      fontSize: px(28, 16),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 800,
-                      lineHeight: px(39.2, 22.4),
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  {/* 하단 그라데이션 */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
+                    }}
+                  />
+                  {/* 텍스트 오버레이 — 모바일 시안: padding 20 근사(px 26.05) */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: px(40, 20),
+                      left: px(40, 20),
+                      right: px(40, 20),
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: px(12, 10),
                     }}
                   >
-                    냉장 보관 제품 선택
-                  </h3>
-                  <p
-                    style={{
-                      color: "white",
-                      fontSize: px(20, 13),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 700,
-                      lineHeight: px(30, 19.5),
-                    }}
-                  >
-                    계란은 냉장 상태로 보관된 제품이 좋습니다.
-                  </p>
+                    <h3
+                      style={{
+                        color: "white",
+                        fontSize: px(28, 18),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        lineHeight: px(39.2, 25.2),
+                      }}
+                    >
+                      껍질 상태 확인
+                    </h3>
+                    <p
+                      style={{
+                        color: "white",
+                        fontSize: px(20, 14),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 700,
+                        lineHeight: px(30, 21),
+                      }}
+                    >
+                      껍질이 깨지지 않고 깨끗한 계란을 선택하세요.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* 하단: choice03 / 신선도 확인 */}
+              {/* ── 오른쪽: flex:1 컬럼, 상하 카드 각각 flex:1 ── */}
               <div
-                className="h-[140px] shrink-0 md:h-[clamp(140px,calc(320*100vw/1920),320px)]"
+                className="flex flex-col gap-[10px] md:gap-[clamp(8px,calc(20*100vw/1920),20px)]"
                 style={{
-                  borderRadius: px(40, 10),
-                  overflow: "hidden",
-                  position: "relative",
+                  flex: "1 1 0",
                 }}
               >
-                <img
-                  src="/intro/choice03.png"
-                  alt="신선도 확인"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
+                {/* 상단: choice02 / 냉장 보관 제품 선택 — 모바일 높이 140px */}
                 <div
+                  className="h-[140px] shrink-0 md:h-[clamp(140px,calc(320*100vw/1920),320px)]"
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: px(30, 20),
-                    left: px(40, 20),
-                    right: px(40, 20),
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: px(12, 10),
+                    borderRadius: px(40, 10),
+                    overflow: "hidden",
+                    position: "relative",
                   }}
                 >
-                  <h3
+                  <img
+                    src="/intro/choice02.png"
+                    alt="냉장 보관 제품 선택"
                     style={{
-                      color: "white",
-                      fontSize: px(28, 18),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 800,
-                      lineHeight: px(39.2, 25.2),
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  {/* 모바일: 상단에서 아래로 흐려짐 — 시안 linear-gradient 30% → 0 at 60% */}
+                  <div
+                    className="absolute inset-0 md:hidden"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 60%)",
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 hidden md:block"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: px(30, 20),
+                      left: px(40, 26),
+                      right: px(40, 26),
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: px(12, 10),
                     }}
                   >
-                    신선도 확인
-                  </h3>
-                  <p
+                    <h3
+                      style={{
+                        color: "white",
+                        fontSize: px(28, 16),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        lineHeight: px(39.2, 22.4),
+                      }}
+                    >
+                      냉장 보관 제품 선택
+                    </h3>
+                    <p
+                      style={{
+                        color: "white",
+                        fontSize: px(20, 13),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 700,
+                        lineHeight: px(30, 19.5),
+                      }}
+                    >
+                      계란은 냉장 상태로 보관된 제품이 좋습니다.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 하단: choice03 / 신선도 확인 */}
+                <div
+                  className="h-[140px] shrink-0 md:h-[clamp(140px,calc(320*100vw/1920),320px)]"
+                  style={{
+                    borderRadius: px(40, 10),
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <img
+                    src="/intro/choice03.png"
+                    alt="신선도 확인"
                     style={{
-                      color: "white",
-                      fontSize: px(20, 14),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 700,
-                      lineHeight: px(30, 21),
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.60) 100%)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: px(30, 20),
+                      left: px(40, 20),
+                      right: px(40, 20),
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: px(12, 10),
                     }}
                   >
-                    구입 후 가능한 빠르게 섭취하는 것이 좋습니다.
-                  </p>
+                    <h3
+                      style={{
+                        color: "white",
+                        fontSize: px(28, 18),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 800,
+                        lineHeight: px(39.2, 25.2),
+                      }}
+                    >
+                      신선도 확인
+                    </h3>
+                    <p
+                      style={{
+                        color: "white",
+                        fontSize: px(20, 14),
+                        fontFamily: "NanumSquareRound, sans-serif",
+                        fontWeight: 700,
+                        lineHeight: px(30, 21),
+                      }}
+                    >
+                      구입 후 가능한 빠르게 섭취하는 것이 좋습니다.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2059,156 +2423,25 @@ export default function EggStoryScreen() {
       <PhilosophySection />
 
       {/* ══════════════════════════════════════════
-          8. 계란이 식탁에 오기까지 (White)
+          8. 계란이 식탁에 오기까지 (White) — 영양소와 동일 스크롤 순차 페이드
       ══════════════════════════════════════════ */}
-      <section className="w-full bg-white px-4 py-10 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-0 md:pt-[clamp(40px,calc(100*100vw/1920),100px)] md:pb-[clamp(64px,calc(160*100vw/1920),160px)]">
-        <div className="md:hidden">
-          <SectionTitleMobile
-            omitHorizontalPadding
-            title="계란이 식탁에 오기까지"
-          />
-          {/* 모바일: px-4 패딩 안에서 전폭 유동 (375 시안 343열 비율 고정 제거) */}
-          <div className="mx-auto flex w-full flex-col">
-            {steps.map((step, idx) => (
-              <div
-                key={step.name}
-                className="inline-flex w-full items-center justify-start rounded-[10px] bg-white py-5"
-              >
-                <div className="inline-flex min-w-0 flex-1 flex-col items-start gap-3">
-                  <div className="inline-flex items-center gap-2.5">
-                    <div
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#003F2B] text-center text-[14px] leading-[21px] font-bold text-white"
-                      style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-                    >
-                      {idx + 1}
-                    </div>
-                    <span
-                      className="text-[18px] leading-[27px] font-extrabold text-[#003F2B]"
-                      style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-                    >
-                      {step.name}
-                    </span>
-                  </div>
-                  <p
-                    className="w-full text-[16px] leading-6 font-bold text-[#1F2121]"
-                    style={{ fontFamily: "NanumSquareRound, sans-serif" }}
-                  >
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="hidden md:block">
-          {/* 헤더 */}
-          <div className="mb-[clamp(24px,calc(60*100vw/1920),60px)] flex items-start gap-[clamp(8px,calc(10*100vw/1920),10px)]">
-            <h2
-              style={{
-                color: "#1F2121",
-                fontSize: px(60, 24),
-                fontFamily: "NanumSquareRound, sans-serif",
-                fontWeight: 800,
-                lineHeight: px(90, 32),
-              }}
-            >
-              계란이 <br />
-              식탁에 오기까지
-            </h2>
-            <div style={{ marginTop: px(22, 10) }}>
-              <StarDeco />
-            </div>
-          </div>
-
-          {/* STEP 리스트 — 피그마: justify-between, align-items center */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <p
-              className="hidden lg:block"
-              style={{
-                color: "#1F2121",
-                fontSize: px(100, 36),
-                fontFamily: "NanumSquareRound, sans-serif",
-                fontWeight: 700,
-                lineHeight: px(130, 48),
-                minWidth: px(412, 60),
-              }}
-            >
-              4
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: px(30, 16),
-              }}
-            >
-              {steps.map((step) => (
-                <div
-                  key={step.name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: px(40, 16),
-                    width: px(716, 300),
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#1F2121",
-                      fontSize: px(60, 20),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 800,
-                      lineHeight: px(78, 28),
-                      flexShrink: 0,
-                    }}
-                  >
-                    {step.name}
-                  </span>
-                  <p
-                    style={{
-                      color: "#1F2121",
-                      fontSize: px(20, 13),
-                      fontFamily: "NanumSquareRound, sans-serif",
-                      fontWeight: 700,
-                      lineHeight: px(30, 18),
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {step.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <p
-              className="hidden lg:block"
-              style={{
-                color: "#1F2121",
-                fontSize: px(100, 36),
-                fontFamily: "NanumSquareRound, sans-serif",
-                fontWeight: 800,
-                lineHeight: px(130, 48),
-              }}
-            >
-              STEP
-            </p>
-          </div>
-        </div>
-      </section>
+      <EggJourneyScrollSection />
 
       {/* ══════════════════════════════════════════
           9. 풍림푸드의 계란 제품 CTA (Ivory)
       ══════════════════════════════════════════ */}
-      <section className="relative z-0 w-full overflow-hidden bg-[#EAE3C9] pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-0">
-        <div className="flex flex-col items-center gap-10 md:flex-row md:items-center md:gap-[clamp(32px,calc(120*100vw/1920),120px)]">
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "relative z-0 w-full min-w-0 overflow-hidden bg-[#EAE3C9] pt-10 pb-[100px] md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:py-0",
+        )}
+      >
+        <div
+          className={cn(
+            eggDesktopContentInnerClass,
+            "flex flex-col items-center gap-10 md:flex-row md:items-center md:gap-[clamp(32px,calc(120*100vw/1920),120px)]",
+          )}
+        >
           {/* ── 좌: 텍스트 + CTA — 모바일만 좌우 패딩(무한 스크롤은 풀블리드) ── */}
           <div className="flex w-full max-w-full shrink-0 flex-col items-center gap-5 px-4 text-center md:w-[clamp(260px,calc(758*100vw/1920),758px)] md:items-start md:gap-[clamp(20px,calc(40*100vw/1920),40px)] md:px-0 md:text-left">
             <div className="flex flex-col gap-2.5 md:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
@@ -2297,7 +2530,7 @@ export default function EggStoryScreen() {
               </div>
             </div>
             <div
-              className="hidden h-[min(380px,55vh)] w-full md:flex md:h-[clamp(380px,calc(700*100vw/1920),700px)]"
+              className="hidden w-full md:flex md:h-[min(clamp(380px,calc(700*100vw/1920),700px),min(52vh,640px))]"
               style={{
                 flex: 1,
                 gap: px(20, 8),

@@ -160,7 +160,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className="w-full bg-[var(--site-chrome-header-bg,#FDFDF5)]">
       {/* 배너 */}
       <PageBanner
         imageUrl="/intro/history_banner.png"
@@ -272,7 +272,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
         </SectionPageTitle>
 
         {/* ── 연혁 기간 탭바 (PC) — flex + space-between(양끝 정렬) · 비활성=바와 동색 · pill 뒤 흰 선 — sticky ── */}
-        <div className="sticky top-[var(--header-height)] z-40 -mx-4 mb-10 hidden bg-[var(--site-chrome-header-bg,#F4F2E5)] py-2 md:mx-0 md:mb-14 md:block">
+        <div className="sticky top-[var(--header-height)] z-40 -mx-4 mb-10 hidden bg-[var(--site-chrome-header-bg,#FDFDF5)] py-2 md:mx-0 md:mb-14 md:block">
           <div className="rounded-[40px] bg-[#F3BC1E] px-4 py-5 md:px-[60px]">
             <div className="relative">
               <div

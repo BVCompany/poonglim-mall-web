@@ -84,7 +84,7 @@ export default function PuddingsScreen() {
       </section>
 
       {/* Products Section */}
-      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-16">
+      <section className="bg-[var(--site-chrome-header-bg,#FDFDF5)] py-16">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <p className="mb-12 text-center text-lg text-muted-foreground">
             엄선된 원료로 만든 고품질 디저트 푸딩

@@ -10,6 +10,7 @@ import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -133,7 +134,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="공지사항"
@@ -261,8 +262,9 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                         <span className={metaBadgeClass}>{notice.category}</span>
                         <span
                           className={cn(
-                            "shrink-0 text-center font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121]",
-                            isFirstPinnedOnPage ? "w-20" : "w-16",
+                            "shrink-0 whitespace-nowrap text-center font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] tabular-nums text-[#1F2121]",
+                            /* YYYY-MM-DD 한 줄 — 고정 w-16/20px은 좁아 줄바꿈 발생 */
+                            "min-w-[92px]",
                           )}
                         >
                           {formatDate(notice.created_at)}

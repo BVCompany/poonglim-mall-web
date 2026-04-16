@@ -32,10 +32,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { userPromise: mockUserPromise, productCategories, recipeCategories };
 }
 
-/** 사이트 공통: 본문(셸)과 헤더 배경을 동일 톤으로 통일 (#F4F2E5) */
+/** 사이트 공통: 본문(셸)과 헤더 배경을 동일 톤으로 통일 (#FDFDF5) */
 const SITE_CHROME = {
-  shell: "#F4F2E5",
-  header: "#F4F2E5",
+  shell: "#FDFDF5",
+  header: "#FDFDF5",
 } as const;
 
 export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
@@ -77,10 +77,8 @@ export default function NavigationLayout({ loaderData }: Route.ComponentProps) {
         </Await>
       </Suspense>
       <div className="mt-[var(--header-height)] w-full flex-1">
-        <div
-          className="pc-fluid-root mx-auto w-full max-w-[1920px]"
-          style={{ overflowX: "clip" }}
-        >
+        {/* overflow-x-visible: 본문 안 섹션 풀블리드(예: 채용 복리후생 흰 배경 100vw)가 max-w 박스 밖으로 펼쳐지도록 */}
+        <div className="pc-fluid-root mx-auto w-full max-w-[1920px] overflow-x-visible">
           <Outlet />
         </div>
       </div>

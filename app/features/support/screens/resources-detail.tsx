@@ -6,6 +6,8 @@ import { Link } from "react-router";
 import type { Route } from "./+types/resources-detail";
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -252,7 +254,7 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
   const { resource, prev, next, pageBanner } = loaderData;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
         title="자료실"

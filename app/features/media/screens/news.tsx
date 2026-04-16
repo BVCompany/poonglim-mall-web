@@ -8,10 +8,12 @@ import { useState, useRef } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Route } from "./+types/news";
+import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import db from "~/core/db/drizzle-client.server";
 import { news } from "~/features/media/schema";
@@ -221,7 +223,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       {/* ── 배너 ── */}
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
@@ -301,46 +303,37 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                             "lg:rounded-bl-[30px] lg:rounded-tl-[30px]",
                           )}
                         >
-                          <div
-                            className="absolute inset-0 rounded-t-[20px] bg-[#D9D9D9] md:rounded-none lg:rounded-[15px]"
-                            aria-hidden
-                          />
-                          <img
-                            src={pressMobilePlaceholderSrc(item.news_id)}
-                            alt=""
-                            aria-hidden
-                            className={cn(
-                              "absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100",
-                              "rounded-t-[20px] md:rounded-none lg:rounded-[15px]",
-                              "md:hidden",
-                            )}
-                          />
                           {item.thumbnail_url ? (
-                            <img
-                              src={item.thumbnail_url}
-                              alt={item.title}
-                              className={cn(
-                                "absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100",
-                                "rounded-t-[20px] md:rounded-none lg:rounded-[15px]",
-                                "hidden md:block",
-                              )}
-                            />
+                            <>
+                              <img
+                                src={item.thumbnail_url}
+                                alt={item.title}
+                                className={cn(
+                                  "absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100",
+                                  "rounded-t-[20px] md:rounded-none lg:rounded-tl-[15px] lg:rounded-bl-[15px]",
+                                )}
+                              />
+                              <div
+                                className={cn(
+                                  "pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-[rgba(0,0,0,0.78)] to-transparent md:rounded-none lg:rounded-tl-[15px] lg:rounded-bl-[15px]",
+                                )}
+                                aria-hidden
+                              />
+                              <div
+                                className={cn(
+                                  "pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-black/50 to-transparent md:rounded-none lg:rounded-tl-[15px] lg:rounded-bl-[15px]",
+                                )}
+                                aria-hidden
+                              />
+                            </>
                           ) : (
-                            <div
+                            <MediaThumbFallback
                               className={cn(
-                                "absolute inset-0 bg-[#D9D9D9] md:rounded-none lg:rounded-[15px]",
-                                "hidden rounded-t-[20px] md:block",
+                                "absolute inset-0",
+                                "rounded-t-[20px] md:rounded-none lg:rounded-tl-[15px] lg:rounded-bl-[15px]",
                               )}
                             />
                           )}
-                          <div
-                            className="pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-[rgba(0,0,0,0.78)] to-transparent md:rounded-none lg:rounded-[15px]"
-                            aria-hidden
-                          />
-                          <div
-                            className="pointer-events-none absolute inset-0 rounded-t-[20px] bg-gradient-to-t from-black/50 to-transparent md:rounded-none lg:rounded-[15px]"
-                            aria-hidden
-                          />
                         </div>
                         <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 lg:left-[30px] lg:top-[30px]">
                           <span className="inline-flex whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-2 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]">
@@ -514,21 +507,21 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                           "lg:mx-0 lg:items-center lg:px-2.5 lg:py-0",
                         )}
                       >
-                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[14.88px] md:h-[215px] md:w-[215px] md:rounded-xl lg:rounded-[40px]">
-                          <img
-                            src={pressMobilePlaceholderSrc(item.news_id)}
-                            alt=""
-                            aria-hidden
-                            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 md:hidden lg:group-hover:scale-100"
-                          />
+                        <div
+                          className={cn(
+                            "relative h-20 w-20 shrink-0 overflow-hidden rounded-[14.88px]",
+                            "md:h-[215px] md:w-[215px] md:rounded-xl",
+                            "lg:rounded-[40px]",
+                          )}
+                        >
                           {item.thumbnail_url ? (
                             <img
                               src={item.thumbnail_url}
                               alt={item.title}
-                              className="hidden h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 md:block lg:group-hover:scale-100"
+                              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 lg:group-hover:scale-100"
                             />
                           ) : (
-                            <div className="hidden h-full w-full bg-[#EAE3C9] md:block" />
+                            <MediaThumbFallback className="absolute inset-0" />
                           )}
                         </div>
                       </div>

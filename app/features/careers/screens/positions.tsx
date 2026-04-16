@@ -4,7 +4,7 @@
  * 주요 모집 직무 / 채용 절차 / 채용공고(4-드롭다운 필터) / 입사지원 / 복리후생
  *
  * 섹션 타이틀(PC·모바일): 녹색 네모 장식 없음 — 반드시 `SectionPageTitle` + 스파클 PNG(`starVariant`).
- * 복리후생은 시안과 동일한 녹색 톤 마크 → `introVector`(/intro/Vector.png), 모바일 제목만 `#02633E`.
+ * 복리후생은 시안과 동일한 녹색 톤 마크 → `introVector`(/intro/Vector.png), 모바일 섹션 타이틀 텍스트는 `#1F2121`.
  */
 import type { JobPosting as DbJobPosting } from "../lib/queries.server";
 import type { Route } from "./+types/positions";
@@ -18,12 +18,22 @@ import {
   ChevronUp,
   Paperclip,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
@@ -45,14 +55,32 @@ const FILTER_EXP = ["전체 경력", "신입", "경력", "신입/경력"] as con
 const FILTER_REGION = ["전체 지역", "서울", "충북", "충남", "전북"] as const;
 const FILTER_STATUS = ["전체 상태", "모집중", "마감임박", "상시채용"] as const;
 
+/** 입사지원·공장견학과 동일한 메일 도메인 프리셋 */
+const JOB_APPLY_EMAIL_DOMAINS = [
+  "직접입력",
+  "gmail.com",
+  "naver.com",
+  "kakao.com",
+  "hanmail.net",
+  "nate.com",
+] as const;
+
+/**
+ * 모바일 채용 필터(body 포털) 세로 위치: 트리거 `getBoundingClientRect().bottom` 기준 추가 오프셋(px).
+ * 더 내리려면 값을 키우고, 트리거 상단에 맞추려면 `useLayoutEffect` 안 `measure`에서 `top: r.top + …` 로 바꾸면 됩니다.
+ */
+const MOBILE_CAREERS_FILTER_FLOAT_OFFSET_Y = 6;
+/** 모바일 채용 필터 플로팅 패널 가로 너비(px) */
+const MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX = 100;
+
 /** 필터 버튼 표기 (시안: 전체 직무 등) */
 function formatJobFilterDisplay(v: string) {
   return v === "전체직무" ? "전체 직무" : v;
 }
 
-/** 모바일 필터 라벨: Pretendard 12px / 500 (시안) */
+/** 모바일 필터 트리거 라벨: Pretendard 12px / 500 (시안) */
 const careersFilterDropdownFont =
-  "[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-none lg:[font-size:clamp(14px,calc(16*100vw/1920),16px)] lg:[line-height:clamp(20px,calc(24*100vw/1920),24px)]";
+  "[font-family:Pretendard,system-ui,sans-serif] max-lg:text-[12px] max-lg:font-medium max-lg:leading-none lg:[font-size:clamp(14px,calc(16*100vw/1920),16px)] lg:[line-height:clamp(20px,calc(24*100vw/1920),24px)]";
 
 const jobApplyButtonFont =
   "[font-family:Pretendard,system-ui,sans-serif] text-[13px] font-bold leading-[19.5px] lg:[font-size:clamp(13px,calc(14*100vw/1920),14px)] lg:[line-height:clamp(19px,calc(21*100vw/1920),21px)]";
@@ -107,54 +135,161 @@ const jobApplySubfieldMobile =
 const jobApplyLabelPc =
   "lg:mb-0 lg:inline lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black";
 
-/** 열린 필터 패널 — 트리거는 바깥 버튼(위·아래 화살표)에서만 처리, 여기서는 녹색 옵션 목록만 */
-function CareersFilterDropdownOpen<T extends string>({
+const filterChevronClass =
+  "size-[clamp(16px,calc(20*100vw/1920),20px)] shrink-0 max-lg:size-3.5";
+
+/** Tailwind `max-lg`와 동일: <1024px */
+function subscribeCareersMaxLg(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mq = window.matchMedia("(max-width: 1023px)");
+  mq.addEventListener("change", onStoreChange);
+  return () => mq.removeEventListener("change", onStoreChange);
+}
+function getCareersMaxLgSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 1023px)").matches
+  );
+}
+function getCareersMaxLgServerSnapshot() {
+  return false;
+}
+function useCareersMaxLg() {
+  return useSyncExternalStore(
+    subscribeCareersMaxLg,
+    getCareersMaxLgSnapshot,
+    getCareersMaxLgServerSnapshot,
+  );
+}
+
+/** PC: 녹색 패널·1행=현재값+닫기(위 화살표) / 모바일: 동일 녹색 톤·제목 행 없이 옵션만(흰 글자·좌정렬) */
+function CareersFilterDropdownFloating<T extends string>({
   currentValue,
   options,
   formatLabel = (s: string) => s,
   onPick,
+  onClose,
+  layout = "pc",
 }: {
   currentValue: T;
   options: readonly T[];
   formatLabel?: (v: string) => string;
   onPick: (v: T) => void;
+  onClose: () => void;
+  layout?: "pc" | "mobileOptions";
 }) {
-  const optionRow =
-    "flex w-full min-w-0 items-center whitespace-nowrap rounded-none bg-[#32AF32] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] text-left text-white";
-  const otherOptions = options.filter((o) => o !== currentValue);
-  if (otherOptions.length === 0) return null;
+  const rowPad =
+    "px-[clamp(14px,calc(18*100vw/1920),18px)] py-[clamp(12px,calc(16*100vw/1920),16px)] max-lg:px-4 max-lg:py-[14px]";
+  const rowFont = cn(
+    "text-left text-white",
+    "max-lg:[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-[1.35]",
+    "lg:font-[family-name:var(--font-nanum)] lg:[font-size:clamp(14px,calc(16*100vw/1920),16px)] lg:[line-height:clamp(22px,calc(24*100vw/1920),24px)] lg:font-semibold",
+  );
+  const shell = cn(
+    "flex min-w-full w-max max-w-[min(calc(100vw-2rem),24rem)] flex-col overflow-hidden rounded-[clamp(16px,calc(20*100vw/1920),20px)] bg-[#32AF32]",
+    "shadow-[0_4px_20px_rgba(0,0,0,0.15)]",
+    "max-lg:w-full max-lg:rounded-[20px]",
+  );
+
+  if (layout === "mobileOptions") {
+    const others = options.filter((o) => o !== currentValue);
+    const mobileRow = cn(
+      "flex w-full min-w-0 items-center justify-start px-[12px] py-[10px] text-left text-white transition-colors",
+      "[font-family:Pretendard,system-ui,sans-serif] text-[12px] font-medium leading-[1.35]",
+      "hover:bg-white/10 active:bg-white/15",
+    );
+    return (
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-col overflow-hidden rounded-[10px] bg-[#32AF32]",
+          "shadow-[0_4px_20px_rgba(0,0,0,0.15)]",
+        )}
+        role="listbox"
+        aria-label="필터 옵션"
+      >
+        {others.map((opt) => (
+          <button
+            key={String(opt)}
+            type="button"
+            role="option"
+            className={mobileRow}
+            onClick={() => onPick(opt)}
+          >
+            <span className="min-w-0 break-words">
+              {formatLabel(String(opt))}
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const ordered: T[] = [
+    currentValue,
+    ...options.filter((o) => o !== currentValue),
+  ];
+
   return (
-    <div
-      className={cn(
-        "flex min-w-full flex-col items-stretch overflow-hidden rounded-[clamp(12px,calc(20*100vw/1920),20px)] bg-[#32AF32] shadow-[0_12px_27.5px_rgba(2,99,62,0.25)]",
-        "max-lg:rounded max-lg:shadow-[0_8px_20px_rgba(2,99,62,0.15)]",
-      )}
-    >
-      {otherOptions.map((opt, i) => (
-        <button
-          key={opt}
-          type="button"
-          className={cn(
-            optionRow,
-            careersFilterDropdownFont,
-            "font-medium",
-            "max-lg:px-3 max-lg:py-2.5",
-            i === 0 &&
-              "rounded-t-[clamp(12px,calc(20*100vw/1920),20px)] max-lg:rounded-t",
-            i === otherOptions.length - 1 &&
-              "rounded-b-[clamp(12px,calc(20*100vw/1920),20px)] max-lg:rounded-b",
-          )}
-          onClick={() => onPick(opt)}
-        >
-          {formatLabel(opt)}
-        </button>
-      ))}
+    <div className={shell}>
+      {ordered.map((opt, i) => {
+        const isFirst = i === 0;
+        const isLast = i === ordered.length - 1;
+        const roundT =
+          isFirst &&
+          "rounded-t-[clamp(16px,calc(20*100vw/1920),20px)] max-lg:rounded-t-[20px]";
+        const roundB =
+          isLast &&
+          "rounded-b-[clamp(16px,calc(20*100vw/1920),20px)] max-lg:rounded-b-[20px]";
+
+        if (opt === currentValue) {
+          return (
+            <button
+              key={opt}
+              type="button"
+              className={cn(
+                "flex w-full shrink-0 items-center justify-between gap-3 bg-[#32AF32] text-white transition-colors hover:bg-white/5",
+                rowPad,
+                rowFont,
+                roundT,
+                roundB,
+              )}
+              onClick={onClose}
+              aria-expanded="true"
+            >
+              <span className="min-w-0 whitespace-nowrap">
+                {formatLabel(opt)}
+              </span>
+              <ChevronUp
+                className={cn(filterChevronClass, "text-white")}
+                strokeWidth={2}
+                aria-hidden
+              />
+            </button>
+          );
+        }
+
+        return (
+          <button
+            key={opt}
+            type="button"
+            className={cn(
+              "flex w-full min-w-0 items-center justify-start bg-[#32AF32] transition-colors hover:bg-white/10",
+              rowPad,
+              rowFont,
+              roundT,
+              roundB,
+            )}
+            onClick={() => onPick(opt)}
+          >
+            <span className="min-w-0 whitespace-nowrap">
+              {formatLabel(opt)}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
-
-const filterChevronClass =
-  "size-[clamp(16px,calc(20*100vw/1920),20px)] shrink-0 max-lg:size-3.5";
 
 type JobFilter = (typeof FILTER_JOBS)[number];
 type ExpFilter = (typeof FILTER_EXP)[number];
@@ -166,7 +301,7 @@ const KEY_JOBS = [
   {
     icon: "/recruit/prod_icon.png",
     label: "생산·현장직",
-    desc: "생산관리, 지게차,\nSCM 현장",
+    desc: "생산관리, 지게차, SCM 현장",
   },
   {
     icon: "/recruit/manage_icon.png",
@@ -181,7 +316,7 @@ const KEY_JOBS = [
   {
     icon: "/recruit/research_icon.png",
     label: "품질·연구",
-    desc: "품질보증, 공정관리,\n연구소",
+    desc: "품질보증, 공정관리, 연구소",
   },
   {
     icon: "/recruit/marketing_icon.png",
@@ -209,21 +344,32 @@ type CareerStep = {
   desc: string;
   /** 2차 면접: 본문 16px + 부가 14px */
   descSmall?: string;
+  /** 모바일(lg 미만) 설명만 줄바꿈 — [0] 다음 줄에 [1] */
+  descMobileLines?: readonly [string, string];
+  /** 모바일 설명 둘째 줄 전용 클래스(예: 2차 면접 부가 문구) */
+  descMobileLine2ClassName?: string;
   /** true면 좌측 묶음에 w-[140px] 미적용 (최종 합격·입사) */
   titleRowFluid?: boolean;
 };
 
 const STEPS: CareerStep[] = [
-  { title: "서류 전형", desc: "홈페이지 내 이력서\n+ 자기소개서 업로드" },
+  {
+    title: "서류 전형",
+    desc: "홈페이지 내 이력서 + 자기소개서 업로드",
+    descMobileLines: ["홈페이지 내 이력서", "+ 자기소개서 업로드"],
+  },
   { title: "1차 면접", desc: "팀장급 직무 면접" },
   {
     title: "2차 면접",
-    desc: "임원 면접",
-    descSmall: "(직급에 따라 생략 가능)",
+    desc: "임원 면접 (직급에 따라 생략 가능)",
+    descMobileLines: ["임원 면접", "(직급에 따라 생략 가능)"],
+    descMobileLine2ClassName:
+      "font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[21px] text-[#1F2121]/60 break-words",
   },
   {
     title: "최종 합격·입사",
-    desc: "처우 협의 후\n입사 일정 확정",
+    desc: "처우 협의 후 입사 일정 확정",
+    descMobileLines: ["처우 협의 후", "입사 일정 확정"],
     titleRowFluid: true,
   },
 ];
@@ -372,28 +518,138 @@ export default function CareersPositionsScreen({
     "job" | "exp" | "region" | "status" | null
   >(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileFilterPortalRef = useRef<HTMLDivElement>(null);
+  const filterRowScrollRef = useRef<HTMLDivElement>(null);
+  const jobFilterBtnRef = useRef<HTMLButtonElement>(null);
+  const expFilterBtnRef = useRef<HTMLButtonElement>(null);
+  const regionFilterBtnRef = useRef<HTMLButtonElement>(null);
+  const statusFilterBtnRef = useRef<HTMLButtonElement>(null);
+
+  const isMaxLg = useCareersMaxLg();
+  const [filterFloatingPos, setFilterFloatingPos] = useState<{
+    top: number;
+    left: number;
+    minWidth: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!openDropdown || !isMaxLg) {
+      setFilterFloatingPos(null);
+      return;
+    }
+
+    const triggerMap = {
+      job: jobFilterBtnRef,
+      exp: expFilterBtnRef,
+      region: regionFilterBtnRef,
+      status: statusFilterBtnRef,
+    } as const;
+
+    const measure = () => {
+      const el = triggerMap[openDropdown].current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setFilterFloatingPos({
+        top: r.bottom + MOBILE_CAREERS_FILTER_FLOAT_OFFSET_Y,
+        left: r.left,
+        minWidth: r.width,
+      });
+    };
+
+    measure();
+
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(measure)
+        : null;
+    if (ro) {
+      for (const key of ["job", "exp", "region", "status"] as const) {
+        const el = triggerMap[key].current;
+        if (el) ro.observe(el);
+      }
+    }
+
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    const sc = filterRowScrollRef.current;
+    sc?.addEventListener("scroll", measure);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+      sc?.removeEventListener("scroll", measure);
+    };
+  }, [openDropdown, isMaxLg, jobFilter, expFilter, regionFilter, statusFilter]);
 
   /* 외부 클릭 시 드롭다운 닫기 */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setOpenDropdown(null);
-      }
+      const t = e.target as Node;
+      if (dropdownRef.current?.contains(t)) return;
+      if (mobileFilterPortalRef.current?.contains(t)) return;
+      setOpenDropdown(null);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const jobs = MOCK_JOBS; // DB 연결 후 교체
+  const jobs = useMemo(() => {
+    if (loaderData.dbJobs.length === 0) return MOCK_JOBS;
+    return loaderData.dbJobs.map((j) => {
+      const expLabel =
+        j.experience_level === "entry"
+          ? "신입"
+          : j.experience_level === "all"
+            ? "신입/경력"
+            : "경력";
+      const statusUi =
+        j.status === "open" ? ("모집중" as const) : ("마감임박" as const);
+      const typeUi =
+        j.job_type === "full_time"
+          ? "정규직"
+          : j.job_type === "part_time"
+            ? "파트타임"
+            : j.job_type === "contract"
+              ? "계약직"
+              : "인턴";
+      const lines = (j.description ?? "").split(/\n+/).filter(Boolean);
+      return {
+        id: j.job_id,
+        dept: j.department,
+        title: j.title,
+        type: typeUi,
+        exp: expLabel,
+        region: j.location,
+        createdAt: j.created_at
+          ? new Date(j.created_at).toISOString().slice(0, 10)
+          : "",
+        status: statusUi,
+        duties: lines.slice(0, 6).length ? lines.slice(0, 6) : [j.description],
+        requirements: (j.requirements ?? "")
+          .split(/\n+/)
+          .filter(Boolean)
+          .slice(0, 6),
+      };
+    });
+  }, [loaderData.dbJobs]);
 
   const filteredJobs = jobs.filter((j) => {
     if (mainTab === "입사지원") return false;
     const jobOk = jobFilter === "전체직무" || j.dept === jobFilter;
-    const expOk = expFilter === "전체 경력" || j.exp === expFilter;
-    const regionOk = regionFilter === "전체 지역" || j.region === regionFilter;
+    const expOk =
+      expFilter === "전체 경력" ||
+      (expFilter === "경력" && j.exp.includes("경력")) ||
+      (expFilter === "신입" &&
+        j.exp.includes("신입") &&
+        !/\d\s*년/.test(j.exp)) ||
+      (expFilter === "신입/경력" &&
+        j.exp.includes("신입") &&
+        j.exp.includes("경력"));
+    const regionOk =
+      regionFilter === "전체 지역" ||
+      j.region === regionFilter ||
+      j.region.includes(regionFilter);
     const statusOk = statusFilter === "전체 상태" || j.status === statusFilter;
     return jobOk && expOk && regionOk && statusOk;
   });
@@ -475,14 +731,17 @@ export default function CareersPositionsScreen({
       p.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
     );
 
-  const EMAIL_DOMAINS = [
-    "직접입력",
-    "gmail.com",
-    "naver.com",
-    "kakao.com",
-    "hanmail.net",
-    "nate.com",
-  ];
+  const handleJobApplyEmailDomainChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const v = e.target.value;
+      setFormData((p) => ({
+        ...p,
+        emailDomain: v,
+        ...(v !== "" ? { emailDomainCustom: "" } : {}),
+      }));
+    },
+    [],
+  );
 
   const [submitted, setSubmitted] = useState(false);
 
@@ -493,7 +752,12 @@ export default function CareersPositionsScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       {/* ── 배너 ── */}
       <PageBanner
         imageUrl="/intro/recruit_banner.png"
@@ -515,7 +779,7 @@ export default function CareersPositionsScreen({
             <SectionPageTitle as="h2" preset="responsiveLg" className="mb-0">
               주요 모집 직무
             </SectionPageTitle>
-            <div className="grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:gap-3 md:gap-x-[clamp(16px,calc(30*100vw/1920),30px)] md:gap-y-[clamp(16px,calc(30*100vw/1920),30px)]">
+            <div className="grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:gap-3 md:gap-[10px]">
               {KEY_JOBS.map(({ icon, label, desc }, index) => (
                 <div
                   key={label}
@@ -562,11 +826,11 @@ export default function CareersPositionsScreen({
                           aria-hidden
                         />
                       </div>
-                      <span className="min-w-0 font-[family-name:var(--font-nanum)] text-[clamp(17px,calc(24*100vw/1920),24px)] leading-[clamp(25px,calc(36*100vw/1920),36px)] font-extrabold tracking-[-0.04em] break-words text-[#003F2B]">
+                      <span className="min-w-0 shrink-0 font-[family-name:var(--font-nanum)] text-[clamp(17px,calc(24*100vw/1920),24px)] leading-[clamp(25px,calc(36*100vw/1920),36px)] font-extrabold tracking-[-0.04em] break-words text-[#003F2B] md:break-normal md:whitespace-nowrap">
                         {label}
                       </span>
                     </div>
-                    <p className="min-w-0 flex-1 pl-2 text-right font-[family-name:var(--font-nanum)] text-[clamp(13px,calc(18*100vw/1920),18px)] leading-[clamp(19px,calc(27*100vw/1920),27px)] font-bold break-words whitespace-pre-line text-[#003F2B] opacity-60">
+                    <p className="min-w-0 flex-1 pl-2 text-right font-[family-name:var(--font-nanum)] text-[clamp(13px,calc(18*100vw/1920),18px)] leading-[clamp(19px,calc(27*100vw/1920),27px)] font-bold break-words text-[#003F2B] opacity-60 md:break-normal md:whitespace-nowrap">
                       {desc}
                     </p>
                   </div>
@@ -606,30 +870,28 @@ export default function CareersPositionsScreen({
               {STEPS.map((step, i) => {
                 const isLast = i === STEPS.length - 1;
                 const desktopDesc = step.descSmall
-                  ? `${step.desc}\n${step.descSmall}`
+                  ? `${step.desc} ${step.descSmall}`
                   : step.desc;
                 return (
                   <div
                     key={step.title}
                     className={cn(
-                      "relative w-full min-w-0",
+                      "relative min-h-0 w-full lg:h-full",
                       !isLast && "pb-2.5 lg:pb-0",
                     )}
                   >
                     <div
                       className={cn(
-                        "flex h-full w-full flex-col rounded-[10px] bg-white px-5 py-[30px] lg:min-h-[210px] lg:rounded-[clamp(24px,calc(40*100vw/1920),40px)] lg:py-[clamp(18px,calc(30*100vw/1920),30px)] lg:pr-[clamp(20px,calc(40*100vw/1920),40px)] lg:pl-[clamp(20px,calc(40*100vw/1920),40px)]",
+                        "flex h-full min-h-0 w-full flex-col rounded-[10px] bg-white px-5 py-[30px] lg:min-h-[210px] lg:rounded-[clamp(24px,calc(40*100vw/1920),40px)] lg:py-[clamp(18px,calc(30*100vw/1920),30px)] lg:pr-[clamp(20px,calc(40*100vw/1920),40px)] lg:pl-[clamp(20px,calc(40*100vw/1920),40px)]",
                         isLast && "lg:bg-[#003F2B]",
                       )}
                     >
-                      {/* 모바일: 좌 140px(번호+제목, gap 10) | 우 설명 · 내부 행 gap 20 */}
-                      <div className="flex w-full flex-row items-start gap-5 lg:hidden">
+                      {/* 모바일: 가로 4.5 : 1 : 4.5 · 우측 설명 왼쪽 정렬 */}
+                      <div className="grid w-full grid-cols-[minmax(0,4.5fr)_minmax(0,1fr)_minmax(0,4.5fr)] items-start gap-x-0 lg:hidden">
                         <div
                           className={cn(
-                            "flex shrink-0 items-center gap-2.5",
-                            step.titleRowFluid
-                              ? "max-w-[min(100%,calc(100%-8rem))] min-w-0"
-                              : "w-[140px]",
+                            "flex min-w-0 items-center gap-2.5",
+                            step.titleRowFluid ? "pr-1" : "",
                           )}
                         >
                           <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#003F2B]">
@@ -639,33 +901,41 @@ export default function CareersPositionsScreen({
                           </div>
                           <p
                             className={cn(
-                              "font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-extrabold break-words text-[#003F2B]",
-                              step.titleRowFluid
-                                ? "min-w-0 flex-1"
-                                : "w-[100px] min-w-0",
+                              "min-w-0 font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-extrabold break-words text-[#003F2B]",
+                              step.titleRowFluid ? "flex-1" : "",
                             )}
                           >
                             {step.title}
                           </p>
                         </div>
-                        {step.descSmall ? (
-                          <div className="min-w-0 flex-1 text-center text-[#1F2121]/60">
-                            <span className="block font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-bold">
+                        <div className="min-w-0 shrink-0" aria-hidden />
+                        <p className="min-w-0 text-left font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-bold whitespace-normal text-[#1F2121]/60">
+                          {step.descMobileLines ? (
+                            <>
+                              <span className="block text-[#1F2121]/60">
+                                {step.descMobileLines[0]}
+                              </span>
+                              <span
+                                className={cn(
+                                  "mt-0 block",
+                                  step.descMobileLine2ClassName ??
+                                    "text-[#1F2121]/60",
+                                )}
+                              >
+                                {step.descMobileLines[1]}
+                              </span>
+                            </>
+                          ) : (
+                            <>
                               {step.desc}
-                            </span>
-                            <span className="block font-[family-name:var(--font-nanum)] text-[14px] leading-[21px] font-bold">
-                              {step.descSmall}
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="min-w-0 flex-1 text-center font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-bold whitespace-pre-line text-[#1F2121]/60">
-                            {step.desc}
-                          </p>
-                        )}
+                              {step.descSmall ? ` ${step.descSmall}` : ""}
+                            </>
+                          )}
+                        </p>
                       </div>
 
-                      <div className="hidden w-full flex-col gap-[clamp(16px,calc(20*100vw/1920),20px)] lg:flex">
-                        <div className="flex flex-col gap-3">
+                      <div className="hidden min-h-0 w-full flex-1 flex-col justify-between gap-0 lg:flex">
+                        <div className="flex shrink-0 flex-col gap-3">
                           <div
                             className={cn(
                               "flex size-[clamp(28px,calc(30*100vw/1920),30px)] shrink-0 items-center justify-center rounded-full",
@@ -674,7 +944,7 @@ export default function CareersPositionsScreen({
                           >
                             <span
                               className={cn(
-                                "font-sans [font-size:clamp(14px,calc(16*100vw/1920),16px)] leading-none [line-height:clamp(20px,calc(24*100vw/1920),24px)] font-bold",
+                                "text-center font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-bold break-words",
                                 isLast ? "text-[#003F2B]" : "text-white",
                               )}
                             >
@@ -683,7 +953,7 @@ export default function CareersPositionsScreen({
                           </div>
                           <p
                             className={cn(
-                              "font-sans [font-size:clamp(17px,calc(20*100vw/1920),20px)] [line-height:clamp(26px,calc(30*100vw/1920),30px)] font-extrabold tracking-[-0.03em] break-words",
+                              "font-[family-name:var(--font-nanum)] text-[20px] leading-[30px] font-extrabold break-words",
                               isLast ? "text-white" : "text-[#003F2B]",
                             )}
                           >
@@ -692,7 +962,7 @@ export default function CareersPositionsScreen({
                         </div>
                         <p
                           className={cn(
-                            "font-sans [font-size:clamp(15px,calc(18*100vw/1920),18px)] [line-height:clamp(22px,calc(27*100vw/1920),27px)] font-bold break-words whitespace-pre-line",
+                            "min-w-0 shrink-0 self-stretch font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-bold break-words",
                             isLast ? "text-white" : "text-[#1F2121] opacity-60",
                           )}
                         >
@@ -738,28 +1008,30 @@ export default function CareersPositionsScreen({
 
       {/* ── 채용공고 섹션 (시안: gap·탭바·목록 / 섹션 타이틀은 SectionPageTitle·스파클 PNG) ── */}
       <section ref={jobsSectionRef}>
-        <PageContentMax className="pb-10 md:pt-[clamp(40px,calc(100*100vw/1920),100px)] md:pb-[clamp(40px,calc(100*100vw/1920),100px)]">
-          <div className="flex w-full flex-col gap-3">
-            <div className="flex w-full flex-col gap-[clamp(16px,calc(30*100vw/1920),30px)]">
-              <div className="flex w-full flex-col">
+        <PageContentMax className="pb-10 max-lg:px-0 md:pt-[clamp(40px,calc(100*100vw/1920),100px)] md:pb-[clamp(40px,calc(100*100vw/1920),100px)]">
+          <div className="flex w-full flex-col max-lg:gap-0 lg:gap-3">
+            <div className="flex w-full flex-col max-lg:gap-3 lg:gap-[clamp(16px,calc(30*100vw/1920),30px)]">
+              <div className="flex w-full flex-col max-lg:gap-0 lg:gap-10">
                 <SectionPageTitle
                   as="h2"
                   preset="responsiveLg"
-                  className="mb-0 max-lg:pt-5"
+                  className="mb-0 max-lg:px-4 max-lg:pt-5"
                 >
                   채용공고
                 </SectionPageTitle>
 
-                {/* 모바일: 탭 + 필터 세로 / lg: 한 줄 — 탭 | 구분선 | 필터 */}
+                {/* 모바일: 탭 + 필터(채용공고 탭 시 가로 한 줄·넘치면 가로 스크롤) / lg: 한 줄 — 탭 | 구분선 | 필터 */}
                 <div
                   ref={dropdownRef}
                   className={cn(
                     "flex w-full flex-col gap-0 overflow-visible",
+                    "max-lg:rounded-2xl max-lg:bg-[var(--site-chrome-header-bg,#FDFDF5)] max-lg:px-0 max-lg:py-2",
                     "lg:flex-row lg:flex-nowrap lg:items-center lg:gap-x-[clamp(16px,calc(60*100vw/1920),60px)] lg:rounded-[clamp(20px,calc(40*100vw/1920),40px)] lg:bg-[#02633E] lg:px-[clamp(16px,calc(60*100vw/1920),60px)] lg:py-[clamp(12px,calc(20*100vw/1920),20px)]",
+                    openDropdown !== null && "relative z-40",
                   )}
                 >
-                  {/* 모바일: 탭 줄 배경=페이지색 · 활성=흰 pill(#154725) · 비활성=녹색 pill · lg+: 녹색 바 */}
-                  <div className="flex w-full shrink-0 flex-col gap-1 py-[14px] max-lg:rounded-none max-lg:bg-transparent lg:w-auto lg:flex-row lg:flex-nowrap lg:items-center lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:px-0 lg:py-0">
+                  {/* 모바일: 탭 줄 배경=페이지색(흰 카드 제거) · 활성=흰 pill · 비활성=녹색 pill · lg+: 녹색 바 */}
+                  <div className="flex w-full shrink-0 flex-col gap-1 py-[14px] max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 lg:w-auto lg:flex-row lg:flex-nowrap lg:items-center lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:px-0 lg:py-0">
                     <div className="flex flex-wrap items-center gap-[10px]">
                       {(["전체공고", "채용공고", "입사지원"] as MainTab[]).map(
                         (tab) => {
@@ -801,20 +1073,22 @@ export default function CareersPositionsScreen({
                         aria-hidden
                       />
                       <div
+                        ref={filterRowScrollRef}
                         className={cn(
                           "flex min-h-0 min-w-0 flex-wrap items-center justify-start overflow-visible",
-                          "max-lg:w-full max-lg:gap-[20px] max-lg:border-t max-lg:border-black/20 max-lg:px-4 max-lg:py-5",
+                          "max-lg:w-full max-lg:flex-nowrap max-lg:gap-3 max-lg:overflow-x-auto max-lg:border-t max-lg:border-black/20 max-lg:px-4 max-lg:py-5 max-lg:[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
                           "lg:shrink-0 lg:flex-nowrap lg:items-center lg:justify-start lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:border-t-0 lg:px-0 lg:py-0",
                         )}
                       >
                         {/* 전체 직무 — 열림 시 패널은 트리거 너비에 맞춰 바로 아래에 고정(absolute) */}
                         <div
                           className={cn(
-                            "relative w-fit shrink-0 self-start lg:self-center",
+                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
                             openDropdown === "job" ? "z-[60]" : "z-30",
                           )}
                         >
                           <button
+                            ref={jobFilterBtnRef}
                             type="button"
                             onClick={() => toggleDropdown("job")}
                             aria-expanded={openDropdown === "job"}
@@ -822,27 +1096,35 @@ export default function CareersPositionsScreen({
                               "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-bold text-white transition-colors",
                               "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
                               careersFilterDropdownFont,
-                              "max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:text-black",
+                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
                               openDropdown === "job" &&
-                                "max-lg:text-[#32AF32] lg:bg-[#32AF32] lg:text-white",
+                                "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
                             {formatJobFilterDisplay(jobFilter)}
                             {openDropdown === "job" ? (
                               <ChevronUp
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-[#32AF32]",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             ) : (
                               <ChevronDown
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-black",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             )}
                           </button>
-                          {openDropdown === "job" && (
-                            <div className="absolute top-full left-0 z-[70] max-w-[min(calc(100vw-2rem),24rem)] min-w-full max-lg:mt-4 lg:mt-[clamp(2px,calc(4*100vw/1920),4px)]">
-                              <CareersFilterDropdownOpen
+                          {openDropdown === "job" && !isMaxLg && (
+                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                              <CareersFilterDropdownFloating
                                 currentValue={jobFilter}
                                 options={FILTER_JOBS}
                                 formatLabel={formatJobFilterDisplay}
@@ -850,6 +1132,7 @@ export default function CareersPositionsScreen({
                                   setJobFilter(opt);
                                   setOpenDropdown(null);
                                 }}
+                                onClose={() => setOpenDropdown(null)}
                               />
                             </div>
                           )}
@@ -858,11 +1141,12 @@ export default function CareersPositionsScreen({
                         {/* 전체 경력 — 500 */}
                         <div
                           className={cn(
-                            "relative w-fit shrink-0 self-start lg:self-center",
+                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
                             openDropdown === "exp" ? "z-[60]" : "z-30",
                           )}
                         >
                           <button
+                            ref={expFilterBtnRef}
                             type="button"
                             onClick={() => toggleDropdown("exp")}
                             aria-expanded={openDropdown === "exp"}
@@ -870,33 +1154,42 @@ export default function CareersPositionsScreen({
                               "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
                               "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
                               careersFilterDropdownFont,
-                              "max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:text-black",
+                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
                               openDropdown === "exp" &&
-                                "max-lg:text-[#32AF32] lg:bg-[#32AF32] lg:text-white",
+                                "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
                             {expFilter}
                             {openDropdown === "exp" ? (
                               <ChevronUp
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-[#32AF32]",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             ) : (
                               <ChevronDown
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-black",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             )}
                           </button>
-                          {openDropdown === "exp" && (
-                            <div className="absolute top-full left-0 z-[70] max-w-[min(calc(100vw-2rem),24rem)] min-w-full max-lg:mt-4 lg:mt-[clamp(2px,calc(4*100vw/1920),4px)]">
-                              <CareersFilterDropdownOpen
+                          {openDropdown === "exp" && !isMaxLg && (
+                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                              <CareersFilterDropdownFloating
                                 currentValue={expFilter}
                                 options={FILTER_EXP}
                                 onPick={(opt) => {
                                   setExpFilter(opt);
                                   setOpenDropdown(null);
                                 }}
+                                onClose={() => setOpenDropdown(null)}
                               />
                             </div>
                           )}
@@ -905,11 +1198,12 @@ export default function CareersPositionsScreen({
                         {/* 전체 지역 — 500 */}
                         <div
                           className={cn(
-                            "relative w-fit shrink-0 self-start lg:self-center",
+                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
                             openDropdown === "region" ? "z-[60]" : "z-30",
                           )}
                         >
                           <button
+                            ref={regionFilterBtnRef}
                             type="button"
                             onClick={() => toggleDropdown("region")}
                             aria-expanded={openDropdown === "region"}
@@ -917,33 +1211,42 @@ export default function CareersPositionsScreen({
                               "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
                               "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
                               careersFilterDropdownFont,
-                              "max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:text-black",
+                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
                               openDropdown === "region" &&
-                                "max-lg:text-[#32AF32] lg:bg-[#32AF32] lg:text-white",
+                                "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
                             {regionFilter}
                             {openDropdown === "region" ? (
                               <ChevronUp
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-[#32AF32]",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             ) : (
                               <ChevronDown
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-black",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             )}
                           </button>
-                          {openDropdown === "region" && (
-                            <div className="absolute top-full left-0 z-[70] max-w-[min(calc(100vw-2rem),24rem)] min-w-full max-lg:mt-4 lg:mt-[clamp(2px,calc(4*100vw/1920),4px)]">
-                              <CareersFilterDropdownOpen
+                          {openDropdown === "region" && !isMaxLg && (
+                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                              <CareersFilterDropdownFloating
                                 currentValue={regionFilter}
                                 options={FILTER_REGION}
                                 onPick={(opt) => {
                                   setRegionFilter(opt);
                                   setOpenDropdown(null);
                                 }}
+                                onClose={() => setOpenDropdown(null)}
                               />
                             </div>
                           )}
@@ -952,11 +1255,12 @@ export default function CareersPositionsScreen({
                         {/* 전체 상태 — 플로팅 패널 */}
                         <div
                           className={cn(
-                            "relative w-fit shrink-0 self-start lg:self-center",
+                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
                             openDropdown === "status" ? "z-[60]" : "z-30",
                           )}
                         >
                           <button
+                            ref={statusFilterBtnRef}
                             type="button"
                             onClick={() => toggleDropdown("status")}
                             aria-expanded={openDropdown === "status"}
@@ -964,33 +1268,42 @@ export default function CareersPositionsScreen({
                               "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
                               "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
                               careersFilterDropdownFont,
-                              "max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:text-black",
+                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
                               openDropdown === "status" &&
-                                "max-lg:text-[#32AF32] lg:bg-[#32AF32] lg:text-white",
+                                "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
                             {statusFilter}
                             {openDropdown === "status" ? (
                               <ChevronUp
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-[#32AF32]",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             ) : (
                               <ChevronDown
-                                className={filterChevronClass}
+                                className={cn(
+                                  filterChevronClass,
+                                  "max-lg:text-black",
+                                )}
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             )}
                           </button>
-                          {openDropdown === "status" && (
-                            <div className="absolute top-full left-0 z-[70] max-w-[min(calc(100vw-2rem),24rem)] min-w-full max-lg:mt-4 lg:mt-[clamp(2px,calc(4*100vw/1920),4px)]">
-                              <CareersFilterDropdownOpen
+                          {openDropdown === "status" && !isMaxLg && (
+                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                              <CareersFilterDropdownFloating
                                 currentValue={statusFilter}
                                 options={FILTER_STATUS}
                                 onPick={(opt) => {
                                   setStatusFilter(opt);
                                   setOpenDropdown(null);
                                 }}
+                                onClose={() => setOpenDropdown(null)}
                               />
                             </div>
                           )}
@@ -1003,7 +1316,7 @@ export default function CareersPositionsScreen({
 
               {/* ── 공고 목록 (전체공고 / 채용공고 탭) — 행 간 gap 12px ── */}
               {mainTab !== "입사지원" && (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 max-lg:px-4">
                   {filteredJobs.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400">
                       해당 조건의 채용공고가 없습니다.
@@ -1101,8 +1414,8 @@ export default function CareersPositionsScreen({
                           key={job.id}
                           className={cn(
                             /* 모바일 접힘: 페이지 배경과 동일 · 펼침 시 안쪽 래퍼가 #EAE3C9 유지 */
-                            "max-lg:border-b max-lg:border-black/20 max-lg:bg-[var(--site-chrome-header-bg,#F4F2E5)]",
-                            "lg:bg-[var(--site-chrome-header-bg,#F4F2E5)]",
+                            "max-lg:border-b max-lg:border-black/20 max-lg:bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+                            "lg:bg-[var(--site-chrome-header-bg,#FDFDF5)]",
                             !isLast && "lg:border-b lg:border-black/20",
                             isExpanded && "lg:border-b-0",
                           )}
@@ -1282,7 +1595,7 @@ export default function CareersPositionsScreen({
 
               {/* ── 입사지원 탭 콘텐츠 ── */}
               {mainTab === "입사지원" && (
-                <div className="rounded-2xl bg-[#EAE3C9] px-5 py-8 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 md:px-8 md:py-10 lg:bg-[#F4F2E5] lg:p-0">
+                <div className="rounded-2xl bg-[#EAE3C9] px-5 py-8 max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 max-lg:py-0 md:px-8 md:py-10 lg:bg-[#FDFDF5] lg:p-0">
                   {/* PC 시안: 상하 60px·gap 10px·750×90 타이틀 / 모바일: 기존 */}
                   <div
                     className={cn(
@@ -1399,7 +1712,7 @@ export default function CareersPositionsScreen({
                               />
                             </div>
 
-                            {/* 이메일 */}
+                            {/* 이메일 — 모바일: 아이디·도메인 입력·셀렉트(@ 없음) / PC: 견학신청과 동일 */}
                             <div className={jobApplySubfieldMobile}>
                               <label
                                 className={cn(
@@ -1411,7 +1724,8 @@ export default function CareersPositionsScreen({
                               >
                                 이메일
                               </label>
-                              <div className="flex w-full flex-col gap-5 lg:flex-row lg:items-center lg:gap-2.5">
+                              {/* 모바일 */}
+                              <div className="flex w-full flex-col gap-5 lg:hidden">
                                 <input
                                   type="text"
                                   value={formData.emailLocal}
@@ -1421,17 +1735,61 @@ export default function CareersPositionsScreen({
                                       emailLocal: e.target.value,
                                     }))
                                   }
-                                  placeholder="이메일을 입력해주세요."
+                                  placeholder="이메일 아이디"
+                                  autoComplete="email"
+                                  className={jobApplyInputClass}
+                                />
+                                <input
+                                  type="text"
+                                  value={formData.emailDomainCustom}
+                                  onChange={(e) =>
+                                    setFormData((p) => ({
+                                      ...p,
+                                      emailDomainCustom: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="메일 도메인 주소"
+                                  disabled={formData.emailDomain !== ""}
                                   className={cn(
                                     jobApplyInputClass,
-                                    "lg:flex-1",
+                                    "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 disabled:cursor-not-allowed disabled:opacity-60",
                                   )}
                                 />
-                                <span className="hidden font-[Pretendard,system-ui,sans-serif] text-lg leading-5 font-light text-[#7B7B7B] max-lg:inline lg:inline lg:shrink-0 lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black">
+                                <select
+                                  value={formData.emailDomain}
+                                  onChange={handleJobApplyEmailDomainChange}
+                                  className={jobApplyInputClass}
+                                >
+                                  <option value="">직접입력</option>
+                                  {JOB_APPLY_EMAIL_DOMAINS.slice(1).map((d) => (
+                                    <option key={d} value={d}>
+                                      {d}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              {/* PC — 견학신청서와 동일 */}
+                              <div className="hidden w-full min-w-0 flex-col gap-5 lg:flex lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
+                                <input
+                                  type="text"
+                                  value={formData.emailLocal}
+                                  onChange={(e) =>
+                                    setFormData((p) => ({
+                                      ...p,
+                                      emailLocal: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="이메일 아이디"
+                                  autoComplete="email"
+                                  className={cn(
+                                    jobApplyInputClass,
+                                    "lg:min-w-0 lg:flex-1",
+                                  )}
+                                />
+                                <span className="shrink-0 font-[family-name:var(--font-nanum)] text-xl font-bold text-black">
                                   @
                                 </span>
-                                {formData.emailDomain === "" ||
-                                formData.emailDomain === "직접입력" ? (
+                                {formData.emailDomain === "" && (
                                   <input
                                     type="text"
                                     value={formData.emailDomainCustom}
@@ -1441,34 +1799,28 @@ export default function CareersPositionsScreen({
                                         emailDomainCustom: e.target.value,
                                       }))
                                     }
-                                    placeholder=" "
+                                    placeholder="메일 도메인 주소"
                                     className={cn(
                                       jobApplyInputClass,
-                                      "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:flex-1 lg:text-[18px] lg:font-light lg:text-[#7B7B7B]",
+                                      "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px] lg:font-light lg:text-[#7B7B7B]",
                                     )}
                                   />
-                                ) : (
-                                  <select
-                                    value={formData.emailDomain}
-                                    onChange={(e) =>
-                                      setFormData((p) => ({
-                                        ...p,
-                                        emailDomain: e.target.value,
-                                      }))
-                                    }
-                                    className={cn(
-                                      jobApplyInputClass,
-                                      "lg:flex-1",
-                                    )}
-                                  >
-                                    <option value="">직접입력</option>
-                                    {EMAIL_DOMAINS.slice(1).map((d) => (
-                                      <option key={d} value={d}>
-                                        {d}
-                                      </option>
-                                    ))}
-                                  </select>
                                 )}
+                                <select
+                                  value={formData.emailDomain}
+                                  onChange={handleJobApplyEmailDomainChange}
+                                  className={cn(
+                                    jobApplyInputClass,
+                                    "lg:min-w-0 lg:flex-1",
+                                  )}
+                                >
+                                  <option value="">직접입력</option>
+                                  {JOB_APPLY_EMAIL_DOMAINS.slice(1).map((d) => (
+                                    <option key={d} value={d}>
+                                      {d}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             </div>
 
@@ -2069,8 +2421,13 @@ export default function CareersPositionsScreen({
         </PageContentMax>
       </section>
 
-      {/* ── 복리후생: 시안/HTML — PC만 배경 #fff(페이지 크롬 #f4f2e5와 별도). 모바일은 크림 + 스파클·녹색 제목 */}
-      <section className="mb-[clamp(40px,calc(100*100vw/1920),100px)] w-full bg-white">
+      {/* ── 복리후생: 시안/HTML — 흰 배경은 max-w(1920) 밖까지 뷰포트 전폭(줌아웃·초와이드에서 크롬색 안 비치게) */}
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "mb-[clamp(40px,calc(100*100vw/1920),100px)] min-w-0 bg-white",
+        )}
+      >
         <PageContentMax className="py-10 md:py-[clamp(40px,calc(100*100vw/1920),100px)]">
           <div className="flex w-full flex-col gap-6 md:gap-[clamp(16px,calc(30*100vw/1920),30px)]">
             <SectionPageTitle
@@ -2078,7 +2435,7 @@ export default function CareersPositionsScreen({
               preset="responsiveLg"
               starVariant="brandIntro"
               className="mb-0 w-full"
-              titleClassName="max-lg:text-[#02633E]"
+              titleClassName="max-lg:text-[#1F2121]"
             >
               복리후생
             </SectionPageTitle>
@@ -2131,6 +2488,77 @@ export default function CareersPositionsScreen({
           </div>
         </PageContentMax>
       </section>
+
+      {/* 모바일: 필터 행 `overflow-x-auto` + 형제 공고 목록 때문에 absolute 패널이 잘리거나 가려짐 → body 고정 레이어 */}
+      {typeof document !== "undefined" &&
+        isMaxLg &&
+        mainTab === "채용공고" &&
+        openDropdown &&
+        filterFloatingPos &&
+        createPortal(
+          <div
+            ref={mobileFilterPortalRef}
+            className="pointer-events-auto fixed z-[105]"
+            style={{
+              top: filterFloatingPos.top,
+              left: filterFloatingPos.left,
+              width: MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX,
+              minWidth: MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX,
+              maxWidth: MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX,
+            }}
+          >
+            {openDropdown === "job" && (
+              <CareersFilterDropdownFloating
+                currentValue={jobFilter}
+                options={FILTER_JOBS}
+                formatLabel={formatJobFilterDisplay}
+                layout="mobileOptions"
+                onPick={(opt) => {
+                  setJobFilter(opt);
+                  setOpenDropdown(null);
+                }}
+                onClose={() => setOpenDropdown(null)}
+              />
+            )}
+            {openDropdown === "exp" && (
+              <CareersFilterDropdownFloating
+                currentValue={expFilter}
+                options={FILTER_EXP}
+                layout="mobileOptions"
+                onPick={(opt) => {
+                  setExpFilter(opt);
+                  setOpenDropdown(null);
+                }}
+                onClose={() => setOpenDropdown(null)}
+              />
+            )}
+            {openDropdown === "region" && (
+              <CareersFilterDropdownFloating
+                currentValue={regionFilter}
+                options={FILTER_REGION}
+                layout="mobileOptions"
+                onPick={(opt) => {
+                  setRegionFilter(opt);
+                  setOpenDropdown(null);
+                }}
+                onClose={() => setOpenDropdown(null)}
+              />
+            )}
+            {openDropdown === "status" && (
+              <CareersFilterDropdownFloating
+                currentValue={statusFilter}
+                options={FILTER_STATUS}
+                layout="mobileOptions"
+                onPick={(opt) => {
+                  setStatusFilter(opt);
+                  setOpenDropdown(null);
+                }}
+                onClose={() => setOpenDropdown(null)}
+              />
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { Heart, Shield, Lightbulb, Leaf, Users } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 
@@ -64,7 +66,7 @@ const growthStories: GrowthStory[] = [
 
 export default function CareersTalentScreen() {
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
           { label: "채용", href: "/careers/positions" },

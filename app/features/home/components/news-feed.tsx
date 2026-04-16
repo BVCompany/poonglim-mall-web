@@ -94,8 +94,13 @@ const MOCK_NEWS_ITEMS = [
   },
 ];
 
-const CARD_GAP = 20;
-const SCROLL_AMOUNT = 320; /* 한 카드 너비 + gap (모바일~데스크톱) */
+/** 카드 너비 + 트랙 gap — PC 시안 408px 카드 + gap 20 */
+function newsScrollStepPx() {
+  if (typeof window === "undefined") return 320;
+  if (window.matchMedia("(min-width: 768px)").matches) return 408 + 20;
+  if (window.matchMedia("(min-width: 640px)").matches) return 300 + 20;
+  return 300 + 16;
+}
 
 export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
   const newsItems = dbNews.length > 0 ? dbNews.map(dbNewsToItem) : MOCK_NEWS_ITEMS;
@@ -112,7 +117,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
 
   const scrollLeft = () => {
     scrollRef.current?.scrollBy({
-      left: -SCROLL_AMOUNT,
+      left: -newsScrollStepPx(),
       behavior: "smooth",
     });
     setTimeout(checkScroll, 300);
@@ -120,7 +125,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
 
   const scrollRight = () => {
     scrollRef.current?.scrollBy({
-      left: SCROLL_AMOUNT,
+      left: newsScrollStepPx(),
       behavior: "smooth",
     });
     setTimeout(checkScroll, 300);
@@ -144,7 +149,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
             as="h2"
             preset="none"
             starVariant="product"
-            className="flex flex-1 flex-col text-lg font-bold leading-tight text-black md:flex-row md:items-center md:gap-2 md:text-2xl"
+            className="flex flex-1 flex-col text-lg font-bold leading-tight text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)]"
             rootStyle={{ letterSpacing: "-0.04em" }}
             markClassName="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
             wrapTitle={false}
@@ -156,7 +161,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
           </SectionPageTitle>
           <Link
             to="/media"
-            className="flex flex-shrink-0 items-center text-[#003F2B] transition-colors hover:text-[#2DB96B]"
+            className="flex flex-shrink-0 items-center text-[#003F2B]"
             aria-label="전체보기"
           >
             <span className="hidden md:inline">전체보기</span>
@@ -168,12 +173,8 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
         <div className="-mx-4 sm:-mx-6 md:mx-0 md:[margin-right:calc(-50vw+50%)]">
           <div
             ref={scrollRef}
-            className="scrollbar-hide flex gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6 md:pr-4"
+            className="scrollbar-hide flex snap-x snap-proximity scroll-pl-4 gap-4 overflow-x-auto px-4 pb-4 sm:gap-5 sm:px-6 md:scroll-pl-0 md:pl-0 md:pr-4"
             onScroll={checkScroll}
-            style={{
-              scrollSnapType: "x proximity",
-              scrollPaddingLeft: "1rem",
-            }}
           >
             {newsItems.map((item) => {
               const hasImage = !!(item.image || item.fallback);
@@ -182,18 +183,18 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                 <Link
                   key={item.id}
                   to={`/media/${item.id}`}
-                  className="group flex h-full w-[300px] flex-shrink-0 md:w-[385px]"
+                  className="group flex h-full w-[300px] flex-shrink-0 md:w-[408px]"
                   style={{ scrollSnapAlign: "start" }}
                 >
-                  <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[#1A4736]">
-                    {/* 이미지 카드: 상단 이미지 + 여백(inset) + 태그 오버레이 */}
+                  <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] md:rounded-[40px]">
+                    {/* 이미지: PC 시안 — 상하좌 10px inset, 244×라운드 30, 배지 30/30 */}
                     {hasImage ? (
-                      <div className="relative p-3 md:p-4">
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-xl">
+                      <div className="relative p-3 md:p-0 md:pt-[10px] md:pr-[10px] md:pl-[10px]">
+                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl md:aspect-auto md:h-[244px] md:w-full md:rounded-[30px]">
                           <img
                             src={item.image || item.fallback}
                             alt={item.title}
-                            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
+                            className="h-full w-full object-cover object-center transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
                             onError={(e) => {
                               if (item.fallback) {
                                 (e.target as HTMLImageElement).src =
@@ -201,31 +202,33 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                               }
                             }}
                           />
+                          <span
+                            className={`absolute top-4 left-4 z-10 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:left-[30px] md:top-[30px] md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle[item.category]}`}
+                          >
+                            {item.category}
+                          </span>
                         </div>
-                        <span
-                          className={`absolute top-4 left-4 md:top-5 md:left-5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green ${tagStyle[item.category]}`}
-                        >
-                          {item.category}
-                        </span>
                       </div>
                     ) : null}
 
-                    {/* 콘텐츠: 하단 텍스트 영역, 좌우하단 여백 적용 */}
-                    <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:px-5 md:pb-6 md:pt-4">
+                    {/* 본문: PC — 패딩 30, 제목·요약 gap 12, 블록 간 gap 24 / 시안 타이포 */}
+                    <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:gap-6 md:p-[30px]">
                       {!hasImage && (
                         <span
-                          className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green ${tagStyle[item.category]}`}
+                          className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:mb-0 md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle[item.category]}`}
                         >
                           {item.category}
                         </span>
                       )}
-                      <h3 className="line-clamp-2 text-sm leading-snug font-bold text-[#2D2D2D] transition-colors group-hover:text-white">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 line-clamp-3 flex-1 text-xs leading-relaxed text-[#666] transition-colors group-hover:text-[#B4E8AE]">
-                        {item.excerpt}
-                      </p>
-                      <p className="mt-4 text-xs text-[#666]/80 transition-colors group-hover:text-white/50">
+                      <div className="flex min-h-0 flex-1 flex-col gap-2 md:gap-3">
+                        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-[#2D2D2D] transition-colors group-hover:text-white md:font-[family-name:var(--font-nanum)] md:text-[20px] md:leading-[30px] md:font-bold md:text-[#1F2121] md:group-hover:text-white">
+                          {item.title}
+                        </h3>
+                        <p className="line-clamp-3 flex-1 text-xs leading-relaxed text-[#666] transition-colors group-hover:text-[#B4E8AE] md:font-[family-name:var(--font-nanum)] md:text-[14px] md:leading-[21px] md:font-normal md:text-[#1F2121] md:group-hover:text-[#B4E8AE]">
+                          {item.excerpt}
+                        </p>
+                      </div>
+                      <p className="mt-4 text-xs text-[#666]/80 transition-colors group-hover:text-white/50 md:mt-0 md:font-[family-name:var(--font-nanum)] md:text-[14px] md:leading-[19.6px] md:font-normal md:text-[#1F2121] md:group-hover:text-white/50">
                         {item.date}
                       </p>
                     </div>

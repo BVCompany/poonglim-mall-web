@@ -11,6 +11,8 @@ import { PageBanner } from "~/core/components/page-banner";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 
 export const meta: Route.MetaFunction = () => [
   { title: "레시피 | 풍림푸드" },
@@ -62,8 +64,12 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
   const currentCount = categories.find((c) => c.id === selectedCategory)?.count ?? totalCount;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
-
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       {/* ── 페이지 배너 ── */}
       {showBanner && (
         <PageBanner
@@ -81,7 +87,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
 
       {/* ── 헤딩 + 검색 (PC 시안: 60px 상단, 1600 정렬) ── */}
       <div className="px-4 pb-5 pt-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))] md:pb-10 md:pt-[60px]">
-        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4 md:gap-5">
+        <div className="mx-auto flex min-w-0 w-full max-w-[var(--content-max-width)] items-center justify-between gap-4 md:gap-5">
           <SectionPageTitle
             as="h2"
             preset="none"
@@ -101,7 +107,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             레시피
           </SectionPageTitle>
 
-          <div className="hidden md:block">
+          <div className="hidden min-w-0 shrink md:block">
             <SearchBar
               className="md:gap-[min(30px,calc(30*100vw/1920))]"
               value={searchInput}
@@ -114,9 +120,9 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      {/* ── 카테고리 탭 바 — PC: #F3BC1E, radius 40px, 활성 흰 배경·#1F2121 800 ── */}
+      {/* ── 카테고리 탭 바 (PC: 채용공고 탭줄과 동일 레이아웃 — 노랑 띠는 콘텐츠 폭 안) ── */}
       <div className="px-4 pb-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto max-w-[var(--content-max-width)]">
+        <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
 
           {/* 모바일 탭 */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden">
@@ -140,8 +146,9 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
           </div>
 
           <div
-            className="scrollbar-hide hidden items-center overflow-x-auto rounded-[40px] px-4 py-3 md:flex md:gap-[min(60px,calc(60*100vw/1920))] md:px-[min(60px,calc(60*100vw/1920))] md:py-5"
-            style={{ backgroundColor: "#F3BC1E" }}
+            className={cn(
+              "scrollbar-hide hidden min-w-0 flex-nowrap items-center overflow-x-auto rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#F3BC1E] px-[clamp(12px,calc(20*100vw/1920),20px)] py-[clamp(10px,calc(16*100vw/1920),16px)] md:flex md:gap-[clamp(8px,calc(10*100vw/1920),10px)]",
+            )}
           >
             {categories.map((cat, idx) => {
               const isActive = selectedCategory === cat.id;
@@ -156,7 +163,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                       className="h-[22px] w-px shrink-0 self-center bg-white/90"
                     />
                   )}
-                  <div className="flex flex-shrink-0 items-center">
+                  <div className="flex shrink-0 items-center">
                     <button
                       type="button"
                       onClick={() => setSelectedCategory(cat.id)}
@@ -167,10 +174,10 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                         fontFamily: "NanumSquareRound, sans-serif",
                         fontWeight: isActive ? 800 : 700,
                       }}
-                      className={`
-                        flex-shrink-0 whitespace-nowrap rounded-[40px] border-0 px-5 py-2.5 shadow-none outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#003F2B]/30 md:px-5 md:py-2.5
-                        ${isActive ? "bg-white" : "text-white hover:bg-white/15"}
-                      `}
+                      className={cn(
+                        "shrink-0 whitespace-nowrap rounded-[clamp(20px,calc(40*100vw/1920),40px)] border-0 px-[clamp(12px,calc(20*100vw/1920),20px)] py-[clamp(6px,calc(10*100vw/1920),10px)] shadow-none outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-[#003F2B]/30",
+                        isActive ? "bg-white" : "text-white hover:bg-white/15",
+                      )}
                     >
                       {cat.name}
                       {showCount && cat.count > 0 && (
@@ -186,7 +193,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="px-4 pb-4 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
+        <div className="mx-auto flex min-w-0 w-full max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600 md:text-sm">
             <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
             <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCount}</span>
@@ -209,7 +216,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             <div className="relative">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-full bg-[#EAE3C9] px-3 py-1 text-xs font-medium text-black"
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--site-chrome-header-bg,#FDFDF5)] px-3 py-1 text-xs font-medium text-black"
                 onClick={() => setIsSortOpen((prev) => !prev)}
               >
                 {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ?? "추천순"}
@@ -238,14 +245,14 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             <img
               src="/product/sort_icon.png"
               alt="정렬 아이콘"
-              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[#EAE3C9] object-contain p-1.5"
+              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[var(--site-chrome-header-bg,#FDFDF5)] object-contain p-1.5"
             />
           </div>
         </div>
       </div>
 
       <div className="px-4 pb-16 md:mt-[30px] md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto max-w-[var(--content-max-width)]">
+        <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
           <RecipeGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}

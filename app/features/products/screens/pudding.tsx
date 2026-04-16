@@ -1,3 +1,5 @@
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { useTranslation } from "react-i18next";
 import { ProductGrid } from "../components/product-grid";
 
@@ -5,7 +7,7 @@ export default function PuddingScreen() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       {/* Hero Section */}
       <section className="bg-primary py-16 text-primary-foreground">
         <div className="mx-auto max-w-7xl px-6 text-center">
@@ -19,7 +21,7 @@ export default function PuddingScreen() {
       </section>
 
       {/* Products Grid */}
-      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#FDFDF5)] py-12">
         <div className="mx-auto max-w-7xl px-6">
           <ProductGrid selectedCategory="puddings" searchQuery="" />
         </div>
