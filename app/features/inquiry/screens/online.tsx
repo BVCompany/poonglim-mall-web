@@ -1,4 +1,6 @@
 import { Button } from "~/core/components/ui/button";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { ShoppingCart, Building2, Phone, Mail, MapPin, CheckCircle } from "lucide-react";
 import { Link } from "react-router";
@@ -6,7 +8,7 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function OnlineInquiryScreen() {
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
           { label: "구매문의" },
@@ -22,7 +24,7 @@ export default function OnlineInquiryScreen() {
       </section>
 
       {/* Purchase Options */}
-      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#FDFDF5)] py-12">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-2">
             {/* B2C Section */}
@@ -155,7 +157,7 @@ export default function OnlineInquiryScreen() {
       </section>
 
       {/* Contact Form */}
-      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
+      <section className="bg-[var(--site-chrome-header-bg,#FDFDF5)] py-12">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <div className="mx-auto w-full max-w-2xl md:max-w-[min(672px,calc(672*100vw/1920))]">
             <div className="mb-8 text-center">

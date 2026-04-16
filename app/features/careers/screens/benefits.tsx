@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/core/components/ui/card";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { Shield, GraduationCap, Gift, Coffee, Users, Heart, Building2 } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 
@@ -19,7 +21,7 @@ const benefits: Benefit[] = [
 
 export default function CareersBenefitsScreen() {
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
           { label: "채용", href: "/careers/positions" },

@@ -4,6 +4,8 @@ import type { Route } from "./+types/detail";
 import { getProductById, hasAnyActiveProducts } from "../lib/queries.server";
 import { ArrowUpRight } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
@@ -125,7 +127,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
   const shopUrl = (product as any).shop_url;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       {/* ── 브레드크럼 (PC 시안: Home > …, 하단 #EAE3C9) ── */}
       <Breadcrumb
         variant="productDetail"

@@ -16,8 +16,10 @@ import {
 import { Link, data } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -272,7 +274,7 @@ export default function EventDetailScreen({
     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#003F2B]";
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <div className="hidden md:block">
         <Breadcrumb
           items={[
@@ -624,7 +626,14 @@ export default function EventDetailScreen({
                       className="h-full w-full object-cover object-center"
                     />
                   </div>
-                ) : null}
+                ) : (
+                  <div
+                    className="w-full overflow-hidden rounded-none bg-white"
+                    style={{ aspectRatio: "1200 / 586" }}
+                  >
+                    <MediaThumbFallback />
+                  </div>
+                )}
 
                 {bodyIsHtml ? (
                   <div

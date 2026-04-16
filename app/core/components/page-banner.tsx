@@ -5,12 +5,14 @@
  *   - 외부: px-4 pt-2 md:px-10 md:pt-4 (PC 가로 40px 시안; 배경색은 페이지별)
  *   - 카드: md+ 1840×380 비율(PC 시안), 라운드 40px, 상단 그라데이션 오버레이만(PC)
  *   - `mobileHeightClassName`은 md 미만 높이만 지정 (예: max-md:h-[375px])
+ *   - `mobileAspectRatio`가 있으면 md 미만은 높이 대신 비율로 박스 크기 결정 (예: Figma 375에서 343×343 → "343 / 343")
  * 브레드크럼 좌표는 `app.css`의 `.page-banner-breadcrumb-x`로 로고와 정렬.
  */
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { cn } from "~/core/lib/utils";
 
 export interface BreadcrumbItem {
   label: string;
@@ -19,6 +21,8 @@ export interface BreadcrumbItem {
 
 export interface PageBannerProps {
   imageUrl: string;
+  /** 지정 시 md 미만에서만 이 이미지를 배경으로 사용 (PC·태블릿은 `imageUrl` / DB 이미지 유지) */
+  mobileImageUrl?: string;
   title: string;
   subtitle?: string;
   linkUrl?: string;
@@ -32,6 +36,12 @@ export interface PageBannerProps {
     link_text?: string | null;
   } | null;
   mobileHeightClassName?: string;
+  /**
+   * md 미만 배너의 `aspect-ratio` (가로는 부모 `w-full` 기준).
+   * 예: 375 시안 343×343 → `"343 / 343"`. 비율만 바꾸려면 `"4 / 3"` 등.
+   * 지정 시 `mobileHeightClassName`의 모바일 높이보다 우선합니다.
+   */
+  mobileAspectRatio?: string;
   /** true면 md 미만에서 배너 블록 전체를 숨김 (PC만 표시) */
   hideOnMobile?: boolean;
   hideBreadcrumbOnMobile?: boolean;
@@ -41,6 +51,7 @@ export interface PageBannerProps {
 
 export function PageBanner({
   imageUrl,
+  mobileImageUrl,
   title,
   subtitle,
   linkUrl,
@@ -48,12 +59,15 @@ export function PageBanner({
   breadcrumb = [],
   dbBanner,
   mobileHeightClassName = "max-md:h-[clamp(200px,28vw,380px)]",
+  mobileAspectRatio,
   hideOnMobile = true,
   hideBreadcrumbOnMobile = false,
   frostedLinkOnMobile = false,
   mobileSubtitle,
 }: PageBannerProps) {
   const resolvedImage = dbBanner?.image_url ?? imageUrl;
+  const splitMobileBg = Boolean(mobileImageUrl);
+  const mobileBoxByAspect = Boolean(mobileAspectRatio?.trim());
   const resolvedTitle = dbBanner?.title ?? title;
   const resolvedSubtitle = dbBanner?.subtitle ?? subtitle;
   const resolvedLinkUrl = dbBanner?.link_url ?? linkUrl;
@@ -63,13 +77,45 @@ export function PageBanner({
     <div className={`px-4 pt-2 md:px-10 md:pt-4 ${hideOnMobile ? "hidden md:block" : ""}`}>
       <div className="mx-auto w-full md:max-w-[var(--hero-pc-width,1640px)]">
         <div
-          className={`relative w-full overflow-hidden rounded-3xl bg-gray-700 md:aspect-[1840/380] md:h-auto md:rounded-[40px] ${mobileHeightClassName}`}
-          style={{
-            backgroundImage: `url(${resolvedImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+          className={cn(
+            "relative w-full overflow-hidden rounded-3xl bg-gray-700 md:aspect-[1840/380] md:h-auto md:min-h-[200px] md:rounded-[40px]",
+            mobileBoxByAspect
+              ? "max-md:h-auto max-md:min-h-0 max-md:[aspect-ratio:var(--page-banner-mobile-ar)]"
+              : mobileHeightClassName,
+          )}
+          style={
+            {
+              ...(mobileBoxByAspect && mobileAspectRatio
+                ? { ["--page-banner-mobile-ar" as string]: mobileAspectRatio.trim() }
+                : {}),
+              ...(splitMobileBg
+                ? {}
+                : {
+                    backgroundImage: `url(${resolvedImage})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }),
+            }
+          }
         >
+          {splitMobileBg && mobileImageUrl ? (
+            <>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center md:hidden"
+                style={{ backgroundImage: `url(${mobileImageUrl})` }}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-0 hidden bg-cover bg-center md:block"
+                style={{
+                  backgroundImage: `url(${resolvedImage})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+            </>
+          ) : null}
           {/* 모바일: 전면 딤 / PC 시안: 상단~35%만 그라데이션 (배경 노란 프레임 등은 미적용) */}
           <div
             className="pointer-events-none absolute inset-0 max-md:bg-black/45 md:[background:linear-gradient(180deg,rgba(0,0,0,0.3)_0%,rgba(0,0,0,0)_35%)]"
@@ -79,7 +125,7 @@ export function PageBanner({
           {/* 브레드크럼 — 배너 폭 유지, 위치만 헤더 로고와 맞춤 (.page-banner-breadcrumb-x) */}
           {breadcrumb.length > 0 && (
             <div
-              className={`page-banner-breadcrumb-x absolute top-4 z-10 md:top-5 ${hideBreadcrumbOnMobile ? "hidden md:flex" : "flex"}`}
+              className={`page-banner-breadcrumb-x absolute top-4 z-10 md:top-5 ${hideBreadcrumbOnMobile ? "max-md:hidden md:flex" : "flex"}`}
             >
               <Breadcrumb
                 items={breadcrumb.filter((_, i) => i > 0).map((item) => ({

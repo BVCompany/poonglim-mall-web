@@ -3,6 +3,8 @@ import { Link, useParams, useActionData, useNavigation } from "react-router";
 import type { Route } from "./+types/apply";
 import { createJobApplication } from "../lib/queries.server";
 import { Button } from "~/core/components/ui/button";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
@@ -115,7 +117,7 @@ export default function CareerApplyScreen() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+      <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
         <div className="container mx-auto px-4 py-16">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -149,7 +151,7 @@ export default function CareerApplyScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
           { label: "채용", href: "/careers/positions" },

@@ -21,32 +21,78 @@ const INTRO_SPARKLE = {
   star: "/intro/Vector.png",
   sparkle1: "/intro/Vector-1.png",
   sparkle2: "/intro/Vector-2.png",
+  sparkle3: "/intro/Vector-3.png",
 } as const;
 
-/* ── PC 히어로 슬라이더 스파클 3종 위치 ── */
-/** 히어로 스파클: 잘림은 화면(뷰포트) 바깥쪽으로 가도록 objectPosition + 좌표 보정 */
-const SPARKLES = [
+/* ── PC 히어로 슬라이더: 슬라이드마다 스파클 3종 위치 분리 ── */
+/** 히어로 스파클: 잘림은 화면(뷰포트) 바깥쪽으로 가도록 objectPosition + 좌표 보정 (%는 숫자+단위 래퍼 기준) */
+type PcHeroSparkle = {
+  src: string;
+  size: number;
+  style: React.CSSProperties;
+};
+
+/** ① 30년의 전통 — 기존과 동일 */
+const HERO_SPARKLES_30: PcHeroSparkle[] = [
   {
-    src: INTRO_SPARKLE.sparkle1,
-    size: 42,
-    style: { left: "11%", top: "19%", objectPosition: "left top" },
+    src: INTRO_SPARKLE.sparkle2,
+    size: 75,
+    style: { left: "23%", top: "-20%", objectPosition: "left top" },
   },
   {
     src: INTRO_SPARKLE.star,
-    size: 30,
-    style: { left: "-2%", bottom: "22%", objectPosition: "left center" },
+    size: 40,
+    style: { left: "-3%", bottom: "18%", objectPosition: "left center" },
   },
   {
+    src: INTRO_SPARKLE.sparkle1,
+    size: 24,
+    style: { left: "2.5%", bottom: "7.5%" },
+  },
+];
+
+/** ② 500 거래처 — 시안에 맞게 left/top/bottom/size 조정 */
+const HERO_SPARKLES_500: PcHeroSparkle[] = [
+  {
     src: INTRO_SPARKLE.sparkle2,
-    size: 18,
-    style: { left: "9%", bottom: "12%" },
+    size: 75,
+    style: { left: "45%", top: "-20%", objectPosition: "left top" },
+  },
+  {
+    src: INTRO_SPARKLE.star,
+    size: 40,
+    style: { left: "-3%", bottom: "18%", objectPosition: "left center" },
+  },
+  {
+    src: INTRO_SPARKLE.sparkle1,
+    size: 25,
+    style: { left: "2.5%", bottom: "7.5%" },
+  },
+];
+
+/** ③ 50 제품 라인업 — 시안에 맞게 left/top/bottom/size 조정 */
+const HERO_SPARKLES_50: PcHeroSparkle[] = [
+  {
+    src: INTRO_SPARKLE.sparkle2,
+    size: 75,
+    style: { left: "23%", top: "-20%", objectPosition: "left top" },
+  },
+  {
+    src: INTRO_SPARKLE.star,
+    size: 40,
+    style: { left: "-3%", bottom: "18%", objectPosition: "left center" },
+  },
+  {
+    src: INTRO_SPARKLE.sparkle1,
+    size: 24,
+    style: { left: "2.5%", bottom: "7.5%" },
   },
 ];
 
 const SLIDES = [
-  { num: "30", unit: "년의 전통", sparkles: SPARKLES },
-  { num: "500", unit: "거래처", sparkles: SPARKLES },
-  { num: "50", unit: "제품 라인업", sparkles: SPARKLES },
+  { num: "30", unit: "년의 전통", sparkles: HERO_SPARKLES_30 },
+  { num: "500", unit: "거래처", sparkles: HERO_SPARKLES_500 },
+  { num: "50", unit: "제품 라인업", sparkles: HERO_SPARKLES_50 },
 ];
 
 /* ── 경영 철학 카드 ── */
@@ -164,10 +210,7 @@ const PUDI_INSET_MOBILE = {
     lineHeight: "21px",
     overflowWrap: "break-word",
   },
-} as const satisfies Record<
-  string,
-  import("react").CSSProperties
->;
+} as const satisfies Record<string, import("react").CSSProperties>;
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "회사소개 | 풍림푸드" }];
@@ -244,6 +287,85 @@ const CEO_QUOTE_MIN_LEFT = 70;
  * 계산 시 `relaxedMinLeft = minLeftStage - nudge`로 하한을 같이 낮춤.
  */
 const CEO_QUOTE_NUDGE_LEFT_PX = 72;
+
+/**
+ * CEO 인사말 — 초상 박스 기준 `absolute` (%·clamp는 사진 영역 기준).
+ * PC(`md:block` 섹션) / 모바일 각각 수정.
+ */
+const CEO_SPARKLES_PC: {
+  src: string;
+  className: string;
+  style: React.CSSProperties;
+}[] = [
+  {
+    src: INTRO_SPARKLE.star,
+    className: "pointer-events-none absolute",
+    style: {
+      left: "-17.5%",
+      bottom: "30%",
+      width: "clamp(40px, 11.1%, 80px)",
+    },
+  },
+  {
+    src: INTRO_SPARKLE.sparkle1,
+    className: "pointer-events-none absolute",
+    style: {
+      left: "-7.5%",
+      bottom: "25%",
+      width: "clamp(30px, 8.3%, 60px)",
+    },
+  },
+  {
+    src: INTRO_SPARKLE.sparkle2,
+    className: "pointer-events-none absolute",
+    style: {
+      top: "0%",
+      right: "-10%",
+      width: "clamp(60px, 16.6%, 120px)",
+    },
+  },
+];
+
+const CEO_SPARKLES_MOBILE: {
+  src: string;
+  className: string;
+  style: React.CSSProperties;
+  ariaHidden?: boolean;
+}[] = [
+  {
+    src: INTRO_SPARKLE.sparkle1,
+    className: "pointer-events-none absolute z-20 opacity-90",
+    style: {
+      left: "-6%",
+      bottom: "24%",
+      width: "clamp(32px, 10vw, 48px)",
+      height: "auto",
+    },
+    ariaHidden: true,
+  },
+  {
+    src: INTRO_SPARKLE.sparkle2,
+    className: "pointer-events-none absolute z-20",
+    style: {
+      left: "-1%",
+      bottom: "9%",
+      width: "clamp(18px, 5.5vw, 30px)",
+      height: "auto",
+    },
+    ariaHidden: true,
+  },
+  {
+    src: INTRO_SPARKLE.star,
+    className: "pointer-events-none absolute z-20 opacity-90",
+    style: {
+      top: "0%",
+      right: "-10%",
+      width: "clamp(44px, 13vw, 76px)",
+      height: "auto",
+    },
+    ariaHidden: true,
+  },
+];
 
 type CeoLayoutMetrics = {
   photoW: number;
@@ -361,8 +483,8 @@ export default function BrandIntroScreen() {
   }, []);
 
   return (
-    <div className="w-full bg-[var(--site-chrome-header-bg,#F4F2E5)]">
-      <Breadcrumb items={[{ label: "회사소개" }]} />
+    <div className="w-full bg-[var(--site-chrome-header-bg,#FDFDF5)]">
+      <Breadcrumb items={[{ label: "회사소개" }, { label: "회사소개" }]} />
 
       {/* ══════════════════════════════════════════
           섹션 1: 스크롤 드리븐 패널 리빌 (PC) / 자동 슬라이더 (모바일)
@@ -383,7 +505,7 @@ export default function BrandIntroScreen() {
           style={{
             top: "var(--header-height)",
             height: "calc(100vh - var(--header-height))",
-            background: "var(--site-chrome-header-bg, #F4F2E5)",
+            background: "var(--site-chrome-header-bg, #FDFDF5)",
             display: "flex",
           }}
         >
@@ -730,36 +852,15 @@ export default function BrandIntroScreen() {
                       className="block h-full w-full object-cover"
                     />
                   </div>
-                  <img
-                    src={INTRO_SPARKLE.sparkle1}
-                    alt=""
-                    className="pointer-events-none absolute"
-                    style={{
-                      left: "-8%",
-                      bottom: "26%",
-                      width: "clamp(18px, 4.2%, 32px)",
-                    }}
-                  />
-                  <img
-                    src={INTRO_SPARKLE.sparkle2}
-                    alt=""
-                    className="pointer-events-none absolute"
-                    style={{
-                      left: "-3%",
-                      bottom: "12%",
-                      width: "clamp(10px, 2.6%, 20px)",
-                    }}
-                  />
-                  <img
-                    src={INTRO_SPARKLE.star}
-                    alt=""
-                    className="pointer-events-none absolute"
-                    style={{
-                      top: "6%",
-                      right: "-10%",
-                      width: "clamp(32px, 8.8%, 68px)",
-                    }}
-                  />
+                  {CEO_SPARKLES_PC.map((sp, i) => (
+                    <img
+                      key={i}
+                      src={sp.src}
+                      alt=""
+                      className={sp.className}
+                      style={sp.style}
+                    />
+                  ))}
                 </div>
 
                 {/* 좌상 620×190 — 이상적 left + 뷰포트( html overflow-x ) 안전 보정 */}
@@ -804,7 +905,7 @@ export default function BrandIntroScreen() {
                   </blockquote>
                 </div>
 
-                {/* 우하 400×390 */}
+                {/* 우하 400×390 — 본문만(상단 섹션 타이틀과 중복되는 ‘CEO 인사말’ 라벨 제거, 검수 반영) */}
                 <div
                   className="absolute right-0 bottom-0 z-[6] flex min-h-0 flex-col overflow-hidden text-left"
                   style={
@@ -819,22 +920,8 @@ export default function BrandIntroScreen() {
                         }
                   }
                 >
-                  <SectionPageTitle
-                    as="div"
-                    preset="brandIntro"
-                    starVariant="brandIntro"
-                    className="mb-2.5 shrink-0"
-                    titleStyle={{
-                      fontSize: pc1920(14, 28),
-                      fontWeight: 700,
-                      letterSpacing: "-0.04em",
-                      color: "#1F2121",
-                    }}
-                  >
-                    CEO 인사말
-                  </SectionPageTitle>
                   <div
-                    className="min-h-0 flex-1 overflow-y-auto pr-0.5"
+                    className="min-h-0 flex-1 overflow-y-auto pt-0.5 pr-0.5"
                     style={{
                       color: "#1F2121",
                       fontSize: pc1920(11, 16),
@@ -918,42 +1005,16 @@ export default function BrandIntroScreen() {
                 />
               </div>
 
-              <img
-                src={INTRO_SPARKLE.sparkle1}
-                alt=""
-                className="pointer-events-none absolute z-20 opacity-90"
-                style={{
-                  left: "-6%",
-                  bottom: "24%",
-                  width: "clamp(32px, 10vw, 48px)",
-                  height: "auto",
-                }}
-                aria-hidden
-              />
-              <img
-                src={INTRO_SPARKLE.sparkle2}
-                alt=""
-                className="pointer-events-none absolute z-20"
-                style={{
-                  left: "-1%",
-                  bottom: "9%",
-                  width: "clamp(18px, 5.5vw, 30px)",
-                  height: "auto",
-                }}
-                aria-hidden
-              />
-              <img
-                src={INTRO_SPARKLE.star}
-                alt=""
-                className="pointer-events-none absolute z-20 opacity-90"
-                style={{
-                  top: "0%",
-                  right: "-10%",
-                  width: "clamp(44px, 13vw, 76px)",
-                  height: "auto",
-                }}
-                aria-hidden
-              />
+              {CEO_SPARKLES_MOBILE.map((sp, i) => (
+                <img
+                  key={i}
+                  src={sp.src}
+                  alt=""
+                  className={sp.className}
+                  style={sp.style}
+                  aria-hidden={sp.ariaHidden}
+                />
+              ))}
             </div>
           </div>
 
@@ -1087,10 +1148,10 @@ export default function BrandIntroScreen() {
                     <span
                       style={{
                         fontSize: pc1920(11, 16),
-                        fontWeight: 800,
+                        fontWeight: 900,
                         letterSpacing: "-0.04em",
                         lineHeight: pc1920(16, 24),
-                        color: "#02633E",
+                        color: "#003F2B",
                       }}
                     >
                       {category}
@@ -1178,7 +1239,7 @@ export default function BrandIntroScreen() {
                     <h3
                       className={cn(
                         nanum,
-                        "text-[18px] leading-[27px] font-extrabold break-words text-[#02633E]",
+                        "text-[18px] leading-[27px] font-extrabold break-words text-[#003F2B]",
                       )}
                     >
                       {category}
@@ -1654,9 +1715,9 @@ export default function BrandIntroScreen() {
                 key={label}
                 href={href}
                 download
-                className="box-border flex max-w-[min(457.5px,calc(457.5*100vw/1920))] min-w-0 flex-1 basis-0 cursor-pointer items-center gap-3 border-0 bg-white no-underline"
+                className="box-border flex max-w-[min(457.5px,calc(457.5*100vw/1920))] min-w-0 flex-1 basis-0 cursor-pointer items-center gap-3 border border-[#E6E1D4] bg-white no-underline shadow-sm transition-shadow hover:shadow"
                 style={{
-                  borderRadius: pc1920(14, 20),
+                  borderRadius: pc1920(16, 24),
                   minHeight: pc1920(96, 120),
                   padding: `${pc1920(16, 30)} ${pc1920(16, 30)}`,
                 }}
@@ -1715,19 +1776,13 @@ export default function BrandIntroScreen() {
                     {size}
                   </p>
                 </div>
-                <svg
-                  className="h-[18px] w-[18px] shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
-                  <path
-                    d="M5 18h14"
-                    stroke="#AAAAAA"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <img
+                  src="/intro/download_icon.png"
+                  alt=""
+                  className="shrink-0 object-contain"
+                  style={{ width: "54.5px", height: "53px" }}
+                  aria-hidden
+                />
               </a>
             ))}
           </div>
@@ -1776,10 +1831,10 @@ export default function BrandIntroScreen() {
                 key={label}
                 href={href}
                 download
-                className="flex items-center justify-between gap-3 rounded-[10px] bg-white p-4 no-underline"
+                className="flex items-center justify-between gap-3 rounded-[16px] border border-[#E6E1D4] bg-white p-4 no-underline shadow-sm"
               >
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-[#003F2B]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-[#003F2B]">
                     <svg
                       className="h-6 w-6"
                       viewBox="0 0 24 24"
@@ -1822,20 +1877,13 @@ export default function BrandIntroScreen() {
                     </p>
                   </div>
                 </div>
-                <svg
-                  className="h-10 w-10 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="none"
+                <img
+                  src="/intro/download_icon.png"
+                  alt=""
+                  className="shrink-0 object-contain"
+                  style={{ width: "54.5px", height: "53px" }}
                   aria-hidden
-                >
-                  <path d="M12 15l-4-4h3V4h2v7h3l-4 4z" fill="#AAAAAA" />
-                  <path
-                    d="M5 18h14"
-                    stroke="#AAAAAA"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                />
               </a>
             ))}
           </div>

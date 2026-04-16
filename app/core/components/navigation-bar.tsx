@@ -23,6 +23,7 @@ import {
   SheetClose,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "./ui/sheet";
 
@@ -237,20 +238,45 @@ function MobileNavigation({
     );
 
   return (
-    <div className="flex flex-col gap-1 pt-4">
-      <SheetClose asChild>
-        <a
-          href="https://smartstore.naver.com/poonglimfoods"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-4 flex items-center justify-center gap-2 rounded-[8px] bg-[#0E5A3A] px-4 py-3 text-sm font-semibold text-white"
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#EAE3C9] bg-[var(--site-chrome-header-bg,#FDFDF5)] px-4 py-3">
+        <SheetClose asChild>
+          <Link
+            to="/"
+            viewTransition
+            className="flex min-w-0 max-w-[200px] items-center py-1"
+            aria-label="홈으로 이동"
+          >
+            <img
+              src="/home/poonglim-logo-eng.png"
+              alt=""
+              className="h-8 w-auto max-w-full object-contain object-left"
+            />
+          </Link>
+        </SheetClose>
+        <SheetClose
+          type="button"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#1F2121] transition-colors hover:bg-black/5 active:bg-black/10"
+          aria-label="메뉴 닫기"
         >
-          풍림몰 바로가기
-          <ArrowUpRightIcon className="size-4" />
-        </a>
-      </SheetClose>
+          <XIcon className="size-7" strokeWidth={2} aria-hidden />
+        </SheetClose>
+      </div>
 
-      {menuItems.map((item) =>
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pt-4 pb-6">
+        <SheetClose asChild>
+          <a
+            href="https://smartstore.naver.com/poonglimfoods"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 flex items-center justify-center gap-2 rounded-[8px] bg-[#0E5A3A] px-4 py-3 text-sm font-semibold text-white"
+          >
+            풍림몰 바로가기
+            <ArrowUpRightIcon className="size-4" />
+          </a>
+        </SheetClose>
+
+        {menuItems.map((item) =>
         item.subItems ? (
           <Collapsible
             key={item.label}
@@ -303,6 +329,7 @@ function MobileNavigation({
           </SheetClose>
         ),
       )}
+      </div>
     </div>
   );
 }
@@ -331,6 +358,7 @@ export function NavigationBar({
   );
   const isNewsDetailRoute = /^\/media\/news\/\d+$/.test(location.pathname);
   const isEventDetailRoute = /^\/event\/\d+$/.test(location.pathname);
+  const isEggStoryRoute = location.pathname === "/products/egg-story";
   const isDetailMobileHeaderRoute =
     isProductDetailRoute ||
     isRecipeDetailRoute ||
@@ -338,9 +366,15 @@ export function NavigationBar({
     isResourcesDetailRoute ||
     isGradeCertDetailRoute ||
     isNewsDetailRoute ||
-    isEventDetailRoute;
+    isEventDetailRoute ||
+    isEggStoryRoute;
 
-  const detailHeaderConfig = isProductDetailRoute
+  /** 모바일·태블릿 전용 상단바 (`lg:hidden`) — PC(lg+)에서는 기본 네비만 노출 */
+  type DetailHeaderConfig =
+    | { label: string; to: string }
+    | { label: string; back: "history" };
+
+  const detailHeaderConfig: DetailHeaderConfig | null = isProductDetailRoute
     ? { label: "제품보기", to: "/products/all" }
     : isRecipeDetailRoute
       ? { label: "레시피", to: "/recipe/main" }
@@ -348,13 +382,15 @@ export function NavigationBar({
         ? { label: "공지사항", to: "/support/notice" }
         : isResourcesDetailRoute
           ? { label: "자료실", to: "/support/resources" }
-        : isGradeCertDetailRoute
-          ? { label: "등급판정서", to: "/support/grade-certificate" }
-          : isNewsDetailRoute
-            ? { label: "보도자료", to: "/media/news" }
-            : isEventDetailRoute
-              ? { label: "이벤트", to: "/event" }
-              : null;
+          : isGradeCertDetailRoute
+            ? { label: "등급판정서", to: "/support/grade-certificate" }
+            : isNewsDetailRoute
+              ? { label: "보도자료", to: "/media/news" }
+              : isEventDetailRoute
+                ? { label: "이벤트", to: "/event" }
+                : isEggStoryRoute
+                  ? { label: "계란 이야기", back: "history" }
+                  : null;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
@@ -514,7 +550,7 @@ export function NavigationBar({
         <header
           className="fixed top-0 right-0 left-0 z-50 w-full"
           style={{
-            backgroundColor: "var(--site-chrome-header-bg, #F4F2E5)",
+            backgroundColor: "var(--site-chrome-header-bg, #FDFDF5)",
           }}
         >
           {/* ── 일반 모드 — PC 시안: 좌우 (100vw−1600)/2, 본문 max 1600 ── */}
@@ -622,13 +658,17 @@ export function NavigationBar({
                           strokeWidth={1.5}
                         />
                       </SheetTrigger>
-                      <SheetContent className="w-[300px] overflow-y-auto">
-                        <SheetHeader>
-                          <MobileNavigation
-                            productCategories={productCategories}
-                            recipeCategories={recipeCategories}
-                          />
+                      <SheetContent
+                        hideCloseButton
+                        className="flex h-full w-[300px] max-w-[300px] flex-col gap-0 overflow-hidden p-0"
+                      >
+                        <SheetHeader className="sr-only">
+                          <SheetTitle>메인 메뉴</SheetTitle>
                         </SheetHeader>
+                        <MobileNavigation
+                          productCategories={productCategories}
+                          recipeCategories={recipeCategories}
+                        />
                       </SheetContent>
                     </Sheet>
                   </div>
@@ -644,21 +684,37 @@ export function NavigationBar({
         <header
           className="fixed top-0 right-0 left-0 z-50 w-full lg:hidden"
           style={{
-            backgroundColor: "var(--site-chrome-header-bg, #F4F2E5)",
+            backgroundColor: "var(--site-chrome-header-bg, #FDFDF5)",
           }}
         >
           <div className="mx-auto flex h-[50px] w-full items-center justify-between px-3 sm:px-4 md:h-[68px] md:px-6">
-            <Link
-              to={detailHeaderConfig.to}
-              className="inline-flex items-center gap-1.5 text-[16px] font-semibold tracking-[-0.03em] text-[#1F2121] md:text-[18px]"
-            >
-              <ChevronLeft
-                className="h-[22px] w-[22px] shrink-0 md:h-6 md:w-6"
-                strokeWidth={2.25}
-                aria-hidden
-              />
-              {detailHeaderConfig.label}
-            </Link>
+            {"to" in detailHeaderConfig ? (
+              <Link
+                to={detailHeaderConfig.to}
+                className="inline-flex items-center gap-1.5 text-[16px] font-semibold tracking-[-0.03em] text-[#1F2121] md:text-[18px]"
+              >
+                <ChevronLeft
+                  className="h-[22px] w-[22px] shrink-0 md:h-6 md:w-6"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                {detailHeaderConfig.label}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center gap-1.5 text-[16px] font-semibold tracking-[-0.03em] text-[#1F2121] md:text-[18px]"
+                aria-label="이전 화면으로"
+              >
+                <ChevronLeft
+                  className="h-[22px] w-[22px] shrink-0 md:h-6 md:w-6"
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                {detailHeaderConfig.label}
+              </button>
+            )}
 
             <div className="flex items-center gap-1 sm:gap-2">
               <button
@@ -672,13 +728,17 @@ export function NavigationBar({
                 <SheetTrigger className="flex h-9 w-9 items-center justify-center rounded-full text-[#333] transition-colors hover:bg-black/5 active:bg-black/10 sm:h-10 sm:w-10">
                   <MenuIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
                 </SheetTrigger>
-                <SheetContent className="w-[300px] overflow-y-auto">
-                  <SheetHeader>
-                    <MobileNavigation
-                      productCategories={productCategories}
-                      recipeCategories={recipeCategories}
-                    />
+                <SheetContent
+                  hideCloseButton
+                  className="flex h-full w-[300px] max-w-[300px] flex-col gap-0 overflow-hidden p-0"
+                >
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>메인 메뉴</SheetTitle>
                   </SheetHeader>
+                  <MobileNavigation
+                    productCategories={productCategories}
+                    recipeCategories={recipeCategories}
+                  />
                 </SheetContent>
               </Sheet>
             </div>

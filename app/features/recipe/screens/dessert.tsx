@@ -1,12 +1,19 @@
 import { useTranslation } from "react-i18next";
 import { RecipeGrid } from "../components/recipe-grid";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 
 export default function CafeRecipesScreen() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       <Breadcrumb
         items={[
           { label: "레시피", href: "/recipe/main" },
@@ -14,7 +21,12 @@ export default function CafeRecipesScreen() {
         ]}
       />
       {/* Hero Section */}
-      <section className="bg-primary py-16 text-primary-foreground">
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "min-w-0 bg-primary py-16 text-primary-foreground",
+        )}
+      >
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))] text-center">
           <h1 className="mb-4 text-balance text-4xl font-bold md:text-5xl">
             카페 & 베이커리
@@ -26,7 +38,12 @@ export default function CafeRecipesScreen() {
       </section>
 
       {/* Recipes Grid */}
-      <section className="bg-[var(--site-chrome-header-bg,#F4F2E5)] py-12">
+      <section
+        className={cn(
+          SECTION_VIEWPORT_BLEED,
+          "min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)] py-12",
+        )}
+      >
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <RecipeGrid selectedCategory="cafe" selectedDifficulty="all" searchQuery="" />
         </div>

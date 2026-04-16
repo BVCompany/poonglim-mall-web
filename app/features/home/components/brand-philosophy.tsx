@@ -1,78 +1,29 @@
-import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+
+import { useBrandPhilosophyReveal } from "../lib/brand-philosophy-reveal";
 
 export function BrandPhilosophy() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-
-    let triggered = false;
-
-    const trigger = () => {
-      if (triggered) return;
-      triggered = true;
-      setVisible(true);
-      window.removeEventListener("scroll", onScroll);
-    };
-
-    const sectionOffsetTop = el.offsetTop;
-    const triggerAt = Math.max(
-      sectionOffsetTop - window.innerHeight * 0.5,
-      100,
-    );
-
-    const onScroll = () => {
-      if (window.scrollY >= triggerAt) trigger();
-    };
-
-    if (window.scrollY >= triggerAt) {
-      trigger();
-      return;
-    }
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const slideStyle = (delay: number): React.CSSProperties =>
-    visible
-      ? {
-          animation: `slide-up-fade 1s cubic-bezier(0.16,1,0.3,1) ${delay}ms both`,
-        }
-      : { opacity: 0 };
-
-  const badgeStyle = (delay: number): React.CSSProperties =>
-    visible
-      ? {
-          animation: `slide-from-right-fade 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms both`,
-        }
-      : { opacity: 0 };
+  const { sectionRef, visible, slideStyle, badgeStyle, sparkleStyle } =
+    useBrandPhilosophyReveal();
 
   const sparkle = (
     delay: number,
     size: number,
     green: boolean,
-    style: React.CSSProperties,
+    style: CSSProperties,
   ) => (
     <img
       src="/home/intro-star.png"
       alt=""
       className="pointer-events-none absolute select-none"
-      style={{
+      style={sparkleStyle(delay, {
         ...style,
         width: size,
         height: size,
         filter: green
-          ? "hue-rotate(90deg) saturate(1.6) brightness(0.75)"
+          ? "hue-rotate(88deg) saturate(1.35) brightness(0.68)"
           : "none",
-        ...(visible
-          ? {
-              animation: `slide-up-fade 1s cubic-bezier(0.16,1,0.3,1) ${delay}ms both`,
-            }
-          : { opacity: 0 }),
-      }}
+      })}
     />
   );
 
@@ -91,11 +42,11 @@ export function BrandPhilosophy() {
       {/* ── 모바일 레이아웃 (이미지 시안 기준) ── */}
       <div className="relative md:hidden">
         {/* 별 3개: Enrich 위, Day 위(연두), Food. 아래 */}
-        {sparkle(100, 22, false, { top: "0%", left: "6%" })}
-        {sparkle(250, 36, true, { top: "18%", right: "12%", left: "auto" })}
+        {sparkle(100, 22, false, { top: "2%", left: "8%" })}
+        {sparkle(250, 34, true, { top: "16%", right: "10%", left: "auto" })}
         {sparkle(350, 28, false, {
-          bottom: "32%",
-          right: "26%",
+          bottom: "30%",
+          right: "22%",
           top: "auto",
           left: "auto",
         })}
@@ -150,7 +101,7 @@ export function BrandPhilosophy() {
           {/* 3행: with(왼쪽 정렬) */}
           <div className="relative mt-0" style={slideStyle(450)}>
             <span
-              className="inline-block text-left leading-none text-[#005A3D]"
+              className="inline-block text-left leading-none text-[#02633E]"
               style={{ fontSize: "56px", fontWeight: 700 }}
             >
               with
@@ -162,7 +113,7 @@ export function BrandPhilosophy() {
             <div className="flex justify-end">
               <span className="relative inline-block text-right">
                 <span
-                  className="inline-block leading-none whitespace-nowrap text-[#005A3D]"
+                  className="inline-block leading-none whitespace-nowrap text-[#02633E]"
                   style={{ fontSize: "56px", fontWeight: 700 }}
                 >
                   Good Fo
@@ -199,10 +150,10 @@ export function BrandPhilosophy() {
 
       {/* ── PC 레이아웃: Enrich 쪽 좌측, with 쪽 우측 ── */}
       <div className="relative hidden md:block">
-        {sparkle(100, 36, false, { top: "8%", left: "18%" })}
-        {sparkle(250, 48, true, { top: "12%", right: "22%", left: "auto" })}
-        {sparkle(350, 40, false, { top: "58%", left: "35%" })}
-        {sparkle(450, 28, true, { top: "72%", right: "30%", left: "auto" })}
+        {sparkle(100, 36, false, { top: "6%", left: "20%" })}
+        {sparkle(250, 46, true, { top: "10%", right: "20%", left: "auto" })}
+        {sparkle(350, 40, false, { top: "56%", left: "34%" })}
+        {sparkle(450, 28, true, { top: "70%", right: "28%", left: "auto" })}
 
         <div className="mx-auto w-full max-w-[min(1320px,calc(1320*100vw/1920))] px-6 lg:px-8">
           {/* 1행: Enrich [캐릭터] Your Day — 좌측 정렬 */}
@@ -257,13 +208,13 @@ export function BrandPhilosophy() {
             >
               <span className="relative inline-block">
                 <span
-                  className="text-[#005A3D]"
+                  className="text-[#02633E]"
                   style={{ fontSize: "clamp(3rem, 7vw, 6.25rem)", fontWeight: 800 }}
                 >
                   {"with "}
                 </span>
                 <span
-                  className="text-[#005A3D]"
+                  className="text-[#02633E]"
                   style={{ fontSize: "clamp(3rem, 7vw, 6.25rem)", fontWeight: 800 }}
                 >
                   {"Good Fo"}
@@ -289,7 +240,7 @@ export function BrandPhilosophy() {
           </div>
 
           <p
-            className="mt-3 text-center text-base text-[#005A3D] lg:text-lg"
+            className="mt-3 text-center text-base text-[var(--brand-green)] lg:text-lg"
             style={slideStyle(900)}
           >
             건강하고 풍요한 일상을 만들다.

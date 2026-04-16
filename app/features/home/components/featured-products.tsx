@@ -179,7 +179,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
   }, []);
 
   return (
-    <section className="overflow-x-hidden bg-[var(--brand-cream)] py-10 md:py-20">
+    <section className="overflow-x-hidden bg-transparent py-10 md:py-20">
       <div className="mx-auto w-full max-w-[var(--content-max-width)] px-4 sm:px-6">
         {/* Section Header - 모바일: 별 없음, 2줄 타이틀, 화살표만 / PC: 별+타이틀, 전체보기+화살표 */}
         <div className="mb-5 flex flex-row items-end justify-between gap-4 md:mb-8 md:justify-between">
@@ -187,7 +187,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
             as="h2"
             preset="none"
             starVariant="product"
-            className="flex flex-1 flex-col text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-2xl"
+            className="flex flex-1 flex-col text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)]"
             rootStyle={{ letterSpacing: "-0.04em" }}
             markClassName="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
             wrapTitle={false}
@@ -201,7 +201,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
           </SectionPageTitle>
           <Link
             to="/products/all"
-            className="flex flex-shrink-0 items-center text-[#003F2B] transition-colors hover:text-[#2DB96B]"
+            className="flex flex-shrink-0 items-center text-[#003F2B]"
             aria-label="전체보기"
           >
             <span className="hidden md:inline">전체보기</span>
@@ -213,9 +213,8 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
         <div className="-mr-4 sm:-mx-6 md:mx-0 md:[margin-right:calc(-50vw+50%)]">
           <div
             ref={scrollRef}
-            className="scrollbar-hide flex gap-3 overflow-x-auto px-4 pb-4 sm:gap-4 sm:px-6 md:pr-4"
+            className="scrollbar-hide flex snap-x snap-proximity gap-3 overflow-x-auto px-4 pb-4 sm:gap-4 sm:px-6 md:pl-0 md:pr-4"
             onScroll={checkScroll}
-            style={{ scrollSnapType: "x proximity" }}
           >
             {products.map((product) => (
               <Link
@@ -224,7 +223,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
                 className="group flex h-[380px] w-[280px] flex-shrink-0 flex-col transition-colors duration-300 sm:h-[420px] sm:w-[320px] md:h-[530px] md:w-[408px]"
                 style={{ scrollSnapAlign: "start" }}
               >
-                <div className="relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#EDEBE4] p-4 transition-colors duration-300 group-hover:bg-[#1A4736] sm:rounded-[1.25rem] sm:p-5 md:p-6">
+                <div className="relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#EAE3C9] p-4 transition-colors duration-300 group-hover:bg-[var(--brand-green)] sm:rounded-[1.25rem] sm:p-5 md:p-6">
                   {/* Badges - 상단 좌측, pill 형태 */}
                   <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2 sm:mb-4 md:mb-4">
                     {product.badges.map((badge) => (

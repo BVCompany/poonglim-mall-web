@@ -1,16 +1,17 @@
 /**
  * 이벤트 목록 페이지
  */
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { Route } from "./+types/event";
+import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import { SectionPageTitle } from "~/core/components/section-title-star";
-import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getEvents } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -172,13 +173,6 @@ const MOCK_EVENTS: MockEventRow[] = [
   },
 ];
 
-const BADGE_LABEL: Record<string, string> = {
-  hot: "HOT",
-  new: "NEW",
-  ending_soon: "마감임박",
-  important: "중요",
-};
-
 /** 모바일 시안 — 상단 필터 탭 */
 const TABS = ["전체보기", "공지", "안내", "이벤트"] as const;
 
@@ -219,12 +213,6 @@ function formatPeriod(started_at: Date | null, ended_at: Date | null) {
   return `~ ${e}`;
 }
 
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  진행중: { bg: "#02633E", color: "#fff" },
-  예정: { bg: "#C9A84C", color: "#fff" },
-  종료: { bg: "#AAAAAA", color: "#fff" },
-};
-
 /** 썸네일 좌상단 상태 뱃지 — 시안 색상 */
 function ThumbnailStatusBadge({ status }: { status: "진행중" | "예정" | "종료" }) {
   if (status === "진행중") {
@@ -254,6 +242,127 @@ function ThumbnailStatusBadge({ status }: { status: "진행중" | "예정" | "�
     >
       종료
     </span>
+  );
+}
+
+/** Figma 375 기준 카드 폭·썸네일 높이 (PC 카드 최대 폭 520px과 동일 비율) */
+const EVENT_CARD_REF_W = 343;
+const EVENT_CARD_REF_THUMB_H = 167;
+
+type EventCardRow = {
+  event_id: number;
+  title: string;
+  summary: string;
+  thumbnail_url: string | null;
+  started_at: Date | null;
+  ended_at: Date | null;
+  badge: MockEventRow["badge"];
+  venue: string;
+  status: "진행중" | "예정" | "종료";
+};
+
+function EventCard({ event }: { event: EventCardRow }) {
+  const isEnded = event.status === "종료";
+  return (
+    <Link
+      to={`/event/${event.event_id}`}
+      className={cn(
+        "group relative flex min-w-0 w-full max-w-full flex-col overflow-hidden rounded-[20px] bg-[#EAE3C9] transition-all hover:brightness-[0.98] active:brightness-95",
+        "md:mx-auto md:max-w-[520px] md:rounded-[30px]",
+      )}
+    >
+      <div className="flex flex-col gap-2.5 p-2.5 pb-0 md:gap-4 md:p-4 md:pb-0">
+        <div
+          className="relative w-full overflow-hidden rounded-xl bg-white md:rounded-2xl"
+          style={{
+            aspectRatio: `${EVENT_CARD_REF_W} / ${EVENT_CARD_REF_THUMB_H}`,
+          }}
+        >
+          {event.thumbnail_url ? (
+            <img
+              src={event.thumbnail_url}
+              alt=""
+              className="h-full w-full object-cover object-center"
+            />
+          ) : (
+            <MediaThumbFallback />
+          )}
+          <div className="pointer-events-none absolute left-4 top-4 md:left-6 md:top-6">
+            <ThumbnailStatusBadge status={event.status} />
+          </div>
+        </div>
+      </div>
+      <div
+        className={cn(
+          "flex flex-col gap-4 p-5 md:gap-6 md:p-8",
+          nanum,
+          isEnded && "text-[#1F2121]",
+        )}
+      >
+        <div className="flex flex-col gap-2 md:gap-3">
+          <h3
+            className={cn(
+              "font-bold text-[#1F2121]",
+              isEnded
+                ? "text-[15px] leading-[22.5px] md:text-[23px] md:leading-[34px]"
+                : "text-base leading-6 md:text-2xl md:leading-9",
+            )}
+          >
+            {event.title}
+          </h3>
+          {event.summary ? (
+            <p
+              className={cn(
+                "line-clamp-2 text-[#1F2121]",
+                isEnded
+                  ? "text-[13px] font-normal leading-[19.5px] md:text-[20px] md:leading-[30px]"
+                  : "text-sm font-normal leading-[21px] md:text-lg md:leading-[27px]",
+              )}
+            >
+              {event.summary}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-2 md:gap-3">
+          <p
+            className={cn(
+              "text-[#1F2121]",
+              isEnded
+                ? "text-[10px] font-normal leading-[14px] md:text-[15px] md:leading-[21px]"
+                : "text-xs font-normal leading-[16.8px] md:text-sm md:leading-[22px]",
+            )}
+          >
+            {formatPeriod(event.started_at, event.ended_at)}
+          </p>
+          <span
+            className={cn(
+              "inline-flex w-fit rounded-full bg-[#EAE3C9] px-1.5 py-1 font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]",
+              isEnded
+                ? "text-[10px] leading-[10px] md:px-2 md:py-1.5 md:text-[15px] md:leading-[15px]"
+                : "text-xs leading-3 md:px-2 md:py-1.5 md:text-sm md:leading-4",
+            )}
+          >
+            {event.venue}
+          </span>
+        </div>
+      </div>
+      {isEnded ? (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[20px] bg-[#2C383A]/60 md:rounded-[30px]"
+          aria-hidden
+        >
+          <div
+            className={cn(
+              nanum,
+              "flex h-[140px] w-[140px] items-center justify-center rounded-full bg-[#1F2121] px-5 py-2.5 text-center text-base font-bold leading-[22.4px] text-white",
+              "md:h-[min(212px,calc(140*520/343))] md:w-[min(212px,calc(140*520/343))] md:px-8 md:py-4 md:text-[23px] md:leading-[32px]",
+            )}
+          >
+            종료된 이벤트
+          </div>
+        </div>
+      ) : null}
+    </Link>
   );
 }
 
@@ -320,7 +429,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="이벤트"
@@ -342,11 +451,10 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         이벤트
       </SectionPageTitle>
 
-      {/* ── 본문 ── */}
-      <PageContentMax className="max-md:pb-16 max-md:pt-0 py-6 md:pb-10 md:pt-[60px]">
+      {/* ── 필터 탭 + 검색 (기존 유지) ── */}
+      <PageContentMax className="max-md:pt-0 py-6 md:pb-5 md:pt-[60px]">
 
-        {/* ── 필터 탭 + 검색 (PC: 공지사항 목록과 동일) ── */}
-        <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
+        <div className="mb-0 flex flex-col gap-4 md:mb-0 md:flex-row md:items-end md:justify-between md:pb-0">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
             <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:py-3.5 max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 md:py-0 [&::-webkit-scrollbar]:hidden">
               {TABS.map((t) => {
@@ -395,199 +503,66 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
             />
           </div>
         </div>
+      </PageContentMax>
 
-        {/* ── 목록 ── */}
-        {paginated.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-400">
-            해당 이벤트가 없습니다.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2.5 max-md:gap-5 md:gap-[10px]">
-            {paginated.map((event, idx) => {
-              const num = filtered.length - ((page - 1) * ITEMS_PER_PAGE + idx);
-              const statusStyle = STATUS_STYLE[event.status];
-              const badgeLabel = event.badge ? BADGE_LABEL[event.badge] : null;
-              const isEnded = event.status === "종료";
-              return (
-                <Fragment key={event.event_id}>
-                  {/* 모바일 시안 — 아이보리 카드 + 썸네일 뱃지 + 종료 오버레이 */}
-                  <Link
-                    to={`/event/${event.event_id}`}
-                    className="group relative flex w-full flex-col overflow-hidden rounded-[20px] bg-[#EAE3C9] transition-all active:brightness-95 md:hidden"
+      {/* 레시피 목록과 동일 가로 패딩·그리드: 모바일 2열 / PC 3열, 페이지당 9개 */}
+      <div className="px-4 pb-16 md:mt-[30px] md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
+        <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
+          {paginated.length === 0 ? (
+            <div className="py-16 text-center text-sm text-gray-400">
+              해당 이벤트가 없습니다.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-5">
+                {paginated.map((event) => (
+                  <EventCard key={event.event_id} event={event} />
+                ))}
+              </div>
+
+              {totalPages > 1 ? (
+                <div className="mt-10 flex items-center justify-center gap-[30px] md:pt-10">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    aria-label="이전 페이지"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
                   >
-                    <div className="flex flex-col gap-2.5 p-2.5 pb-0">
-                      <div className="relative h-[167px] w-full overflow-hidden rounded-xl bg-[#D5CEB4]">
-                        {event.thumbnail_url ? (
-                          <img
-                            src={event.thumbnail_url}
-                            alt=""
-                            className="h-full w-full object-cover object-center"
-                          />
-                        ) : null}
-                        <div className="pointer-events-none absolute left-4 top-4">
-                          <ThumbnailStatusBadge status={event.status} />
-                        </div>
-                      </div>
-                    </div>
-                    <div
+                    <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      aria-label={`${p}페이지`}
+                      aria-current={p === page ? "page" : undefined}
                       className={cn(
-                        "flex flex-col gap-4 p-5",
-                        nanum,
-                        isEnded && "text-[#1F2121]",
+                        "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
+                        p === page ? "opacity-100" : "opacity-50 hover:opacity-80",
                       )}
                     >
-                      <div className="flex flex-col gap-2">
-                        <h3
-                          className={cn(
-                            "font-bold text-[#1F2121]",
-                            isEnded ? "text-[15px] leading-[22.5px]" : "text-base leading-6",
-                          )}
-                        >
-                          {event.title}
-                        </h3>
-                        {event.summary ? (
-                          <p
-                            className={cn(
-                              "line-clamp-2 text-[#1F2121]",
-                              isEnded
-                                ? "text-[13px] font-normal leading-[19.5px]"
-                                : "text-sm font-normal leading-[21px]",
-                            )}
-                          >
-                            {event.summary}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <p
-                          className={cn(
-                            "text-[#1F2121]",
-                            isEnded
-                              ? "text-[10px] font-normal leading-[14px]"
-                              : "text-xs font-normal leading-[16.8px]",
-                          )}
-                        >
-                          {formatPeriod(event.started_at, event.ended_at)}
-                        </p>
-                        <span
-                          className={cn(
-                            "inline-flex w-fit rounded-full bg-[#EAE3C9] px-1.5 py-1 font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]",
-                            isEnded ? "text-[10px] leading-[10px]" : "text-xs leading-3",
-                          )}
-                        >
-                          {event.venue}
-                        </span>
-                      </div>
-                    </div>
-                    {isEnded ? (
-                      <div
-                        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-[20px] bg-[#2C383A]/60"
-                        aria-hidden
-                      >
-                        <div
-                          className={cn(
-                            nanum,
-                            "flex h-[140px] w-[140px] items-center justify-center rounded-full bg-[#1F2121] px-5 py-2.5 text-center text-base font-bold leading-[22.4px] text-white",
-                          )}
-                        >
-                          종료된 이벤트
-                        </div>
-                      </div>
-                    ) : null}
-                  </Link>
+                      {p}
+                    </button>
+                  ))}
 
-                  {/* PC 행 — 공지사항 목록과 동일 레이아웃 */}
-                  <Link
-                    to={`/event/${event.event_id}`}
-                    className="group hidden items-center gap-5 rounded-[10px] bg-[#EAE3C9] p-[30px] transition-all hover:brightness-[0.98] md:flex"
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    aria-label="다음 페이지"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
                   >
-                    <div className="flex w-[65px] shrink-0 justify-center">
-                      <span className="text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
-                        {num}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 flex-1 items-center gap-5">
-                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                        {badgeLabel ? (
-                          <span
-                            className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-white [font-family:Pretendard,system-ui,sans-serif]"
-                            style={{ backgroundColor: "#02633E" }}
-                          >
-                            {badgeLabel}
-                          </span>
-                        ) : null}
-                        <span
-                          className="min-w-0 flex-1 font-[NanumSquareRound,sans-serif] font-bold text-[#1F2121] transition-colors group-hover:text-[#02633E]"
-                          style={{
-                            fontSize: pc1920(16, 20),
-                            lineHeight: pc1920(24, 30),
-                          }}
-                        >
-                          {event.title}
-                        </span>
-                      </div>
-                      <span className="w-[min(200px,calc(200*100vw/1920))] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal leading-[19.6px] text-[#1F2121]">
-                        {formatPeriod(event.started_at, event.ended_at)}
-                      </span>
-                      <span
-                        className="inline-flex min-w-[65px] shrink-0 items-center justify-center rounded-full px-3 py-2 text-center text-[12px] font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]"
-                        style={{
-                          backgroundColor: statusStyle.bg,
-                          color: statusStyle.color,
-                        }}
-                      >
-                        {event.status}
-                      </span>
-                      <span className="w-[65px] shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] tabular-nums text-[#1F2121]">
-                        {event.view_count}
-                      </span>
-                    </div>
-                  </Link>
-                </Fragment>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── 페이지네이션 — 공지사항 목록과 동일 ── */}
-        <div className="mt-10 flex items-center justify-center gap-[30px] md:pt-10">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            aria-label="이전 페이지"
-            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
-          >
-            <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-          </button>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPage(p)}
-              aria-label={`${p}페이지`}
-              aria-current={p === page ? "page" : undefined}
-              className={cn(
-                "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
-                p === page ? "opacity-100" : "opacity-50 hover:opacity-80",
-              )}
-            >
-              {p}
-            </button>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            aria-label="다음 페이지"
-            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
-          >
-            <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-          </button>
+                    <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
-      </PageContentMax>
+      </div>
     </div>
   );
 }

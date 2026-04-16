@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 
+import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import {
   getAdjacentNews,
@@ -206,7 +208,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
     "prose prose-sm max-w-none py-8 leading-relaxed text-gray-700 md:py-10";
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
         title="보도자료"
@@ -277,7 +279,11 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   alt=""
                   className="w-full rounded-none object-cover"
                 />
-              ) : null}
+              ) : (
+                <div className="aspect-[5/3] w-full min-h-[180px] max-h-[320px] shrink-0">
+                  <MediaThumbFallback />
+                </div>
+              )}
 
               <div
                 className={articleClassMobile}
@@ -293,7 +299,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   to={`/media/news/${prev.news_id}`}
                   className={cn(
                     nanum,
-                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden px-5 py-[11px] text-sm font-bold leading-[18.2px] text-[#003F2B]",
+                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden px-5 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B]",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{prev.title}</span>
@@ -320,7 +326,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   to={`/media/news/${next.news_id}`}
                   className={cn(
                     nanum,
-                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden rounded-[40px] px-5 py-[11px] text-sm font-bold leading-[18.2px] text-[#003F2B]",
+                    "flex h-[66px] min-h-[66px] items-center gap-5 overflow-hidden rounded-[40px] px-5 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B]",
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{next.title}</span>
@@ -392,7 +398,16 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                 className="max-h-[520px] w-full rounded-xl object-cover"
               />
             </div>
-          ) : null}
+          ) : (
+            <div className="py-6">
+              <div
+                className="mx-auto max-h-[520px] w-full min-h-[200px] overflow-hidden rounded-xl"
+                style={{ aspectRatio: "1200 / 520" }}
+              >
+                <MediaThumbFallback />
+              </div>
+            </div>
+          )}
 
           <div
             className={articleClassDesktop}
@@ -400,57 +415,67 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
             dangerouslySetInnerHTML={{ __html: html }}
           />
 
-          <div
-            className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between md:gap-4 md:pt-8"
-            style={{ borderTop: "1px solid #D8D0BB" }}
-          >
-            <div className="flex-1">
-              {prev ? (
-                <Link
-                  to={`/media/news/${prev.news_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="font-medium text-gray-400">이전글</span>
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
-                    {prev.title}
-                  </span>
-                  <ChevronLeft className="hidden h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  이전글이 없습니다.
-                </span>
-              )}
-            </div>
+          {/* 공지사항 상세와 동일: 이전글 · 목록 · 다음글 */}
+          <div className="flex flex-col items-center gap-[60px]">
+            <div className="flex w-full max-w-full items-center justify-center gap-[60px] pt-[100px]">
+              <div className="min-w-0 flex-1">
+                {prev ? (
+                  <Link
+                    to={`/media/news/${prev.news_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <ChevronLeft
+                      className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="shrink-0">이전글</span>
+                    <span className="min-w-0 flex-1 truncate">{prev.title}</span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
 
-            <div className="flex-1 text-right">
-              {next ? (
-                <Link
-                  to={`/media/news/${next.news_id}`}
-                  className="group inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#02633E]"
-                >
-                  <span className="line-clamp-1 max-w-[200px] md:max-w-[280px]">
-                    {next.title}
-                  </span>
-                  <span className="font-medium text-gray-400">다음글</span>
-                  <ChevronRight className="hidden h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 md:block" />
-                </Link>
-              ) : (
-                <span className="text-sm text-gray-300">
-                  다음글이 없습니다.
-                </span>
-              )}
-            </div>
-          </div>
+              <Link
+                to="/media/news"
+                className={cn(
+                  nanum,
+                  "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
+                )}
+              >
+                목록
+              </Link>
 
-          <div className="mt-6 flex justify-center">
-            <Link
-              to="/media/news"
-              className="shrink-0 rounded-full px-8 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:brightness-95"
-              style={{ backgroundColor: "#EAE3C9" }}
-            >
-              목록
-            </Link>
+              <div className="min-w-0 flex-1">
+                {next ? (
+                  <Link
+                    to={`/media/news/${next.news_id}`}
+                    className={cn(
+                      nanum,
+                      "flex h-[66px] min-h-[66px] items-center gap-[30px] overflow-hidden rounded-[40px] px-10 py-[11px] text-base font-bold leading-[20.8px] text-[#003F2B] transition-opacity hover:opacity-90",
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-right">
+                      {next.title}
+                    </span>
+                    <span className="flex w-[92px] shrink-0 items-center justify-between">
+                      <span>다음글</span>
+                      <ChevronRight
+                        className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="h-[66px]" aria-hidden />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </PageContentMax>

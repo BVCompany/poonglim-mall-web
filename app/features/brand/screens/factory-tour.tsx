@@ -1,13 +1,21 @@
 import type { Route } from "./+types/factory-tour";
 
 import { CalendarDays, Check } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  type ChangeEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Form, useActionData, useNavigation } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 
 import { createFactoryTourApplication } from "../lib/queries.server";
@@ -135,6 +143,162 @@ const ftLabelPc =
 const labelCls =
   "mb-1.5 block text-sm font-semibold tracking-[-0.03em] text-gray-800";
 
+/** YYYY-M-D 형태를 정규화·검증 (유효하지 않으면 null) */
+function parseIsoDateLoose(s: string): string | null {
+  const t = s.trim();
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(t)) return null;
+  const [y, m, d] = t.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (
+    Number.isNaN(dt.getTime()) ||
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== m - 1 ||
+    dt.getDate() !== d
+  ) {
+    return null;
+  }
+  return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+type FactoryTourVisitDateFieldProps = {
+  visitDateStr: string;
+  setVisitDateStr: (v: string) => void;
+  visitDateOpen: boolean;
+  setVisitDateOpen: (open: boolean) => void;
+  /** 모바일/PC 중 실제로 보이는 필드만 달력 showPicker 시도 */
+  active: boolean;
+  disabled: boolean;
+  required: boolean;
+  mobile: boolean;
+  setPopoverRoot: (el: HTMLDivElement | null) => void;
+};
+
+function FactoryTourVisitDateField({
+  visitDateStr,
+  setVisitDateStr,
+  visitDateOpen,
+  setVisitDateOpen,
+  active,
+  disabled,
+  required,
+  mobile,
+  setPopoverRoot,
+}: FactoryTourVisitDateFieldProps) {
+  const datePickerRef = useRef<HTMLInputElement>(null);
+  const [dateTextDraft, setDateTextDraft] = useState(visitDateStr);
+
+  useEffect(() => {
+    if (visitDateOpen) setDateTextDraft(visitDateStr);
+  }, [visitDateOpen, visitDateStr]);
+
+  useEffect(() => {
+    if (!visitDateOpen || !active || disabled) return;
+    const id = window.requestAnimationFrame(() => {
+      datePickerRef.current?.focus({ preventScroll: true });
+      datePickerRef.current?.showPicker?.();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [visitDateOpen, active, disabled]);
+
+  const triggerCls = cn(
+    ftInputClass,
+    "flex cursor-pointer items-center gap-2.5 !py-0 max-lg:h-[60px]",
+    mobile ? "" : "lg:!px-4",
+  );
+
+  return (
+    <div
+      ref={setPopoverRoot}
+      className="relative w-full"
+    >
+      <input
+        type="hidden"
+        name="date"
+        value={visitDateStr}
+        disabled={disabled}
+        required={required}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) setVisitDateOpen(!visitDateOpen);
+        }}
+        className={cn(
+          triggerCls,
+          "w-full text-left font-[family-name:var(--font-nanum)]",
+          mobile ? "text-base text-[#003F2B]" : "text-[18px] text-[#1F2121]",
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate">
+          {visitDateStr
+            ? visitDateStr
+            : mobile
+              ? "날짜를 선택해주세요."
+              : "날짜를 선택하거나 직접 입력해 주세요."}
+        </span>
+        <CalendarDays
+          className={cn(
+            "shrink-0 text-[#2A343D]",
+            mobile ? "size-5" : "size-6",
+          )}
+          aria-hidden
+        />
+      </button>
+      {visitDateOpen && !disabled ? (
+        <div className="absolute left-0 right-0 z-30 mt-2 rounded-[10px] border border-[#E5E0D4] bg-white p-4 shadow-lg">
+          <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
+            달력에서 선택
+          </p>
+          <input
+            ref={datePickerRef}
+            type="date"
+            value={visitDateStr}
+            onChange={(e) => {
+              const v = e.target.value;
+              setVisitDateStr(v);
+              setDateTextDraft(v);
+            }}
+            className={cn(ftInputClass, "mb-4")}
+          />
+          <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
+            또는 YYYY-MM-DD 형식으로 입력
+          </p>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="예: 2026-06-15"
+            value={dateTextDraft}
+            onChange={(e) => setDateTextDraft(e.target.value)}
+            onBlur={() => {
+              const trimmed = dateTextDraft.trim();
+              if (!trimmed) {
+                setVisitDateStr("");
+                return;
+              }
+              const normalized = parseIsoDateLoose(trimmed);
+              if (normalized) {
+                setVisitDateStr(normalized);
+                setDateTextDraft(normalized);
+              } else {
+                setDateTextDraft(visitDateStr);
+              }
+            }}
+            className={ftInputClass}
+          />
+          <button
+            type="button"
+            className="mt-3 w-full rounded-lg border border-[#E5E0D4] py-2 font-[family-name:var(--font-nanum)] text-sm font-bold text-[#1F2121] hover:bg-[#FDFDF5]"
+            onClick={() => setVisitDateOpen(false)}
+          >
+            닫기
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export const meta: Route.MetaFunction = () => [
   { title: "공장견학 | 풍림푸드" },
 ];
@@ -199,9 +363,46 @@ export default function FactoryTourScreen() {
   const [emailLocal, setEmailLocal] = useState("");
   const [emailDomain, setEmailDomain] = useState("");
   const [emailDomainCustom, setEmailDomainCustom] = useState("");
+  const [visitDateStr, setVisitDateStr] = useState("");
+  const [visitDateOpen, setVisitDateOpen] = useState(false);
+  const emailLocalInputMRef = useRef<HTMLInputElement>(null);
+  const emailLocalInputPRef = useRef<HTMLInputElement>(null);
+  const emailCustomInputMRef = useRef<HTMLInputElement>(null);
+  const emailCustomInputPRef = useRef<HTMLInputElement>(null);
+  const visitDateRootMRef = useRef<HTMLDivElement | null>(null);
+  const visitDateRootPRef = useRef<HTMLDivElement | null>(null);
 
   const mobile = isNarrow === true;
   const formLocked = isNarrow === null;
+
+  const setVisitDateRootM = useCallback((el: HTMLDivElement | null) => {
+    visitDateRootMRef.current = el;
+  }, []);
+  const setVisitDateRootP = useCallback((el: HTMLDivElement | null) => {
+    visitDateRootPRef.current = el;
+  }, []);
+
+  const handleEmailDomainChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>, viewportMobile: boolean) => {
+      const v = e.target.value;
+      setEmailDomain(v);
+      if (v !== "") {
+        setEmailDomainCustom("");
+        queueMicrotask(() => {
+          emailLocalInputMRef.current?.blur();
+          emailLocalInputPRef.current?.blur();
+          emailCustomInputMRef.current?.blur();
+          emailCustomInputPRef.current?.blur();
+        });
+      } else {
+        queueMicrotask(() => {
+          if (viewportMobile) emailCustomInputMRef.current?.focus();
+          else emailCustomInputPRef.current?.focus();
+        });
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1023px)");
@@ -211,8 +412,31 @@ export default function FactoryTourScreen() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  useEffect(() => {
+    if (!visitDateOpen) return;
+    const onPointerDown = (e: MouseEvent | PointerEvent) => {
+      const t = e.target as Node;
+      if (
+        visitDateRootMRef.current?.contains(t) ||
+        visitDateRootPRef.current?.contains(t)
+      ) {
+        return;
+      }
+      setVisitDateOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setVisitDateOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [visitDateOpen]);
+
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       {/* ── 브레드크럼 + PC(lg+) 히어로 텍스트 배너 — 모바일 텍스트 배너 제거됨 ── */}
       <section>
         <Breadcrumb
@@ -601,21 +825,40 @@ export default function FactoryTourScreen() {
                       </label>
                       <div className="flex flex-col gap-5">
                         <input
+                          ref={emailLocalInputMRef}
                           name="email_local"
                           value={emailLocal}
                           onChange={(e) => setEmailLocal(e.target.value)}
                           disabled={formLocked || !mobile}
-                          placeholder="이메일을 입력해주세요."
+                          placeholder="이메일 아이디"
                           autoComplete="email"
                           className={ftInputClass}
                         />
                         <span className="font-[Pretendard,system-ui,sans-serif] text-lg leading-5 font-light text-[#7B7B7B]">
                           @
                         </span>
+                        {emailDomain === "" && (
+                          <input
+                            ref={emailCustomInputMRef}
+                            name="email_domain_custom"
+                            value={emailDomainCustom}
+                            onChange={(e) =>
+                              setEmailDomainCustom(e.target.value)
+                            }
+                            disabled={formLocked || !mobile}
+                            placeholder="메일 도메인 주소"
+                            className={cn(
+                              ftInputClass,
+                              "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40",
+                            )}
+                          />
+                        )}
                         <select
                           name="email_domain"
                           value={emailDomain}
-                          onChange={(e) => setEmailDomain(e.target.value)}
+                          onChange={(ev) =>
+                            handleEmailDomainChange(ev, true)
+                          }
                           disabled={formLocked || !mobile}
                           className={ftInputClass}
                         >
@@ -626,21 +869,6 @@ export default function FactoryTourScreen() {
                             </option>
                           ))}
                         </select>
-                        {emailDomain === "" && (
-                          <input
-                            name="email_domain_custom"
-                            value={emailDomainCustom}
-                            onChange={(e) =>
-                              setEmailDomainCustom(e.target.value)
-                            }
-                            disabled={formLocked || !mobile}
-                            placeholder=" "
-                            className={cn(
-                              ftInputClass,
-                              "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40",
-                            )}
-                          />
-                        )}
                       </div>
                     </div>
 
@@ -651,24 +879,17 @@ export default function FactoryTourScreen() {
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
-                      <div
-                        className={cn(
-                          ftInputClass,
-                          "flex items-center gap-2.5 !py-0 max-lg:h-[60px]",
-                        )}
-                      >
-                        <input
-                          type="date"
-                          name="date"
-                          required={mobile}
-                          disabled={formLocked || !mobile}
-                          className="min-w-0 flex-1 border-0 bg-transparent p-0 font-[family-name:var(--font-nanum)] text-base outline-none focus:ring-0 max-lg:text-[#003F2B]"
-                        />
-                        <CalendarDays
-                          className="size-5 shrink-0 text-[#2A343D]"
-                          aria-hidden
-                        />
-                      </div>
+                      <FactoryTourVisitDateField
+                        visitDateStr={visitDateStr}
+                        setVisitDateStr={setVisitDateStr}
+                        visitDateOpen={visitDateOpen}
+                        setVisitDateOpen={setVisitDateOpen}
+                        active={mobile}
+                        disabled={formLocked || !mobile}
+                        required={mobile}
+                        mobile
+                        setPopoverRoot={setVisitDateRootM}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-5">
@@ -808,21 +1029,40 @@ export default function FactoryTourScreen() {
                       </label>
                       <div className="flex w-full min-w-0 flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
                         <input
+                          ref={emailLocalInputPRef}
                           name="email_local"
                           value={emailLocal}
                           onChange={(e) => setEmailLocal(e.target.value)}
                           disabled={formLocked || mobile}
-                          placeholder="이메일을 입력해주세요."
+                          placeholder="이메일 아이디"
                           autoComplete="email"
                           className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
                         />
                         <span className="font-[family-name:var(--font-nanum)] text-xl font-bold text-black lg:shrink-0">
                           @
                         </span>
+                        {emailDomain === "" && (
+                          <input
+                            ref={emailCustomInputPRef}
+                            name="email_domain_custom"
+                            value={emailDomainCustom}
+                            onChange={(e) =>
+                              setEmailDomainCustom(e.target.value)
+                            }
+                            disabled={formLocked || mobile}
+                            placeholder="메일 도메인 주소"
+                            className={cn(
+                              ftInputClass,
+                              "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px]",
+                            )}
+                          />
+                        )}
                         <select
                           name="email_domain"
                           value={emailDomain}
-                          onChange={(e) => setEmailDomain(e.target.value)}
+                          onChange={(ev) =>
+                            handleEmailDomainChange(ev, false)
+                          }
                           disabled={formLocked || mobile}
                           className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
                         >
@@ -833,21 +1073,6 @@ export default function FactoryTourScreen() {
                             </option>
                           ))}
                         </select>
-                        {emailDomain === "" && (
-                          <input
-                            name="email_domain_custom"
-                            value={emailDomainCustom}
-                            onChange={(e) =>
-                              setEmailDomainCustom(e.target.value)
-                            }
-                            disabled={formLocked || mobile}
-                            placeholder=" "
-                            className={cn(
-                              ftInputClass,
-                              "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px]",
-                            )}
-                          />
-                        )}
                       </div>
                     </div>
 
@@ -856,24 +1081,17 @@ export default function FactoryTourScreen() {
                         <span className={ftLabelPc}>희망 견학일</span>
                         <span className={ftStarClass}>*</span>
                       </div>
-                      <div
-                        className={cn(
-                          ftInputClass,
-                          "flex items-center gap-2.5 !py-0 lg:!px-4",
-                        )}
-                      >
-                        <input
-                          type="date"
-                          name="date"
-                          required={!mobile}
-                          disabled={formLocked || mobile}
-                          className="min-w-0 flex-1 border-0 bg-transparent p-0 font-[family-name:var(--font-nanum)] text-[18px] outline-none focus:ring-0 lg:text-[#1F2121]"
-                        />
-                        <CalendarDays
-                          className="size-6 shrink-0 text-[#2A343D]"
-                          aria-hidden
-                        />
-                      </div>
+                      <FactoryTourVisitDateField
+                        visitDateStr={visitDateStr}
+                        setVisitDateStr={setVisitDateStr}
+                        visitDateOpen={visitDateOpen}
+                        setVisitDateOpen={setVisitDateOpen}
+                        active={!mobile}
+                        disabled={formLocked || mobile}
+                        required={!mobile}
+                        mobile={false}
+                        setPopoverRoot={setVisitDateRootP}
+                      />
                     </div>
 
                     <div className="flex flex-col gap-5">
@@ -944,24 +1162,24 @@ export default function FactoryTourScreen() {
                     </div>
                   </div>
 
-                  {/* 개인정보 동의 — PC 시안: bg black/10·px 30·rounded 10 */}
+                  {/* 개인정보 동의 — 체크박스 오른쪽 정렬 */}
                   <label
                     className={cn(
-                      "flex min-w-0 cursor-pointer items-start gap-3 rounded-[10px] bg-[#EAE3C9] p-5",
-                      "lg:items-center lg:gap-3 lg:bg-black/10 lg:px-[30px] lg:py-5",
+                      "flex min-w-0 cursor-pointer items-start justify-between gap-3 rounded-[10px] bg-[#EAE3C9] p-5",
+                      "lg:items-center lg:gap-4 lg:bg-black/10 lg:px-[30px] lg:py-5",
                     )}
                   >
+                    <span className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold break-words text-[#1F2121] lg:font-[Pretendard,system-ui,sans-serif] lg:text-lg lg:leading-normal lg:font-medium">
+                      개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
+                      답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후
+                      파기됩니다
+                    </span>
                     <input
                       type="checkbox"
                       checked={privacyAgreed}
                       onChange={(e) => setPrivacyAgreed(e.target.checked)}
                       className="mt-0.5 size-[18px] shrink-0 rounded-full border border-[#DDDDDD] accent-[#02633E] lg:mt-0"
                     />
-                    <span className="min-w-0 font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold break-words text-[#1F2121] lg:font-[Pretendard,system-ui,sans-serif] lg:text-lg lg:leading-normal lg:font-medium">
-                      개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
-                      답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후
-                      파기됩니다
-                    </span>
                   </label>
 
                   {actionData?.error && (

@@ -4,6 +4,8 @@ import type { Route } from "./+types/detail";
 import { getRecipeById, hasAnyActiveRecipes } from "../lib/queries.server";
 import { Clock3, Users } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
@@ -145,7 +147,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
     servings ? String(servings).replace(/~/g, "-") : null;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
 
       <Breadcrumb
         variant="productDetail"

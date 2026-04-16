@@ -1,4 +1,6 @@
 import { Button } from "~/core/components/ui/button";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/core/components/ui/card";
 import { Badge } from "~/core/components/ui/badge";
 import { Users, TrendingUp, Shield, Truck, HeadphonesIcon } from "lucide-react";
@@ -6,7 +8,7 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 
 export default function BulkInquiryScreen() {
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
           { label: "구매문의" },

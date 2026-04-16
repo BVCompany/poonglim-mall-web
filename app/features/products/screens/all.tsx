@@ -11,6 +11,8 @@ import { PageBanner } from "~/core/components/page-banner";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { cn } from "~/core/lib/utils";
 
 export const meta: Route.MetaFunction = () => [
   { title: "제품 소개 | 풍림푸드" },
@@ -69,17 +71,22 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
   const currentCategoryCount = categories.find((c) => c.id === selectedCategory)?.count ?? totalCount;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
-
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       {/* ── 페이지 배너 ── */}
       <PageBanner
         imageUrl="/banner/product_banner_temp.png"
+        mobileImageUrl="/product/m_product_banner.png"
         title="계란이야기"
         subtitle="대한민국 대표 계란 풍림푸드 계란 이야기를 들어볼래요?"
         mobileSubtitle={"대한민국 대표 계란\n풍림푸드 계란 이야기를 들어볼래요?"}
         linkUrl="/products/egg-story"
         linkText="자세히 보기"
-        mobileHeightClassName="max-md:h-[375px]"
+        mobileAspectRatio="343 / 343"
         hideOnMobile={false}
         hideBreadcrumbOnMobile
         frostedLinkOnMobile
@@ -96,7 +103,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 배너 아래 여백 확보 + 제품 카테고리 헤더 + 검색 (PC: 시안 1600px 중앙 + 상단 60px) ── */}
       <div className="px-4 pb-5 pt-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))] md:pt-[60px]">
-        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between gap-4 md:gap-5">
+        <div className="mx-auto flex min-w-0 w-full max-w-[var(--content-max-width)] items-center justify-between gap-4 md:gap-5">
 
           {/* 타이틀 — 36px / letterSpacing -4% */}
           <SectionPageTitle
@@ -112,7 +119,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
           </SectionPageTitle>
 
           {/* 검색창 */}
-          <div className="hidden md:block">
+          <div className="hidden min-w-0 shrink md:block">
             <SearchBar
               value={searchInput}
               onChange={setSearchInput}
@@ -124,9 +131,9 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         </div>
       </div>
 
-      {/* ── 카테고리 탭 바 ── */}
+      {/* ── 카테고리 탭 바 (PC: 채용공고 탭줄과 동일 — 콘텐츠 max 폭 안 라운드 바) ── */}
       <div className="px-4 pb-5 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto max-w-[var(--content-max-width)]">
+        <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
           {/* 모바일 탭 — 개별 알약 버튼 */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 md:hidden">
             {categories.map((cat) => {
@@ -151,10 +158,11 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
             })}
           </div>
 
-          {/* 데스크탑 탭 바 — #02633E (시안: radius 40px, 좌우·간격 60px) */}
+          {/* 데스크탑 탭 바 — 녹색 띠: 가로 스크롤로 축소 시 겹침 방지 */}
           <div
-            className="scrollbar-hide hidden items-center overflow-x-auto rounded-[40px] px-4 py-3 md:flex md:gap-[min(60px,calc(60*100vw/1920))] md:px-[min(60px,calc(60*100vw/1920))] md:py-5"
-            style={{ backgroundColor: "#02633E" }}
+            className={cn(
+              "scrollbar-hide hidden min-w-0 flex-nowrap items-center overflow-x-auto rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(20*100vw/1920),20px)] py-[clamp(10px,calc(16*100vw/1920),16px)] md:flex md:gap-[clamp(8px,calc(10*100vw/1920),10px)]",
+            )}
           >
             {categories.map((cat) => {
               const isActive = selectedCategory === cat.id;
@@ -162,8 +170,9 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
               const showCount = isAll || isActive;
 
               return (
-                <div key={cat.id} className="flex flex-shrink-0 items-center">
+                <div key={cat.id} className="flex shrink-0 items-center">
                   <button
+                    type="button"
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
                       fontSize: pc1920(15, 18),
@@ -172,13 +181,10 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
                       fontFamily: "NanumSquareRound",
                       fontWeight: isActive ? 800 : 700,
                     }}
-                    className={`
-                      flex-shrink-0 whitespace-nowrap rounded-[40px] px-5 py-2.5 transition-all duration-150 md:px-5 md:py-2.5
-                      ${isActive
-                        ? "bg-white"
-                        : "text-white hover:bg-white/10"
-                      }
-                    `}
+                    className={cn(
+                      "shrink-0 whitespace-nowrap rounded-[clamp(20px,calc(40*100vw/1920),40px)] px-[clamp(12px,calc(20*100vw/1920),20px)] py-[clamp(6px,calc(10*100vw/1920),10px)] transition-all duration-150",
+                      isActive ? "bg-white" : "text-white hover:bg-white/10",
+                    )}
                   >
                     {cat.name}
                     {showCount && cat.count > 0 && (
@@ -196,7 +202,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 총 N개 제품 / 모바일 정렬행 ── */}
       <div className="px-4 pb-4 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto flex max-w-[var(--content-max-width)] items-center justify-between">
+        <div className="mx-auto flex min-w-0 w-full max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600 md:text-sm">
             <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
             <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCategoryCount}</span>
@@ -219,7 +225,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
             <div className="relative">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-full bg-[#EAE3C9] px-3 py-1 text-xs font-medium text-black"
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--site-chrome-header-bg,#FDFDF5)] px-3 py-1 text-xs font-medium text-black"
                 onClick={() => setIsSortOpen((prev) => !prev)}
               >
                 {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ?? "추천순"}
@@ -248,7 +254,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
             <img
               src="/product/sort_icon.png"
               alt="정렬 아이콘"
-              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[#EAE3C9] object-contain p-1.5"
+              className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[var(--site-chrome-header-bg,#FDFDF5)] object-contain p-1.5"
             />
           </div>
         </div>
@@ -256,7 +262,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
 
       {/* ── 제품 그리드 ── */}
       <div className="px-4 pb-16 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
-        <div className="mx-auto max-w-[var(--content-max-width)]">
+        <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
           <ProductGrid
             selectedCategory={selectedCategory}
             searchQuery={searchQuery}

@@ -12,6 +12,7 @@ import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { pc1920 } from "~/core/lib/pc-fluid";
+import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
@@ -21,11 +22,11 @@ import {
 
 /** 모바일 카드 메타 뱃지 — Figma: #F0EEDD · px12 py6 · Pretendard 11/500 · lh 11 */
 const RESOURCE_META_BADGE_CLASS =
-  "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-1.5 text-center text-[11px] font-medium leading-[11px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
+  "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#F0EEDD] px-3 py-1.5 text-center text-[11px] font-medium leading-[11px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
 
-/** PC 목록 행 — 공지사항 목록과 동일 톤 */
+/** PC 목록 행 — 공지사항 목록과 동일 톤 (카테고리명 한 줄 유지) */
 const PC_META_BADGE_CLASS =
-  "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F0EEDD] px-3 py-2 text-center text-[12px] font-medium leading-3 text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
+  "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#F0EEDD] px-3 py-2 text-center text-[12px] font-medium leading-3 text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "자료실 | 풍림푸드" }];
@@ -182,7 +183,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   const totalCount = filtered.length;
 
   return (
-    <div className="min-h-screen bg-[var(--site-chrome-header-bg,#F4F2E5)]">
+    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
         title="자료실"
@@ -339,12 +340,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                         >
                           {file.title}
                         </span>
-                        <span
-                          className={cn(
-                            PC_META_BADGE_CLASS,
-                            "w-[65px] min-w-[65px] justify-center",
-                          )}
-                        >
+                        <span className={PC_META_BADGE_CLASS}>
                           {file.category}
                         </span>
                         <span className="w-20 shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
