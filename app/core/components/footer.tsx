@@ -202,6 +202,8 @@ export default function Footer() {
       />
 
       <div className="w-full bg-[#003F2B]">
+      {/* 본문(pc-fluid-root max-w-[1920px])과 동일 폭으로 중앙 정렬 — 초대형 뷰포트에서 푸터만 퍼지는 현상 방지 */}
+      <div className="mx-auto w-full max-w-[1920px]">
       {/* ════════════════════════════════════
           모바일 푸터 (md 미만)
           구조: 로고 → 연락처 → SNS
@@ -250,13 +252,7 @@ export default function Footer() {
           PC 푸터 (md 이상)
           ════════════════════════════════════ */}
       <div
-        className="hidden md:flex md:flex-col md:gap-[clamp(24px,calc(60*100vw/1920),60px)]"
-        style={{
-          paddingTop: "clamp(32px, calc(60 * 100vw / 1920), 60px)",
-          paddingBottom: "clamp(32px, calc(60 * 100vw / 1920), 60px)",
-          paddingLeft: "clamp(16px, calc(240 * 100vw / 1920), 240px)",
-          paddingRight: "clamp(16px, calc(240 * 100vw / 1920), 240px)",
-        }}
+        className="hidden md:flex md:flex-col md:gap-[clamp(24px,calc(60*100vw/1920),60px)] md:px-6 md:py-[clamp(32px,calc(60*100vw/1920),60px)] lg:px-10 xl:px-16 2xl:px-24"
       >
         {/* ── 메인 행: 좌(연락처) | 우(네비+로고) ── */}
         <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-between">
@@ -351,6 +347,7 @@ export default function Footer() {
             </div>
           </div>
         </div>
+      </div>
       </div>
       </div>
     </footer>

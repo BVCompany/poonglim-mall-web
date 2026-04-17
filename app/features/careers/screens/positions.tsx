@@ -883,7 +883,7 @@ export default function CareersPositionsScreen({
                     <div
                       className={cn(
                         "flex h-full min-h-0 w-full flex-col rounded-[10px] bg-white px-5 py-[30px] lg:min-h-[210px] lg:rounded-[clamp(24px,calc(40*100vw/1920),40px)] lg:py-[clamp(18px,calc(30*100vw/1920),30px)] lg:pr-[clamp(20px,calc(40*100vw/1920),40px)] lg:pl-[clamp(20px,calc(40*100vw/1920),40px)]",
-                        isLast && "lg:bg-[#003F2B]",
+                        isLast && "lg:bg-[#02633E]",
                       )}
                     >
                       {/* 모바일: 가로 4.5 : 1 : 4.5 · 우측 설명 왼쪽 정렬 */}
@@ -894,14 +894,14 @@ export default function CareersPositionsScreen({
                             step.titleRowFluid ? "pr-1" : "",
                           )}
                         >
-                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#003F2B]">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#02633E]">
                             <span className="text-center font-[family-name:var(--font-nanum)] text-[14px] leading-[21px] font-bold text-white">
                               {i + 1}
                             </span>
                           </div>
                           <p
                             className={cn(
-                              "min-w-0 font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-extrabold break-words text-[#003F2B]",
+                              "min-w-0 font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-extrabold break-words text-[#02633E]",
                               step.titleRowFluid ? "flex-1" : "",
                             )}
                           >
@@ -939,13 +939,13 @@ export default function CareersPositionsScreen({
                           <div
                             className={cn(
                               "flex size-[clamp(28px,calc(30*100vw/1920),30px)] shrink-0 items-center justify-center rounded-full",
-                              isLast ? "bg-white" : "bg-[#003F2B]",
+                              isLast ? "bg-white" : "bg-[#02633E]",
                             )}
                           >
                             <span
                               className={cn(
                                 "text-center font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-bold break-words",
-                                isLast ? "text-[#003F2B]" : "text-white",
+                                isLast ? "text-[#02633E]" : "text-white",
                               )}
                             >
                               {i + 1}
@@ -954,7 +954,7 @@ export default function CareersPositionsScreen({
                           <p
                             className={cn(
                               "font-[family-name:var(--font-nanum)] text-[20px] leading-[30px] font-extrabold break-words",
-                              isLast ? "text-white" : "text-[#003F2B]",
+                              isLast ? "text-white" : "text-[#02633E]",
                             )}
                           >
                             {step.title}
