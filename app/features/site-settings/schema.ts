@@ -56,6 +56,21 @@ export const SETTING_KEYS = {
   // SEO — robots
   SEO_ROBOTS:           "seo_robots",   // "index,follow" | "noindex,nofollow"
 
+  /** `<meta name="viewport" content="…">` 전체 content 문자열. 비우면 `width=device-width, initial-scale=1` */
+  SEO_VIEWPORT_CONTENT: "seo_viewport_content",
+
+  /** `<meta name="keywords" content="…">` */
+  SEO_META_KEYWORDS:    "seo_meta_keywords",
+
+  /** `<meta name="author" content="…">` */
+  SEO_META_AUTHOR:      "seo_meta_author",
+
+  /**
+   * `<meta http-equiv="Content-Type" content="…">` 의 content 값만 저장 (예: text/html; charset=utf-8).
+   * 비우면 태그 미출력(문서는 이미 `<meta charSet="utf-8" />` 사용).
+   */
+  SEO_HTTP_EQUIV_CONTENT_TYPE: "seo_http_equiv_content_type",
+
   // 파비콘
   FAVICON:              "favicon",
 } as const;

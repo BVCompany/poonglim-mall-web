@@ -124,6 +124,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
       gaId:               seoSettings[SETTING_KEYS.SEO_GA_ID]               ?? "",
       favicon:            seoSettings[SETTING_KEYS.FAVICON]                 ?? "",
+      viewportContent:
+        seoSettings[SETTING_KEYS.SEO_VIEWPORT_CONTENT]?.trim() ?? "",
+      metaKeywords:       seoSettings[SETTING_KEYS.SEO_META_KEYWORDS]?.trim() ?? "",
+      metaAuthor:         seoSettings[SETTING_KEYS.SEO_META_AUTHOR]?.trim() ?? "",
+      httpEquivContentType:
+        seoSettings[SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE]?.trim() ?? "",
     },
   };
 }
@@ -191,7 +197,26 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
     >
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content={
+            seo?.viewportContent && seo.viewportContent.length > 0
+              ? seo.viewportContent
+              : "width=device-width, initial-scale=1"
+          }
+        />
+
+        {seo?.httpEquivContentType && seo.httpEquivContentType.length > 0 ? (
+          <meta httpEquiv="Content-Type" content={seo.httpEquivContentType} />
+        ) : null}
+
+        {seo?.metaKeywords && seo.metaKeywords.length > 0 ? (
+          <meta name="keywords" content={seo.metaKeywords} />
+        ) : null}
+
+        {seo?.metaAuthor && seo.metaAuthor.length > 0 ? (
+          <meta name="author" content={seo.metaAuthor} />
+        ) : null}
 
         {/* SEO — robots */}
         {seo?.robots && <meta name="robots" content={seo.robots} />}
