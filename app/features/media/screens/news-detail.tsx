@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 
-import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
@@ -279,11 +278,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   alt=""
                   className="w-full rounded-none object-cover"
                 />
-              ) : (
-                <div className="aspect-[5/3] w-full min-h-[180px] max-h-[320px] shrink-0">
-                  <MediaThumbFallback />
-                </div>
-              )}
+              ) : null}
 
               <div
                 className={articleClassMobile}
@@ -398,16 +393,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                 className="max-h-[520px] w-full rounded-xl object-cover"
               />
             </div>
-          ) : (
-            <div className="py-6">
-              <div
-                className="mx-auto max-h-[520px] w-full min-h-[200px] overflow-hidden rounded-xl"
-                style={{ aspectRatio: "1200 / 520" }}
-              >
-                <MediaThumbFallback />
-              </div>
-            </div>
-          )}
+          ) : null}
 
           <div
             className={articleClassDesktop}

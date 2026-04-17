@@ -16,7 +16,6 @@ import {
 import { Link, data } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
-import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
@@ -398,15 +397,15 @@ export default function EventDetailScreen({
                 </div>
               )}
 
-              <div className="h-[167px] w-full overflow-hidden bg-[#D5CEB4]">
-                {event.thumbnail_url ? (
+              {event.thumbnail_url ? (
+                <div className="h-[167px] w-full overflow-hidden bg-[#D5CEB4]">
                   <img
                     src={event.thumbnail_url}
                     alt=""
                     className="h-full w-full object-cover object-center"
                   />
-                ) : null}
-              </div>
+                </div>
+              ) : null}
 
               {bodyIsHtml ? (
                 <div
@@ -626,14 +625,7 @@ export default function EventDetailScreen({
                       className="h-full w-full object-cover object-center"
                     />
                   </div>
-                ) : (
-                  <div
-                    className="w-full overflow-hidden rounded-none bg-white"
-                    style={{ aspectRatio: "1200 / 586" }}
-                  >
-                    <MediaThumbFallback />
-                  </div>
-                )}
+                ) : null}
 
                 {bodyIsHtml ? (
                   <div
