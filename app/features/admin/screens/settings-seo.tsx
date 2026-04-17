@@ -19,7 +19,14 @@ import { Badge } from "~/core/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "~/core/components/ui/select";
-import { CheckCircle2, Search, BarChart2, Globe, ImageIcon } from "lucide-react";
+import {
+  BarChart2,
+  CheckCircle2,
+  Globe,
+  ImageIcon,
+  Search,
+  Smartphone,
+} from "lucide-react";
 import { getAllSettings, upsertSetting } from "~/features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "~/features/site-settings/schema";
 
@@ -45,6 +52,16 @@ export async function action({ request }: Route.ActionArgs) {
       save(SETTING_KEYS.SEO_ROBOTS),
     ]);
     return { success: true, section: "meta" };
+  }
+
+  if (intent === "save_html_meta") {
+    await Promise.all([
+      save(SETTING_KEYS.SEO_VIEWPORT_CONTENT),
+      save(SETTING_KEYS.SEO_META_KEYWORDS),
+      save(SETTING_KEYS.SEO_META_AUTHOR),
+      save(SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE),
+    ]);
+    return { success: true, section: "html_meta" };
   }
 
   if (intent === "save_verification") {
@@ -103,6 +120,17 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
   // Analytics
   const [analytics, setAnalytics] = useState({
     [SETTING_KEYS.SEO_GA_ID]: settings[SETTING_KEYS.SEO_GA_ID] ?? "",
+  });
+
+  // 전역 HTML 메타 (viewport, keywords, author 등)
+  const [htmlMeta, setHtmlMeta] = useState({
+    [SETTING_KEYS.SEO_VIEWPORT_CONTENT]:
+      settings[SETTING_KEYS.SEO_VIEWPORT_CONTENT] ?? "",
+    [SETTING_KEYS.SEO_META_KEYWORDS]:
+      settings[SETTING_KEYS.SEO_META_KEYWORDS] ?? "",
+    [SETTING_KEYS.SEO_META_AUTHOR]: settings[SETTING_KEYS.SEO_META_AUTHOR] ?? "",
+    [SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE]:
+      settings[SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE] ?? "",
   });
 
   // 파비콘
@@ -246,7 +274,117 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
               </CardContent>
             </Card>
 
-            {/* ─── 2. 검색엔진 인증 ─── */}
+            {/* ─── 2. 전역 HTML 메타 (viewport · keywords · author) ─── */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-[#204E3A]" />
+                  <CardTitle>전역 HTML 메타</CardTitle>
+                </div>
+                <CardDescription>
+                  모든 페이지의{" "}
+                  <code className="rounded bg-gray-100 px-1">&lt;head&gt;</code>에 출력되는
+                  viewport·keywords·author 등입니다. 비우면 기본값 또는 태그 생략입니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submit("save_html_meta", htmlMeta);
+                  }}
+                  className="space-y-5"
+                >
+                  <div className="space-y-1.5">
+                    <Label>viewport content</Label>
+                    <Input
+                      value={htmlMeta[SETTING_KEYS.SEO_VIEWPORT_CONTENT]}
+                      onChange={(e) =>
+                        setHtmlMeta({
+                          ...htmlMeta,
+                          [SETTING_KEYS.SEO_VIEWPORT_CONTENT]: e.target.value,
+                        })
+                      }
+                      placeholder='width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes'
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-gray-400">
+                      비우면{" "}
+                      <code className="rounded bg-gray-100 px-1">
+                        width=device-width, initial-scale=1
+                      </code>{" "}
+                      이 사용됩니다.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>meta keywords</Label>
+                    <Input
+                      value={htmlMeta[SETTING_KEYS.SEO_META_KEYWORDS]}
+                      onChange={(e) =>
+                        setHtmlMeta({
+                          ...htmlMeta,
+                          [SETTING_KEYS.SEO_META_KEYWORDS]: e.target.value,
+                        })
+                      }
+                      placeholder="풍림푸드, 액란, 푸딩, 간편식"
+                    />
+                    <p className="text-xs text-gray-400">
+                      쉼표로 구분해 검색엔진용 키워드를 입력합니다. 비우면 태그를 넣지 않습니다.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>meta author</Label>
+                    <Input
+                      value={htmlMeta[SETTING_KEYS.SEO_META_AUTHOR]}
+                      onChange={(e) =>
+                        setHtmlMeta({
+                          ...htmlMeta,
+                          [SETTING_KEYS.SEO_META_AUTHOR]: e.target.value,
+                        })
+                      }
+                      placeholder="풍림푸드"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>http-equiv Content-Type (content 값만)</Label>
+                    <Input
+                      value={htmlMeta[SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE]}
+                      onChange={(e) =>
+                        setHtmlMeta({
+                          ...htmlMeta,
+                          [SETTING_KEYS.SEO_HTTP_EQUIV_CONTENT_TYPE]: e.target.value,
+                        })
+                      }
+                      placeholder="text/html; charset=utf-8"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-gray-400">
+                      HTML5에서는{" "}
+                      <code className="rounded bg-gray-100 px-1">charset=utf-8</code> 메타와
+                      중복될 수 있습니다. 특별히 필요할 때만 입력하세요. 비우면 태그를 넣지 않습니다.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="bg-[#204E3A] hover:bg-[#1a3f2e]"
+                    >
+                      {isSaving && fetcher.formData?.get("intent") === "save_html_meta"
+                        ? "저장 중..."
+                        : "저장"}
+                    </Button>
+                    <SavedBadge show={!isSaving && savedSection === "html_meta"} />
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* ─── 3. 검색엔진 인증 ─── */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -294,7 +432,7 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
               </CardContent>
             </Card>
 
-            {/* ─── 3. Analytics ─── */}
+            {/* ─── 4. Analytics ─── */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -333,7 +471,7 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
               </CardContent>
             </Card>
 
-            {/* ─── 4. 파비콘 ─── */}
+            {/* ─── 5. 파비콘 ─── */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
