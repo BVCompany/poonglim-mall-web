@@ -5,7 +5,7 @@
  */
 import { ChevronDown, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 import { cn } from "~/core/lib/utils";
 
@@ -190,16 +190,22 @@ function FooterAccordion({
 }
 
 export default function Footer() {
+  const { pathname } = useLocation();
+  /** 계란이야기: 모바일 CTA(아이보리)가 푸터로 바로 이어지도록 크림 스페이서 생략 */
+  const showMobileChromeSpacer = pathname !== "/products/egg-story";
+
   return (
     <footer className="w-full">
       {/*
         모바일: 본문(Outlet)과 딥그린 푸터 사이 140px — navigation.layout의 --site-chrome-bg와 동일.
-        페이지별 pb 중복 없이 여기서만 유지.
+        계란이야기(/products/egg-story) 모바일만 예외. 페이지별 pb 중복 없이 여기서만 유지.
       */}
-      <div
-        className="block h-[140px] w-full shrink-0 bg-[var(--site-chrome-bg,#FDFDF5)] md:hidden"
-        aria-hidden
-      />
+      {showMobileChromeSpacer ? (
+        <div
+          className="block h-[140px] w-full shrink-0 bg-[var(--site-chrome-bg,#FDFDF5)] md:hidden"
+          aria-hidden
+        />
+      ) : null}
 
       <div className="w-full bg-[#003F2B]">
       {/* 본문(pc-fluid-root max-w-[1920px])과 동일 폭으로 중앙 정렬 — 초대형 뷰포트에서 푸터만 퍼지는 현상 방지 */}
