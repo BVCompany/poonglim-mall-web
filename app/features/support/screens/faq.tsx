@@ -4,7 +4,6 @@
 import type { Route } from "./+types/faq";
 
 import {
-  ArrowUpRight,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -530,12 +529,8 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
                     )}
                   >
                     문의하기
-                    <ArrowUpRight
-                      className="h-4 w-4 shrink-0 md:hidden"
-                      strokeWidth={2.25}
-                    />
                     <ChevronRight
-                      className="hidden shrink-0 md:inline md:h-[20.73px] md:w-[20.73px]"
+                      className="h-5 w-5 shrink-0 md:h-[20.73px] md:w-[20.73px]"
                       strokeWidth={2}
                       aria-hidden
                     />

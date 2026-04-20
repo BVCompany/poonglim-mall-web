@@ -12,12 +12,22 @@ interface CompanyIntroProps {
 }
 
 const DEFAULT_IMAGE = "/home/company_intro.jpg";
+/** 관리자 이미지 미설정 시 메인 회사소개 배경 영상 */
+const DEFAULT_VIDEO = "/home/poonglim_main.mp4";
 const DEFAULT_TITLE = "30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운 일상을 만들어가고 있습니다.";
 const DEFAULT_LINK  = "/brand/intro";
 
+function isVideoUrl(url: string) {
+  return /\.mp4(\?|#|$)/i.test(url);
+}
+
 export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
   const sectionRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [visible, setVisible] = useState(false);
+
+  const useVideo = !image || isVideoUrl(image);
+  const videoSrc = useVideo ? (image || DEFAULT_VIDEO) : null;
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -50,6 +60,13 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!visible || !useVideo) return;
+    const v = videoRef.current;
+    if (!v) return;
+    v.play().catch(() => {});
+  }, [visible, useVideo, videoSrc]);
+
   return (
     <section
       ref={sectionRef}
@@ -64,15 +81,29 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
             visible ? "animate-hero-unfold-main" : "opacity-0",
           )}
         >
-          <img
-            src={image || DEFAULT_IMAGE}
-            alt="풍림푸드 공장"
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1920&h=800&fit=crop";
-            }}
-          />
+          {useVideo && videoSrc ? (
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              poster={DEFAULT_IMAGE}
+              className="absolute inset-0 h-full w-full object-cover"
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="풍림푸드 회사소개 영상"
+            />
+          ) : (
+            <img
+              src={image || DEFAULT_IMAGE}
+              alt="풍림푸드 공장"
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1920&h=800&fit=crop";
+              }}
+            />
+          )}
           <div className="absolute inset-0 bg-black/55" />
 
           {/* Content - 모바일: space-between(상단: 카테고리+타이틀, 하단: Learn More) / PC: 기존 */}
