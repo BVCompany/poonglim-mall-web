@@ -53,10 +53,10 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
   return (
     <section
       ref={sectionRef}
-      className="relative mx-auto my-8 w-full overflow-hidden rounded-2xl px-4 md:my-12 md:w-[calc(100%-5rem)] md:rounded-3xl md:px-0"
+      className="relative mx-auto my-8 w-full overflow-hidden rounded-[30px] px-4 md:my-12 md:w-[calc(100%-5rem)] md:rounded-3xl md:px-0"
     >
       {/* 모바일: 100% - 양쪽 1rem 패딩, 343:460 비율 / PC: 16:6 */}
-      <div className="relative aspect-[343/460] overflow-hidden rounded-2xl md:aspect-[16/6] md:min-h-[360px] md:rounded-[2.5rem]">
+      <div className="relative aspect-[343/460] overflow-hidden rounded-[30px] md:aspect-[16/6] md:min-h-[360px] md:rounded-[2.5rem]">
         <div
           className={cn(
             "absolute inset-0 origin-center",

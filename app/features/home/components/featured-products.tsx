@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 import type { Product } from "~/features/products/lib/queries.server";
 
 // DB 데이터를 컴포넌트 내부 형식으로 변환
@@ -131,10 +132,10 @@ interface FeaturedProductsProps {
 }
 
 const badgeStyle: Record<string, string> = {
-  BEST: "bg-[#f4f2e5] text-[#204E3A]",
-  NEW:  "bg-[#ffd55d] text-[#1a1a1a]",
+  BEST: "bg-[#F4F2E5] text-[#1F2121]",
+  NEW: "bg-[#FFD55D] text-[#1F2121]",
   SALE: "bg-orange-500 text-white",
-  B2B:  "bg-[#32af32] text-white",
+  B2B: "bg-[#32AF32] text-white",
 };
 
 const CARD_WIDTH = 408;
@@ -187,15 +188,25 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
             as="h2"
             preset="none"
             starVariant="product"
-            className="flex flex-1 flex-col text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)]"
-            rootStyle={{ letterSpacing: "-0.04em" }}
+            className={cn(
+              "flex flex-1 flex-col",
+              "max-md:font-[family-name:var(--font-nanum)] max-md:text-[18px] max-md:font-bold max-md:leading-[27px] max-md:text-[#1F2121] max-md:uppercase max-md:break-words",
+              "text-[28px] leading-tight font-bold text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)] md:normal-case md:tracking-[-0.04em]",
+            )}
             markClassName="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
             wrapTitle={false}
           >
             <span>
-              <span className="block md:inline">풍림푸드의 </span>
-              <span className="block md:inline">
+              <span className="md:hidden">
+                풍림푸드의
+                <br />
                 프리미엄 제품을 만나보세요.
+              </span>
+              <span className="hidden md:contents">
+                <span className="block md:inline">풍림푸드의 </span>
+                <span className="block md:inline">
+                  프리미엄 제품을 만나보세요.
+                </span>
               </span>
             </span>
           </SectionPageTitle>
@@ -220,44 +231,56 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
               <Link
                 key={product.id}
                 to={`/products/${product.id}`}
-                className="group flex h-[380px] w-[280px] flex-shrink-0 flex-col transition-colors duration-300 sm:h-[420px] sm:w-[320px] md:h-[530px] md:w-[408px]"
+                className="group flex w-[310px] flex-shrink-0 flex-col transition-colors duration-300 md:h-[530px] md:w-[408px]"
                 style={{ scrollSnapAlign: "start" }}
               >
-                <div className="relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#EAE3C9] p-4 transition-colors duration-300 group-hover:bg-[var(--brand-green)] sm:rounded-[1.25rem] sm:p-5 md:p-6">
-                  {/* Badges - 상단 좌측, pill 형태 */}
-                  <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2 sm:mb-4 md:mb-4">
+                <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] max-md:p-0 md:h-full md:rounded-3xl md:p-6">
+                  {/* 모바일: 배지 이미지 영역 상단 절대 배치 · PC: 상단 플로우 */}
+                  <div className="z-10 flex max-md:absolute max-md:left-5 max-md:top-5 max-md:mb-0 max-md:items-center max-md:gap-[5px] mb-3 flex-shrink-0 flex-wrap items-center gap-2 md:relative md:mb-4">
                     {product.badges.map((badge) => (
                       <span
                         key={badge}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${badgeStyle[badge]}`}
+                        className={cn(
+                          "rounded-full font-medium [font-family:Pretendard,system-ui,sans-serif] max-md:px-[12.58px] max-md:py-[7.19px] max-md:text-[12px] max-md:leading-[12px]",
+                          "px-3 py-1.5 text-xs font-semibold md:px-3 md:py-1.5 md:text-xs md:leading-normal",
+                          badgeStyle[badge],
+                        )}
                       >
                         {badge}
                       </span>
                     ))}
                   </div>
-                  {/* Image - 중앙, 고정 높이로 제품명 같은 선상 정렬, object-contain */}
-                  <div className="relative flex h-[180px] min-h-0 flex-shrink-0 items-center justify-center overflow-hidden sm:h-[220px] md:h-[298px]">
-                    <div className="flex h-full w-full items-center justify-center px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4">
+                  {/* 모바일: 310×310 이미지 존 + 시안 좌표(168×183) · PC: 기존 중앙 정렬 */}
+                  <div className="relative flex h-[310px] w-full shrink-0 items-center justify-center overflow-hidden md:h-[298px]">
+                    <div className="flex h-full w-full items-center justify-center px-2 py-2 max-md:p-0 md:px-6 md:py-4">
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="max-h-full max-w-full object-contain transition-all duration-300 group-hover:brightness-105"
+                        className="max-h-full max-w-full object-contain transition-all duration-300 group-hover:brightness-105 max-md:absolute max-md:left-[71px] max-md:top-16 max-md:h-[183px] max-md:w-[168px] max-md:max-w-[168px]"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = product.fallback;
                         }}
                       />
                     </div>
                   </div>
-                  {/* Text - 이미지 바로 아래, 제품명 같은 선상 정렬(하단 고정 아님) */}
-                  <div className="mt-12 flex min-h-0 flex-shrink-0 flex-col sm:mt-4 md:mt-4 md:min-h-[120px]">
+                  {/* 모바일: px-20 pb-20(20px) · 타이포 시안 */}
+                  <div className="flex min-h-0 flex-shrink-0 flex-col max-md:gap-[9px] max-md:px-5 max-md:pb-5 max-md:pt-0 md:mt-4 md:min-h-[120px]">
                     <h3
-                      className="line-clamp-2 text-sm leading-tight font-semibold text-[#1a1a1a] transition-colors group-hover:text-white sm:text-base md:text-[20px] md:font-bold"
+                      className={cn(
+                        "line-clamp-2 transition-colors group-hover:text-white",
+                        "max-md:font-[family-name:var(--font-nanum)] max-md:text-[20px] max-md:leading-[26px] max-md:font-extrabold max-md:text-[#1F2121]",
+                        "text-sm font-semibold leading-tight text-[#1a1a1a] md:text-[20px] md:font-bold",
+                      )}
                       style={{ letterSpacing: "-0.015em" }}
                     >
                       {product.name}
                     </h3>
                     <p
-                      className="mt-2 line-clamp-2 text-xs leading-relaxed break-keep text-[#4a4a4a] transition-colors group-hover:text-white/90 md:mt-3 md:text-[16px] md:font-normal"
+                      className={cn(
+                        "line-clamp-2 transition-colors group-hover:text-white/90",
+                        "max-md:mt-0 max-md:font-[family-name:var(--font-nanum)] max-md:text-base max-md:font-normal max-md:uppercase max-md:leading-[22.4px] max-md:text-[#1F2121]",
+                        "mt-2 break-keep text-xs leading-relaxed text-[#4a4a4a] md:mt-3 md:text-[16px] md:font-normal md:normal-case",
+                      )}
                       style={{ letterSpacing: "-0.015em" }}
                     >
                       {product.description}

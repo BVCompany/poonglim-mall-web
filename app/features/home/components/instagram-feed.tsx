@@ -122,14 +122,7 @@ export function InstagramFeed() {
             <Instagram className="h-4 w-4" />
             Instagram
           </p>
-          <p
-            className="text-black"
-            style={{
-              fontSize: "18px",
-              lineHeight: "150%",
-              letterSpacing: "-0.04em",
-            }}
-          >
+          <p className="font-[family-name:var(--font-nanum)] text-[18px] font-bold leading-[27px] uppercase break-words text-[#1F2121]">
             풍림푸드의 다양한 소식을
             <br />
             인스타그램에서 만나보세요.
@@ -151,7 +144,7 @@ export function InstagramFeed() {
                 href="https://www.instagram.com/poonglim_official"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-gray-100"
                 style={{
                   width: MOBILE_ITEM_WIDTH,
                   aspectRatio: ASPECT_RATIO,
