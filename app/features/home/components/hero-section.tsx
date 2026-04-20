@@ -1,14 +1,16 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
+
 import type { Banner } from "~/features/home/lib/queries.server";
 
 function dbBannerToSlide(b: Banner) {
   return {
     image: b.image_url,
-    fallback: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
-    category: b.title,          // 제목 → 위 작은 글씨
-    title1: b.subtitle ?? "",   // 부제목 → 큰 굵은 글씨 첫 줄
+    fallback:
+      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
+    category: b.title, // 제목 → 위 작은 글씨
+    title1: b.subtitle ?? "", // 부제목 → 큰 굵은 글씨 첫 줄
     title2: b.button_text ?? "", // 보조 텍스트 → 큰 굵은 글씨 두 번째 줄
     link: b.link_url ?? undefined,
   };
@@ -21,7 +23,8 @@ interface HeroSectionProps {
 const MOCK_SLIDES = [
   {
     image: "/home/hero_1.jpg",
-    fallback: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
+    fallback:
+      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
     category: "건강하고 풍요로운 일상",
     title1: "신뢰할 수 있는 품질과 혁신적인 기술로",
     title2: "만드는 프리미엄 식품 솔루션",
@@ -29,7 +32,8 @@ const MOCK_SLIDES = [
   },
   {
     image: "/home/hero_2.jpg",
-    fallback: "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=1920&h=1080&fit=crop",
+    fallback:
+      "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=1920&h=1080&fit=crop",
     category: "풍림푸드의 프리미엄",
     title1: "30년간 축적된 노하우로",
     title2: "만들어 가는 건강하고 풍요로운 식품 문화",
@@ -37,7 +41,8 @@ const MOCK_SLIDES = [
   },
   {
     image: "/home/hero_3.jpg",
-    fallback: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=1920&h=1080&fit=crop",
+    fallback:
+      "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=1920&h=1080&fit=crop",
     category: "프리미엄 액란 전문",
     title1: "신선하고 안전한 액상 계란으로",
     title2: "편리한 조리를 경험하세요",
@@ -45,7 +50,8 @@ const MOCK_SLIDES = [
   },
   {
     image: "/home/hero_4.jpg",
-    fallback: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1920&h=1080&fit=crop",
+    fallback:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1920&h=1080&fit=crop",
     category: "간편식 라인업",
     title1: "바쁜 일상 속에서도 건강하고 맛있는",
     title2: "한 끼를 완성하세요",
@@ -53,7 +59,8 @@ const MOCK_SLIDES = [
   },
   {
     image: "/home/hero_5.jpg",
-    fallback: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1920&h=1080&fit=crop",
+    fallback:
+      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1920&h=1080&fit=crop",
     category: "B2B 솔루션",
     title1: "식품업계 파트너를 위한",
     title2: "맞춤형 식품 솔루션, 풍림푸드와 함께하세요",
@@ -131,23 +138,32 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
             </div>
           ))}
 
+          {/*
+            어두운 배너 대비: 브랜드 그린 텍스트 유지 — 대각/코너 radial 없이
+            화면 중심(상반부)은 그대로 두고 하단으로만 세로 그라데이션
+          */}
+          <div
+            className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_bottom,transparent_0%,transparent_46%,rgba(253,253,245,0.22)_62%,rgba(253,253,245,0.78)_88%,rgba(253,253,245,0.88)_100%)]"
+            aria-hidden
+          />
+
           {/* 좌측 하단: 텍스트 묶음 + 인디케이터 (모바일/PC 분리) */}
           <div className="absolute bottom-6 left-6 z-10 flex max-w-[85%] flex-col gap-2.5 sm:bottom-6 sm:left-4 sm:max-w-lg md:bottom-8 md:left-8 md:max-w-xl lg:bottom-20 lg:left-30 lg:max-w-2xl">
             {/* 텍스트 묶음: 링크가 있으면 클릭 가능 */}
             {slides[current].link ? (
               <Link
                 to={slides[current].link!}
-                className="flex flex-col gap-2.5 group cursor-pointer"
+                className="group flex cursor-pointer flex-col gap-2.5"
                 viewTransition
               >
                 <p
-                  className="text-sm font-medium text-[var(--brand-green)] opacity-90 group-hover:opacity-100 transition-opacity md:text-[18px]"
+                  className="text-sm font-medium text-[var(--brand-green)] opacity-90 transition-opacity group-hover:opacity-100 md:text-[18px]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].category}
                 </p>
                 <h1
-                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] underline-offset-4 group-hover:underline md:break-keep md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2]"
+                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] underline-offset-4 group-hover:underline md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2] md:break-keep"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].title1} {slides[current].title2}
@@ -162,7 +178,7 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
                   {slides[current].category}
                 </p>
                 <h1
-                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] md:break-keep md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2]"
+                  className="text-xl leading-snug font-bold text-pretty text-[var(--brand-green)] md:text-[clamp(28px,2.1vw,40px)] md:leading-[1.2] md:break-keep"
                   style={{ letterSpacing: "-0.04em" }}
                 >
                   {slides[current].title1} {slides[current].title2}
