@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { cn } from "~/core/lib/utils";
 import type { News } from "~/features/media/lib/queries.server";
 
 type NewsCategory = "공지사항" | "이언론" | "보도자료" | "이벤트";
@@ -149,14 +150,24 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
             as="h2"
             preset="none"
             starVariant="product"
-            className="flex flex-1 flex-col text-lg font-bold leading-tight text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)]"
-            rootStyle={{ letterSpacing: "-0.04em" }}
+            className={cn(
+              "flex flex-1 flex-col",
+              "max-md:font-[family-name:var(--font-nanum)] max-md:text-[18px] max-md:font-bold max-md:leading-[27px] max-md:text-[#1F2121] max-md:uppercase max-md:break-words",
+              "text-lg font-bold leading-tight text-black md:flex-row md:items-center md:gap-2 md:text-[clamp(22px,1.5vw,28px)] md:normal-case md:tracking-[-0.04em]",
+            )}
             markClassName="hidden h-[21px] w-[21px] flex-shrink-0 md:block"
             wrapTitle={false}
           >
             <span>
-              <span className="block md:inline">풍림푸드 새로운소식을</span>
-              <span className="block md:inline">가장 먼저 만나보세요</span>
+              <span className="md:hidden">
+                풍림푸드의 새로운 소식을
+                <br />
+                가장 먼저 만나보세요.
+              </span>
+              <span className="hidden md:contents">
+                <span className="block md:inline">풍림푸드의 새로운 소식을 </span>
+                <span className="block md:inline">가장 먼저 만나보세요.</span>
+              </span>
             </span>
           </SectionPageTitle>
           <Link
@@ -186,11 +197,11 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                   className="group flex h-full w-[300px] flex-shrink-0 md:w-[408px]"
                   style={{ scrollSnapAlign: "start" }}
                 >
-                  <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] md:rounded-[40px]">
+                  <div className="flex h-full w-full flex-col overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] md:rounded-[40px]">
                     {/* 이미지: PC 시안 — 상하좌 10px inset, 244×라운드 30, 배지 30/30 */}
                     {hasImage ? (
                       <div className="relative p-3 md:p-0 md:pt-[10px] md:pr-[10px] md:pl-[10px]">
-                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl md:aspect-auto md:h-[244px] md:w-full md:rounded-[30px]">
+                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[25px] md:aspect-auto md:h-[244px] md:w-full">
                           <img
                             src={item.image || item.fallback}
                             alt={item.title}

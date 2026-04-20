@@ -313,7 +313,12 @@ export default function GradeCertificateScreen({
   const pretendard = "font-[Pretendard,system-ui,sans-serif]";
 
   return (
-    <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
+    <div
+      className={cn(
+        SECTION_VIEWPORT_BLEED,
+        "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]",
+      )}
+    >
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
         title="등급판정서"
@@ -338,13 +343,13 @@ export default function GradeCertificateScreen({
 
       <PageContentMax className="py-6 max-md:pt-0 md:py-0 md:pt-[60px] md:pb-[100px]">
         {/* 모바일: 탭 + 안내 — 하단 border #EAE3C9 */}
-        <div className="border-b border-[#EAE3C9] pb-5 md:mb-0 md:border-0 md:pb-0">
+        <div className="border-b border-[#EAE3C9] pb-3 md:mb-0 md:border-0 md:pb-0">
           <div className="flex w-full min-w-0 md:hidden">
             <button
               type="button"
               onClick={() => handleTabChange("current")}
               className={cn(
-                "flex min-h-16 flex-1 items-center justify-center gap-2.5 rounded-tl-[40px] rounded-bl-[40px] px-5 py-5 font-[family-name:var(--font-nanum)] text-base leading-6 font-extrabold transition-colors",
+                "flex h-[64px] flex-1 items-center justify-center gap-2.5 rounded-tl-[40px] rounded-bl-[40px] px-5 font-[family-name:var(--font-nanum)] text-[16px] leading-6 font-extrabold transition-colors",
                 activeTab === "current"
                   ? "bg-[#32AF32] text-white"
                   : "bg-[#EAE3C9] text-[#1F2121]",
@@ -362,21 +367,19 @@ export default function GradeCertificateScreen({
               type="button"
               onClick={() => handleTabChange("archive")}
               className={cn(
-                "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center rounded-tr-[40px] rounded-br-[40px] px-5 py-5 text-center transition-colors",
+                "flex h-[64px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-tr-[40px] rounded-br-[40px] px-3 pt-2 text-center transition-colors",
                 activeTab === "archive"
                   ? "bg-[#32AF32] text-white"
                   : "bg-[#EAE3C9] text-[#1F2121]",
               )}
             >
-              <span className="font-[family-name:var(--font-nanum)] text-base leading-6 font-extrabold">
+              <span className="font-[family-name:var(--font-nanum)] text-[16px] leading-5 font-extrabold">
                 등급판정서
               </span>
               <span
                 className={cn(
-                  "font-[family-name:var(--font-nanum)] text-xs leading-[18px]",
-                  activeTab === "archive"
-                    ? "font-normal text-white"
-                    : "font-normal text-[#1F2121]",
+                  "font-[family-name:var(--font-nanum)] text-[12px] leading-[18px] font-normal",
+                  activeTab === "archive" ? "text-white" : "text-[#1F2121]",
                 )}
               >
                 (2022.11 이전)
@@ -385,7 +388,7 @@ export default function GradeCertificateScreen({
           </div>
 
           {activeTab === "current" && (
-            <p className="pt-5 font-[family-name:var(--font-nanum)] text-xs leading-[19.2px] font-bold text-[#1F2121]/50 md:hidden">
+            <p className="pt-5 font-[family-name:var(--font-nanum)] text-[14px] leading-[21px] font-bold text-[#1F2121]/50 md:hidden">
               {GRADE_CERT_NOTICE_CURRENT}
             </p>
           )}
@@ -439,7 +442,7 @@ export default function GradeCertificateScreen({
             <p
               className={cn(
                 nanum,
-                "pt-5 text-center text-sm leading-[22.4px] font-bold text-[#1F2121]/50",
+                "pt-5 pb-3 text-center text-sm leading-[22.4px] font-bold text-[#1F2121]/50",
               )}
             >
               아래의 게시판의 등급판정서는 당사에 공급된 계란 중에 당사 내에
@@ -451,8 +454,8 @@ export default function GradeCertificateScreen({
           )}
         </div>
 
-        <div className="flex flex-col gap-[30px]">
-          <div className="flex flex-col gap-4 pb-5 max-md:pt-5 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-5 md:gap-[30px]">
+          <div className="flex flex-col gap-4 pb-0 max-md:pt-5 md:flex-row md:items-end md:justify-between md:pb-5">
             <div className="inline-flex w-full max-w-full min-w-0 flex-nowrap items-center gap-[10px] overflow-x-auto overscroll-x-contain [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden">
               {CERT_TYPES.map((type) => {
                 const isActive = type === activeType;

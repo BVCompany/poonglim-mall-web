@@ -108,8 +108,8 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
         className="animate-hero-unfold-main relative mx-auto max-h-[calc(100dvh-var(--header-height)-16px)] w-full md:aspect-[1840/800] md:max-h-[var(--hero-pc-height)] md:max-w-[var(--hero-pc-width)]"
         style={{ aspectRatio: "343/460" }}
       >
-        {/* 슬라이드 카드: 모바일 rounded-2xl, 데스크톱 rounded-3xl */}
-        <div className="absolute inset-0 overflow-hidden rounded-3xl bg-gray-100 md:rounded-[2rem]">
+        {/* 슬라이드 카드: 모바일 30px, 데스크톱 2rem */}
+        <div className="absolute inset-0 overflow-hidden rounded-[30px] bg-gray-100 md:rounded-[2rem]">
           {/* 슬라이드 이미지 */}
           {slides.map((slide, index) => (
             <div

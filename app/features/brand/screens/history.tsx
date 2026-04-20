@@ -99,7 +99,6 @@ const MILESTONES = [
 function initialMobileAccordionOpen(): Record<string, boolean> {
   const next: Record<string, boolean> = {};
   for (const m of MILESTONES) next[m.id] = true;
-  next["period-2001"] = false;
   return next;
 }
 
@@ -107,9 +106,43 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
   const pageBanner = loaderData?.pageBanner ?? null;
   const [activePeriod, setActivePeriod] = useState(MILESTONES[0].id);
   const [mobileOpen, setMobileOpen] = useState(initialMobileAccordionOpen);
+  /** 모바일 타임라인: 노란 도트는 항상 1개 — 처음은 0번, i번째 연혁이 헤더 기준선을 지나면 (i+1)번 */
+  const [mobileActiveDotIndex, setMobileActiveDotIndex] = useState(0);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const mobileRowRefs = useRef<Map<string, HTMLElement>>(new Map());
   const tabsRef = useRef<HTMLDivElement>(null);
   const isScrollingTo = useRef(false);
+
+  // 모바일: i번 연혁 행이 헤더 기준선 위로 지나가면 노란 도트는 (i+1)번만 (시작은 0번만)
+  useEffect(() => {
+    function updateMobileDots() {
+      if (typeof window === "undefined" || window.innerWidth >= 768) return;
+      const raw = getComputedStyle(document.documentElement).getPropertyValue(
+        "--header-height",
+      );
+      const headerPx = Number.parseFloat(raw) || 50;
+      const activationY = headerPx + 16;
+      let passed = -1;
+      MILESTONES.forEach((m, i) => {
+        const el = mobileRowRefs.current.get(m.id);
+        if (!el) return;
+        if (el.getBoundingClientRect().top <= activationY) passed = i;
+      });
+      const last = MILESTONES.length - 1;
+      let next = 0;
+      if (passed < 0) next = 0;
+      else if (passed >= last) next = last;
+      else next = passed + 1;
+      setMobileActiveDotIndex((prev) => (prev === next ? prev : next));
+    }
+    updateMobileDots();
+    window.addEventListener("scroll", updateMobileDots, { passive: true });
+    window.addEventListener("resize", updateMobileDots);
+    return () => {
+      window.removeEventListener("scroll", updateMobileDots);
+      window.removeEventListener("resize", updateMobileDots);
+    };
+  }, []);
 
   // 스크롤 시 뷰포트 중앙에 가장 가까운 섹션 탭 활성화 (PC만)
   useEffect(() => {
@@ -194,18 +227,31 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
             className="mb-12 w-full max-w-[343px] rounded-[30px] object-cover"
           />
 
-          <div className="relative">
+          <div className="relative pb-1">
             <div
-              className="pointer-events-none absolute left-[10px] top-6 bottom-6 w-px -translate-x-1/2 bg-[#02633E]/25"
+              className="pointer-events-none absolute left-[10px] top-6 bottom-1 w-px -translate-x-1/2 bg-[#02633E]/25"
+              aria-hidden
+            />
+            {/* 타임라인 최하단 종료 도트 */}
+            <div
+              className="pointer-events-none absolute bottom-0 left-[10px] z-[1] h-2 w-2 -translate-x-1/2 rounded-full bg-[#02633E]"
               aria-hidden
             />
             <div className="flex flex-col gap-4">
               {MILESTONES.map(({ id, period, achievements }, idx) => {
                 const open = mobileOpen[id] ?? true;
+                const dotActive = mobileActiveDotIndex === idx;
                 return (
-                  <div key={id} className="relative flex gap-5">
+                  <div
+                    key={id}
+                    ref={(el) => {
+                      if (el) mobileRowRefs.current.set(id, el);
+                      else mobileRowRefs.current.delete(id);
+                    }}
+                    className="relative flex gap-5"
+                  >
                     <div className="relative z-[1] flex w-[21px] shrink-0 justify-center pt-5">
-                      {idx === 0 ? (
+                      {dotActive ? (
                         <div
                           className="box-border h-[21px] w-[21px] shrink-0 rounded-full border-[6px] border-white/40 bg-[#F3BC1E]"
                           aria-hidden
@@ -306,8 +352,8 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* ── 연혁 섹션 목록 (PC: 좌 연도 / 중앙 도트·세로선 / 우 본문·이미지, 구간 간격 100px) ── */}
-        <div className="flex flex-col gap-[100px]">
+        {/* ── 연혁 섹션 목록 (PC만 — 모바일에서 숨기지 않으면 빈 section + gap-[100px]만 쌓여 푸터 위 여백이 커짐) ── */}
+        <div className="hidden flex-col gap-[100px] md:flex">
           {MILESTONES.map(({ id, period, achievements, image, imageWidth, imageHeight }) => (
             <section
               key={id}

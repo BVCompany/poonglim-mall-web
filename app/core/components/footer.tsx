@@ -252,12 +252,16 @@ export default function Footer() {
           PC 푸터 (md 이상)
           ════════════════════════════════════ */}
       <div
-        className="hidden md:flex md:flex-col md:gap-[clamp(24px,calc(60*100vw/1920),60px)] md:px-6 md:py-[clamp(32px,calc(60*100vw/1920),60px)] lg:px-10 xl:px-16 2xl:px-24"
+        className={cn(
+          "hidden md:flex md:flex-col md:gap-[clamp(24px,calc(60*100vw/1920),60px)] md:px-6 md:py-[clamp(32px,calc(60*100vw/1920),60px)]",
+          /* 피그마 PC: 좌우 padding 240px @1920 — md~lg는 기존 px-6 유지 */
+          "lg:px-[clamp(40px,calc(240*100vw/1920),240px)]",
+        )}
       >
-        {/* ── 메인 행: 좌(연락처) | 우(네비+로고) ── */}
+        {/* ── 메인 행: 좌(연락처+SNS) | 우(네비+로고) — 피그마: space-between, 우측 min-height 360 ── */}
         <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-between">
 
-          {/* ── 좌: 연락처 + SNS ── */}
+          {/* ── 좌: 연락처 + SNS (363×360, border-r, 내부 gap 60) ── */}
           <div
             className={cn(
               "flex flex-col justify-between gap-[clamp(24px,calc(60*100vw/1920),60px)]",
@@ -266,8 +270,8 @@ export default function Footer() {
               "lg:min-h-[clamp(240px,calc(360*100vw/1920),360px)]",
             )}
           >
-            {/* 연락처 그룹 */}
-            <div className="flex flex-col gap-[clamp(16px,calc(20*100vw/1920),20px)]">
+            {/* 연락처 그룹 — 피그마: flex 1 1 0, 열 간 gap 20px */}
+            <div className="flex flex-col gap-[clamp(16px,calc(20*100vw/1920),20px)] lg:min-h-0 lg:flex-1">
               {contactGroups.map((g) => (
                 <div
                   key={g.label}
@@ -285,12 +289,16 @@ export default function Footer() {
               ))}
             </div>
 
-            {/* SNS */}
             <FooterSns />
           </div>
 
-          {/* ── 우: 네비 + 로고 ── */}
-          <div className="flex min-w-0 flex-1 flex-col justify-between gap-[clamp(24px,calc(60*100vw/1920),60px)]">
+          {/* ── 우: 네비 + 로고 (피그마: 세로 gap 60, 네비 행 열 gap 12, 4×230) ── */}
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 flex-col justify-between gap-[clamp(24px,calc(60*100vw/1920),60px)]",
+              "lg:min-h-[clamp(240px,calc(360*100vw/1920),360px)]",
+            )}
+          >
             {/* 네비 — md~lg 아코디언 / lg+ 4열 그리드 */}
             <div className="block lg:hidden">
               {navSections.map((s) => (
@@ -334,14 +342,14 @@ export default function Footer() {
               ))}
             </div>
 
-            {/* 로고 */}
+            {/* 로고 — 피그마: 약 462×60.69 */}
             <div className="flex items-end">
-              <Link to="/" className="inline-block leading-none">
+              <Link to="/" className="inline-block max-w-full leading-none">
                 <img
                   src="/home/poonglim-food-footer-logo.png"
                   alt="Poonglim Foods"
-                  className="h-auto w-auto object-contain"
-                  style={{ maxHeight: "clamp(36px, calc(60 * 100vw / 1920), 60px)" }}
+                  className="h-auto w-auto max-w-[min(462px,100%)] object-contain"
+                  style={{ maxHeight: "clamp(36px, calc(60.69 * 100vw / 1920), 60.69px)" }}
                 />
               </Link>
             </div>
