@@ -22,6 +22,7 @@ import {
   hasAnyActiveNews,
   incrementNewsViewCount,
 } from "~/features/media/lib/queries.server";
+import { parseNewsBodyImageUrls } from "~/features/media/lib/body-image-urls";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 type NewsRow = {
@@ -31,6 +32,7 @@ type NewsRow = {
   content: string;
   summary: string | null;
   thumbnail_url: string | null;
+  body_image_urls?: string | null;
   published_at: string | null;
   created_at: Date | string;
   view_count?: string | null;
@@ -180,6 +182,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
 
   const badge = badgeForType(article.type);
   const displayAt = article.published_at ?? article.created_at;
+  const bodyGalleryUrls = parseNewsBodyImageUrls(article.body_image_urls);
   const html =
     article.content?.trim() ||
     (article.summary ? `<p>${article.summary}</p>` : "<p></p>");
@@ -284,6 +287,19 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                 className={articleClassMobile}
                 dangerouslySetInnerHTML={{ __html: html }}
               />
+
+              {bodyGalleryUrls.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {bodyGalleryUrls.map((url, i) => (
+                    <img
+                      key={`${url}-${i}`}
+                      src={url}
+                      alt=""
+                      className="w-full rounded-none object-contain"
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -400,6 +416,19 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
             style={{ minHeight: "200px" }}
             dangerouslySetInnerHTML={{ __html: html }}
           />
+
+          {bodyGalleryUrls.length > 0 ? (
+            <div className="flex flex-col gap-6 py-6">
+              {bodyGalleryUrls.map((url, i) => (
+                <img
+                  key={`${url}-${i}`}
+                  src={url}
+                  alt=""
+                  className="w-full rounded-xl object-contain"
+                />
+              ))}
+            </div>
+          ) : null}
 
           {/* 공지사항 상세와 동일: 이전글 · 목록 · 다음글 */}
           <div className="flex flex-col items-center gap-[60px]">

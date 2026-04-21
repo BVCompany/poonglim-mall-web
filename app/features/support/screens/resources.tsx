@@ -15,10 +15,8 @@ import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
-import {
-  getActiveLibraryResources,
-  hasAnyActiveLibraryResources,
-} from "~/features/support/lib/queries.server";
+import { getActiveLibraryResources } from "~/features/support/lib/queries.server";
+import { getLibraryDemoPublicList } from "~/features/support/lib/library-resources-demo";
 
 /** 모바일 카드 메타 뱃지 — Figma: #F0EEDD · px12 py6 · Pretendard 11/500 · lh 11 */
 const RESOURCE_META_BADGE_CLASS =
@@ -33,115 +31,23 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader(_: Route.LoaderArgs) {
-  const [pageBanner, dbResources, hasRealResources] = await Promise.all([
+  const [pageBanner, dbResources] = await Promise.all([
     getPageBanner("resources").catch(() => null),
     getActiveLibraryResources().catch(() => []),
-    hasAnyActiveLibraryResources().catch(() => false),
   ]);
-  return { pageBanner, dbResources, hasRealResources };
+  return { pageBanner, dbResources };
 }
 
 const CATEGORIES = ["전체 보기", "카탈로그", "회사소개", "인증서", "기타"];
 
-const MOCK_FILES = [
-  {
-    id: 10,
-    category: "인증서",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 9,
-    category: "카탈로그",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 8,
-    category: "기타",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 7,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 6,
-    category: "인증서",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 5,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 4,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 3,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 2,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-  {
-    id: 1,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    size: "312",
-    date: "2026-02-16",
-    ext: "PDF",
-    url: "#",
-  },
-];
+const LIBRARY_DEMO_PUBLIC = getLibraryDemoPublicList();
 
 const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
-  const { pageBanner, dbResources, hasRealResources } = loaderData;
+  const { pageBanner, dbResources } = loaderData;
   const sourceFiles =
-    hasRealResources && dbResources.length > 0
+    dbResources.length > 0
       ? dbResources.map((r) => ({
           id: r.resource_id,
           category: r.category,
@@ -151,7 +57,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           ext: r.file_ext ?? "PDF",
           url: r.file_url,
         }))
-      : MOCK_FILES;
+      : LIBRARY_DEMO_PUBLIC;
   const [activeCategory, setActiveCategory] = useState("전체 보기");
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");

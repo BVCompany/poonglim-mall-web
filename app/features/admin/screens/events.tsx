@@ -1,7 +1,7 @@
 /**
  * Admin Events Management Screen
  *
- * 이벤트와 공지를 탭으로 분리하여 각각 관리합니다.
+ * 이벤트·공지 통합 목록 관리 (DB 비어 있을 때 예시 더미 표시)
  */
 
 import { useMemo, useState } from "react";
@@ -14,8 +14,8 @@ import { EventAddModal, type EventFormData } from "../components/event-add-modal
 import type { EventCategory } from "../types/event.types";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
-import { Card } from "~/core/components/ui/card";
-import { Plus, Search, Edit, Trash2, CalendarRange, Megaphone } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, CalendarDays, ImageIcon } from "lucide-react";
+import { cn } from "~/core/lib/utils";
 import {
   getAllEventsForAdmin,
   type Event,
@@ -46,7 +46,7 @@ function mapEventToForm(e: Event): EventFormData {
     eventId: e.event_id,
     title: e.title,
     category,
-    status: "active",
+    status: e.is_active ? "active" : "ended",
     startDate: toInputDate(e.started_at ?? undefined),
     endDate: toInputDate(e.ended_at ?? undefined),
     description: e.summary ?? "",
@@ -80,7 +80,7 @@ export async function action({ request }: Route.ActionArgs) {
       badge: parseEventBadge(fd.get("badge")),
       location: (fd.get("location") as string)?.trim() || null,
       contact: (fd.get("contact") as string)?.trim() || null,
-      is_active: true,
+      is_active: fd.get("isActive") === "true",
       started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
       ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
     });
@@ -102,6 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
         badge: parseEventBadge(fd.get("badge")),
         location: (fd.get("location") as string)?.trim() || null,
         contact: (fd.get("contact") as string)?.trim() || null,
+        is_active: fd.get("isActive") === "true",
         started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
         ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
       })
@@ -125,22 +126,83 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false };
 }
 
-function formatDate(val: string | null | undefined): string {
-  if (!val) return "-";
-  const d = new Date(val);
-  return d.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+function formatYmd(d: Date | null | undefined): string {
+  if (!d) return "";
+  const x = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(x.getTime())) return "";
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
 }
 
-type Tab = "event" | "notice";
+function formatPeriodRow(event: Event): string {
+  const s = formatYmd(event.started_at ?? undefined);
+  const e = formatYmd(event.ended_at ?? undefined);
+  if (s && e) return `${s} ~ ${e}`;
+  if (s) return s;
+  if (e) return e;
+  return "";
+}
 
-const TAB_CONFIG: Record<Tab, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  event:  { label: "이벤트",  icon: CalendarRange },
-  notice: { label: "공지",    icon: Megaphone },
-};
+function isDemoEventRow(id: number) {
+  return id < 0;
+}
+
+/** DB에 행이 없을 때만 노출 (음수 ID — 수정·삭제 불가) */
+const MOCK_EVENTS: Event[] = [
+  {
+    event_id: -1,
+    type: "event",
+    title: "설 맞이 특별 프로모션",
+    content: "<p>설 명절을 맞이한 특별 프로모션 상세 안내입니다.</p>",
+    summary: "설 명절을 맞이하여 전 제품 70% 할인 이벤트를 진행합니다",
+    thumbnail_url: "/intro/img01.png",
+    badge: null,
+    is_active: true,
+    started_at: new Date("2025-01-20T00:00:00"),
+    ended_at: new Date("2025-02-10T00:00:00"),
+    location: null,
+    contact: null,
+    view_count: "128",
+    created_at: new Date("2025-01-18T10:00:00"),
+    updated_at: new Date("2025-01-18T10:00:00"),
+  },
+  {
+    event_id: -2,
+    type: "notice",
+    title: "신제품 출시 안내",
+    content: "<p>짜먹는 에그샐러드 신제품 출시 안내입니다.</p>",
+    summary: "짜먹는 에그샐러드 신제품이 출시되었습니다",
+    thumbnail_url: null,
+    badge: null,
+    is_active: true,
+    started_at: new Date("2023-01-15T00:00:00"),
+    ended_at: null,
+    location: null,
+    contact: null,
+    view_count: "256",
+    created_at: new Date("2023-01-14T09:00:00"),
+    updated_at: new Date("2023-01-14T09:00:00"),
+  },
+  {
+    event_id: -3,
+    type: "event",
+    title: "봄맞이 샘플링 행사",
+    content: "<p>매장 샘플링 행사 상세 일정입니다.</p>",
+    summary: "전국 주요 매장에서 신제품 무료 시식 이벤트를 진행합니다",
+    thumbnail_url: "/home/product-squeeze-egg-salad.png",
+    badge: null,
+    is_active: false,
+    started_at: new Date("2024-03-01T00:00:00"),
+    ended_at: new Date("2024-03-31T00:00:00"),
+    location: null,
+    contact: null,
+    view_count: "89",
+    created_at: new Date("2024-02-25T11:00:00"),
+    updated_at: new Date("2024-03-31T18:00:00"),
+  },
+];
 
 export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbEvents } = loaderData;
-  const [activeTab, setActiveTab] = useState<Tab>("event");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -156,22 +218,29 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     setEditingEvent(null);
   };
 
-  // 탭에 따라 필터링
-  const tabFiltered = dbEvents.filter((e) => e.type === activeTab);
-  const filtered = tabFiltered.filter((e) =>
-    e.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  const sourceEvents = useMemo(
+    () => (dbEvents.length > 0 ? dbEvents : MOCK_EVENTS),
+    [dbEvents],
+  );
+
+  const filtered = sourceEvents.filter((e) =>
+    e.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
   const handleSubmitEvent = (eventData: EventFormData) => {
     const fd = new FormData();
+    const typeVal = eventData.category === "notice" ? "notice" : "event";
+    const isActive =
+      eventData.status === "active" || eventData.status === "scheduled";
     if (eventData.eventId != null) {
       fd.append("intent", "update");
       fd.append("id", String(eventData.eventId));
-      fd.append("type", eventData.category === "notice" ? "notice" : "event");
+      fd.append("type", typeVal);
     } else {
       fd.append("intent", "create");
-      fd.append("type", activeTab);
+      fd.append("type", typeVal);
     }
+    fd.append("isActive", isActive ? "true" : "false");
     fd.append("title", eventData.title);
     fd.append("content", eventData.content);
     fd.append("description", eventData.description);
@@ -185,6 +254,10 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   };
 
   const handleDelete = (id: number) => {
+    if (isDemoEventRow(id)) {
+      window.alert("예시 더미 데이터는 삭제할 수 없습니다. 실제 데이터를 등록하면 더미 목록은 표시되지 않습니다.");
+      return;
+    }
     if (!confirm("정말 삭제하시겠습니까?")) return;
     const fd = new FormData();
     fd.append("intent", "delete");
@@ -192,171 +265,152 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     fetcher.submit(fd, { method: "POST" });
   };
 
-  const tabLabel = TAB_CONFIG[activeTab].label;
+  const handleStartEdit = (event: Event) => {
+    if (isDemoEventRow(event.event_id)) {
+      window.alert(
+        "예시 더미 데이터는 수정할 수 없습니다. 실제 데이터를 등록하면 더미 목록은 표시되지 않습니다.",
+      );
+      return;
+    }
+    setIsAddModalOpen(false);
+    setEditingEvent(event);
+  };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
 
-        <div className="flex-1 overflow-auto">
-          <div className="p-8">
-            {/* 헤더 */}
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="mb-1 text-3xl font-bold text-gray-900">이벤트/공지 관리</h1>
-                <p className="text-gray-600">이벤트와 공지사항을 탭으로 구분하여 관리합니다.</p>
-              </div>
-              <Button
-                className="gap-2 bg-[#204E3A] hover:bg-[#1a3f2e]"
-                onClick={() => {
-                  setEditingEvent(null);
-                  setIsAddModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                {tabLabel} 추가
-              </Button>
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">이벤트/공지 관리</h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
+                이벤트와 공지사항을 추가, 수정, 삭제할 수 있습니다
+              </p>
+              {dbEvents.length === 0 ? (
+                <p className="mt-2 text-xs text-amber-800/90">
+                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 항목을 추가하면 실제 데이터만
+                  보입니다.
+                </p>
+              ) : null}
             </div>
+            <Button
+              className="shrink-0 gap-2 bg-[#02633E] text-white hover:bg-[#014d30]"
+              onClick={() => {
+                setEditingEvent(null);
+                setIsAddModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              이벤트/공지 추가
+            </Button>
+          </div>
 
-            {/* ── 탭 ── */}
-            <div className="mb-6 flex gap-1 rounded-xl border border-gray-200 bg-white p-1 w-fit">
-              {(Object.entries(TAB_CONFIG) as [Tab, typeof TAB_CONFIG[Tab]][]).map(([key, cfg]) => {
-                const Icon = cfg.icon;
-                const isActive = key === activeTab;
+          <div className="relative mb-6 w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="제목으로 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border-[#02633E]/25 pl-9"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm">
+                {searchQuery.trim() ? "검색 결과가 없습니다." : "표시할 이벤트·공지가 없습니다."}
+              </div>
+            ) : (
+              filtered.map((event) => {
+                const period = formatPeriodRow(event);
+                const isNotice = event.type === "notice";
                 return (
-                  <button
-                    key={key}
-                    onClick={() => { setActiveTab(key); setSearchQuery(""); }}
-                    className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-colors"
-                    style={
-                      isActive
-                        ? { backgroundColor: "#02633E", color: "#fff" }
-                        : { backgroundColor: "transparent", color: "#666" }
-                    }
+                  <div
+                    key={event.event_id}
+                    className="flex gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md md:items-center md:gap-5 md:p-5"
                   >
-                    <Icon className="h-4 w-4" />
-                    {cfg.label}
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-xs font-semibold"
-                      style={
-                        isActive
-                          ? { backgroundColor: "rgba(255,255,255,0.25)", color: "#fff" }
-                          : { backgroundColor: "#EAE3C9", color: "#003F2B" }
-                      }
-                    >
-                      {tabFiltered.length}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 검색 */}
-            <div className="mb-6">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder={`${tabLabel} 제목으로 검색...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* 목록 */}
-            <div className="space-y-3">
-              {filtered.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <p className="text-gray-500">
-                    {searchQuery ? "검색 결과가 없습니다." : `등록된 ${tabLabel}이 없습니다.`}
-                  </p>
-                </Card>
-              ) : (
-                filtered.map((event) => (
-                  <Card key={event.event_id} className="p-5 transition-shadow hover:shadow-md">
-                    <div className="flex items-center gap-5">
-                      {/* 썸네일 */}
-                      {event.thumbnail_url && (
-                        <div className="shrink-0">
+                    <div className="flex min-w-0 flex-1 items-start gap-4 md:items-center">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 md:h-24 md:w-24">
+                        {event.thumbnail_url ? (
                           <img
                             src={event.thumbnail_url}
-                            alt={event.title}
-                            className="h-16 w-16 rounded-lg object-cover"
+                            alt=""
+                            className="h-full w-full object-cover"
                           />
-                        </div>
-                      )}
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-gray-300">
+                            <ImageIcon className="h-8 w-8" aria-hidden />
+                          </div>
+                        )}
+                      </div>
 
-                      {/* 정보 */}
                       <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex items-center gap-2">
-                          <h3 className="truncate text-base font-semibold text-gray-900">
-                            {event.title}
-                          </h3>
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-semibold text-gray-900">{event.title}</h3>
                           <span
-                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            style={
-                              event.is_active
-                                ? { backgroundColor: "#dcfce7", color: "#166534" }
-                                : { backgroundColor: "#f1f5f9", color: "#64748b" }
-                            }
+                            className={cn(
+                              "shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                              isNotice
+                                ? "bg-gray-200 text-gray-900"
+                                : "bg-gray-900 text-white",
+                            )}
                           >
-                            {event.is_active ? "활성" : "비활성"}
+                            {isNotice ? "공지사항" : "이벤트"}
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold text-white",
+                              event.is_active ? "bg-[#02633E]" : "bg-gray-400",
+                            )}
+                          >
+                            {event.is_active ? "진행중" : "종료"}
                           </span>
                         </div>
-                        {event.summary && (
-                          <p className="mb-1.5 line-clamp-1 text-sm text-gray-500">{event.summary}</p>
-                        )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
-                          {(event.started_at || event.ended_at) && (
-                            <span>
-                              기간: {formatDate(event.started_at?.toISOString())}
-                              {event.ended_at && ` ~ ${formatDate(event.ended_at?.toISOString())}`}
-                            </span>
-                          )}
-                          <span>등록일: {formatDate(event.created_at.toISOString())}</span>
-                        </div>
-                      </div>
-
-                      {/* 액션 */}
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-gray-900"
-                          onClick={() => {
-                            setIsAddModalOpen(false);
-                            setEditingEvent(event);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-400 hover:bg-red-50 hover:text-red-600"
-                          onClick={() => handleDelete(event.event_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {event.summary ? (
+                          <p className="mb-2 line-clamp-2 text-sm text-gray-600">{event.summary}</p>
+                        ) : null}
+                        {period ? (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                            <span>{period}</span>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                  </Card>
-                ))
-              )}
-            </div>
 
-            {filtered.length > 0 && (
-              <div className="mt-6 text-center text-sm text-gray-400">
-                총 {filtered.length}개의 {tabLabel}
-              </div>
+                    <div className="flex shrink-0 items-center justify-end gap-1.5 self-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-[#02633E]"
+                        onClick={() => handleStartEdit(event)}
+                        title="수정"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-red-600"
+                        onClick={() => handleDelete(event.event_id)}
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
+        </main>
       </div>
 
       <EventAddModal
@@ -365,7 +419,7 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
           if (!open) closeEventModal();
         }}
         mode={editingEvent ? "edit" : "create"}
-        defaultType={activeTab}
+        defaultType="event"
         initial={editInitial}
         onSubmit={handleSubmitEvent}
       />

@@ -46,6 +46,8 @@ type NewsItem = {
   thumbnail_url: string | null;
   source: string | null;
   is_active: boolean;
+  /** DB 마이그레이션 전 레거시 행은 없을 수 있음 */
+  is_featured?: boolean;
   published_at: string | null;
   created_at: Date | string;
 };
@@ -120,6 +122,7 @@ const MOCK_ITEMS: NewsItem[] = [
     thumbnail_url: "/home/poonglim-logo-eng.png",
     source: "중부매일",
     is_active: true,
+    is_featured: true,
     published_at: "2024-02-19",
     created_at: new Date("2024-02-19"),
   },
@@ -132,6 +135,7 @@ const MOCK_ITEMS: NewsItem[] = [
     thumbnail_url: "/home/poonglim-logo-eng.png",
     source: "식품음료신문",
     is_active: true,
+    is_featured: true,
     published_at: "2024-02-14",
     created_at: new Date("2024-02-14"),
   },
@@ -144,6 +148,7 @@ const MOCK_ITEMS: NewsItem[] = [
     thumbnail_url: "/home/poonglim-logo-eng.png",
     source: "매일경제",
     is_active: true,
+    is_featured: false,
     published_at: "2024-02-19",
     created_at: new Date("2024-02-19"),
   },
@@ -156,6 +161,7 @@ const MOCK_ITEMS: NewsItem[] = [
     thumbnail_url: "/home/poonglim-logo-eng.png",
     source: "한국경제",
     is_active: true,
+    is_featured: false,
     published_at: "2024-02-19",
     created_at: new Date("2024-02-19"),
   },
@@ -168,6 +174,7 @@ const MOCK_ITEMS: NewsItem[] = [
     thumbnail_url: "/home/poonglim-logo-eng.png",
     source: "코리아타임스",
     is_active: true,
+    is_featured: false,
     published_at: "2024-01-19",
     created_at: new Date("2024-01-19"),
   },
@@ -178,9 +185,13 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
   const rawItems = loaderData.items as NewsItem[];
   const items: NewsItem[] = rawItems.length > 0 ? rawItems : MOCK_ITEMS;
 
-  /* ── 주요 보도 슬라이더 (CSS 스크롤 기반) ── */
+  /* ── 주요 보도 슬라이더 (CSS 스크롤 기반) — is_featured 우선, 없으면 최신순 6건 ── */
   const scrollRef = useRef<HTMLDivElement>(null);
-  const featured = items.slice(0, Math.min(items.length, 6));
+  const featuredCandidates = items.filter((i) => i.is_featured === true);
+  const featured =
+    featuredCandidates.length > 0
+      ? featuredCandidates.slice(0, 6)
+      : items.slice(0, Math.min(6, items.length));
 
   const prevSlide = () =>
     scrollRef.current?.scrollBy({ left: -featuredScrollStepPx(), behavior: "smooth" });
