@@ -141,6 +141,27 @@
       "when": 1776364800000,
       "tag": "0019_news_body_image_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776451200000,
+      "tag": "0020_news_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776537600000,
+      "tag": "0021_archive_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1776624000000,
+      "tag": "0022_grade_cert_categories_recipe_color",
+      "breakpoints": true
     }
   ]
 }

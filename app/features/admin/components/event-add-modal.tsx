@@ -127,9 +127,9 @@ export function EventAddModal({
       category: formData.category === "notice" ? "notice" : "event",
       endDate: formData.endDate || undefined,
       image: formData.image?.trim() || undefined,
-      location: "",
-      contact: "",
-      badge: "",
+      location: formData.location?.trim() || "",
+      contact: formData.contact?.trim() || "",
+      badge: formData.badge?.trim() || "",
     };
 
     onSubmit(eventData);

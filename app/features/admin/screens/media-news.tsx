@@ -37,11 +37,14 @@ import {
   Settings,
 } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
-import { news } from "~/features/media/schema";
-import { and, count, desc, eq, ne } from "drizzle-orm";
+import { news, newsCategories } from "~/features/media/schema";
+import { and, asc, count, desc, eq, ne, sql } from "drizzle-orm";
 import { cn } from "~/core/lib/utils";
+import { NewsCategoryManageModal } from "../components/news-category-manage-modal";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 
 const MAX_FEATURED = 6;
+const PROTECTED_NEWS_CATEGORY = "보도자료";
 
 function readBodyImageUrlsFromForm(fd: FormData): string | null {
   const raw = fd.get("body_image_urls") as string;
@@ -66,8 +69,11 @@ async function countFeaturedExcluding(excludeId?: number): Promise<number> {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbNews = await db.select().from(news).orderBy(desc(news.created_at)).catch(() => []);
-  return { adminUser, dbNews };
+  const [dbNews, dbNewsCategories] = await Promise.all([
+    db.select().from(news).orderBy(desc(news.created_at)).catch(() => []),
+    db.select().from(newsCategories).orderBy(asc(newsCategories.sort_order)).catch(() => []),
+  ]);
+  return { adminUser, dbNews, dbNewsCategories };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -175,13 +181,87 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true as const };
   }
 
+  if (intent === "category_create") {
+    const name = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!name) return { success: false as const, error: "category_validation" as const };
+    const [mx] = await db
+      .select({ v: sql<number>`COALESCE(MAX(${newsCategories.sort_order}), -1)` })
+      .from(newsCategories);
+    const nextOrder = Number(mx?.v ?? -1) + 1;
+    try {
+      await db.insert(newsCategories).values({ name, color, sort_order: nextOrder });
+    } catch {
+      return { success: false as const, error: "category_duplicate" as const };
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_update") {
+    const id = Number(fd.get("id"));
+    const newName = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!id || !newName) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(newsCategories)
+      .where(eq(newsCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_NEWS_CATEGORY && newName !== PROTECTED_NEWS_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    if (newName !== row.name) {
+      const [dup] = await db
+        .select()
+        .from(newsCategories)
+        .where(eq(newsCategories.name, newName))
+        .limit(1);
+      if (dup && dup.category_id !== id) {
+        return { success: false as const, error: "category_duplicate" as const };
+      }
+      await db.transaction(async (tx) => {
+        await tx.update(news).set({ type: newName }).where(eq(news.type, row.name));
+        await tx
+          .update(newsCategories)
+          .set({ name: newName, color, updated_at: new Date() })
+          .where(eq(newsCategories.category_id, id));
+      });
+    } else {
+      await db
+        .update(newsCategories)
+        .set({ color, updated_at: new Date() })
+        .where(eq(newsCategories.category_id, id));
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_delete") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(newsCategories)
+      .where(eq(newsCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_NEWS_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    const [{ n }] = await db.select({ n: count() }).from(news).where(eq(news.type, row.name));
+    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
+    await db.delete(newsCategories).where(eq(newsCategories.category_id, id));
+    return { success: true as const, intent: "category" as const };
+  }
+
   return { success: false as const };
 }
 
 export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser, dbNews } = loaderData;
+  const { adminUser, dbNews, dbNewsCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -208,12 +288,23 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
   }, [dbNews]);
 
+  const categoryColorByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of dbNewsCategories) m.set(c.name, c.color || "slate");
+    return m;
+  }, [dbNewsCategories]);
+
   const categorySelectOptions = useMemo(() => {
-    const base = ["보도자료", "뉴스", "공지"];
-    const merged = new Set(base);
-    for (const t of typeOptions) merged.add(t);
-    return Array.from(merged);
-  }, [typeOptions]);
+    const ordered = dbNewsCategories.map((c) => c.name);
+    const extra = typeOptions.filter((t) => !ordered.includes(t));
+    if (ordered.length === 0) {
+      const base = ["보도자료", "뉴스", "공지"];
+      const merged = new Set(base);
+      for (const t of typeOptions) merged.add(t);
+      return Array.from(merged);
+    }
+    return [...ordered, ...extra.sort((a, b) => a.localeCompare(b, "ko"))];
+  }, [dbNewsCategories, typeOptions]);
 
   const featuredCount = useMemo(() => dbNews.filter((n) => n.is_featured).length, [dbNews]);
 
@@ -265,6 +356,22 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
       window.alert("본문 내용 또는 본문 이미지를 최소 하나 등록해 주세요.");
       return;
     }
+    if ("error" in fetcher.data && fetcher.data.error === "category_protected") {
+      window.alert(`「${PROTECTED_NEWS_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
+      return;
+    }
+    if ("error" in fetcher.data && fetcher.data.error === "category_in_use") {
+      window.alert("이 카테고리를 사용 중인 보도자료가 있어 삭제할 수 없습니다. 먼저 해당 글의 카테고리를 변경하세요.");
+      return;
+    }
+    if ("error" in fetcher.data && fetcher.data.error === "category_duplicate") {
+      window.alert("이미 같은 이름의 카테고리가 있습니다.");
+      return;
+    }
+    if ("error" in fetcher.data && fetcher.data.error === "category_validation") {
+      window.alert("카테고리 이름을 입력해 주세요.");
+      return;
+    }
     if ("success" in fetcher.data && fetcher.data.success && "intent" in fetcher.data) {
       if (fetcher.data.intent === "create") {
         setIsAddModalOpen(false);
@@ -275,8 +382,18 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
         setEditingId(null);
         resetForm();
       }
+      if (fetcher.data.intent === "category") {
+        setCategoryManageOpen(false);
+      }
     }
   }, [fetcher.state, fetcher.data, resetForm]);
+
+  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+    const fd = new FormData();
+    fd.append("intent", intent);
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    fetcher.submit(fd, { method: "POST" });
+  };
 
   const appendFormFields = (fd: FormData) => {
     fd.append("type", form.type);
@@ -348,6 +465,13 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
     <div className="flex h-screen bg-white">
       <AdminSidebar adminUser={adminUser} />
 
+      <NewsCategoryManageModal
+        open={categoryManageOpen}
+        onOpenChange={setCategoryManageOpen}
+        categories={dbNewsCategories}
+        onSubmitCategory={submitCategoryAction}
+      />
+
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
 
@@ -392,8 +516,8 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                 className="h-10 min-w-[140px] rounded-md border border-[#02633E]/30 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#02633E]/30"
                 aria-label="카테고리(타입) 필터"
               >
-                <option value="">전체 타입</option>
-                {typeOptions.map((t) => (
+                <option value="">전체 카테고리</option>
+                {categorySelectOptions.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -404,8 +528,8 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                 variant="outline"
                 size="icon"
                 className="shrink-0 border-[#02633E]/30 text-[#02633E]"
-                title="추가 설정 (준비 중)"
-                disabled
+                title="카테고리 관리"
+                onClick={() => setCategoryManageOpen(true)}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -451,7 +575,12 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                             주요
                           </span>
                         )}
-                        <span className="inline-flex items-center rounded-full bg-[#EAE3C9] px-2.5 py-0.5 text-xs font-medium text-[#003F2B]">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold",
+                            newsCategoryBadgeClass(categoryColorByName.get(item.type) ?? "slate"),
+                          )}
+                        >
                           {item.type}
                         </span>
                         {!item.is_active && (

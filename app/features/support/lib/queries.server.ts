@@ -1,10 +1,12 @@
-import { desc, eq, and, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, and, inArray, sql } from "drizzle-orm";
 import db from "~/core/db/drizzle-client.server";
 import {
   notices,
   faqs,
   contacts,
   gradeCertificates,
+  gradeCertCategories,
+  archiveCategories,
   libraryResources,
 } from "../schema";
 
@@ -158,6 +160,14 @@ export async function getAllNotices() {
 /* ─────────────────── 등급판정서 ─────────────────────── */
 export type GradeCertificate = typeof gradeCertificates.$inferSelect;
 
+export async function getGradeCertCategoriesOrdered() {
+  return db
+    .select()
+    .from(gradeCertCategories)
+    .orderBy(asc(gradeCertCategories.sort_order))
+    .catch(() => []);
+}
+
 /** 공개 등급판정서 목록 (탭 + 타입 필터) */
 export async function getGradeCertificates(
   tab: "current" | "archive" = "current",
@@ -168,9 +178,7 @@ export async function getGradeCertificates(
     eq(gradeCertificates.tab, tab),
   ];
   if (certType && certType !== "전체") {
-    conditions.push(
-      eq(gradeCertificates.cert_type, certType as GradeCertificate["cert_type"]),
-    );
+    conditions.push(eq(gradeCertificates.cert_type, certType));
   }
   return db
     .select()
@@ -246,6 +254,14 @@ export async function getAllGradeCerts() {
 }
 
 /* ─────────────────────── 자료실 (library_resources) ─────────────────────── */
+export async function getArchiveCategoriesOrdered() {
+  return db
+    .select()
+    .from(archiveCategories)
+    .orderBy(asc(archiveCategories.sort_order))
+    .catch(() => []);
+}
+
 export type LibraryResource = typeof libraryResources.$inferSelect;
 
 export async function getActiveLibraryResources() {
