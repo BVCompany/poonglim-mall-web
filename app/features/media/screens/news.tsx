@@ -399,11 +399,11 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
 
-            <div className="mt-4 hidden overflow-hidden rounded-[40px] md:inline-flex">
+            <div className="mt-4 hidden overflow-hidden rounded-[40px] bg-white md:inline-flex">
               <button
                 type="button"
                 onClick={prevSlide}
-                className="flex h-[52px] w-[52px] items-center justify-center bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-l-[40px] bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
                 aria-label="이전"
               >
                 <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
@@ -412,7 +412,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
               <button
                 type="button"
                 onClick={nextSlide}
-                className="flex h-[52px] w-[52px] items-center justify-center bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-r-[40px] bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
                 aria-label="다음"
               >
                 <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
@@ -607,7 +607,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                       type="button"
                       onClick={goPrevSlide}
                       disabled={slideIndex === 0}
-                      className="flex h-[52px] w-[52px] items-center justify-center text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-l-[40px] text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="이전 슬라이드"
                     >
                       <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
@@ -617,7 +617,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                       type="button"
                       onClick={goNextSlide}
                       disabled={slideIndex === totalSlides - 1}
-                      className="flex h-[52px] w-[52px] items-center justify-center text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-r-[40px] text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="다음 슬라이드"
                     >
                       <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
