@@ -2,7 +2,7 @@
  * Admin Grade Certificates Management Screen
  * 등급판정서 관리 화면
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/grade-certificates";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -12,18 +12,26 @@ import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Plus, Search, Pencil, Trash2, Paperclip, Settings } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
-import { gradeCertificates } from "~/features/support/schema";
-import { eq } from "drizzle-orm";
-import { getAllGradeCerts } from "~/features/support/lib/queries.server";
+import { gradeCertificates, gradeCertCategories } from "~/features/support/schema";
+import { count, eq, sql } from "drizzle-orm";
+import { getAllGradeCerts, getGradeCertCategoriesOrdered } from "~/features/support/lib/queries.server";
 import type { GradeCertificate } from "~/features/support/lib/queries.server";
 import { GradeCertAddModal } from "../components/grade-cert-add-modal";
 import type { GradeCertFormData } from "../components/grade-cert-add-modal";
+import { GradeCertCategoryManageModal } from "../components/grade-cert-category-manage-modal";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 import { cn } from "~/core/lib/utils";
+
+const FALLBACK_GRADE_CERT_TYPES = ["액란", "포장란", "기타"] as const;
+const PROTECTED_GRADE_CERT_CATEGORY = "기타";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const dbCerts = await getAllGradeCerts().catch(() => []);
-  return { adminUser, dbCerts };
+  const [dbCerts, dbGradeCertCategories] = await Promise.all([
+    getAllGradeCerts().catch(() => []),
+    getGradeCertCategoriesOrdered(),
+  ]);
+  return { adminUser, dbCerts, dbGradeCertCategories };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -34,7 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "create") {
     await db.insert(gradeCertificates).values({
       tab: (fd.get("tab") as "current" | "archive") ?? "current",
-      cert_type: (fd.get("cert_type") as "포장란" | "액란" | "기타") ?? "포장란",
+      cert_type: (fd.get("cert_type") as string) || "포장란",
       title: fd.get("title") as string,
       content: (fd.get("content") as string) ?? "",
       author: (fd.get("author") as string) || "풍림푸드",
@@ -52,7 +60,7 @@ export async function action({ request }: Route.ActionArgs) {
         .update(gradeCertificates)
         .set({
           tab: (fd.get("tab") as "current" | "archive") ?? "current",
-          cert_type: (fd.get("cert_type") as "포장란" | "액란" | "기타") ?? "포장란",
+          cert_type: (fd.get("cert_type") as string) || "포장란",
           title: fd.get("title") as string,
           content: (fd.get("content") as string) ?? "",
           author: (fd.get("author") as string) || "풍림푸드",
@@ -83,6 +91,85 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "category_create") {
+    const name = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!name) return { success: false as const, error: "category_validation" as const };
+    const [mx] = await db
+      .select({ v: sql<number>`COALESCE(MAX(${gradeCertCategories.sort_order}), -1)` })
+      .from(gradeCertCategories);
+    const nextOrder = Number(mx?.v ?? -1) + 1;
+    try {
+      await db.insert(gradeCertCategories).values({ name, color, sort_order: nextOrder });
+    } catch {
+      return { success: false as const, error: "category_duplicate" as const };
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_update") {
+    const id = Number(fd.get("id"));
+    const newName = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!id || !newName) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(gradeCertCategories)
+      .where(eq(gradeCertCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_GRADE_CERT_CATEGORY && newName !== PROTECTED_GRADE_CERT_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    if (newName !== row.name) {
+      const [dup] = await db
+        .select()
+        .from(gradeCertCategories)
+        .where(eq(gradeCertCategories.name, newName))
+        .limit(1);
+      if (dup && dup.category_id !== id) {
+        return { success: false as const, error: "category_duplicate" as const };
+      }
+      await db.transaction(async (tx) => {
+        await tx
+          .update(gradeCertificates)
+          .set({ cert_type: newName })
+          .where(eq(gradeCertificates.cert_type, row.name));
+        await tx
+          .update(gradeCertCategories)
+          .set({ name: newName, color, updated_at: new Date() })
+          .where(eq(gradeCertCategories.category_id, id));
+      });
+    } else {
+      await db
+        .update(gradeCertCategories)
+        .set({ color, updated_at: new Date() })
+        .where(eq(gradeCertCategories.category_id, id));
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_delete") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(gradeCertCategories)
+      .where(eq(gradeCertCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_GRADE_CERT_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(gradeCertificates)
+      .where(eq(gradeCertificates.cert_type, row.name));
+    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
+    await db.delete(gradeCertCategories).where(eq(gradeCertCategories.category_id, id));
+    return { success: true as const, intent: "category" as const };
+  }
+
   return { success: false };
 }
 
@@ -90,17 +177,6 @@ const NEW_BADGE_DAYS = 7;
 
 function isDemoCertRow(id: number) {
   return id < 0;
-}
-
-function certTypeBadgeClass(t: string) {
-  switch (t) {
-    case "액란":
-      return "border-sky-200 bg-sky-50 text-sky-800";
-    case "포장란":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
-    default:
-      return "border-amber-200 bg-amber-50 text-amber-900";
-  }
 }
 
 function isNewCert(createdAt: Date | string) {
@@ -172,11 +248,12 @@ const MOCK_CERTS = [
 type CertRow = GradeCertificate | (typeof MOCK_CERTS)[number];
 
 export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentProps) {
-  const { adminUser, dbCerts } = loaderData;
-  const fetcher = useFetcher();
+  const { adminUser, dbCerts, dbGradeCertCategories } = loaderData;
+  const fetcher = useFetcher<typeof action>();
   const [searchQuery, setSearchQuery] = useState("");
   const [listTab, setListTab] = useState<"current" | "archive">("current");
-  const [categoryChip, setCategoryChip] = useState<"" | "액란" | "포장란" | "기타">("");
+  const [categoryChip, setCategoryChip] = useState<string>("");
+  const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>();
   const [editingData, setEditingData] = useState<GradeCertFormData | undefined>();
@@ -185,6 +262,66 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
     () => (dbCerts.length > 0 ? dbCerts : MOCK_CERTS) as CertRow[],
     [dbCerts],
   );
+
+  const certTypeNamesFromRows = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of sourceCerts) {
+      if (c.cert_type?.trim()) set.add(c.cert_type.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+  }, [sourceCerts]);
+
+  const categorySelectOptions = useMemo(() => {
+    const ordered = dbGradeCertCategories.map((c) => c.name);
+    const extra = certTypeNamesFromRows.filter((t) => !ordered.includes(t));
+    if (ordered.length === 0) {
+      const merged = new Set<string>([...FALLBACK_GRADE_CERT_TYPES]);
+      for (const t of certTypeNamesFromRows) merged.add(t);
+      return Array.from(merged);
+    }
+    return [...ordered, ...extra.sort((a, b) => a.localeCompare(b, "ko"))];
+  }, [dbGradeCertCategories, certTypeNamesFromRows]);
+
+  const categoryColorByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of dbGradeCertCategories) m.set(c.name, c.color || "slate");
+    return m;
+  }, [dbGradeCertCategories]);
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    const d = fetcher.data;
+    if ("error" in d && d.error === "category_protected") {
+      window.alert(`「${PROTECTED_GRADE_CERT_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
+      return;
+    }
+    if ("error" in d && d.error === "category_in_use") {
+      window.alert("이 카테고리를 사용 중인 등급판정서가 있어 삭제할 수 없습니다. 먼저 해당 문서의 카테고리를 변경하세요.");
+      return;
+    }
+    if ("error" in d && d.error === "category_duplicate") {
+      window.alert("이미 같은 이름의 카테고리가 있습니다.");
+      return;
+    }
+    if ("error" in d && d.error === "category_validation") {
+      window.alert("카테고리 이름을 입력해 주세요.");
+      return;
+    }
+    if ("error" in d && d.error === "category_not_found") {
+      window.alert("카테고리를 찾을 수 없습니다.");
+      return;
+    }
+    if ("success" in d && d.success && "intent" in d && d.intent === "category") {
+      setCategoryManageOpen(false);
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+    const fd = new FormData();
+    fd.append("intent", intent);
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    fetcher.submit(fd, { method: "POST" });
+  };
 
   const stats = useMemo(() => {
     const total = sourceCerts.length;
@@ -224,7 +361,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
     if (!c) return;
     setEditingData({
       tab: c.tab as "current" | "archive",
-      cert_type: c.cert_type as "포장란" | "액란" | "기타",
+      cert_type: c.cert_type,
       title: c.title,
       content: c.content ?? "",
       author: c.author,
@@ -349,7 +486,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
                 >
                   전체보기
                 </button>
-                {(["액란", "포장란", "기타"] as const).map((c) => (
+                {categorySelectOptions.map((c) => (
                   <button
                     key={c}
                     type="button"
@@ -369,8 +506,8 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
                   variant="outline"
                   size="icon"
                   className="shrink-0 border-[#02633E]/30 text-[#02633E]"
-                  title="추가 설정 (준비 중)"
-                  disabled
+                  title="카테고리 관리"
+                  onClick={() => setCategoryManageOpen(true)}
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
@@ -442,7 +579,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
                               <span
                                 className={cn(
                                   "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                                  certTypeBadgeClass(cert.cert_type),
+                                  newsCategoryBadgeClass(categoryColorByName.get(cert.cert_type) ?? "slate"),
                                 )}
                               >
                                 {cert.cert_type}
@@ -496,6 +633,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
         open={addOpen}
         onOpenChange={setAddOpen}
         listTabForCreate={listTab}
+        certTypeOptions={categorySelectOptions}
         onSubmit={(data) => {
           submitCert({ ...data, tab: listTab }, "create");
           setAddOpen(false);
@@ -508,6 +646,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
           onOpenChange={(o) => {
             if (!o) setEditingId(undefined);
           }}
+          certTypeOptions={categorySelectOptions}
           onSubmit={(data) => {
             submitCert(data, "update", editingId);
             setEditingId(undefined);
@@ -516,6 +655,13 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
           initialData={editingData}
         />
       )}
+
+      <GradeCertCategoryManageModal
+        open={categoryManageOpen}
+        onOpenChange={setCategoryManageOpen}
+        categories={dbGradeCertCategories}
+        onSubmitCategory={submitCategoryAction}
+      />
     </div>
   );
 }

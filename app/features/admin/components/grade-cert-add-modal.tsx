@@ -1,7 +1,7 @@
 /**
  * GradeCertAddModal — 등급판정서 추가/수정 모달 (파일 업로드 포함)
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Paperclip, UploadCloud, X, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -24,7 +24,7 @@ import { cn } from "~/core/lib/utils";
 
 export interface GradeCertFormData {
   tab: "current" | "archive";
-  cert_type: "포장란" | "액란" | "기타";
+  cert_type: string;
   title: string;
   content: string;
   author: string;
@@ -40,19 +40,19 @@ interface Props {
   initialData?: GradeCertFormData;
   /** 목록에서 선택한 메인 탭 — 신규 등록 시 `tab` 초기값 */
   listTabForCreate?: "current" | "archive";
+  /** DB·폴백 순서의 등급판정서 카테고리 이름 */
+  certTypeOptions: string[];
 }
 
-const EMPTY = (tab: "current" | "archive"): GradeCertFormData => ({
+const EMPTY = (tab: "current" | "archive", defaultCertType: string): GradeCertFormData => ({
   tab,
-  cert_type: "포장란",
+  cert_type: defaultCertType,
   title: "",
   content: "",
   author: "풍림푸드",
   file_url: "",
   file_name: "",
 });
-
-const CERT_TYPES: GradeCertFormData["cert_type"][] = ["포장란", "액란", "기타"];
 
 const DOC_KINDS = ["등급판정서", "안전검사결과"] as const;
 
@@ -67,9 +67,11 @@ export function GradeCertAddModal({
   editId,
   initialData,
   listTabForCreate = "current",
+  certTypeOptions,
 }: Props) {
   const isEditMode = editId !== undefined;
-  const [form, setForm] = useState<GradeCertFormData>(EMPTY(listTabForCreate));
+  const defaultCertType = certTypeOptions[0] ?? "포장란";
+  const [form, setForm] = useState<GradeCertFormData>(EMPTY(listTabForCreate, defaultCertType));
   const [docKind, setDocKind] = useState<(typeof DOC_KINDS)[number]>("등급판정서");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -84,13 +86,21 @@ export function GradeCertAddModal({
       setForm(initialData);
       setDocKind("등급판정서");
     } else {
-      setForm(EMPTY(listTabForCreate));
+      setForm(EMPTY(listTabForCreate, certTypeOptions[0] ?? "포장란"));
       setDocKind("등급판정서");
     }
-  }, [open, isEditMode, initialData, listTabForCreate]);
+  }, [open, isEditMode, initialData, listTabForCreate, certTypeOptions]);
 
   const set = <K extends keyof GradeCertFormData>(key: K, value: GradeCertFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const certSelectOptions = useMemo(() => {
+    const s = new Set(certTypeOptions);
+    if (form.cert_type && !s.has(form.cert_type)) {
+      return [...certTypeOptions, form.cert_type];
+    }
+    return certTypeOptions;
+  }, [certTypeOptions, form.cert_type]);
 
   const uploadFile = useCallback(async (file: File) => {
     if (file.size > UPLOAD_MAX_BYTES) {
@@ -162,14 +172,18 @@ export function GradeCertAddModal({
               카테고리 <span className="text-red-500">*</span>
             </Label>
             <Select
-              value={form.cert_type}
-              onValueChange={(v) => set("cert_type", v as GradeCertFormData["cert_type"])}
+              value={
+                certSelectOptions.includes(form.cert_type)
+                  ? form.cert_type
+                  : (certSelectOptions[0] ?? form.cert_type)
+              }
+              onValueChange={(v) => set("cert_type", v)}
             >
               <SelectTrigger className="border-gray-200">
                 <SelectValue placeholder="카테고리 선택" />
               </SelectTrigger>
               <SelectContent>
-                {CERT_TYPES.map((ct) => (
+                {certSelectOptions.map((ct) => (
                   <SelectItem key={ct} value={ct}>
                     {ct}
                   </SelectItem>

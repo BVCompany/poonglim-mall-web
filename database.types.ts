@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      archive_categories: {
+        Row: {
+          category_id: number
+          color: string
+          created_at: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           banner_id: number
@@ -356,11 +383,38 @@ export type Database = {
         }
         Relationships: []
       }
+      grade_cert_categories: {
+        Row: {
+          category_id: number
+          color: string
+          created_at: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       grade_certificates: {
         Row: {
           author: string
           cert_id: number
-          cert_type: Database["public"]["Enums"]["cert_type"]
+          cert_type: string
           content: string
           created_at: string
           file_name: string | null
@@ -374,7 +428,7 @@ export type Database = {
         Insert: {
           author?: string
           cert_id?: never
-          cert_type?: Database["public"]["Enums"]["cert_type"]
+          cert_type?: string
           content?: string
           created_at?: string
           file_name?: string | null
@@ -388,7 +442,7 @@ export type Database = {
         Update: {
           author?: string
           cert_id?: never
-          cert_type?: Database["public"]["Enums"]["cert_type"]
+          cert_type?: string
           content?: string
           created_at?: string
           file_name?: string | null
@@ -658,6 +712,33 @@ export type Database = {
           type?: string
           updated_at?: string
           view_count?: string
+        }
+        Relationships: []
+      }
+      news_categories: {
+        Row: {
+          category_id: number
+          color: string
+          created_at: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: never
+          color?: string
+          created_at?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -976,6 +1057,7 @@ export type Database = {
       recipe_categories: {
         Row: {
           category_id: number
+          color: string
           created_at: string
           is_active: boolean
           name: string
@@ -985,6 +1067,7 @@ export type Database = {
         }
         Insert: {
           category_id?: never
+          color?: string
           created_at?: string
           is_active?: boolean
           name: string
@@ -994,6 +1077,7 @@ export type Database = {
         }
         Update: {
           category_id?: never
+          color?: string
           created_at?: string
           is_active?: boolean
           name?: string
@@ -1096,7 +1180,6 @@ export type Database = {
       application_status: "submitted" | "reviewing" | "accepted" | "rejected"
       cert_item_type: "award" | "cert"
       cert_tab: "current" | "archive"
-      cert_type: "포장란" | "액란" | "기타"
       contact_status: "pending" | "completed"
       event_badge: "hot" | "new" | "ending_soon" | "important"
       event_type: "event" | "notice"
@@ -1240,7 +1323,6 @@ export const Constants = {
       application_status: ["submitted", "reviewing", "accepted", "rejected"],
       cert_item_type: ["award", "cert"],
       cert_tab: ["current", "archive"],
-      cert_type: ["포장란", "액란", "기타"],
       contact_status: ["pending", "completed"],
       event_badge: ["hot", "new", "ending_soon", "important"],
       event_type: ["event", "notice"],

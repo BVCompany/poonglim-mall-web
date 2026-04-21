@@ -4,7 +4,7 @@
 import type { Route } from "./+types/resources";
 
 import { Check, ChevronLeft, ChevronRight, Download } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
@@ -15,7 +15,10 @@ import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
-import { getActiveLibraryResources } from "~/features/support/lib/queries.server";
+import {
+  getActiveLibraryResources,
+  getArchiveCategoriesOrdered,
+} from "~/features/support/lib/queries.server";
 import { getLibraryDemoPublicList } from "~/features/support/lib/library-resources-demo";
 
 /** 모바일 카드 메타 뱃지 — Figma: #F0EEDD · px12 py6 · Pretendard 11/500 · lh 11 */
@@ -31,21 +34,48 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export async function loader(_: Route.LoaderArgs) {
-  const [pageBanner, dbResources] = await Promise.all([
+  const [pageBanner, dbResources, dbArchiveCategories] = await Promise.all([
     getPageBanner("resources").catch(() => null),
     getActiveLibraryResources().catch(() => []),
+    getArchiveCategoriesOrdered(),
   ]);
-  return { pageBanner, dbResources };
+  return { pageBanner, dbResources, dbArchiveCategories };
 }
 
-const CATEGORIES = ["전체 보기", "카탈로그", "회사소개", "인증서", "기타"];
+const FALLBACK_RESOURCE_TAB_NAMES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
+
+function buildResourceCategoryTabs(
+  dbArchiveCategories: { name: string }[],
+  fileCategories: string[],
+): string[] {
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const c of dbArchiveCategories) {
+    ordered.push(c.name);
+    seen.add(c.name);
+  }
+  if (ordered.length === 0) {
+    for (const n of FALLBACK_RESOURCE_TAB_NAMES) {
+      ordered.push(n);
+      seen.add(n);
+    }
+  }
+  for (const cat of fileCategories) {
+    const t = cat?.trim();
+    if (t && !seen.has(t)) {
+      ordered.push(t);
+      seen.add(t);
+    }
+  }
+  return ordered;
+}
 
 const LIBRARY_DEMO_PUBLIC = getLibraryDemoPublicList();
 
 const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
-  const { pageBanner, dbResources } = loaderData;
+  const { pageBanner, dbResources, dbArchiveCategories } = loaderData;
   const sourceFiles =
     dbResources.length > 0
       ? dbResources.map((r) => ({
@@ -58,6 +88,13 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           url: r.file_url,
         }))
       : LIBRARY_DEMO_PUBLIC;
+  const categoryTabs = useMemo(() => {
+    const fileCats =
+      dbResources.length > 0
+        ? dbResources.map((r) => r.category)
+        : LIBRARY_DEMO_PUBLIC.map((f) => f.category);
+    return ["전체 보기", ...buildResourceCategoryTabs(dbArchiveCategories, fileCats)];
+  }, [dbArchiveCategories, dbResources]);
   const [activeCategory, setActiveCategory] = useState("전체 보기");
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -66,6 +103,12 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   useEffect(() => {
     setPage(1);
   }, [activeCategory, query]);
+
+  useEffect(() => {
+    if (!categoryTabs.includes(activeCategory)) {
+      setActiveCategory("전체 보기");
+    }
+  }, [categoryTabs, activeCategory]);
 
   const handleSearch = () => {
     setQuery(inputValue);
@@ -116,7 +159,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
             <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 [&::-webkit-scrollbar]:hidden">
-              {CATEGORIES.map((cat) => {
+              {categoryTabs.map((cat) => {
                 const isActive = cat === activeCategory;
                 return (
                   <button

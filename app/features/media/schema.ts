@@ -8,10 +8,34 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
+
+/**
+ * 보도자료 카테고리 — `news.type` 값과 `name`이 동일해야 목록·필터가 일치합니다.
+ */
+export const newsCategories = pgTable(
+  "news_categories",
+  {
+    ...makeIdentityColumn("category_id"),
+    name: text().notNull().unique(),
+    color: text().notNull().default("sky"),
+    sort_order: integer().notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    pgPolicy("news-categories-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`true`,
+    }),
+  ],
+);
+
+export type NewsCategory = typeof newsCategories.$inferSelect;
 
 export const news = pgTable(
   "news",

@@ -40,16 +40,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
-import { libraryResources } from "~/features/support/schema";
-import { eq, desc } from "drizzle-orm";
+import { archiveCategories, libraryResources } from "~/features/support/schema";
+import { count, eq, desc, sql } from "drizzle-orm";
 import type { LibraryResource } from "~/features/support/lib/queries.server";
+import { getArchiveCategoriesOrdered } from "~/features/support/lib/queries.server";
+import { ArchiveCategoryManageModal } from "../components/archive-category-manage-modal";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 import {
   getLibraryDemoAdminRows,
   isLibraryDemoAdminRow,
 } from "~/features/support/lib/library-resources-demo";
 import { cn } from "~/core/lib/utils";
 
-const RESOURCE_CATEGORIES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
+const FALLBACK_RESOURCE_CATEGORIES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
+const PROTECTED_ARCHIVE_CATEGORY = "기타";
 
 const PAGE_SIZE = 10;
 
@@ -68,27 +72,17 @@ function extFromFileName(name: string): string {
   return e.slice(0, 12);
 }
 
-function categoryBadgeClass(cat: string) {
-  switch (cat) {
-    case "카탈로그":
-      return "border-blue-200 bg-blue-50 text-blue-800";
-    case "회사소개":
-      return "border-violet-200 bg-violet-50 text-violet-800";
-    case "인증서":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
-    default:
-      return "border-amber-200 bg-amber-50 text-amber-900";
-  }
-}
-
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
-  const rows = await db
-    .select()
-    .from(libraryResources)
-    .orderBy(desc(libraryResources.created_at))
-    .catch(() => []);
-  return { adminUser, rows };
+  const [rows, dbArchiveCategories] = await Promise.all([
+    db
+      .select()
+      .from(libraryResources)
+      .orderBy(desc(libraryResources.created_at))
+      .catch(() => []),
+    getArchiveCategoriesOrdered(),
+  ]);
+  return { adminUser, rows, dbArchiveCategories };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -136,6 +130,85 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     if (id) await db.delete(libraryResources).where(eq(libraryResources.resource_id, id));
     return { success: true as const };
+  }
+
+  if (intent === "category_create") {
+    const name = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!name) return { success: false as const, error: "category_validation" as const };
+    const [mx] = await db
+      .select({ v: sql<number>`COALESCE(MAX(${archiveCategories.sort_order}), -1)` })
+      .from(archiveCategories);
+    const nextOrder = Number(mx?.v ?? -1) + 1;
+    try {
+      await db.insert(archiveCategories).values({ name, color, sort_order: nextOrder });
+    } catch {
+      return { success: false as const, error: "category_duplicate" as const };
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_update") {
+    const id = Number(fd.get("id"));
+    const newName = ((fd.get("name") as string) ?? "").trim();
+    const color = ((fd.get("color") as string) ?? "").trim() || "sky";
+    if (!id || !newName) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(archiveCategories)
+      .where(eq(archiveCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_ARCHIVE_CATEGORY && newName !== PROTECTED_ARCHIVE_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    if (newName !== row.name) {
+      const [dup] = await db
+        .select()
+        .from(archiveCategories)
+        .where(eq(archiveCategories.name, newName))
+        .limit(1);
+      if (dup && dup.category_id !== id) {
+        return { success: false as const, error: "category_duplicate" as const };
+      }
+      await db.transaction(async (tx) => {
+        await tx
+          .update(libraryResources)
+          .set({ category: newName })
+          .where(eq(libraryResources.category, row.name));
+        await tx
+          .update(archiveCategories)
+          .set({ name: newName, color, updated_at: new Date() })
+          .where(eq(archiveCategories.category_id, id));
+      });
+    } else {
+      await db
+        .update(archiveCategories)
+        .set({ color, updated_at: new Date() })
+        .where(eq(archiveCategories.category_id, id));
+    }
+    return { success: true as const, intent: "category" as const };
+  }
+
+  if (intent === "category_delete") {
+    const id = Number(fd.get("id"));
+    if (!id) return { success: false as const, error: "category_validation" as const };
+    const [row] = await db
+      .select()
+      .from(archiveCategories)
+      .where(eq(archiveCategories.category_id, id))
+      .limit(1);
+    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (row.name === PROTECTED_ARCHIVE_CATEGORY) {
+      return { success: false as const, error: "category_protected" as const };
+    }
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(libraryResources)
+      .where(eq(libraryResources.category, row.name));
+    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
+    await db.delete(archiveCategories).where(eq(archiveCategories.category_id, id));
+    return { success: true as const, intent: "category" as const };
   }
 
   return { success: false as const };
@@ -274,19 +347,54 @@ function LibraryFileDropzone({
 }
 
 export default function AdminSupportResourcesPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser, rows } = loaderData;
+  const { adminUser, rows, dbArchiveCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryResource | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<FormState>(() => emptyForm());
   const fetcher = useFetcher<typeof action>();
+
+  const baseRows = useMemo(
+    () => (rows.length > 0 ? rows : getLibraryDemoAdminRows()),
+    [rows],
+  );
+
+  const categoryNamesFromRows = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of baseRows) {
+      if (r.category?.trim()) set.add(r.category.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+  }, [baseRows]);
+
+  const categorySelectOptions = useMemo(() => {
+    const ordered = dbArchiveCategories.map((c) => c.name);
+    const extra = categoryNamesFromRows.filter((t) => !ordered.includes(t));
+    if (ordered.length === 0) {
+      const merged = new Set<string>([...FALLBACK_RESOURCE_CATEGORIES]);
+      for (const t of categoryNamesFromRows) merged.add(t);
+      return Array.from(merged);
+    }
+    return [...ordered, ...extra.sort((a, b) => a.localeCompare(b, "ko"))];
+  }, [dbArchiveCategories, categoryNamesFromRows]);
+
+  const categoryColorByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of dbArchiveCategories) m.set(c.name, c.color || "slate");
+    return m;
+  }, [dbArchiveCategories]);
 
   useEffect(() => {
     if (!dialogOpen) return;
-    setForm(editing ? rowToForm(editing) : emptyForm());
-  }, [dialogOpen, editing]);
+    setForm(
+      editing
+        ? rowToForm(editing)
+        : { ...emptyForm(), category: categorySelectOptions[0] ?? "카탈로그" },
+    );
+  }, [dialogOpen, editing, categorySelectOptions]);
 
   useEffect(() => {
     setPage(1);
@@ -302,10 +410,40 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     setEditing(null);
   }, [fetcher.state, fetcher.data, dialogOpen]);
 
-  const baseRows = useMemo(
-    () => (rows.length > 0 ? rows : getLibraryDemoAdminRows()),
-    [rows],
-  );
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    const d = fetcher.data;
+    if ("error" in d && d.error === "category_protected") {
+      window.alert(`「${PROTECTED_ARCHIVE_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
+      return;
+    }
+    if ("error" in d && d.error === "category_in_use") {
+      window.alert("이 카테고리를 사용 중인 자료가 있어 삭제할 수 없습니다. 먼저 해당 자료의 카테고리를 변경하세요.");
+      return;
+    }
+    if ("error" in d && d.error === "category_duplicate") {
+      window.alert("이미 같은 이름의 카테고리가 있습니다.");
+      return;
+    }
+    if ("error" in d && d.error === "category_validation") {
+      window.alert("카테고리 이름을 입력해 주세요.");
+      return;
+    }
+    if ("error" in d && d.error === "category_not_found") {
+      window.alert("카테고리를 찾을 수 없습니다.");
+      return;
+    }
+    if ("success" in d && d.success && "intent" in d && d.intent === "category") {
+      setCategoryManageOpen(false);
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+    const fd = new FormData();
+    fd.append("intent", intent);
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    fetcher.submit(fd, { method: "POST" });
+  };
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -425,7 +563,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
               >
                 전체
               </button>
-              {RESOURCE_CATEGORIES.map((c) => (
+              {categorySelectOptions.map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -445,8 +583,8 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                 variant="outline"
                 size="icon"
                 className="shrink-0 border-[#02633E]/30 text-[#02633E]"
-                title="추가 설정 (준비 중)"
-                disabled
+                title="카테고리 관리"
+                onClick={() => setCategoryManageOpen(true)}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -512,7 +650,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                               <span
                                 className={cn(
                                   "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                                  categoryBadgeClass(r.category),
+                                  newsCategoryBadgeClass(categoryColorByName.get(r.category) ?? "slate"),
                                 )}
                               >
                                 {r.category}
@@ -669,7 +807,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {RESOURCE_CATEGORIES.map((c) => (
+                  {categorySelectOptions.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
                     </SelectItem>
@@ -738,6 +876,13 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
           </form>
         </DialogContent>
       </Dialog>
+
+      <ArchiveCategoryManageModal
+        open={categoryManageOpen}
+        onOpenChange={setCategoryManageOpen}
+        categories={dbArchiveCategories}
+        onSubmitCategory={submitCategoryAction}
+      />
     </div>
   );
 }

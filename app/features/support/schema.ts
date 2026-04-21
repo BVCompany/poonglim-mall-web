@@ -53,11 +53,29 @@ export const certTabEnum = pgEnum("cert_tab", [
   "archive", // 등급판정서 (2022.11 이전)
 ]);
 
-export const certTypeEnum = pgEnum("cert_type", [
-  "포장란", // 포장란용
-  "액란",   // 액란용
-  "기타",   // 기타
-]);
+/**
+ * 등급판정서 카테고리 — `grade_certificates.cert_type` 값과 `name`이 동일해야 목록·필터가 일치합니다.
+ */
+export const gradeCertCategories = pgTable(
+  "grade_cert_categories",
+  {
+    ...makeIdentityColumn("category_id"),
+    name: text().notNull().unique(),
+    color: text().notNull().default("sky"),
+    sort_order: integer().notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    pgPolicy("grade-cert-categories-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`true`,
+    }),
+  ],
+);
+
+export type GradeCertCategory = typeof gradeCertCategories.$inferSelect;
 
 /** 등급판정서 */
 export const gradeCertificates = pgTable(
@@ -65,7 +83,7 @@ export const gradeCertificates = pgTable(
   {
     ...makeIdentityColumn("cert_id"),
     tab: certTabEnum().notNull().default("current"),
-    cert_type: certTypeEnum().notNull().default("포장란"),
+    cert_type: text().notNull().default("포장란"),
     title: text().notNull(),
     content: text().notNull().default(""),
     author: text().notNull().default("풍림푸드"),
@@ -156,6 +174,30 @@ export const contacts = pgTable(
     }),
   ],
 );
+
+/**
+ * 자료실 카테고리 — `library_resources.category` 값과 `name`이 동일해야 목록·필터가 일치합니다.
+ */
+export const archiveCategories = pgTable(
+  "archive_categories",
+  {
+    ...makeIdentityColumn("category_id"),
+    name: text().notNull().unique(),
+    color: text().notNull().default("sky"),
+    sort_order: integer().notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    pgPolicy("archive-categories-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`true`,
+    }),
+  ],
+);
+
+export type ArchiveCategory = typeof archiveCategories.$inferSelect;
 
 /** 고객지원 자료실 (파일·본문) */
 export const libraryResources = pgTable(

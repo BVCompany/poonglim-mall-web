@@ -18,7 +18,8 @@ export const recipeCategories = pgTable(
   {
     ...makeIdentityColumn("category_id"),
     name:       text().notNull(),           // 표시명 (예: "가정용")
-    slug:       text().notNull(),           // 식별자 (예: "easy") — recipes.category 참조
+    slug:       text().notNull().unique(), // 식별자 (예: "easy") — recipes.category 참조
+    color:      text().notNull().default("sky"),
     sort_order: integer().notNull().default(0),
     is_active:  boolean().notNull().default(true),
     ...timestamps,

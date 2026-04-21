@@ -17,6 +17,14 @@ export async function getRecipes() {
     .orderBy(asc(recipes.sort_order), desc(recipes.created_at));
 }
 
+/** 관리자용: 비활성 포함 전체 */
+export async function getAllRecipesForAdmin() {
+  return db
+    .select()
+    .from(recipes)
+    .orderBy(asc(recipes.sort_order), desc(recipes.created_at));
+}
+
 /** 카테고리별 레시피 */
 export async function getRecipesByCategory(
   category: "easy" | "dessert" | "restaurant",
