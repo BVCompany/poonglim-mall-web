@@ -264,8 +264,8 @@ export default function Footer() {
           "lg:px-[clamp(40px,calc(240*100vw/1920),240px)]",
         )}
       >
-        {/* ── 메인 행: 좌(연락처+SNS) | 우(네비+로고) — 피그마: space-between, 우측 min-height 360 ── */}
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-between">
+        {/* ── 메인 행: 좌(연락처+SNS) | gap | 우(네비+로고) — 피그마: 좌우 패딩 240@1920, 열 사이 Auto 간격 → clamp gap ── */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:justify-start lg:gap-[clamp(28px,calc(120*100vw/1920),120px)]">
 
           {/* ── 좌: 연락처 + SNS (363×360, border-r, 내부 gap 60) ── */}
           <div
