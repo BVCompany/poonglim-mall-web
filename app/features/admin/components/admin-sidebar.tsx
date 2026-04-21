@@ -17,7 +17,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, Link, useLocation } from "react-router";
 
 import { Button } from "~/core/components/ui/button";
@@ -110,11 +110,24 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+function pathMatchesHref(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function AdminSidebar({ adminUser }: AdminSidebarProps) {
   const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["dashboard"]);
+  /** 현재 경로와 무관하게 펼쳐 둔 섹션(활성 섹션은 항상 펼침) */
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  useEffect(() => {
+    setExpandedMenus([]);
+  }, [location.pathname]);
 
   const toggleMenu = (menuId: string) => {
+    const item = menuItems.find((m) => m.id === menuId);
+    if (item && isMenuActive(item)) {
+      return;
+    }
     setExpandedMenus((prev) =>
       prev.includes(menuId)
         ? prev.filter((id) => id !== menuId)
@@ -123,17 +136,29 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
   };
 
   const isActive = (href: string) => {
-    return location.pathname === href;
+    return pathMatchesHref(location.pathname, href);
   };
 
   const isMenuActive = (item: MenuItem) => {
     if (item.href) {
-      return isActive(item.href);
+      return pathMatchesHref(location.pathname, item.href);
     }
     if (item.children) {
-      return item.children.some((child) => isActive(child.href));
+      return item.children.some((child) =>
+        pathMatchesHref(location.pathname, child.href),
+      );
     }
     return false;
+  };
+
+  const isExpanded = (item: MenuItem) => {
+    if (!item.children) {
+      return false;
+    }
+    if (isMenuActive(item)) {
+      return true;
+    }
+    return expandedMenus.includes(item.id);
   };
 
   return (
@@ -150,7 +175,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isItemActive = isMenuActive(item);
-          const isExpanded = expandedMenus.includes(item.id);
+          const menuExpanded = isExpanded(item);
 
           return (
             <div key={item.id}>
@@ -183,14 +208,14 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform",
-                      isExpanded && "rotate-180 transform",
+                      menuExpanded && "rotate-180 transform",
                     )}
                   />
                 </button>
               )}
 
               {/* Submenu */}
-              {item.children && isExpanded && (
+              {item.children && menuExpanded && (
                 <div className="mt-1 ml-8 space-y-1">
                   {item.children.map((child) => (
                     <Link
