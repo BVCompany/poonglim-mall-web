@@ -17,6 +17,10 @@ import {
   hasAnyActiveLibraryResources,
   incrementLibraryResourceViewCount,
 } from "~/features/support/lib/queries.server";
+import {
+  getLibraryDemoDetailMap,
+  type LibraryDemoDetail,
+} from "~/features/support/lib/library-resources-demo";
 
 type ResourceDetail = {
   id: number;
@@ -30,129 +34,21 @@ type ResourceDetail = {
   file_url: string;
 };
 
-/** `resources.tsx` 목록과 id·제목·파일을 맞춘 더미 (DB 연동 시 loader만 교체) */
-const MOCK_MAP: Record<number, ResourceDetail> = {
-  10: {
-    id: 10,
-    category: "인증서",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 42,
-    created_at: "2026-02-16T12:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  9: {
-    id: 9,
-    category: "카탈로그",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 38,
-    created_at: "2026-02-16T11:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  8: {
-    id: 8,
-    category: "기타",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 35,
-    created_at: "2026-02-16T10:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  7: {
-    id: 7,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 31,
-    created_at: "2026-02-16T09:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  6: {
-    id: 6,
-    category: "인증서",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 28,
-    created_at: "2026-02-16T08:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  5: {
-    id: 5,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 24,
-    created_at: "2026-02-16T07:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  4: {
-    id: 4,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 20,
-    created_at: "2026-02-16T06:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  3: {
-    id: 3,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 16,
-    created_at: "2026-02-16T05:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  2: {
-    id: 2,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 12,
-    created_at: "2026-02-16T04:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-  1: {
-    id: 1,
-    category: "회사소개",
-    title: "2026년 풍림푸드 종합 제품 카탈로그",
-    content:
-      "자료를 올려드리오니 업무에 참고 부탁드립니다. 첨부 파일을 내려받아 활용해 주세요.",
-    author: "풍림푸드",
-    view_count: 8,
-    created_at: "2026-02-16T03:00:00",
-    file_name: "풍림푸드_카탈로그_2026.pdf",
-    file_url: "#",
-  },
-};
+const MOCK_MAP = getLibraryDemoDetailMap();
+
+function demoToResourceDetail(d: LibraryDemoDetail): ResourceDetail {
+  return {
+    id: d.id,
+    category: d.category,
+    title: d.title,
+    content: d.content,
+    author: d.author,
+    view_count: d.view_count,
+    created_at: d.created_at,
+    file_name: d.file_name,
+    file_url: d.file_url,
+  };
+}
 
 function adjacentFor(id: number): {
   prev: { href: string; title: string } | null;
@@ -226,7 +122,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     if (!mock) {
       throw new Response("Not Found", { status: 404 });
     }
-    resource = mock;
+    resource = demoToResourceDetail(mock);
     const a = adjacentFor(id);
     prev = a.prev;
     next = a.next;

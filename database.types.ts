@@ -609,9 +609,11 @@ export type Database = {
       }
       news: {
         Row: {
+          body_image_urls: string | null
           content: string
           created_at: string
           is_active: boolean
+          is_featured: boolean
           news_id: number
           published_at: string | null
           source: string | null
@@ -624,9 +626,11 @@ export type Database = {
           view_count: string
         }
         Insert: {
+          body_image_urls?: string | null
           content: string
           created_at?: string
           is_active?: boolean
+          is_featured?: boolean
           news_id?: never
           published_at?: string | null
           source?: string | null
@@ -639,9 +643,11 @@ export type Database = {
           view_count?: string
         }
         Update: {
+          body_image_urls?: string | null
           content?: string
           created_at?: string
           is_active?: boolean
+          is_featured?: boolean
           news_id?: never
           published_at?: string | null
           source?: string | null

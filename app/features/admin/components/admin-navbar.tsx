@@ -38,6 +38,8 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   "/admin/settings/admins":        "관리자 계정",
   "/admin/media/news":             "뉴스/보도자료",
   "/admin/media/catalog":          "카탈로그",
+  "/admin/support/resources":      "자료실 관리",
+  "/admin/grade-certificates":     "등급판정서 관리",
 };
 
 const APP_TITLE = "풍림 Admin";

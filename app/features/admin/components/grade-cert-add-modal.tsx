@@ -1,14 +1,26 @@
 /**
  * GradeCertAddModal — 등급판정서 추가/수정 모달 (파일 업로드 포함)
  */
-import { useEffect, useRef, useState } from "react";
-import { Paperclip, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Paperclip, UploadCloud, X, Loader2 } from "lucide-react";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "~/core/components/ui/dialog";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
+import { Textarea } from "~/core/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/core/components/ui/select";
+import { cn } from "~/core/lib/utils";
 
 export interface GradeCertFormData {
   tab: "current" | "archive";
@@ -26,40 +38,65 @@ interface Props {
   onSubmit: (data: GradeCertFormData) => void;
   editId?: number;
   initialData?: GradeCertFormData;
+  /** 목록에서 선택한 메인 탭 — 신규 등록 시 `tab` 초기값 */
+  listTabForCreate?: "current" | "archive";
 }
 
-const EMPTY: GradeCertFormData = {
-  tab: "current",
+const EMPTY = (tab: "current" | "archive"): GradeCertFormData => ({
+  tab,
   cert_type: "포장란",
   title: "",
   content: "",
   author: "풍림푸드",
   file_url: "",
   file_name: "",
-};
+});
 
 const CERT_TYPES: GradeCertFormData["cert_type"][] = ["포장란", "액란", "기타"];
 
-export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initialData }: Props) {
+const DOC_KINDS = ["등급판정서", "안전검사결과"] as const;
+
+const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const UPLOAD_ACCEPT =
+  ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
+
+export function GradeCertAddModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  editId,
+  initialData,
+  listTabForCreate = "current",
+}: Props) {
   const isEditMode = editId !== undefined;
-  const [form, setForm] = useState<GradeCertFormData>(EMPTY);
+  const [form, setForm] = useState<GradeCertFormData>(EMPTY(listTabForCreate));
+  const [docKind, setDocKind] = useState<(typeof DOC_KINDS)[number]>("등급판정서");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [drag, setDrag] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setForm(isEditMode && initialData ? initialData : EMPTY);
-      setUploadError(null);
+    if (!open) return;
+    setUploadError(null);
+    setDrag(false);
+    if (isEditMode && initialData) {
+      setForm(initialData);
+      setDocKind("등급판정서");
+    } else {
+      setForm(EMPTY(listTabForCreate));
+      setDocKind("등급판정서");
     }
-  }, [open, isEditMode, initialData]);
+  }, [open, isEditMode, initialData, listTabForCreate]);
 
   const set = <K extends keyof GradeCertFormData>(key: K, value: GradeCertFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = useCallback(async (file: File) => {
+    if (file.size > UPLOAD_MAX_BYTES) {
+      setUploadError("파일 크기는 최대 10MB까지 업로드할 수 있습니다.");
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
@@ -67,16 +104,25 @@ export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initia
       fd.append("file", file);
       fd.append("bucket", "documents");
       fd.append("folder", "grade-certificates");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const json = await res.json() as { url?: string; error?: string };
-      if (!res.ok || json.error) throw new Error(json.error ?? "업로드 실패");
-      setForm((prev) => ({ ...prev, file_url: json.url ?? "", file_name: file.name }));
+      const res = await fetch("/admin/api/upload", { method: "POST", body: fd });
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || json.error) throw new Error(json.error ?? "업로드에 실패했습니다.");
+      setForm((prev) => ({
+        ...prev,
+        file_url: json.url ?? "",
+        file_name: file.name,
+      }));
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "업로드 실패");
+      setUploadError(err instanceof Error ? err.message : "업로드 오류");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }, []);
+
+  const onPick = (files: FileList | null) => {
+    const f = files?.[0];
+    if (f) void uploadFile(f);
   };
 
   const clearFile = () => setForm((prev) => ({ ...prev, file_url: "", file_name: "" }));
@@ -89,59 +135,16 @@ export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-lg max-h-[90vh] overflow-y-auto sm:!max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? "등급판정서 수정" : "새 등급판정서 등록"}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-gray-900">
+            {isEditMode ? "등급판정서 수정" : "등급판정서 추가"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* 탭 구분 */}
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div>
-            <Label className="mb-1.5 block text-sm font-medium">탭 구분</Label>
-            <div className="flex gap-2">
-              {(["current", "archive"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => set("tab", tab)}
-                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
-                  style={
-                    form.tab === tab
-                      ? { backgroundColor: "#003F2B", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#003F2B", border: "1px solid #C5BFA8" }
-                  }
-                >
-                  {tab === "current" ? "등급판정서" : "등급판정서 (2022.11 이전)"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 종류 */}
-          <div>
-            <Label className="mb-1.5 block text-sm font-medium">종류</Label>
-            <div className="flex gap-2">
-              {CERT_TYPES.map((ct) => (
-                <button
-                  key={ct}
-                  type="button"
-                  onClick={() => set("cert_type", ct)}
-                  className="rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
-                  style={
-                    form.cert_type === ct
-                      ? { backgroundColor: "#003F2B", color: "#fff" }
-                      : { backgroundColor: "#EAE3C9", color: "#003F2B", border: "1px solid #C5BFA8" }
-                  }
-                >
-                  {ct}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 제목 */}
-          <div>
-            <Label htmlFor="cert-title" className="mb-1.5 block text-sm font-medium">
+            <Label htmlFor="cert-title" className="mb-1.5 block text-sm font-medium text-gray-700">
               제목 <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -150,95 +153,137 @@ export function GradeCertAddModal({ open, onOpenChange, onSubmit, editId, initia
               onChange={(e) => set("title", e.target.value)}
               placeholder="예: 02/25 등급판정서 (액란용)"
               required
+              className="border-gray-200"
             />
           </div>
 
-          {/* 본문 */}
           <div>
-            <Label htmlFor="cert-content" className="mb-1.5 block text-sm font-medium">
-              본문 내용
+            <Label className="mb-1.5 block text-sm font-medium text-gray-700">
+              카테고리 <span className="text-red-500">*</span>
             </Label>
-            <textarea
+            <Select
+              value={form.cert_type}
+              onValueChange={(v) => set("cert_type", v as GradeCertFormData["cert_type"])}
+            >
+              <SelectTrigger className="border-gray-200">
+                <SelectValue placeholder="카테고리 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {CERT_TYPES.map((ct) => (
+                  <SelectItem key={ct} value={ct}>
+                    {ct}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium text-gray-700">구분</Label>
+            <Select value={docKind} onValueChange={(v) => setDocKind(v as (typeof DOC_KINDS)[number])}>
+              <SelectTrigger className="border-gray-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DOC_KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {k}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="cert-content" className="mb-1.5 block text-sm font-medium text-gray-700">
+              내용
+            </Label>
+            <Textarea
               id="cert-content"
               value={form.content}
               onChange={(e) => set("content", e.target.value)}
-              placeholder="등급판정서 내용을 입력하세요."
-              rows={6}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#003F2B] focus:ring-1 focus:ring-[#003F2B]"
+              placeholder="등급판정서 관련 안내 내용을 입력하세요"
+              rows={5}
+              className="resize-y border-gray-200"
             />
           </div>
 
-          {/* 작성자 */}
           <div>
-            <Label htmlFor="cert-author" className="mb-1.5 block text-sm font-medium">
-              작성자
-            </Label>
-            <Input
-              id="cert-author"
-              value={form.author}
-              onChange={(e) => set("author", e.target.value)}
-              placeholder="풍림푸드"
-            />
-          </div>
-
-          {/* 파일 첨부 */}
-          <div>
-            <Label className="mb-1.5 block text-sm font-medium">
-              파일 첨부 <span className="ml-1 text-xs font-normal text-gray-400">(PDF, Excel, HWP 등 최대 50MB)</span>
-            </Label>
+            <Label className="mb-1.5 block text-sm font-medium text-gray-700">첨부파일</Label>
             {form.file_name ? (
-              <div className="flex items-center gap-3 rounded-lg border border-dashed border-[#003F2B] bg-[#EAE3C9] px-4 py-3">
-                <Paperclip className="h-4 w-4 shrink-0 text-[#003F2B]" />
-                <span className="flex-1 truncate text-sm text-[#003F2B]">{form.file_name}</span>
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-[#02633E]/40 bg-[#02633E]/5 px-4 py-3">
+                <Paperclip className="h-4 w-4 shrink-0 text-[#02633E]" />
+                <span className="flex-1 truncate text-sm text-gray-800">{form.file_name}</span>
                 <button
                   type="button"
                   onClick={clearFile}
-                  className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-full p-1 text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div>
+              <div className="space-y-2">
+                <div
+                  className={cn(
+                    "relative flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 transition-colors",
+                    drag ? "border-[#02633E] bg-[#02633E]/5" : "border-gray-200 bg-gray-50",
+                    uploading ? "pointer-events-none opacity-60" : "hover:border-[#02633E]/40",
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDrag(true);
+                  }}
+                  onDragLeave={() => setDrag(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDrag(false);
+                    if (!uploading) onPick(e.dataTransfer.files);
+                  }}
+                  onClick={() => {
+                    if (!uploading) fileInputRef.current?.click();
+                  }}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-8 w-8 animate-spin text-[#02633E]" />
+                      <span className="text-sm text-gray-600">업로드 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-8 w-8 text-gray-400" />
+                      <p className="text-center text-sm font-medium text-gray-700">
+                        클릭하여 파일 업로드 또는 파일을 여기로 드래그하세요
+                      </p>
+                      <p className="text-center text-xs text-gray-500">
+                        PDF, JPG, PNG · 최대 10MB
+                      </p>
+                    </>
+                  )}
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.xlsx,.xls,.hwp,.hwpx,.doc,.docx,.ppt,.pptx"
-                  onChange={handleFileChange}
+                  accept={UPLOAD_ACCEPT}
                   className="hidden"
-                  id="cert-file-input"
+                  disabled={uploading}
+                  onChange={(e) => onPick(e.target.files)}
                 />
-                <label
-                  htmlFor="cert-file-input"
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 transition-colors hover:border-[#003F2B] hover:bg-[#EAE3C9] hover:text-[#003F2B]"
-                >
-                  {uploading ? (
-                    <span className="animate-pulse">업로드 중...</span>
-                  ) : (
-                    <>
-                      <Paperclip className="h-4 w-4" />
-                      클릭하여 파일 선택
-                    </>
-                  )}
-                </label>
-                {uploadError && (
-                  <p className="mt-1 text-xs text-red-500">{uploadError}</p>
-                )}
+                {uploadError ? <p className="text-xs text-red-500">{uploadError}</p> : null}
               </div>
             )}
           </div>
 
-          {/* 버튼 */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               취소
             </Button>
             <Button
               type="submit"
               disabled={uploading}
-              className="bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
+              className="bg-[#02633E] text-white hover:bg-[#014d30]"
             >
-              {isEditMode ? "수정 완료" : "등록"}
+              {isEditMode ? "저장" : "추가"}
             </Button>
           </div>
         </form>

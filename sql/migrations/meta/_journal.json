@@ -127,6 +127,20 @@
       "when": 1775798349829,
       "tag": "0017_romantic_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776297600000,
+      "tag": "0018_news_is_featured",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776364800000,
+      "tag": "0019_news_body_image_urls",
+      "breakpoints": true
     }
   ]
 }

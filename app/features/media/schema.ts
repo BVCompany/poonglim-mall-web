@@ -25,6 +25,10 @@ export const news = pgTable(
     source: text(),
     source_url: text(),
     is_active: boolean().notNull().default(true),
+    /** 관리자 ‘주요 보도’ — 보도자료 페이지 상단 슬라이더 (최대 6건 노출) */
+    is_featured: boolean().notNull().default(false),
+    /** 본문 통이미지 다중 URL — JSON 문자열 배열 (`string[]` 직렬화) */
+    body_image_urls: text(),
     published_at: text(),
     view_count: text().notNull().default("0"),
     ...timestamps,
