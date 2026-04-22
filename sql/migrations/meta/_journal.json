@@ -162,6 +162,20 @@
       "when": 1776624000000,
       "tag": "0022_grade_cert_categories_recipe_color",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776710400000,
+      "tag": "0023_content_translation_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1776796800000,
+      "tag": "0024_product_recipe_translation_groups",
+      "breakpoints": true
     }
   ]
 }

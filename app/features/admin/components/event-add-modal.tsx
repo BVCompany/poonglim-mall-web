@@ -35,6 +35,8 @@ interface EventAddModalProps {
 
 export interface EventFormData {
   eventId?: number;
+  /** 신규 등록 시에만 사용 */
+  locale?: "ko" | "en";
   title: string;
   category: EventCategory;
   status: EventStatus;
@@ -60,6 +62,7 @@ const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
 
 function emptyForm(category: EventCategory = "event"): EventFormData {
   return {
+    locale: "ko",
     title: "",
     category,
     status: "active",
@@ -154,6 +157,25 @@ export function EventAddModal({
           onSubmit={handleSubmit}
           className="space-y-4 pt-1"
         >
+          {mode === "create" ? (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">언어</Label>
+              <Select
+                value={formData.locale ?? "ko"}
+                onValueChange={(value: "ko" | "en") =>
+                  setFormData({ ...formData, locale: value })
+                }
+              >
+                <SelectTrigger className="border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ko">한국어 (ko)</SelectItem>
+                  <SelectItem value="en">English (en)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium text-gray-700">
               제목

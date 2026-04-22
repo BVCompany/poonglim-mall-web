@@ -1,27 +1,31 @@
 /**
  * 오시는 길 페이지
  */
-import { type ReactNode, useState } from "react";
+import type { TFunction } from "i18next";
+import { type ReactNode, useMemo, useState } from "react";
 import { Bus, Car, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/location";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "오시는 길 | 풍림푸드" }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
-export async function loader(_: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const pageBanner = await getPageBanner("location").catch(() => null);
-  return { pageBanner };
+  return { pageBanner, metaTitle: t("pages.brand.location.metaTitle") };
 }
 
-const TABS = ["서울 사무소", "본사/공장"] as const;
-type Tab = (typeof TABS)[number];
+const TAB_IDS = ["seoul", "hq"] as const;
+type TabId = (typeof TAB_IDS)[number];
 
 interface LocationInfo {
   title: string;
@@ -47,94 +51,154 @@ const SubwayBadge = ({ line }: { line: string }) => (
 const navHighlightClass =
   "font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#32AF32]";
 
-const LOCATION_DATA: Record<Tab, LocationInfo> = {
-  "서울 사무소": {
-    title: "서울 사무소",
-    address: "서울특별시 강남구 봉은사로 64길 5",
-    tel: "02-538-5617",
-    fax: "02-538-5623",
-    hours: "평일 09:00 - 18:00",
-    email: "poonglim@freshegg.co.kr",
-    kakaoUrl: "https://map.kakao.com/link/search/서울특별시 강남구 봉은사로 64길 5",
-    mapSrc:
-      "https://maps.google.com/maps?q=서울특별시+강남구+봉은사로+64길+5&hl=ko&z=16&output=embed",
-    transportLabel: "서울사무소 교통 안내",
-    carDesc: (
-      <>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
-          강남역에서 약 10분 소요. 네비게이션에{" "}
-        </span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
-          &apos;
-        </span>
-        <span className={navHighlightClass}>봉은사로 64길 5</span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
-          &apos;{" "}
-        </span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
-          검색
-        </span>
-      </>
-    ),
-    publicDesc: (
-      <>
-        <SubwayBadge line="9" /> 호선 봉은사역 1번 출구 → 도보 5분
-      </>
-    ),
-  },
-  "본사/공장": {
-    title: "본사/공장",
-    address: "충북 진천군 이월면 공동길 51-21",
-    tel: "043-533-2285",
-    fax: "043-533-2988",
-    hours: "평일 09:00 - 18:00",
-    email: "poonglim@freshegg.co.kr",
-    kakaoUrl: "https://map.kakao.com/link/search/충북 진천군 이월면 공동길 51-21",
-    mapSrc:
-      "https://maps.google.com/maps?q=충북+진천군+이월면+공동길+51-21&hl=ko&z=16&output=embed",
-    transportLabel: "본사/공장 교통 안내",
-    carDesc: (
-      <>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
-          청주 IC에서 약 40분 소요. 네비게이션에{" "}
-        </span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
-          &apos;
-        </span>
-        <span className={navHighlightClass}>진천군 이월면 공동길 51-21</span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
-          &apos;{" "}
-        </span>
-        <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
-          검색
-        </span>
-      </>
-    ),
-    publicDesc: <>진천 시외버스터미널 → 이월면행 버스 탑승 → 공동길 하차</>,
-  },
-};
+function buildLocations(t: TFunction): Record<TabId, LocationInfo> {
+  return {
+    seoul: {
+      title: t("pages.brand.location.tabs.seoul"),
+      address: "서울특별시 강남구 봉은사로 64길 5",
+      tel: "02-538-5617",
+      fax: "02-538-5623",
+      hours: t("pages.brand.location.hoursWeekday"),
+      email: "poonglim@freshegg.co.kr",
+      kakaoUrl: "https://map.kakao.com/link/search/서울특별시 강남구 봉은사로 64길 5",
+      mapSrc:
+        "https://maps.google.com/maps?q=서울특별시+강남구+봉은사로+64길+5&hl=ko&z=16&output=embed",
+      transportLabel: t("pages.brand.location.seoul.transportTitle"),
+      carDesc: (
+        <>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
+            {t("pages.brand.location.seoul.carLine1")}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
+            &apos;
+          </span>
+          <span className={navHighlightClass}>
+            {t("pages.brand.location.seoul.carHighlight")}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
+            &apos;{" "}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
+            {t("pages.brand.location.seoul.carLine2")}
+          </span>
+        </>
+      ),
+      publicDesc: (
+        <>
+          <SubwayBadge line="9" />
+          {t("pages.brand.location.seoul.publicAfterBadge")}
+        </>
+      ),
+    },
+    hq: {
+      title: t("pages.brand.location.tabs.hq"),
+      address: "충북 진천군 이월면 공동길 51-21",
+      tel: "043-533-2285",
+      fax: "043-533-2988",
+      hours: t("pages.brand.location.hoursWeekday"),
+      email: "poonglim@freshegg.co.kr",
+      kakaoUrl: "https://map.kakao.com/link/search/충북 진천군 이월면 공동길 51-21",
+      mapSrc:
+        "https://maps.google.com/maps?q=충북+진천군+이월면+공동길+51-21&hl=ko&z=16&output=embed",
+      transportLabel: t("pages.brand.location.hq.transportTitle"),
+      carDesc: (
+        <>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
+            {t("pages.brand.location.hq.carLine1")}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
+            &apos;
+          </span>
+          <span className={navHighlightClass}>
+            {t("pages.brand.location.hq.carHighlight")}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#32AF32]">
+            &apos;{" "}
+          </span>
+          <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
+            {t("pages.brand.location.hq.carLine2")}
+          </span>
+        </>
+      ),
+      publicDesc: (
+        <>{t("pages.brand.location.hq.publicTransit")}</>
+      ),
+    },
+  };
+}
 
 export default function LocationScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const pageBanner = loaderData?.pageBanner ?? null;
-  const [activeTab, setActiveTab] = useState<Tab>("서울 사무소");
-  const loc = LOCATION_DATA[activeTab];
+  const locations = useMemo(() => buildLocations(t), [t]);
+  const [activeTab, setActiveTab] = useState<TabId>("seoul");
+  const loc = locations[activeTab];
+
+  const detailRows = useMemo(
+    () =>
+      [
+        {
+          key: "address",
+          label: t("pages.brand.location.labelAddress"),
+          value: <span className="text-[#1F2121]">{loc.address}</span>,
+        },
+        {
+          key: "tel",
+          label: t("pages.brand.location.labelTel"),
+          value: (
+            <a
+              href={`tel:${loc.tel}`}
+              className="text-[#02633E] hover:underline md:text-[#1F2121] md:hover:opacity-80"
+            >
+              {loc.tel}
+            </a>
+          ),
+        },
+        {
+          key: "fax",
+          label: t("pages.brand.location.labelFax"),
+          value: (
+            <span className="text-[#02633E] md:text-[#1F2121]">{loc.fax}</span>
+          ),
+        },
+        {
+          key: "hours",
+          label: t("pages.brand.location.labelHours"),
+          value: (
+            <span className="text-[#02633E] md:text-[#1F2121]">{loc.hours}</span>
+          ),
+        },
+        {
+          key: "email",
+          label: t("pages.brand.location.labelEmail"),
+          value: (
+            <a
+              href={`mailto:${loc.email}`}
+              className="text-[#02633E] hover:underline md:text-[#1F2121] md:hover:opacity-80"
+            >
+              {loc.email}
+            </a>
+          ),
+        },
+      ] as const,
+    [t, loc],
+  );
 
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/support_banner_temp.png"
-        title="오시는 길"
-        subtitle="풍림푸드를 방문해 주셔서 감사합니다."
+        title={t("pages.brand.location.bannerTitle")}
+        subtitle={t("pages.brand.location.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "회사소개", href: "/brand" },
-          { label: "오시는 길" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("pages.brand.location.bannerTitle") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
       />
 
-      {/* 모바일 전용 타이틀 */}
       <SectionPageTitle
         as="h1"
         preset="none"
@@ -142,13 +206,12 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
         markClassName="h-3.5 w-3.5"
         titleClassName="text-[24px] font-semibold tracking-[-0.04em] text-[#1F2121]"
       >
-        오시는 길
+        {t("pages.brand.location.mobileH1")}
       </SectionPageTitle>
 
       <PageContentMax className="py-6 md:pt-[60px] md:pb-10">
-        {/* 탭 — PC 시안: Pretendard 18 · px-4 py-2 · r40 · 활성 #02633E + 체크 16 */}
         <div className="mb-5 flex gap-2.5 px-0 py-3.5 max-md:px-0 md:mb-5 md:gap-2.5 md:py-0">
-          {TABS.map((tab) => {
+          {TAB_IDS.map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
@@ -166,16 +229,14 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 {isActive && (
                   <Check className="h-3 w-3 shrink-0 text-white md:h-4 md:w-4" strokeWidth={3} />
                 )}
-                {tab}
+                {locations[tab].title}
               </button>
             );
           })}
         </div>
 
-        {/* 메인 카드 — PC: r40 · px-40 · 좌 600 / 우 지도 flex-1 · 지도 r10 */}
         <div className="overflow-hidden rounded-[10px] bg-white shadow-sm md:rounded-[40px]">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between md:gap-0 md:py-10">
-            {/* 지도 — 모바일 먼저, PC 오른쪽 */}
             <div className="order-1 w-full px-4 pt-5 pb-0 md:order-2 md:min-w-0 md:flex-1 md:px-10 md:py-0 md:pl-0 md:pr-10 md:pt-0">
               <div className="h-[171px] w-full overflow-hidden rounded-[10px] sm:h-[220px] md:h-[511px] md:min-h-[511px]">
                 <iframe
@@ -187,13 +248,12 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title={`${loc.title} 지도`}
+                  title={t("pages.brand.location.mapTitle", { name: loc.title })}
                   className="h-full w-full"
                 />
               </div>
             </div>
 
-            {/* 정보 — PC 시안: 제목 #003F2B 36/54 · 카카오 #FAE100 r60 · 라벨 180×24/36 · 값 20/30 */}
             <div className="order-2 flex-1 p-5 md:order-1 md:w-[600px] md:max-w-[600px] md:shrink-0 md:p-0 md:pl-10 md:pr-[60px] md:pt-0">
               <div className="mb-5 flex items-center gap-2.5 md:mb-[60px] md:gap-5">
                 <h2 className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#1F2121] md:text-[36px] md:leading-[54px] md:font-extrabold md:text-[#003F2B]">
@@ -208,7 +268,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                     "md:gap-1 md:text-base md:font-medium",
                   )}
                 >
-                  <span>카카오맵</span>
+                  <span>{t("pages.brand.location.kakaoMap")}</span>
                   <img
                     src="/faq/marker_icon.png"
                     alt=""
@@ -225,51 +285,12 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
               <div className="my-5 border-t border-[#1F2121]/20 pt-5 md:hidden" />
 
               <div className="space-y-3 md:space-y-5">
-                {(
-                  [
-                    {
-                      label: "주소",
-                      value: <span className="text-[#1F2121]">{loc.address}</span>,
-                    },
-                    {
-                      label: "TEL",
-                      value: (
-                        <a
-                          href={`tel:${loc.tel}`}
-                          className="text-[#02633E] hover:underline md:text-[#1F2121] md:hover:opacity-80"
-                        >
-                          {loc.tel}
-                        </a>
-                      ),
-                    },
-                    {
-                      label: "FAX",
-                      value: <span className="text-[#02633E] md:text-[#1F2121]">{loc.fax}</span>,
-                    },
-                    {
-                      label: "운영시간",
-                      value: (
-                        <span className="text-[#02633E] md:text-[#1F2121]">{loc.hours}</span>
-                      ),
-                    },
-                    {
-                      label: "이메일",
-                      value: (
-                        <a
-                          href={`mailto:${loc.email}`}
-                          className="text-[#02633E] hover:underline md:text-[#1F2121] md:hover:opacity-80"
-                        >
-                          {loc.email}
-                        </a>
-                      ),
-                    },
-                  ] satisfies { label: string; value: ReactNode }[]
-                ).map(({ label, value }) => (
+                {detailRows.map(({ key, label, value }) => (
                   <div
-                    key={label}
+                    key={key}
                     className={cn(
                       "flex flex-col gap-2.5 md:flex-row md:items-center md:gap-3",
-                      label === "주소" && "hidden md:flex",
+                      key === "address" && "hidden md:flex",
                     )}
                   >
                     <span className="w-auto shrink-0 font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#1F2121] md:w-[180px] md:text-2xl md:leading-9 md:font-extrabold">
@@ -285,7 +306,6 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* 교통 안내 — PC 시안: 흰 카드 r40 p-40 · 좌 타이틀(#02633E 21px 스퀘어) · gap 92 · 자가용/대중교통 gap 60 */}
         <div className="mt-5 md:mt-5">
           <div className="flex flex-col md:hidden">
             <SectionPageTitle
@@ -305,7 +325,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <p className="font-[family-name:var(--font-nanum)] text-base font-extrabold uppercase leading-[22.4px] text-[#1F2121]">
-                    자가용 이용 시
+                    {t("pages.brand.location.byCar")}
                   </p>
                   <p className="font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121]">
                     {loc.carDesc}
@@ -318,7 +338,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <p className="font-[family-name:var(--font-nanum)] text-base font-extrabold uppercase leading-[22.4px] text-[#1F2121]">
-                    대중교통 이용 시
+                    {t("pages.brand.location.byTransit")}
                   </p>
                   <div className="flex flex-wrap items-start gap-0.5 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121]">
                     {loc.publicDesc}
@@ -346,7 +366,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="flex min-w-0 flex-col gap-3">
                   <p className="font-[family-name:var(--font-nanum)] text-lg font-extrabold leading-[27px] text-[#1F2121]">
-                    자가용 이용 시
+                    {t("pages.brand.location.byCar")}
                   </p>
                   <div className="text-pretty">{loc.carDesc}</div>
                 </div>
@@ -358,7 +378,7 @@ export default function LocationScreen({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="flex min-w-0 flex-col gap-3">
                   <p className="font-[family-name:var(--font-nanum)] text-lg font-extrabold leading-[27px] text-[#1F2121]">
-                    대중교통 이용 시
+                    {t("pages.brand.location.byTransit")}
                   </p>
                   <div className="flex flex-wrap items-center gap-1 font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
                     {loc.publicDesc}

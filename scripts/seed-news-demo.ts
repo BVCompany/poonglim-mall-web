@@ -94,6 +94,7 @@ async function main() {
   const client = postgres(DATABASE_URL as string, { max: 1 });
   const db = drizzle(client);
 
+  const { randomUUID } = await import("node:crypto");
   const { news } = await import("../app/features/media/schema.js");
 
   let inserted = 0;
@@ -113,6 +114,8 @@ async function main() {
     }
 
     await db.insert(news).values({
+      translation_group_id: randomUUID(),
+      locale: "ko",
       type: item.type,
       title: item.title,
       summary: item.summary,

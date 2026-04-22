@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -165,6 +166,7 @@ export function RecipeGrid({
   sortOption = "recommended",
   dbRecipes = [],
 }: RecipeGridProps) {
+  const { t, i18n } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [animKey, setAnimKey] = useState(0);
@@ -192,7 +194,10 @@ export function RecipeGrid({
 
   const sorted = [...filtered].sort((a, b) => {
     if (sortOption === "latest") return b.id - a.id;
-    if (sortOption === "name") return a.title.localeCompare(b.title, "ko");
+    if (sortOption === "name") {
+      const loc = i18n.language.startsWith("ko") ? "ko" : "en";
+      return a.title.localeCompare(b.title, loc);
+    }
     return 0;
   });
 
@@ -220,7 +225,7 @@ export function RecipeGrid({
     return (
       <div className="py-20 text-center">
         <Search className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-        <p className="text-gray-500">검색 결과가 없습니다.</p>
+        <p className="text-gray-500">{t("pages.recipes.grid.emptySearch")}</p>
       </div>
     );
   }
@@ -262,7 +267,7 @@ export function RecipeGrid({
               onClick={() => currentPage > 1 && goPage(currentPage - 1, "prev")}
               disabled={currentPage <= 1}
               className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-bl-[40px] md:rounded-tl-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
-              aria-label="이전 페이지"
+              aria-label={t("pages.recipes.grid.prevPage")}
             >
               <ChevronLeft className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>
@@ -272,7 +277,7 @@ export function RecipeGrid({
               onClick={() => currentPage < totalPages && goPage(currentPage + 1, "next")}
               disabled={currentPage >= totalPages}
               className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-br-[40px] md:rounded-tr-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
-              aria-label="다음 페이지"
+              aria-label={t("pages.recipes.grid.nextPage")}
             >
               <ChevronRight className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>

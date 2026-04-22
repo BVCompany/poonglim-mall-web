@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const posts = [
   { id: 1, image: "/home/instar-img-01.png" },
@@ -20,6 +21,7 @@ const MOBILE_ITEM_WIDTH = 208;
 const PC_FEED_MAX_WIDTH = PC_ITEM_WIDTH * SLIDE_GROUP_SIZE + IMAGE_GAP * (SLIDE_GROUP_SIZE - 1); // 1112px
 
 export function InstagramFeed() {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
   const [imageWidth, setImageWidth] = useState(PC_ITEM_WIDTH);
   const [inView, setInView] = useState(false);
@@ -120,12 +122,12 @@ export function InstagramFeed() {
             style={{ letterSpacing: "-0.04em" }}
           >
             <Instagram className="h-4 w-4" />
-            Instagram
+            {t("home.instagram.title")}
           </p>
           <p className="font-[family-name:var(--font-nanum)] text-[18px] font-bold leading-[27px] uppercase break-words text-[#1F2121]">
-            풍림푸드의 다양한 소식을
+            {t("home.instagram.subtitle1")}
             <br />
-            인스타그램에서 만나보세요.
+            {t("home.instagram.subtitle2")}
           </p>
         </div>
 
@@ -153,7 +155,7 @@ export function InstagramFeed() {
               >
                 <img
                   src={post.image}
-                  alt={`인스타그램 포스트 ${post.id}`}
+                  alt={t("home.instagram.postAlt", { id: post.id })}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
@@ -177,7 +179,7 @@ export function InstagramFeed() {
               style={{ letterSpacing: "-0.04em" }}
             >
               <Instagram className="h-4 w-4" />
-              Instagram
+              {t("home.instagram.title")}
             </p>
             <div className="flex flex-col gap-8">
               <p
@@ -188,9 +190,9 @@ export function InstagramFeed() {
                   letterSpacing: "-0.04em",
                 }}
               >
-                풍림푸드의 다양한 소식을
+                {t("home.instagram.subtitle1")}
                 <br />
-                인스타그램에서 만나보세요.
+                {t("home.instagram.subtitle2")}
               </p>
               {officialButton}
             </div>
@@ -198,17 +200,19 @@ export function InstagramFeed() {
           <div className="flex">
             <div className="flex overflow-hidden rounded-full border border-black/10 bg-white">
               <button
+                type="button"
                 onClick={prev}
                 disabled={current === 0}
-                aria-label="이전"
+                aria-label={t("home.instagram.carouselPrev")}
                 className="flex h-11 w-11 items-center justify-center border-r border-black/10 text-[var(--brand-green)] transition-colors hover:bg-black/5 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--brand-green)]"
               >
                 <ChevronLeft className="h-5 w-5" strokeWidth={2} />
               </button>
               <button
+                type="button"
                 onClick={next}
                 disabled={current === maxSlide}
-                aria-label="다음"
+                aria-label={t("home.instagram.carouselNext")}
                 className="flex h-11 w-11 items-center justify-center text-[var(--brand-green)] transition-colors hover:bg-black/5 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--brand-green)]"
               >
                 <ChevronRight className="h-5 w-5" strokeWidth={2} />
@@ -243,7 +247,7 @@ export function InstagramFeed() {
               >
                 <img
                   src={post.image}
-                  alt={`인스타그램 포스트 ${post.id}`}
+                  alt={t("home.instagram.postAlt", { id: post.id })}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />

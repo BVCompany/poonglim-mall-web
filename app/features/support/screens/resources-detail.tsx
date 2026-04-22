@@ -2,8 +2,10 @@
  * 자료실 상세 페이지 (모바일 레이아웃은 등급판정서 상세와 동일 — SupportArticleDetailMobile)
  */
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { Route } from "./+types/resources-detail";
+
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
@@ -21,6 +23,7 @@ import {
   getLibraryDemoDetailMap,
   type LibraryDemoDetail,
 } from "~/features/support/lib/library-resources-demo";
+import i18next from "~/core/lib/i18next.server";
 
 type ResourceDetail = {
   id: number;
@@ -66,9 +69,10 @@ function adjacentFor(id: number): {
   };
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.id);
   const pageBanner = await getPageBanner("resources").catch(() => null);
+  const t = await i18next.getFixedT(request);
 
   let hasReal = false;
   try {
@@ -128,13 +132,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = a.next;
   }
 
-  return { resource, prev, next, pageBanner };
+  const metaTitle = `${resource.title} | ${t("common.metaTitleSuffix")}`;
+
+  return { resource, prev, next, pageBanner, metaTitle };
 }
 
-export function meta({ data }: Route.MetaArgs) {
-  const title = data?.resource?.title ?? "자료실";
-  return [{ title: `${title} | 풍림푸드` }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
 function formatDateTime(val: string | Date) {
   const d = new Date(val);
@@ -147,18 +152,19 @@ function formatDateTime(val: string | Date) {
 }
 
 export default function ResourcesDetailScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const { resource, prev, next, pageBanner } = loaderData;
 
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
-        title="자료실"
-        subtitle="카탈로그, 인증서, 회사소개서 등 각종 자료를 다운로드하실 수 있습니다."
+        title={t("pages.resources.title")}
+        subtitle={t("pages.resources.subtitleDetail")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "자료실", href: "/support/resources" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.resources"), href: "/support/resources" },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -228,11 +234,11 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                 <div className="flex flex-wrap items-center justify-between gap-5">
                   <div className="flex flex-wrap items-center gap-[9px]">
                     <span className="inline-flex items-baseline gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]">
-                      <span>글쓴이:</span>
+                      <span>{t("pages.supportArticle.author")}</span>
                       <span>{resource.author}</span>
                     </span>
                     <span className="inline-flex items-baseline gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]">
-                      <span>조회수:</span>
+                      <span>{t("pages.supportArticle.views")}</span>
                       <span className="tabular-nums">{resource.view_count}</span>
                     </span>
                   </div>
@@ -279,12 +285,12 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                       strokeWidth={2}
                       aria-hidden
                     />
-                    <span className="shrink-0">이전글</span>
+                    <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
                     <span className="min-w-0 flex-1 truncate">{prev.title}</span>
                   </Link>
                 ) : (
                   <div className="flex h-[66px] items-center px-10 text-base text-[#1F2121]/35">
-                    이전글이 없습니다.
+                    {t("pages.supportArticle.noPrev")}
                   </div>
                 )}
               </div>
@@ -293,7 +299,7 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                 to="/support/resources"
                 className="inline-flex shrink-0 items-center justify-center rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 font-[NanumSquareRound,sans-serif] text-base font-extrabold leading-[20.8px] text-[#003F2B] no-underline transition-colors hover:brightness-[0.98]"
               >
-                목록
+                {t("pages.supportArticle.list")}
               </Link>
 
               <div className="min-w-0 flex-1 basis-[280px]">
@@ -304,7 +310,7 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                   >
                     <span className="min-w-0 flex-1 truncate">{next.title}</span>
                     <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                      <span>다음글</span>
+                      <span>{t("pages.supportArticle.next")}</span>
                       <ChevronRight
                         className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                         strokeWidth={2}
@@ -314,7 +320,7 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                   </Link>
                 ) : (
                   <div className="flex h-[66px] items-center justify-end px-10 text-base text-[#1F2121]/35">
-                    다음글이 없습니다.
+                    {t("pages.supportArticle.noNext")}
                   </div>
                 )}
               </div>

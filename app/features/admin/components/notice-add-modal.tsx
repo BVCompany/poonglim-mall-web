@@ -10,6 +10,7 @@ import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 
 export interface NoticeFormData {
+  locale: "ko" | "en";
   category: "공지" | "안내" | "이벤트";
   title: string;
   content: string;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 const EMPTY: NoticeFormData = {
+  locale: "ko",
   category: "안내",
   title: "",
   content: "",
@@ -64,6 +66,20 @@ export function NoticeAddModal({ open, onOpenChange, onSubmit, editId, initialDa
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {!isEditMode ? (
+            <div>
+              <Label className="mb-1.5 block text-sm font-medium">언어</Label>
+              <select
+                value={form.locale}
+                onChange={(e) => set("locale", e.target.value as "ko" | "en")}
+                className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm"
+                aria-label="게시 언어"
+              >
+                <option value="ko">한국어 (ko)</option>
+                <option value="en">English (en)</option>
+              </select>
+            </div>
+          ) : null}
           {/* 구분 */}
           <div>
             <Label className="mb-1.5 block text-sm font-medium">구분</Label>

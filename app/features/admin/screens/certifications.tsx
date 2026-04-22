@@ -154,21 +154,20 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-white">
       <AdminSidebar adminUser={adminUser} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
             {/* 헤더 */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">품질 & 인증 관리</h1>
                 <p className="mt-1 text-sm text-gray-500">전체 {filtered.length}건</p>
               </div>
               <Button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
+                className="flex shrink-0 items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
               >
                 <Plus className="h-4 w-4" />
                 새 항목 등록
@@ -176,9 +175,9 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
             </div>
 
             {/* 필터 + 검색 */}
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               {/* 타입 필터 */}
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {(["all", "award", "cert"] as const).map((t) => (
                   <button
                     key={t}
@@ -197,7 +196,7 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
               </div>
 
               {/* 검색 */}
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative min-w-0 w-full sm:flex-1 sm:max-w-xl lg:max-w-2xl">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="제목 검색..."
@@ -209,8 +208,8 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
             </div>
 
             {/* 테이블 */}
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+              <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
                     <th className="px-5 py-3 text-left">종류</th>
@@ -241,7 +240,7 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
                             {TYPE_LABEL[item.type] ?? item.type}
                           </span>
                         </td>
-                        <td className="max-w-xs px-5 py-3">
+                        <td className="min-w-0 max-w-2xl px-5 py-3">
                           <div className="truncate font-medium text-gray-800">{item.title}</div>
                           {item.year && <div className="text-xs text-gray-400">{item.year}년</div>}
                         </td>
@@ -303,7 +302,6 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
                 </tbody>
               </table>
             </div>
-          </div>
         </main>
       </div>
 

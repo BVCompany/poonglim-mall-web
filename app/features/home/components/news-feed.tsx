@@ -1,30 +1,33 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { cn } from "~/core/lib/utils";
 import type { News } from "~/features/media/lib/queries.server";
 
-type NewsCategory = "공지사항" | "이언론" | "보도자료" | "이벤트";
+/** 보도자료 DB `type` + 홈 목업용 이벤트 */
+type NewsTypeKey = "announcement" | "press" | "news" | "event";
 
-const tagStyle: Record<NewsCategory, string> = {
-  공지사항: "bg-[var(--brand-green)] text-white",
-  이언론: "bg-[var(--brand-green)] text-white",
-  보도자료: "bg-[var(--brand-green)] text-white",
-  이벤트: "bg-[var(--brand-green)] text-white",
-};
+const tagStyle =
+  "bg-[var(--brand-green)] text-white";
+
+function newsTypeLabel(t: (key: string) => string, key: NewsTypeKey) {
+  if (key === "event") return t("pages.news.types.event");
+  return t(`pages.news.types.${key}`);
+}
 
 // DB 데이터를 컴포넌트 내부 형식으로 변환
 function dbNewsToItem(n: News) {
-  const categoryMap: Record<string, NewsCategory> = {
-    news: "이언론",
-    press: "보도자료",
-    announcement: "공지사항",
+  const categoryMap: Record<string, NewsTypeKey> = {
+    news: "news",
+    press: "press",
+    announcement: "announcement",
   };
   return {
     id: n.news_id,
-    category: (categoryMap[n.type] ?? "공지사항") as NewsCategory,
+    categoryKey: categoryMap[n.type] ?? "announcement",
     title: n.title,
     excerpt: n.summary ?? n.content?.slice(0, 100) ?? "",
     date: n.published_at
@@ -42,7 +45,7 @@ interface NewsFeedProps {
 const MOCK_NEWS_ITEMS = [
   {
     id: 1,
-    category: "이벤트" as NewsCategory,
+    categoryKey: "event" as const,
     title: "[중부매일] '가족친화 기업' 탄생",
     excerpt:
       "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
@@ -53,7 +56,7 @@ const MOCK_NEWS_ITEMS = [
   },
   {
     id: 2,
-    category: "보도자료" as NewsCategory,
+    categoryKey: "press" as const,
     title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
     excerpt:
       "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다. 여성직원들을 배려하다 보니 회사 주차장의 가장 노른자 위치에 임산부 주차장이 차지하고 있고...",
@@ -63,7 +66,7 @@ const MOCK_NEWS_ITEMS = [
   },
   {
     id: 3,
-    category: "공지사항" as NewsCategory,
+    categoryKey: "announcement" as const,
     title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
     excerpt:
       "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다. 여성직원들을 비롯하여 보는 회사 주차장의 가장 노른자 위치에 임산부 주차장이 지정되고 있고...",
@@ -74,7 +77,7 @@ const MOCK_NEWS_ITEMS = [
   },
   {
     id: 4,
-    category: "이벤트" as NewsCategory,
+    categoryKey: "event" as const,
     title: "냉동 전략액 해동 방법",
     excerpt:
       "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
@@ -84,7 +87,7 @@ const MOCK_NEWS_ITEMS = [
   },
   {
     id: 5,
-    category: "이벤트" as NewsCategory,
+    categoryKey: "event" as const,
     title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
     excerpt:
       "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
@@ -104,6 +107,7 @@ function newsScrollStepPx() {
 }
 
 export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
+  const { t } = useTranslation();
   const newsItems = dbNews.length > 0 ? dbNews.map(dbNewsToItem) : MOCK_NEWS_ITEMS;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -160,22 +164,28 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
           >
             <span>
               <span className="md:hidden">
-                풍림푸드의 새로운 소식을
+                {t("home.newsFeed.titleLine1")}
                 <br />
-                가장 먼저 만나보세요.
+                {t("home.newsFeed.titleLine2")}
               </span>
               <span className="hidden md:contents">
-                <span className="block md:inline">풍림푸드의 새로운 소식을 </span>
-                <span className="block md:inline">가장 먼저 만나보세요.</span>
+                <span className="block md:inline">
+                  {t("home.newsFeed.titleLine1")}{" "}
+                </span>
+                <span className="block md:inline">
+                  {t("home.newsFeed.titleLine2")}
+                </span>
               </span>
             </span>
           </SectionPageTitle>
           <Link
             to="/media"
             className="flex flex-shrink-0 items-center text-[#003F2B]"
-            aria-label="전체보기"
+            aria-label={t("home.newsFeed.viewAllAria")}
           >
-            <span className="hidden md:inline">전체보기</span>
+            <span className="hidden md:inline">
+              {t("home.newsFeed.viewAllLink")}
+            </span>
             <ArrowRight className="h-5 w-5 md:ml-1" />
           </Link>
         </div>
@@ -189,6 +199,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
           >
             {newsItems.map((item) => {
               const hasImage = !!(item.image || item.fallback);
+              const categoryLabel = newsTypeLabel(t, item.categoryKey);
 
               return (
                 <Link
@@ -214,9 +225,9 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                             }}
                           />
                           <span
-                            className={`absolute top-4 left-4 z-10 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:left-[30px] md:top-[30px] md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle[item.category]}`}
+                            className={`absolute top-4 left-4 z-10 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:left-[30px] md:top-[30px] md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle}`}
                           >
-                            {item.category}
+                            {categoryLabel}
                           </span>
                         </div>
                       </div>
@@ -226,9 +237,9 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                     <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:gap-6 md:p-[30px]">
                       {!hasImage && (
                         <span
-                          className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:mb-0 md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle[item.category]}`}
+                          className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:mb-0 md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle}`}
                         >
-                          {item.category}
+                          {categoryLabel}
                         </span>
                       )}
                       <div className="flex min-h-0 flex-1 flex-col gap-2 md:gap-3">
@@ -253,19 +264,21 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
           <div className="mt-6 hidden px-0 md:block">
             <div className="inline-flex overflow-hidden rounded-full bg-white">
               <button
+                type="button"
                 onClick={scrollLeft}
                 disabled={!canScrollLeft}
                 className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="이전"
+                aria-label={t("home.newsFeed.carouselPrev")}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="w-px shrink-0 bg-[#EAE3C9]" aria-hidden />
               <button
+                type="button"
                 onClick={scrollRight}
                 disabled={!canScrollRight}
                 className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="다음"
+                aria-label={t("home.newsFeed.carouselNext")}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

@@ -3,7 +3,7 @@
  * 
  * This file contains end-to-end tests for the user settings functionality, including:
  * 1. Theme switching (light/dark mode)
- * 2. Locale/language switching (English, Spanish, Korean)
+ * 2. Locale/language switching (English, Korean)
  * 
  * These tests verify that user preferences are correctly applied and persisted
  * across page reloads, ensuring a consistent user experience.
@@ -92,31 +92,6 @@ test.describe("Locale Switcher", () => {
    */
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-  });
-
-  /**
-   * Test that verifies switching to Spanish locale
-   * 
-   * This test clicks the language switcher dropdown, selects the "Spanish" option,
-   * waits for the change to be applied, reloads the page, and verifies that
-   * the HTML element has the "es" (Spanish) lang attribute.
-   * 
-   * The page reload confirms that the language preference is persisted
-   * using cookies or local storage.
-   */
-  test("should switch to Spanish", async ({ page }) => {
-    // Open the language switcher dropdown
-    await page.getByTestId("lang-switcher").click();
-    // Select the Spanish language option
-    await page.getByText("Spanish").click();
-    // Wait for the language change to be applied and saved
-    await page.waitForTimeout(2000);
-    // Reload the page to verify persistence
-    await page.reload();
-    // Get the lang attribute from the HTML element
-    const htmlLang = await page.locator("html").getAttribute("lang");
-    // Verify Spanish locale is applied
-    expect(htmlLang).toBe("es");
   });
 
   /**

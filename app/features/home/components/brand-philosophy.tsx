@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useBrandPhilosophyReveal } from "../lib/brand-philosophy-reveal";
 
 export function BrandPhilosophy() {
+  const { t } = useTranslation();
   const { sectionRef, visible, slideStyle, badgeStyle, sparkleStyle } =
     useBrandPhilosophyReveal();
 
@@ -66,7 +68,7 @@ export function BrandPhilosophy() {
                   className={`top-8 left-6 ${tagClassMobile}`}
                   style={badgeStyle(800)}
                 >
-                  건강한
+                  {t("home.brandPhilosophy.tagHealthy")}
                 </span>
               </span>
               <img
@@ -92,7 +94,7 @@ export function BrandPhilosophy() {
                   className={`-top-2 right-16 left-auto ${tagClassMobile}`}
                   style={badgeStyle(950)}
                 >
-                  간편한
+                  {t("home.brandPhilosophy.tagConvenient")}
                 </span>
               </span>
             </div>
@@ -132,7 +134,7 @@ export function BrandPhilosophy() {
                   className={`-top-5 right-30 left-auto ${tagClassMobile}`}
                   style={badgeStyle(1100)}
                 >
-                  믿을 수 있는
+                  {t("home.brandPhilosophy.tagTrustworthy")}
                 </span>
               </span>
             </div>
@@ -143,7 +145,7 @@ export function BrandPhilosophy() {
             className="text-center text-[13px] text-[#111]"
             style={slideStyle(700)}
           >
-            건강하고 풍요한 일상을 만들다.
+            {t("home.brandPhilosophy.subtitle")}
           </p>
         </div>
       </div>
@@ -172,7 +174,7 @@ export function BrandPhilosophy() {
                   className={`absolute bottom-2 left-10 ${tagClassPC}`}
                   style={badgeStyle(1100)}
                 >
-                  건강한
+                  {t("home.brandPhilosophy.tagHealthy")}
                 </span>
               </span>{" "}
               <img
@@ -194,7 +196,7 @@ export function BrandPhilosophy() {
                   className={`absolute -top-2 right-36 ${tagClassPC}`}
                   style={badgeStyle(1300)}
                 >
-                  간편한
+                  {t("home.brandPhilosophy.tagConvenient")}
                 </span>
               </span>
             </h2>
@@ -233,7 +235,7 @@ export function BrandPhilosophy() {
                   className={`absolute -top-2 right-60 left-auto ${tagClassPC}`}
                   style={badgeStyle(1500)}
                 >
-                  믿을 수 있는
+                  {t("home.brandPhilosophy.tagTrustworthy")}
                 </span>
               </span>
             </h2>
@@ -243,7 +245,7 @@ export function BrandPhilosophy() {
             className="mt-3 text-center text-base text-[var(--brand-green)] lg:text-lg"
             style={slideStyle(900)}
           >
-            건강하고 풍요한 일상을 만들다.
+            {t("home.brandPhilosophy.subtitle")}
           </p>
         </div>
       </div>

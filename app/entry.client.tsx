@@ -9,7 +9,7 @@
  * - Sentry integration for client-side error monitoring and session replay
  * - Internationalization (i18n) setup with language detection
  * - React hydration with performance optimizations
- * - Multi-language support (English, Spanish, Korean)
+ * - Korean and English (storefront)
  */
 
 import * as Sentry from "@sentry/react-router";
@@ -24,7 +24,6 @@ import { getInitialNamespaces } from "remix-i18next/client";
 // Import i18n configuration and language resources
 import i18n from "./i18n";
 import en from "./locales/en";
-import es from "./locales/es";
 import ko from "./locales/ko";
 
 /**
@@ -71,13 +70,10 @@ async function hydrate() {
       // Configure language resources for all supported languages
       resources: {
         en: {
-          common: en, // English translations
-        },
-        es: {
-          common: es, // Spanish translations
+          common: en,
         },
         ko: {
-          common: ko, // Korean translations
+          common: ko,
         },
       },
     });

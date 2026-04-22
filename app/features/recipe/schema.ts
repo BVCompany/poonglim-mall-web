@@ -8,7 +8,7 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgPolicy, pgTable, text, uuid } from "drizzle-orm/pg-core";
 // integer는 sort_order 용도로만 사용
 import { anonRole } from "drizzle-orm/supabase";
 
@@ -18,6 +18,8 @@ export const recipes = pgTable(
   "recipes",
   {
     ...makeIdentityColumn("recipe_id"),
+    translation_group_id: uuid().notNull(),
+    locale: text().notNull().default("ko"),
     title: text().notNull(),
     category: text().notNull().default("easy"), // recipe_categories.slug 참조
     description: text(),

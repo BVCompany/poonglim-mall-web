@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ShoppingCart, Star } from "lucide-react";
 import { Button } from "~/core/components/ui/button";
@@ -6,69 +7,39 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 export default function PuddingsScreen() {
   const { t } = useTranslation();
 
-  const products = [
-    {
-      id: 1,
-      name: "커스터드 푸딩 6입",
-      category: "푸딩",
-      price: "12,900원",
-      rating: 4.9,
-      image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400",
-      description: "부드럽고 진한 커스터드 푸딩",
-    },
-    {
-      id: 2,
-      name: "카라멜 푸딩 6입",
-      category: "푸딩",
-      price: "13,900원",
-      rating: 4.8,
-      image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
-      description: "달콤한 카라멜 소스와 함께",
-    },
-    {
-      id: 3,
-      name: "초코 푸딩 6입",
-      category: "푸딩",
-      price: "14,900원",
-      rating: 4.7,
-      image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400",
-      description: "진한 초콜릿 맛 프리미엄 푸딩",
-    },
-    {
-      id: 4,
-      name: "바닐라 푸딩 6입",
-      category: "푸딩",
-      price: "12,900원",
-      rating: 4.8,
-      image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400",
-      description: "고급 바닐라빈 사용",
-    },
-    {
-      id: 5,
-      name: "망고 푸딩 6입",
-      category: "푸딩",
-      price: "15,900원",
-      rating: 4.9,
-      image: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400",
-      description: "상큼한 망고 과육 푸딩",
-    },
-    {
-      id: 6,
-      name: "딸기 푸딩 6입",
-      category: "푸딩",
-      price: "15,900원",
-      rating: 4.8,
-      image: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400",
-      description: "신선한 딸기로 만든 프리미엄 푸딩",
-    },
-  ];
+  const products = useMemo(() => {
+    const imgs = [
+      "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400",
+      "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+      "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400",
+      "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400",
+      "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400",
+      "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400",
+    ] as const;
+    const ratings = [4.9, 4.8, 4.7, 4.8, 4.9, 4.8] as const;
+    const keys = ["p1", "p2", "p3", "p4", "p5", "p6"] as const;
+    return keys.map((key, i) => {
+      const d = t(`pages.products.categoryPudding.demos.${key}`, {
+        returnObjects: true,
+      }) as { name: string; description: string; price: string; category: string };
+      return {
+        id: i + 1,
+        name: d.name,
+        category: d.category,
+        price: d.price,
+        rating: ratings[i],
+        image: imgs[i],
+        description: d.description,
+      };
+    });
+  }, [t]);
 
   return (
     <div className="w-full">
       <Breadcrumb
         items={[
-          { label: "제품소개", href: "/products/all" },
-          { label: "푸딩 시리즈" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+          { label: t("pages.products.categoryPudding.breadcrumbLabel") },
         ]}
       />
       {/* Hero Section */}
@@ -78,7 +49,7 @@ export default function PuddingsScreen() {
             {t("navigation.products.puddings")}
           </h1>
           <p className="text-lg opacity-90">
-            부드럽고 달콤한 풍림푸드의 프리미엄 푸딩 시리즈
+            {t("pages.products.categoryPudding.heroSub")}
           </p>
         </div>
       </section>
@@ -87,7 +58,7 @@ export default function PuddingsScreen() {
       <section className="bg-[var(--site-chrome-header-bg,#FDFDF5)] py-16">
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))]">
           <p className="mb-12 text-center text-lg text-muted-foreground">
-            엄선된 원료로 만든 고품질 디저트 푸딩
+            {t("pages.products.categoryPudding.demoLead")}
           </p>
 
           {/* Products Grid */}
@@ -123,7 +94,7 @@ export default function PuddingsScreen() {
                     <span className="text-lg font-bold">{product.price}</span>
                     <Button size="sm" className="gap-2">
                       <ShoppingCart className="size-4" />
-                      담기
+                      {t("pages.products.categoryPudding.addToCart")}
                     </Button>
                   </div>
                 </div>

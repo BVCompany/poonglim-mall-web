@@ -8,7 +8,7 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgPolicy, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -41,6 +41,9 @@ export const news = pgTable(
   "news",
   {
     ...makeIdentityColumn("news_id"),
+    /** 동일 기사의 ko/en 행을 묶는 ID */
+    translation_group_id: uuid().notNull(),
+    locale: text().notNull().default("ko"),
     type: text().notNull().default("보도자료"),
     title: text().notNull(),
     content: text().notNull(),

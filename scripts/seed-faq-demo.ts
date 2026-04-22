@@ -8,6 +8,7 @@
  * 동일한 question+answer+sort_order 조합이 있으면 건너뜁니다.
  */
 
+import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import path from "path";
 import postgres from "postgres";
@@ -145,6 +146,8 @@ async function main() {
     }
 
     await db.insert(faqs).values({
+      translation_group_id: randomUUID(),
+      locale: "ko",
       category: item.category,
       question: item.question,
       answer: item.answer,

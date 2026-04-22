@@ -5,7 +5,8 @@
  * Allows viewing, searching, editing, and deleting products.
  */
 
-import { useState } from "react";
+import { randomUUID } from "node:crypto";
+import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/products";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -25,10 +26,10 @@ import {
 } from "lucide-react";
 import { MOCK_PRODUCTS } from "../data/products";
 import type { AdminProduct } from "../types/product.types";
-import { getProducts } from "~/features/products/lib/queries.server";
+import { getAllProductsForAdmin } from "~/features/products/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { products } from "~/features/products/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
   best: "best",
@@ -38,13 +39,16 @@ const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
   recommended: "best",
 };
 
+const TG_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Loader: 관리자 인증 + DB 제품 목록
  */
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
   const [dbProducts, dbCategories] = await Promise.all([
-    getProducts().catch(() => []),
+    getAllProductsForAdmin().catch(() => []),
     getAllCategories().catch(() => []),
   ]);
   return { adminUser, dbProducts, dbCategories };
@@ -70,6 +74,8 @@ export async function action({ request }: Route.ActionArgs) {
     const tagsRaw          = formData.get("tags") as string;
     const shopUrl          = formData.get("shopUrl") as string;
     const sortOrderRaw     = formData.get("sort_order") as string;
+    const localeRaw        = ((formData.get("locale") as string) || "ko").toLowerCase();
+    const locale           = localeRaw === "en" ? "en" : "ko";
     // 제품 정보 스펙
     const volume           = formData.get("volume") as string;
     const storageMethod    = formData.get("storageMethod") as string;
@@ -86,7 +92,13 @@ export async function action({ request }: Route.ActionArgs) {
       ? certificationsRaw.split(",").map((c) => c.trim()).filter(Boolean)
       : [];
 
+    const groupFromForm = (formData.get("translation_group_id") as string)?.trim();
+    const translation_group_id =
+      groupFromForm && TG_UUID_RE.test(groupFromForm) ? groupFromForm : randomUUID();
+
     await db.insert(products).values({
+      translation_group_id,
+      locale,
       name,
       description,
       detail: detail || null,
@@ -108,6 +120,46 @@ export async function action({ request }: Route.ActionArgs) {
     });
 
     return { success: true };
+  }
+
+  if (intent === "create_translation") {
+    const baseId = Number(formData.get("base_id"));
+    const targetLocale =
+      ((formData.get("target_locale") as string) || "en").toLowerCase() === "en" ? "en" : "ko";
+    if (!baseId) return { success: false as const, error: "translation" as const };
+    const [base] = await db.select().from(products).where(eq(products.product_id, baseId)).limit(1);
+    if (!base) return { success: false as const, error: "translation" as const };
+    const [exists] = await db
+      .select({ id: products.product_id })
+      .from(products)
+      .where(and(eq(products.translation_group_id, base.translation_group_id), eq(products.locale, targetLocale)))
+      .limit(1);
+    if (exists) return { success: false as const, error: "translation_exists" as const };
+    await db.insert(products).values({
+      translation_group_id: base.translation_group_id,
+      locale: targetLocale,
+      name: "",
+      description: "",
+      detail: null,
+      category: base.category,
+      badge: base.badge,
+      image_url: base.image_url,
+      image_urls: base.image_urls,
+      price: base.price,
+      original_price: base.original_price,
+      is_b2b: base.is_b2b,
+      is_active: base.is_active,
+      sort_order: base.sort_order,
+      shop_url: base.shop_url,
+      volume: null,
+      storage_method: null,
+      expiry_info: null,
+      origin: null,
+      ingredients: null,
+      certifications: [],
+      tags: [],
+    });
+    return { success: true as const };
   }
 
   if (intent === "update") {
@@ -139,6 +191,9 @@ export async function action({ request }: Route.ActionArgs) {
       ? certificationsRaw.split(",").map((c) => c.trim()).filter(Boolean)
       : [];
 
+    const [editing] = await db.select().from(products).where(eq(products.product_id, id)).limit(1);
+    if (!editing) return { success: false };
+
     await db.update(products).set({
       name,
       description,
@@ -158,13 +213,30 @@ export async function action({ request }: Route.ActionArgs) {
       certifications: parsedCertifications,
       updated_at: new Date(),
     }).where(eq(products.product_id, id));
+
+    await db
+      .update(products)
+      .set({
+        category: parsedCategories,
+        badge: badgeRaw ? (BADGE_MAP[badgeRaw] ?? null) : null,
+        image_url: imageUrl || null,
+        price: priceRaw ? Number(priceRaw) : null,
+        original_price: originalPriceRaw ? Number(originalPriceRaw) : null,
+        shop_url: shopUrl || null,
+        updated_at: new Date(),
+      })
+      .where(and(eq(products.translation_group_id, editing.translation_group_id), ne(products.product_id, id)));
+
     return { success: true };
   }
 
   if (intent === "delete") {
     const id = Number(formData.get("id"));
     if (id) {
-      await db.delete(products).where(eq(products.product_id, id));
+      const [row] = await db.select().from(products).where(eq(products.product_id, id)).limit(1);
+      if (row) {
+        await db.delete(products).where(eq(products.translation_group_id, row.translation_group_id));
+      }
     }
     return { success: true };
   }
@@ -224,12 +296,22 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
   const [editingData, setEditingData] = useState<ProductFormData | undefined>(undefined);
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<typeof action>();
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if ("error" in fetcher.data && fetcher.data.error === "translation_exists") {
+      window.alert("이미 같은 그룹에 EN 행이 있습니다.");
+    }
+  }, [fetcher.state, fetcher.data]);
 
   // DB 데이터가 있으면 사용, 없으면 더미
   const sourceProducts = dbProducts.length > 0
     ? dbProducts.map((p) => ({
         id: String(p.product_id),
+        product_id: p.product_id,
+        translation_group_id: p.translation_group_id,
+        locale: p.locale as "ko" | "en",
         name: p.name,
         description: p.description,
         category: (Array.isArray(p.category) ? p.category[0] : p.category) as AdminProduct["category"],
@@ -248,9 +330,18 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const submitEnTranslation = (productId: number) => {
+    const fd = new FormData();
+    fd.append("intent", "create_translation");
+    fd.append("base_id", String(productId));
+    fd.append("target_locale", "en");
+    fetcher.submit(fd, { method: "POST" });
+  };
+
   const handleAddProduct = (productData: ProductFormData) => {
     const fd = new FormData();
     fd.append("intent", "create");
+    fd.append("locale", productData.locale ?? "ko");
     fd.append("name", productData.name);
     fd.append("description", productData.description);
     fd.append("categories", JSON.stringify(productData.categories));
@@ -277,6 +368,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
 
     setEditingId(raw.product_id);
     setEditingData({
+      locale:         raw.locale === "en" ? "en" : "ko",
       name:           raw.name,
       categories:     Array.isArray(raw.category) ? raw.category : (raw.category ? [raw.category] : []),
       price:          raw.price ?? 0,
@@ -398,10 +490,15 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                     {/* Product Info */}
                     <div className="flex-1 min-w-0">
                       {/* Name & Badge */}
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-lg font-semibold text-gray-900">
                           {product.name}
                         </h3>
+                        {"locale" in product && product.locale ? (
+                          <Badge variant="outline" className="text-[10px] font-semibold uppercase">
+                            {product.locale}
+                          </Badge>
+                        ) : null}
                         {product.badge && (
                           <Badge
                             variant={getBadgeVariant(product.badge)}
@@ -444,6 +541,30 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {dbProducts.length > 0 &&
+                      "locale" in product &&
+                      product.locale === "ko" &&
+                      "product_id" in product &&
+                      product.product_id != null &&
+                      "translation_group_id" in product &&
+                      !dbProducts.some(
+                        (p) =>
+                          p.translation_group_id === product.translation_group_id &&
+                          p.locale === "en",
+                      ) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs border-[#204E3A]/40 text-[#204E3A]"
+                          onClick={() =>
+                            "product_id" in product && product.product_id != null
+                              ? submitEnTranslation(product.product_id)
+                              : undefined
+                          }
+                        >
+                          EN 추가
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="icon"

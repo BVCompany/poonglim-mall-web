@@ -28,6 +28,8 @@ export interface ProductBadge {
 }
 
 export interface ProductFormData {
+  /** 신규 등록 시에만 사용 (ko | en) */
+  locale?: "ko" | "en";
   name: string;
   categories: string[];        // 복수 카테고리 슬러그 배열
   price: number;
@@ -67,6 +69,7 @@ interface ProductAddModalProps {
 }
 
 const EMPTY_FORM: ProductFormData = {
+  locale: "ko",
   name: "",
   categories: [],
   price: 0,
@@ -117,7 +120,7 @@ export function ProductAddModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-    onSubmit({ ...form, tags });
+    onSubmit({ ...form, locale: isEditMode ? form.locale : (form.locale ?? "ko"), tags });
     if (!isEditMode) reset();
     onOpenChange(false);
   };
@@ -150,6 +153,40 @@ export function ProductAddModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-5">
+          {isEditMode ? (
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              언어:{" "}
+              <span className="font-semibold">
+                {form.locale === "en" ? "English (en)" : "한국어 (ko)"}
+              </span>
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>언어 *</Label>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { v: "ko" as const, label: "한국어 (ko)" },
+                    { v: "en" as const, label: "English (en)" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, locale: opt.v }))}
+                    className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      (form.locale ?? "ko") === opt.v
+                        ? "border-[#204E3A] bg-[#204E3A] text-white"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-[#204E3A]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 제품명 */}
           <div className="space-y-1.5">
             <Label>제품명 *</Label>

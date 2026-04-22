@@ -8,7 +8,7 @@
  * - 관리자 CRUD: service_role (서버 사이드, RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, pgEnum, pgPolicy, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgPolicy, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -29,6 +29,8 @@ export const events = pgTable(
   "events",
   {
     ...makeIdentityColumn("event_id"),
+    translation_group_id: uuid().notNull(),
+    locale: text().notNull().default("ko"),
     type: eventTypeEnum().notNull().default("event"),
     title: text().notNull(),
     content: text().notNull(),

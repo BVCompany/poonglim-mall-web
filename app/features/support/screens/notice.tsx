@@ -2,6 +2,7 @@
  * 공지사항 목록 페이지
  */
 import { Fragment, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import type { Route } from "./+types/notice";
@@ -9,32 +10,69 @@ import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 import { cn } from "~/core/lib/utils";
 import { getNotices } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "공지사항 | 풍림푸드" },
+export type NoticeCategoryKey = "all" | "notice" | "guide" | "event";
+
+const NOTICE_CATEGORY_KEYS: NoticeCategoryKey[] = ["all", "notice", "guide", "event"];
+
+const LEGACY_CATEGORY_PARAM: Record<string, NoticeCategoryKey> = {
+  전체보기: "all",
+  전체: "all",
+  공지: "notice",
+  안내: "guide",
+  이벤트: "event",
+  외식업계: "event",
+};
+
+const CATEGORY_KEY_TO_DB: Record<NoticeCategoryKey, string | undefined> = {
+  all: undefined,
+  notice: "공지",
+  guide: "안내",
+  event: "이벤트",
+};
+
+const NOTICE_DB_TO_KEY: Record<string, NoticeCategoryKey> = {
+  공지: "notice",
+  안내: "guide",
+  이벤트: "event",
+};
+
+function normalizeNoticeCategory(raw: string | null): NoticeCategoryKey {
+  if (!raw) return "all";
+  if (LEGACY_CATEGORY_PARAM[raw]) return LEGACY_CATEGORY_PARAM[raw];
+  if (NOTICE_CATEGORY_KEYS.includes(raw as NoticeCategoryKey)) return raw as NoticeCategoryKey;
+  return "all";
+}
+
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
   const url = new URL(request.url);
-  const category = url.searchParams.get("category") ?? "전체보기";
-  const normalizedCategory =
-    category === "전체"
-      ? "전체보기"
-      : category === "외식업계"
-        ? "이벤트"
-        : category;
+  const activeCategoryKey = normalizeNoticeCategory(url.searchParams.get("category"));
+  const dbCategory = CATEGORY_KEY_TO_DB[activeCategoryKey];
 
   const [dbNotices, pageBanner] = await Promise.all([
-    getNotices(normalizedCategory === "전체보기" ? undefined : normalizedCategory).catch(() => []),
+    getNotices(dbCategory, contentLocale).catch(() => []),
     getPageBanner("notice").catch(() => null),
   ]);
 
-  return { dbNotices, pageBanner, activeCategory: normalizedCategory };
+  return {
+    dbNotices,
+    pageBanner,
+    activeCategoryKey,
+    metaTitle: t("pages.noticeList.metaTitle"),
+  };
 }
 
 /* ── 더미 데이터 ── */
@@ -53,19 +91,11 @@ const MOCK_NOTICES = [
   { notice_id: 1,  category: "공지",   title: "풍림푸드 B2B 신규 서비스 런칭 안내", tags: ["B2B"],                created_at: "2026-01-10", view_count: 176, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
 ];
 
-const CATEGORIES = ["전체보기", "공지", "안내", "이벤트"] as const;
-
-const CATEGORY_DISPLAY: Record<string, string> = {
-  전체보기: "전체보기",
-  공지: "공지",
-  안내: "안내",
-  이벤트: "이벤트",
-};
-
 const ITEMS_PER_PAGE = 9;
 
 export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
-  const { dbNotices, pageBanner, activeCategory } = loaderData;
+  const { t } = useTranslation();
+  const { dbNotices, pageBanner, activeCategoryKey } = loaderData;
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -84,7 +114,9 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     is_pinned: Boolean(n.is_pinned),
   }));
 
-  useEffect(() => { setPage(1); }, [activeCategory, query]);
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategoryKey, query]);
 
   const filtered = normalizedNotices.filter((n) =>
     n.title.toLowerCase().includes(query.toLowerCase()),
@@ -108,14 +140,14 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     setPage(1);
   };
 
-  const handleCategoryChange = (cat: string) => {
+  const handleCategoryChange = (key: NoticeCategoryKey) => {
     setInputValue("");
     setQuery("");
     setPage(1);
-    if (cat === "전체보기") {
+    if (key === "all") {
       setSearchParams({});
     } else {
-      setSearchParams({ category: cat });
+      setSearchParams({ category: key });
     }
   };
 
@@ -126,7 +158,12 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
 
   const getPinLabel = (notice: { is_pinned: boolean; tags: string[] }) => {
     if (!notice.is_pinned) return null;
-    return notice.tags?.[0] || "공지";
+    return notice.tags?.[0] || t("pages.noticeList.pinFallback");
+  };
+
+  const displayNoticeCategory = (cat: string) => {
+    const key = NOTICE_DB_TO_KEY[cat];
+    return key ? t(`pages.noticeList.categories.${key}`) : cat;
   };
 
   const firstPinnedRowIndexInPage = paginated.findIndex(
@@ -137,12 +174,12 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
-        title="공지사항"
-        subtitle="풍림푸드의 새로운 소식과 안내사항을 확인하세요"
+        title={t("pages.noticeList.bannerTitle")}
+        subtitle={t("pages.noticeList.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "공지사항" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.notice") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -154,7 +191,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         preset="default"
         className="px-4 pt-5 md:hidden"
       >
-        공지사항
+        {t("pages.noticeList.mobileH1")}
       </SectionPageTitle>
 
       {/* ── 본문 ── */}
@@ -163,8 +200,8 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
             <div className="flex w-full flex-wrap items-center gap-[10px] md:max-w-none md:gap-2.5">
-              {CATEGORIES.map((cat) => {
-                const isActive = cat === activeCategory;
+              {NOTICE_CATEGORY_KEYS.map((cat) => {
+                const isActive = cat === activeCategoryKey;
                 return (
                   <button
                     key={cat}
@@ -189,7 +226,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                     {isActive && (
                       <Check className="h-3 w-3 shrink-0 text-white md:h-4 md:w-4" strokeWidth={2.5} />
                     )}
-                    {CATEGORY_DISPLAY[cat] ?? cat}
+                    {t(`pages.noticeList.categories.${cat}`)}
                   </button>
                 );
               })}
@@ -211,7 +248,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         {/* ── 목록 ── */}
         {paginated.length === 0 ? (
           <div className="py-16 text-center text-sm text-gray-400">
-            검색 결과가 없습니다.
+            {t("pages.noticeList.emptySearch")}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5 md:gap-[10px]">
@@ -259,7 +296,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                         </div>
                       )}
                       <div className="flex w-full min-w-0 items-center gap-2.5">
-                        <span className={metaBadgeClass}>{notice.category}</span>
+                        <span className={metaBadgeClass}>{displayNoticeCategory(notice.category)}</span>
                         <span
                           className={cn(
                             "shrink-0 whitespace-nowrap text-center font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] tabular-nums text-[#1F2121]",
@@ -303,7 +340,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
                         {notice.title}
                       </span>
                       <span className={cn(metaBadgeClass, "w-[65px] min-w-[65px] justify-center")}>
-                        {notice.category}
+                        {displayNoticeCategory(notice.category)}
                       </span>
                       <span className="w-20 shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
                         {formatDate(notice.created_at)}
@@ -325,7 +362,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            aria-label="이전 페이지"
+            aria-label={t("pages.noticeList.paginationPrev")}
             className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
             <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
@@ -336,7 +373,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
               key={p}
               type="button"
               onClick={() => setPage(p)}
-              aria-label={`${p}페이지`}
+              aria-label={t("pages.noticeList.paginationPage", { page: p })}
               aria-current={p === page ? "page" : undefined}
               className={cn(
                 "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
@@ -351,7 +388,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            aria-label="다음 페이지"
+            aria-label={t("pages.noticeList.paginationNext")}
             className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
             <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />

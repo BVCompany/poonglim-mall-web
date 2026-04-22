@@ -2,6 +2,7 @@
  * 고객지원 게시형 상세 — 모바일 시안 (등급판정서·자료실·공지 등 공통)
  */
 import { ChevronDown, ChevronUp, Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { cn } from "~/core/lib/utils";
@@ -47,6 +48,7 @@ export function SupportArticleDetailMobile({
   next,
   listHref,
 }: SupportArticleDetailMobileProps) {
+  const { t } = useTranslation();
   const attachmentHref =
     fileUrl && fileUrl !== "#" && fileUrl.length > 0 ? fileUrl : null;
 
@@ -93,7 +95,7 @@ export function SupportArticleDetailMobile({
                 "inline-flex items-start gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
               )}
             >
-              <span>글쓴이:</span>
+              <span>{t("pages.supportArticle.author")}</span>
               <span>{author}</span>
             </span>
             <span
@@ -102,7 +104,7 @@ export function SupportArticleDetailMobile({
                 "inline-flex items-start gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
               )}
             >
-              <span>조회수:</span>
+              <span>{t("pages.supportArticle.views")}</span>
               <span>{viewCount}</span>
             </span>
           </div>
@@ -120,7 +122,9 @@ export function SupportArticleDetailMobile({
                 if (!attachmentHref) e.preventDefault();
               }}
             >
-              <span className="min-w-0 break-words">첨부 {fileName}</span>
+              <span className="min-w-0 break-words">
+                {t("pages.supportArticle.attachment", { file: fileName })}
+              </span>
               <Download
                 className="h-3.5 w-3.5 shrink-0 text-[#02633E]"
                 strokeWidth={2.25}
@@ -161,7 +165,7 @@ export function SupportArticleDetailMobile({
               )}
             >
               <span className="min-w-0 flex-1 truncate">{prev.title}</span>
-              <span className="shrink-0">이전글</span>
+              <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
               <ChevronUp
                 className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                 strokeWidth={2}
@@ -175,7 +179,7 @@ export function SupportArticleDetailMobile({
                 "flex h-[66px] items-center px-5 text-sm text-[#1F2121]/35",
               )}
             >
-              이전글이 없습니다.
+              {t("pages.supportArticle.noPrev")}
             </div>
           )}
 
@@ -189,7 +193,7 @@ export function SupportArticleDetailMobile({
             >
               <span className="min-w-0 flex-1 truncate">{next.title}</span>
               <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                <span>다음글</span>
+                <span>{t("pages.supportArticle.next")}</span>
                 <ChevronDown
                   className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                   strokeWidth={2}
@@ -204,7 +208,7 @@ export function SupportArticleDetailMobile({
                 "flex h-[66px] items-center justify-end rounded-[40px] px-5 text-sm text-[#1F2121]/35",
               )}
             >
-              다음글이 없습니다.
+              {t("pages.supportArticle.noNext")}
             </div>
           )}
         </div>
@@ -216,7 +220,7 @@ export function SupportArticleDetailMobile({
             "w-full rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors active:brightness-95",
           )}
         >
-          목록
+          {t("pages.supportArticle.list")}
         </Link>
       </div>
     </div>

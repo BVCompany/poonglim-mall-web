@@ -13,19 +13,23 @@ import {
   MapPin,
   Share2,
 } from "lucide-react";
-import { Link, data } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Link, data, redirect } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import {
   getAdjacentEvents,
   getEventById,
+  getEventSiblingByLocale,
   hasAnyActiveEvents,
 } from "../lib/queries.server";
 import type { Event } from "../lib/queries.server";
@@ -110,16 +114,17 @@ const MOCK_ADJACENT: Record<
   },
 };
 
-const BADGE_LABEL: Record<string, string> = {
-  hot: "HOT",
-  new: "NEW",
-  ending_soon: "마감임박",
-  important: "중요",
-};
+const BADGE_KEYS = ["hot", "new", "ending_soon", "important"] as const;
 
-export async function loader({ params }: Route.LoaderArgs) {
+function isBadgeKey(b: string): b is (typeof BADGE_KEYS)[number] {
+  return (BADGE_KEYS as readonly string[]).includes(b);
+}
+
+export async function loader({ params, request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const id = Number(params.id);
   if (!id) throw data("Not Found", { status: 404 });
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
 
   await getPageBanner("event").catch(() => null);
 
@@ -137,12 +142,17 @@ export async function loader({ params }: Route.LoaderArgs) {
   try {
     const row = await getEventById(id);
     if (row?.is_active) {
+      if (row.locale !== contentLocale) {
+        const sib = await getEventSiblingByLocale(row.translation_group_id, contentLocale);
+        if (sib) throw redirect(`/event/${sib.event_id}`);
+      }
       event = row;
-      const adjacent = await getAdjacentEvents(id);
+      const adjacent = await getAdjacentEvents(id, contentLocale);
       prev = adjacent.prev;
       next = adjacent.next;
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof Response) throw e;
     /* DB 오류 시 아래에서 목업 또는 404 */
   }
 
@@ -155,23 +165,32 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
-  return { event, prev, next, id };
+  const metaTitle = event
+    ? t("pages.events.detail.metaTitle", { title: event.title })
+    : t("pages.events.detail.metaTitleFallback");
+
+  return { event, prev, next, id, metaTitle };
 }
 
 export function meta({ data: d }: Route.MetaArgs) {
-  const title =
-    (d as { event?: { title: string } } | null)?.event?.title ?? "이벤트 상세";
-  return [{ title: `${title} | 풍림푸드` }];
+  return [
+    {
+      title: (d as { metaTitle?: string } | null)?.metaTitle ?? "",
+    },
+  ];
 }
 
-function formatDateTime(val: string | Date) {
+function formatDateTime(val: string | Date, locale: string) {
   const d = new Date(val);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  const loc = locale.startsWith("ko") ? "ko-KR" : "en-US";
+  return new Intl.DateTimeFormat(loc, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
 }
 
 function formatDate(val: Date | null) {
@@ -180,42 +199,45 @@ function formatDate(val: Date | null) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function getEventStatus(started_at: Date | null, ended_at: Date | null) {
+type EventDetailStatus = "ongoing" | "upcoming" | "ended";
+
+function getEventStatus(
+  started_at: Date | null,
+  ended_at: Date | null,
+): EventDetailStatus {
   const now = new Date();
-  if (ended_at && new Date(ended_at) < now) return "종료";
-  if (started_at && new Date(started_at) > now) return "예정";
-  return "진행중";
+  if (ended_at && new Date(ended_at) < now) return "ended";
+  if (started_at && new Date(started_at) > now) return "upcoming";
+  return "ongoing";
 }
 
 /** PC 상단 상태 뱃지 — 시안: Light-Green #32AF32 · Pretendard 16/24 (진행중/예정), 종료는 딥그린 */
-const STATUS_STYLE_PC_DETAIL: Record<
-  "진행중" | "예정" | "종료",
-  { bg: string; color: string }
-> = {
-  진행중: { bg: "#32AF32", color: "#fff" },
-  예정: { bg: "#32AF32", color: "#fff" },
-  종료: { bg: "#003F2B", color: "#fff" },
+const STATUS_STYLE_PC_DETAIL: Record<EventDetailStatus, { bg: string; color: string }> = {
+  ongoing: { bg: "#32AF32", color: "#fff" },
+  upcoming: { bg: "#32AF32", color: "#fff" },
+  ended: { bg: "#003F2B", color: "#fff" },
 };
 
 /** 모바일 시안 — 목록 카드와 동일 색상 */
-function StatusBadge({ status }: { status: "진행중" | "예정" | "종료" }) {
-  if (status === "진행중") {
+function StatusBadge({ status }: { status: EventDetailStatus }) {
+  const { t } = useTranslation();
+  if (status === "ongoing") {
     return (
       <span
         className="inline-flex rounded-full px-3 py-1.5 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
         style={{ backgroundColor: "#32AF32", lineHeight: "12px" }}
       >
-        진행중
+        {t("pages.events.list.statusOngoing")}
       </span>
     );
   }
-  if (status === "예정") {
+  if (status === "upcoming") {
     return (
       <span
         className="inline-flex rounded-full px-3 py-1.5 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
         style={{ backgroundColor: "#F3BC1E", lineHeight: "12px" }}
       >
-        예정
+        {t("pages.events.list.statusUpcoming")}
       </span>
     );
   }
@@ -224,7 +246,7 @@ function StatusBadge({ status }: { status: "진행중" | "예정" | "종료" }) 
       className="inline-flex rounded-full px-3 py-1.5 text-[10px] font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
       style={{ backgroundColor: "#003F2B", lineHeight: "10px" }}
     >
-      종료
+      {t("pages.events.list.statusEnded")}
     </span>
   );
 }
@@ -235,12 +257,23 @@ export default function EventDetailScreen({
   loaderData,
 }: Route.ComponentProps) {
   const { event, prev, next } = loaderData;
+  const { t, i18n } = useTranslation();
 
   const status = getEventStatus(
     event.started_at ? new Date(event.started_at) : null,
     event.ended_at ? new Date(event.ended_at) : null,
   );
-  const badgeLabel = event.badge ? BADGE_LABEL[event.badge] : null;
+  const badgeLabel =
+    event.badge && isBadgeKey(event.badge)
+      ? t(`pages.events.detail.badges.${event.badge}`)
+      : null;
+
+  const statusLabel =
+    status === "ongoing"
+      ? t("pages.events.list.statusOngoing")
+      : status === "upcoming"
+        ? t("pages.events.list.statusUpcoming")
+        : t("pages.events.list.statusEnded");
 
   const periodStr = (() => {
     const s = formatDate(event.started_at ? new Date(event.started_at) : null);
@@ -277,8 +310,8 @@ export default function EventDetailScreen({
       <div className="hidden md:block">
         <Breadcrumb
           items={[
-            { label: "홍보센터", href: "/event" },
-            { label: "이벤트", href: "/event" },
+            { label: t("pages.events.detail.breadcrumbPromo"), href: "/event" },
+            { label: t("pages.events.detail.breadcrumbList"), href: "/event" },
           ]}
         />
       </div>
@@ -320,13 +353,13 @@ export default function EventDetailScreen({
                     "text-sm font-bold leading-[14px] text-[#1F2121]",
                   )}
                 >
-                  {formatDateTime(event.created_at)}
+                  {formatDateTime(event.created_at, i18n.language)}
                 </span>
                 <button
                   type="button"
                   onClick={handleShare}
                   className="shrink-0 rounded-[40px] bg-[#EAE3C9] p-2.5 text-[#4F4F4F] transition-colors active:brightness-95"
-                  aria-label="공유"
+                  aria-label={t("pages.events.detail.shareAria")}
                 >
                   <Share2 className="h-4 w-4" strokeWidth={1.5} />
                 </button>
@@ -346,7 +379,7 @@ export default function EventDetailScreen({
                         )}
                       >
                         <span className="text-base font-extrabold leading-[22.4px] text-[#1F2121]">
-                          기간
+                          {t("pages.events.detail.period")}
                         </span>
                         <span className="text-[15px] font-bold leading-[22.5px] text-[#1F2121]">
                           {periodStr}
@@ -366,7 +399,7 @@ export default function EventDetailScreen({
                         )}
                       >
                         <span className="text-base font-extrabold leading-[22.4px] text-[#1F2121]">
-                          장소
+                          {t("pages.events.detail.venue")}
                         </span>
                         <span className="text-[15px] font-bold leading-[22.5px] text-[#1F2121]">
                           {location}
@@ -386,7 +419,7 @@ export default function EventDetailScreen({
                         )}
                       >
                         <span className="text-base font-extrabold leading-[22.4px] text-[#1F2121]">
-                          문의
+                          {t("pages.events.detail.contact")}
                         </span>
                         <span className="min-w-0 break-words text-[15px] font-bold leading-[22.5px] text-[#1F2121]">
                           {contact}
@@ -439,7 +472,7 @@ export default function EventDetailScreen({
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{prev.title}</span>
-                  <span className="shrink-0">이전글</span>
+                  <span className="shrink-0">{t("pages.events.detail.prev")}</span>
                   <ChevronUp
                     className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                     strokeWidth={2}
@@ -453,7 +486,7 @@ export default function EventDetailScreen({
                     "flex h-[66px] items-center px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  이전글이 없습니다.
+                  {t("pages.events.detail.noPrev")}
                 </div>
               )}
 
@@ -467,7 +500,7 @@ export default function EventDetailScreen({
                 >
                   <span className="min-w-0 flex-1 truncate">{next.title}</span>
                   <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                    <span>다음글</span>
+                    <span>{t("pages.events.detail.next")}</span>
                     <ChevronDown
                       className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                       strokeWidth={2}
@@ -482,7 +515,7 @@ export default function EventDetailScreen({
                     "flex h-[66px] items-center justify-end rounded-[40px] px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  다음글이 없습니다.
+                  {t("pages.events.detail.noNext")}
                 </div>
               )}
             </div>
@@ -494,7 +527,7 @@ export default function EventDetailScreen({
                 "w-full rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors active:brightness-95",
               )}
             >
-              목록
+              {t("pages.events.detail.list")}
             </Link>
           </div>
         </div>
@@ -518,7 +551,7 @@ export default function EventDetailScreen({
                     color: STATUS_STYLE_PC_DETAIL[status].color,
                   }}
                 >
-                  {status}
+                  {statusLabel}
                 </span>
                 {badgeLabel ? (
                   <span className="inline-flex rounded-[40px] bg-[#02633E] px-5 py-2 text-base font-bold leading-6 text-white [font-family:Pretendard,system-ui,sans-serif]">
@@ -546,15 +579,15 @@ export default function EventDetailScreen({
                 <div className="flex flex-col gap-[30px]">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <span className="font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[19.6px] text-[#1F2121]">
-                      {formatDateTime(event.created_at)}
+                      {formatDateTime(event.created_at, i18n.language)}
                     </span>
                     <button
                       type="button"
                       onClick={handleShare}
                       className="inline-flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-5 py-2.5 font-[NanumSquareRound,sans-serif] text-base font-extrabold leading-[20.8px] text-[#1F2121] transition-colors hover:brightness-[0.98]"
-                      aria-label="공유"
+                      aria-label={t("pages.events.detail.shareAria")}
                     >
-                      공유
+                      {t("pages.events.detail.share")}
                       <Share2
                         className="h-5 w-5 shrink-0 text-[#4F4F4F]"
                         strokeWidth={1.5}
@@ -572,7 +605,7 @@ export default function EventDetailScreen({
                           </span>
                           <div className="flex min-w-0 flex-wrap items-center gap-3">
                             <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
-                              기간
+                              {t("pages.events.detail.period")}
                             </span>
                             <span className="font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
                               {periodStr}
@@ -587,7 +620,7 @@ export default function EventDetailScreen({
                           </span>
                           <div className="flex min-w-0 flex-wrap items-center gap-3">
                             <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
-                              장소
+                              {t("pages.events.detail.venue")}
                             </span>
                             <span className="font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
                               {location}
@@ -602,7 +635,7 @@ export default function EventDetailScreen({
                           </span>
                           <div className="flex min-w-0 flex-wrap items-center gap-3">
                             <span className="font-[NanumSquareRound,sans-serif] text-lg font-extrabold uppercase leading-[25.2px] text-[#1F2121]">
-                              문의
+                              {t("pages.events.detail.contact")}
                             </span>
                             <span className="break-words font-[NanumSquareRound,sans-serif] text-base font-bold leading-6 text-[#1F2121]">
                               {contact}
@@ -658,12 +691,12 @@ export default function EventDetailScreen({
                         strokeWidth={2}
                         aria-hidden
                       />
-                      <span className="shrink-0">이전글</span>
+                      <span className="shrink-0">{t("pages.events.detail.prev")}</span>
                       <span className="min-w-0 flex-1 truncate">{prev.title}</span>
                     </Link>
                   ) : (
                     <div className="flex h-[66px] items-center px-10 text-base text-[#1F2121]/35">
-                      이전글이 없습니다.
+                      {t("pages.events.detail.noPrev")}
                     </div>
                   )}
                 </div>
@@ -672,7 +705,7 @@ export default function EventDetailScreen({
                   to="/event"
                   className="inline-flex shrink-0 items-center justify-center rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 font-[NanumSquareRound,sans-serif] text-base font-extrabold leading-[20.8px] text-[#003F2B] no-underline transition-colors hover:brightness-[0.98]"
                 >
-                  목록
+                  {t("pages.events.detail.list")}
                 </Link>
 
                 <div className="min-w-0 flex-1 basis-[280px]">
@@ -683,7 +716,7 @@ export default function EventDetailScreen({
                     >
                       <span className="min-w-0 flex-1 truncate">{next.title}</span>
                       <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                        <span>다음글</span>
+                        <span>{t("pages.events.detail.next")}</span>
                         <ChevronRight
                           className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                           strokeWidth={2}
@@ -693,7 +726,7 @@ export default function EventDetailScreen({
                     </Link>
                   ) : (
                     <div className="flex h-[66px] items-center justify-end px-10 text-base text-[#1F2121]/35">
-                      다음글이 없습니다.
+                      {t("pages.events.detail.noNext")}
                     </div>
                   )}
                 </div>

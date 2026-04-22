@@ -2,6 +2,7 @@
  * Admin Notices Management Screen
  * 공지사항 관리 화면
  */
+import { randomUUID } from "node:crypto";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/notices";
@@ -34,7 +35,11 @@ export async function action({ request }: Route.ActionArgs) {
     const tagsRaw = fd.get("tags") as string;
     const tags = tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
+    const localeRaw = ((fd.get("locale") as string) || "ko").toLowerCase();
+    const locale = localeRaw === "en" ? "en" : "ko";
     await db.insert(notices).values({
+      translation_group_id: randomUUID(),
+      locale,
       category: (fd.get("category") as "공지" | "안내" | "이벤트") ?? "안내",
       title: fd.get("title") as string,
       content: (fd.get("content") as string) ?? "",
@@ -67,7 +72,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(notices).where(eq(notices.notice_id, id));
+    if (id) {
+      const [row] = await db.select().from(notices).where(eq(notices.notice_id, id)).limit(1);
+      if (row) {
+        await db.delete(notices).where(eq(notices.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true };
   }
 
@@ -75,7 +85,13 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const current = fd.get("is_pinned") === "true";
     if (id) {
-      await db.update(notices).set({ is_pinned: !current }).where(eq(notices.notice_id, id));
+      const [row] = await db.select().from(notices).where(eq(notices.notice_id, id)).limit(1);
+      if (row) {
+        await db
+          .update(notices)
+          .set({ is_pinned: !current })
+          .where(eq(notices.translation_group_id, row.translation_group_id));
+      }
     }
     return { success: true };
   }
@@ -84,7 +100,13 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const current = fd.get("is_active") === "true";
     if (id) {
-      await db.update(notices).set({ is_active: !current }).where(eq(notices.notice_id, id));
+      const [row] = await db.select().from(notices).where(eq(notices.notice_id, id)).limit(1);
+      if (row) {
+        await db
+          .update(notices)
+          .set({ is_active: !current })
+          .where(eq(notices.translation_group_id, row.translation_group_id));
+      }
     }
     return { success: true };
   }
@@ -129,6 +151,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
     const n = sourceNotices.find((x) => x.notice_id === id);
     if (!n) return;
     setEditingData({
+      locale: (n as { locale?: string }).locale === "en" ? "en" : "ko",
       category: n.category as "공지" | "안내" | "이벤트",
       title: n.title,
       content: n.content,
@@ -142,6 +165,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
   const handleAddNotice = (data: NoticeFormData) => {
     const fd = new FormData();
     fd.append("intent", "create");
+    fd.append("locale", data.locale);
     fd.append("category", data.category);
     fd.append("title", data.title);
     fd.append("content", data.content);
@@ -183,14 +207,13 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-white">
       <AdminSidebar adminUser={adminUser} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
             {/* 헤더 */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">공지사항 관리</h1>
                 <p className="mt-1 text-sm text-gray-500">
@@ -199,7 +222,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
               </div>
               <Button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
+                className="flex shrink-0 items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
               >
                 <Plus className="h-4 w-4" />
                 새 공지사항 작성
@@ -207,8 +230,8 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
             </div>
 
             {/* 검색 */}
-            <div className="mb-4 flex max-w-sm items-center gap-2">
-              <div className="relative flex-1">
+            <div className="mb-4 flex w-full max-w-xl items-center gap-2 lg:max-w-2xl">
+              <div className="relative min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="공지사항 검색..."
@@ -220,8 +243,8 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
             </div>
 
             {/* 테이블 */}
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
                     <th className="px-5 py-3 text-left">구분</th>
@@ -254,7 +277,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
                             {notice.category}
                           </span>
                         </td>
-                        <td className="max-w-xs px-5 py-3">
+                        <td className="min-w-0 max-w-2xl px-5 py-3">
                           <div className="flex items-center gap-1.5">
                             {notice.is_pinned && (
                               <Pin className="h-3.5 w-3.5 shrink-0 text-red-500" />
@@ -322,7 +345,6 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
                 </tbody>
               </table>
             </div>
-          </div>
         </main>
       </div>
 

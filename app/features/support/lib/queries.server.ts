@@ -1,4 +1,7 @@
 import { asc, desc, eq, and, inArray, sql } from "drizzle-orm";
+
+import type { ContentLocale } from "~/core/db/content-locale.server";
+import { pickBestLocaleRows } from "~/core/db/content-locale.server";
 import db from "~/core/db/drizzle-client.server";
 import {
   notices,
@@ -13,7 +16,7 @@ import {
 /* ─────────────────────────── FAQ ───────────────────────────── */
 export type Faq = typeof faqs.$inferSelect;
 
-export async function getFaqs(category?: string) {
+export async function getFaqs(category?: string, locale: ContentLocale = "ko") {
   const conditions = [eq(faqs.is_active, true)];
   if (category && category !== "all") {
     if (category === "general") {
@@ -22,11 +25,11 @@ export async function getFaqs(category?: string) {
       conditions.push(eq(faqs.category, category as Faq["category"]));
     }
   }
-  return db
-    .select()
-    .from(faqs)
-    .where(and(...conditions))
-    .orderBy(faqs.sort_order, faqs.faq_id);
+  const rows = await db.select().from(faqs).where(and(...conditions));
+  const picked = pickBestLocaleRows(rows, locale);
+  return picked.sort(
+    (a, b) => a.sort_order - b.sort_order || a.faq_id - b.faq_id,
+  );
 }
 
 /** 관리자용: 전체 FAQ (비활성 포함) */
@@ -93,17 +96,21 @@ export async function lookupContacts(data: {
 
 export type Notice = typeof notices.$inferSelect;
 
-/** 공개된 공지사항 목록 조회 (최신순, 고정글 우선) */
-export async function getNotices(category?: string) {
+function sortNoticesList<T extends Notice>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
+/** 공개된 공지사항 목록 조회 (최신순, 고정글 우선, locale 반영) */
+export async function getNotices(category?: string, locale: ContentLocale = "ko") {
   const conditions = [eq(notices.is_active, true)];
   if (category && category !== "전체") {
     conditions.push(eq(notices.category, category as Notice["category"]));
   }
-  return db
-    .select()
-    .from(notices)
-    .where(and(...conditions))
-    .orderBy(desc(notices.is_pinned), desc(notices.created_at));
+  const rows = await db.select().from(notices).where(and(...conditions));
+  return sortNoticesList(pickBestLocaleRows(rows, locale));
 }
 
 /** 단일 공지사항 조회 (조회수 증가 포함) */
@@ -112,31 +119,46 @@ export async function getNoticeById(id: number) {
   return rows[0] ?? null;
 }
 
-/** 조회수 증가 */
+/** 조회수 증가 — 동일 번역 그룹 전체에 반영 */
 export async function incrementNoticeViewCount(id: number) {
+  const [row] = await db.select().from(notices).where(eq(notices.notice_id, id)).limit(1);
+  if (!row) return;
   await db
     .update(notices)
     .set({ view_count: sql`${notices.view_count} + 1` })
-    .where(eq(notices.notice_id, id));
+    .where(eq(notices.translation_group_id, row.translation_group_id));
 }
 
-/** 이전/다음 공지사항 id 조회 */
-export async function getAdjacentNotices(id: number) {
-  const [prev, next] = await Promise.all([
-    db
-      .select({ notice_id: notices.notice_id, title: notices.title })
-      .from(notices)
-      .where(and(eq(notices.is_active, true), sql`${notices.notice_id} < ${id}`))
-      .orderBy(desc(notices.notice_id))
-      .limit(1),
-    db
-      .select({ notice_id: notices.notice_id, title: notices.title })
-      .from(notices)
-      .where(and(eq(notices.is_active, true), sql`${notices.notice_id} > ${id}`))
-      .orderBy(notices.notice_id)
-      .limit(1),
-  ]);
-  return { prev: prev[0] ?? null, next: next[0] ?? null };
+/** 같은 그룹의 다른 locale 행 */
+export async function getNoticeSiblingByLocale(
+  translationGroupId: string,
+  locale: ContentLocale,
+) {
+  const rows = await db
+    .select()
+    .from(notices)
+    .where(
+      and(
+        eq(notices.translation_group_id, translationGroupId),
+        eq(notices.locale, locale),
+        eq(notices.is_active, true),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** 이전/다음 공지 — 목록(getNotices)과 동일 정렬·locale */
+export async function getAdjacentNotices(id: number, locale: ContentLocale = "ko") {
+  const ordered = await getNotices(undefined, locale);
+  const idx = ordered.findIndex((n) => n.notice_id === id);
+  if (idx === -1) return { prev: null, next: null };
+  const older = ordered[idx + 1];
+  const newer = ordered[idx - 1];
+  return {
+    prev: older ? { notice_id: older.notice_id, title: older.title } : null,
+    next: newer ? { notice_id: newer.notice_id, title: newer.title } : null,
+  };
 }
 
 /** 활성 공지가 1건이라도 있는지 (상세 목업 여부) */

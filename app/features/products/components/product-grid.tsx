@@ -1,10 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { Search, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { pcMin } from "~/core/lib/pc-fluid";
 
 const PAGE_SIZE = 8; // 한 페이지당 표시 제품 수
+
+/** 라우트 경로 slug → DB/목업 category 값 */
+const ROUTE_CATEGORY_TO_DB: Record<string, string> = {
+  "liquid-eggs": "liquid_egg",
+  puddings: "pudding",
+};
+
+function resolveCategoryFilter(selectedCategory: string): string {
+  return ROUTE_CATEGORY_TO_DB[selectedCategory] ?? selectedCategory;
+}
 
 interface Product {
   id: number;
@@ -74,6 +85,7 @@ export function ProductGrid({
   sortOption = "recommended",
   dbProducts = [],
 }: ProductGridProps) {
+  const { t, i18n } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [animKey, setAnimKey] = useState(0);
@@ -93,17 +105,22 @@ export function ProductGrid({
       }))
     : MOCK_PRODUCTS;
 
+  const categorySlug = resolveCategoryFilter(selectedCategory);
+
   const filtered = source.filter((p) => {
     const cats = Array.isArray(p.category) ? p.category : [p.category];
-    const matchCat = selectedCategory === "all" || cats.includes(selectedCategory);
+    const matchCat =
+      selectedCategory === "all" || cats.includes(categorySlug);
     const q = searchQuery.toLowerCase();
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
     return matchCat && matchSearch;
   });
 
+  const sortLocale = i18n.language?.startsWith("ko") ? "ko" : "en";
+
   const sorted = [...filtered].sort((a, b) => {
     if (sortOption === "latest") return b.id - a.id;
-    if (sortOption === "name") return a.name.localeCompare(b.name, "ko");
+    if (sortOption === "name") return a.name.localeCompare(b.name, sortLocale);
     return 0;
   });
 
@@ -131,7 +148,7 @@ export function ProductGrid({
     return (
       <div className="py-20 text-center">
         <Search className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-        <p className="text-gray-500">검색 결과가 없습니다.</p>
+        <p className="text-gray-500">{t("pages.products.grid.emptySearch")}</p>
       </div>
     );
   }
@@ -174,7 +191,7 @@ export function ProductGrid({
               onClick={() => currentPage > 1 && goPage(currentPage - 1, "prev")}
               disabled={currentPage <= 1}
               className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-bl-[40px] md:rounded-tl-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
-              aria-label="이전 페이지"
+              aria-label={t("pages.products.grid.prevPage")}
             >
               <ChevronLeft className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>
@@ -183,7 +200,7 @@ export function ProductGrid({
               onClick={() => currentPage < totalPages && goPage(currentPage + 1, "next")}
               disabled={currentPage >= totalPages}
               className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30 md:h-[52px] md:w-[52px] md:rounded-br-[40px] md:rounded-tr-[40px] md:bg-[#F0EEDD] md:hover:bg-[#E8E4D4]"
-              aria-label="다음 페이지"
+              aria-label={t("pages.products.grid.nextPage")}
             >
               <ChevronRight className="h-5 w-5 md:h-[18px] md:w-[18px] md:text-[#02633E]" strokeWidth={2.5} />
             </button>
@@ -200,6 +217,7 @@ export function ProductGrid({
 }
 
 function ProductCard({ product }: { product: Product }) {
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
   const navigate = useNavigate();
 
@@ -251,7 +269,7 @@ function ProductCard({ product }: { product: Product }) {
               className="flex h-[18px] items-center gap-0.5 rounded-full bg-[#32AF32] px-2 text-[9px] font-bold text-white"
               style={{ fontFamily: "NanumSquareRound" }}
             >
-              풍림몰
+              {t("pages.products.shared.mall")}
               <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
             </a>
           ) : (
@@ -259,7 +277,7 @@ function ProductCard({ product }: { product: Product }) {
               className="flex h-[18px] items-center gap-0.5 rounded-full bg-[#32AF32]/60 px-2 text-[9px] font-bold text-white/80"
               style={{ fontFamily: "NanumSquareRound" }}
             >
-              풍림몰
+              {t("pages.products.shared.mall")}
               <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
             </div>
           )}
@@ -314,7 +332,7 @@ function ProductCard({ product }: { product: Product }) {
           viewTransition
           onClick={(e) => e.stopPropagation()}
         >
-          상세보기
+          {t("pages.products.shared.viewDetail")}
         </Link>
 
         {product.shopUrl ? (
@@ -333,7 +351,7 @@ function ProductCard({ product }: { product: Product }) {
               fontWeight: 700,
             }}
           >
-            풍림몰
+            {t("pages.products.shared.mall")}
             <ArrowUpRight className="shrink-0" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
           </a>
         ) : (
@@ -349,7 +367,7 @@ function ProductCard({ product }: { product: Product }) {
               fontWeight: 700,
             }}
           >
-            풍림몰
+            {t("pages.products.shared.mall")}
             <ArrowUpRight className="shrink-0 opacity-50" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
           </div>
         )}

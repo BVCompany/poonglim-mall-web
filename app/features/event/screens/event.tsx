@@ -2,6 +2,7 @@
  * 이벤트 목록 페이지
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -11,25 +12,52 @@ import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 import { cn } from "~/core/lib/utils";
 import { getEvents } from "../lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "이벤트 | 풍림푸드" },
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
 ];
 
+export type EventTabKey = "all" | "notice" | "guide" | "event";
+
+const EVENT_TAB_KEYS: EventTabKey[] = ["all", "notice", "guide", "event"];
+
+const LEGACY_TAB_TO_KEY: Record<string, EventTabKey> = {
+  전체보기: "all",
+  공지: "notice",
+  안내: "guide",
+  이벤트: "event",
+};
+
+function normalizeEventTab(raw: string | null): EventTabKey {
+  if (!raw) return "all";
+  if (LEGACY_TAB_TO_KEY[raw]) return LEGACY_TAB_TO_KEY[raw];
+  if (EVENT_TAB_KEYS.includes(raw as EventTabKey)) return raw as EventTabKey;
+  return "all";
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
   const url = new URL(request.url);
-  const tab = url.searchParams.get("tab") ?? "전체보기";
+  const activeTab = normalizeEventTab(url.searchParams.get("tab"));
 
   const [dbEvents, pageBanner] = await Promise.all([
-    getEvents().catch(() => []),
+    getEvents(contentLocale).catch(() => []),
     getPageBanner("event").catch(() => null),
   ]);
 
-  return { dbEvents, pageBanner, activeTab: tab };
+  return {
+    dbEvents,
+    pageBanner,
+    activeTab,
+    metaTitle: t("pages.events.list.metaTitle"),
+  };
 }
 
 type MockEventRow = {
@@ -173,9 +201,6 @@ const MOCK_EVENTS: MockEventRow[] = [
   },
 ];
 
-/** 모바일 시안 — 상단 필터 탭 */
-const TABS = ["전체보기", "공지", "안내", "이벤트"] as const;
-
 const ITEMS_PER_PAGE = 9;
 
 const nanum = "font-[family-name:var(--font-nanum)]";
@@ -183,20 +208,25 @@ const nanum = "font-[family-name:var(--font-nanum)]";
 function matchesTab(
   type: "event" | "notice",
   title: string,
-  tab: string,
+  tab: EventTabKey,
 ): boolean {
-  if (tab === "전체보기") return true;
-  if (tab === "이벤트") return type === "event";
-  if (tab === "공지") return type === "notice" && !title.includes("안내");
-  if (tab === "안내") return type === "notice" && title.includes("안내");
+  if (tab === "all") return true;
+  if (tab === "event") return type === "event";
+  if (tab === "notice") return type === "notice" && !title.includes("안내");
+  if (tab === "guide") return type === "notice" && title.includes("안내");
   return true;
 }
 
-function getEventStatus(started_at: Date | null, ended_at: Date | null): "진행중" | "예정" | "종료" {
+export type EventStatusKey = "ongoing" | "upcoming" | "ended";
+
+function getEventStatus(
+  started_at: Date | null,
+  ended_at: Date | null,
+): EventStatusKey {
   const now = new Date();
-  if (ended_at && ended_at < now) return "종료";
-  if (started_at && started_at > now) return "예정";
-  return "진행중";
+  if (ended_at && ended_at < now) return "ended";
+  if (started_at && started_at > now) return "upcoming";
+  return "ongoing";
 }
 
 function formatDate(val: string | Date) {
@@ -204,34 +234,39 @@ function formatDate(val: string | Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatPeriod(started_at: Date | null, ended_at: Date | null) {
+function formatPeriod(
+  started_at: Date | null,
+  ended_at: Date | null,
+  rangeSep: string,
+) {
   if (!started_at && !ended_at) return "-";
   const s = started_at ? formatDate(started_at) : "";
   const e = ended_at ? formatDate(ended_at) : "";
-  if (s && e) return `${s} ~ ${e}`;
-  if (s) return `${s} ~`;
-  return `~ ${e}`;
+  if (s && e) return `${s} ${rangeSep} ${e}`;
+  if (s) return `${s} ${rangeSep}`;
+  return `${rangeSep} ${e}`;
 }
 
 /** 썸네일 좌상단 상태 뱃지 — 시안 색상 */
-function ThumbnailStatusBadge({ status }: { status: "진행중" | "예정" | "종료" }) {
-  if (status === "진행중") {
+function ThumbnailStatusBadge({ status }: { status: EventStatusKey }) {
+  const { t } = useTranslation();
+  if (status === "ongoing") {
     return (
       <span
         className="inline-flex rounded-full px-3 py-2 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
         style={{ backgroundColor: "#32AF32", lineHeight: "12px" }}
       >
-        진행중
+        {t("pages.events.list.statusOngoing")}
       </span>
     );
   }
-  if (status === "예정") {
+  if (status === "upcoming") {
     return (
       <span
         className="inline-flex rounded-full px-3 py-2 text-xs font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
         style={{ backgroundColor: "#F3BC1E", lineHeight: "12px" }}
       >
-        예정
+        {t("pages.events.list.statusUpcoming")}
       </span>
     );
   }
@@ -240,7 +275,7 @@ function ThumbnailStatusBadge({ status }: { status: "진행중" | "예정" | "�
       className="inline-flex rounded-full px-3 py-2 text-[10px] font-medium text-white [font-family:Pretendard,system-ui,sans-serif]"
       style={{ backgroundColor: "#003F2B", lineHeight: "10px" }}
     >
-      종료
+      {t("pages.events.list.statusEnded")}
     </span>
   );
 }
@@ -258,11 +293,13 @@ type EventCardRow = {
   ended_at: Date | null;
   badge: MockEventRow["badge"];
   venue: string;
-  status: "진행중" | "예정" | "종료";
+  status: EventStatusKey;
 };
 
 function EventCard({ event }: { event: EventCardRow }) {
-  const isEnded = event.status === "종료";
+  const { t, i18n } = useTranslation();
+  const isEnded = event.status === "ended";
+  const periodSep = i18n.language.startsWith("ko") ? "~" : "–";
   return (
     <Link
       to={`/event/${event.event_id}`}
@@ -332,7 +369,7 @@ function EventCard({ event }: { event: EventCardRow }) {
                 : "text-xs font-normal leading-[16.8px] md:text-sm md:leading-[22px]",
             )}
           >
-            {formatPeriod(event.started_at, event.ended_at)}
+            {formatPeriod(event.started_at, event.ended_at, periodSep)}
           </p>
           <span
             className={cn(
@@ -358,7 +395,7 @@ function EventCard({ event }: { event: EventCardRow }) {
               "md:h-[min(212px,calc(140*520/343))] md:w-[min(212px,calc(140*520/343))] md:px-8 md:py-4 md:text-[23px] md:leading-[32px]",
             )}
           >
-            종료된 이벤트
+            {t("pages.events.list.endedOverlay")}
           </div>
         </div>
       ) : null}
@@ -368,6 +405,7 @@ function EventCard({ event }: { event: EventCardRow }) {
 
 export default function EventScreen({ loaderData }: Route.ComponentProps) {
   const { dbEvents, pageBanner, activeTab } = loaderData;
+  const { t } = useTranslation();
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -389,7 +427,9 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
       ended_at: ended,
       created_at: new Date(e.created_at),
       view_count: String(e.view_count ?? "0"),
-      venue: e.location?.trim() ? e.location.trim() : "온라인",
+      venue: e.location?.trim()
+        ? e.location.trim()
+        : t("pages.events.list.venueOnline"),
       status: getEventStatus(started, ended),
     };
   });
@@ -417,14 +457,14 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
     setPage(1);
   };
 
-  const handleTabChange = (t: string) => {
+  const handleTabChange = (tab: EventTabKey) => {
     setInputValue("");
     setQuery("");
     setPage(1);
-    if (t === "전체보기") {
+    if (tab === "all") {
       setSearchParams({});
     } else {
-      setSearchParams({ tab: t });
+      setSearchParams({ tab });
     }
   };
 
@@ -432,12 +472,12 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
-        title="이벤트"
-        subtitle="풍림푸드의 다양한 이벤트 소식을 확인하세요."
+        title={t("pages.events.list.bannerTitle")}
+        subtitle={t("pages.events.list.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "홍보센터", href: "/event" },
-          { label: "이벤트" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("pages.events.list.breadcrumbPromo"), href: "/event" },
+          { label: t("pages.events.list.breadcrumbCurrent") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -448,7 +488,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         preset="default"
         className="px-4 pt-5 md:hidden"
       >
-        이벤트
+        {t("pages.events.list.mobileH1")}
       </SectionPageTitle>
 
       {/* ── 필터 탭 + 검색 (기존 유지) ── */}
@@ -457,13 +497,14 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         <div className="mb-0 flex flex-col gap-4 md:mb-0 md:flex-row md:items-end md:justify-between md:pb-0">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
             <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:py-3.5 max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 md:py-0 [&::-webkit-scrollbar]:hidden">
-              {TABS.map((t) => {
-                const isActive = t === activeTab;
+              {EVENT_TAB_KEYS.map((tab) => {
+                const isActive = tab === activeTab;
+                const tabLabel = t(`pages.events.list.tabs.${tab}`);
                 return (
                   <button
-                    key={t}
+                    key={tab}
                     type="button"
-                    onClick={() => handleTabChange(t)}
+                    onClick={() => handleTabChange(tab)}
                     className={cn(
                       nanum,
                       "flex shrink-0 items-center rounded-[40px] px-3 py-1.5 text-xs font-bold leading-[18px] transition-colors",
@@ -485,7 +526,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                         aria-hidden
                       />
                     )}
-                    {t}
+                    {tabLabel}
                   </button>
                 );
               })}
@@ -510,7 +551,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
         <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
           {paginated.length === 0 ? (
             <div className="py-16 text-center text-sm text-gray-400">
-              해당 이벤트가 없습니다.
+              {t("pages.events.list.empty")}
             </div>
           ) : (
             <>
@@ -526,7 +567,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    aria-label="이전 페이지"
+                    aria-label={t("pages.events.list.paginationPrev")}
                     className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
                   >
                     <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
@@ -537,7 +578,9 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                       key={p}
                       type="button"
                       onClick={() => setPage(p)}
-                      aria-label={`${p}페이지`}
+                      aria-label={t("pages.events.list.paginationPage", {
+                        page: p,
+                      })}
                       aria-current={p === page ? "page" : undefined}
                       className={cn(
                         "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
@@ -552,7 +595,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    aria-label="다음 페이지"
+                    aria-label={t("pages.events.list.paginationNext")}
                     className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
                   >
                     <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />

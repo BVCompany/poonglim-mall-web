@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { Link, data } from "react-router";
+import { useMemo, useState } from "react";
+import { Link, data, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/detail";
-import { getProductById, hasAnyActiveProducts } from "../lib/queries.server";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
+import {
+  getProductById,
+  getProductSiblingByLocale,
+  hasAnyActiveProducts,
+} from "../lib/queries.server";
 import { ArrowUpRight } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { SectionPageTitle } from "~/core/components/section-title-star";
@@ -51,13 +58,6 @@ const MOCK_MAP: Record<number, MockProduct> = {
   18: { product_id: 18, name: "토마토 에그 솔루션",            category: ["convenience"], badge: "NEW",  is_b2b: false, is_active: true, image_url: "/home/solution.png",    tags: ["#토마토", "#간편식", "#건강"], certifications: ["HACCP 인증", "국산 100%"], volume: "200g", storage_method: "냉장보관 (0~10℃)", expiry_info: "제조일로부터 10일", origin: "국산", ingredients: "계란, 토마토", description: "토마토와 계란의 완벽한 조화" },
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  liquid_egg:  "액란가공품",
-  pudding:     "푸딩 시리즈",
-  convenience: "간편식",
-  b2b:         "B2B 전용",
-};
-
 const BADGE_STYLE: Record<string, { bg: string; text: string }> = {
   BEST: { bg: "#f4f2e5", text: "#204E3A" },
   NEW:  { bg: "#ffd55d", text: "#1a1a1a" },
@@ -67,17 +67,22 @@ const BADGE_STYLE: Record<string, { bg: string; text: string }> = {
 
 // ─── meta ────────────────────────────────────────────────────────────────────
 export const meta: Route.MetaFunction = ({ data }) => {
-  const name = (data as any)?.product?.name ?? "제품 상세";
+  const d = data as
+    | { metaTitle?: string; metaDescription?: string }
+    | undefined;
   return [
-    { title: `${name} | 풍림푸드` },
-    { name: "description", content: (data as any)?.product?.description ?? "" },
+    { title: d?.metaTitle ?? "" },
+    { name: "description", content: d?.metaDescription ?? "" },
   ];
 };
 
 // ─── loader ──────────────────────────────────────────────────────────────────
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.id);
   if (!id) throw data("Not Found", { status: 404 });
+
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
 
   let hasReal = false;
   try {
@@ -88,7 +93,19 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   const dbProduct = await getProductById(id).catch(() => null);
   if (dbProduct && dbProduct.is_active) {
-    return { product: dbProduct, isMock: false };
+    if (dbProduct.locale !== contentLocale) {
+      const sib = await getProductSiblingByLocale(dbProduct.translation_group_id, contentLocale);
+      if (sib) throw redirect(`/products/${sib.product_id}`);
+    }
+    const product = dbProduct;
+    return {
+      product,
+      isMock: false,
+      metaTitle: t("pages.products.detail.metaTitle", { name: product.name }),
+      metaDescription:
+        product.description?.trim() ||
+        t("pages.products.detail.metaDescriptionFallback"),
+    };
   }
 
   if (hasReal) {
@@ -96,7 +113,17 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 
   const mock = MOCK_MAP[id];
-  if (mock) return { product: mock as any, isMock: true };
+  if (mock) {
+    const product = mock as any;
+    return {
+      product,
+      isMock: true,
+      metaTitle: t("pages.products.detail.metaTitle", { name: product.name }),
+      metaDescription:
+        product.description?.trim() ||
+        t("pages.products.detail.metaDescriptionFallback"),
+    };
+  }
 
   throw data("Not Found", { status: 404 });
 }
@@ -104,7 +131,18 @@ export async function loader({ params }: Route.LoaderArgs) {
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default function ProductDetailScreen({ loaderData }: Route.ComponentProps) {
   const { product } = loaderData;
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
+
+  const categoryLabels = useMemo(
+    () => ({
+      liquid_egg: t("pages.products.detail.categories.liquidEgg"),
+      pudding: t("pages.products.detail.categories.pudding"),
+      convenience: t("pages.products.detail.categories.convenience"),
+      b2b: t("pages.products.detail.categories.b2b"),
+    }),
+    [t],
+  );
 
   const badge = product.badge?.toUpperCase();
   const badgeStyle = badge ? BADGE_STYLE[badge] : null;
@@ -112,15 +150,15 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
   const tags: string[] = product.tags ?? [];
 
   const specs = [
-    { label: "용량",     value: (product as any).volume },
-    { label: "보관방법", value: (product as any).storage_method },
-    { label: "유통기한", value: (product as any).expiry_info },
-    { label: "원산지",   value: (product as any).origin },
-    { label: "성분",     value: (product as any).ingredients },
+    { label: t("pages.products.detail.specs.volume"), value: (product as any).volume },
+    { label: t("pages.products.detail.specs.storage"), value: (product as any).storage_method },
+    { label: t("pages.products.detail.specs.expiry"), value: (product as any).expiry_info },
+    { label: t("pages.products.detail.specs.origin"), value: (product as any).origin },
+    { label: t("pages.products.detail.specs.ingredients"), value: (product as any).ingredients },
   ].filter((s) => s.value);
 
   const categoryLabel = (Array.isArray(product.category) ? product.category : [product.category])
-    .map((c: string) => CATEGORY_LABELS[c] ?? c)
+    .map((c: string) => categoryLabels[c as keyof typeof categoryLabels] ?? c)
     .filter(Boolean)
     .join(" · ");
 
@@ -132,7 +170,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
       <Breadcrumb
         variant="productDetail"
         items={[
-          { label: "제품소개", href: "/products/all" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
           ...(categoryLabel ? [{ label: categoryLabel, href: "/products/all" }] : []),
           { label: product.name },
         ]}
@@ -256,7 +294,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                   padding: "20px",
                 }}
               >
-                풍림몰 구매
+                {t("pages.products.detail.buyMall")}
                 <ArrowUpRight className="h-[14px] w-[14px] shrink-0 text-[#FDFDF5]" strokeWidth={2.5} />
               </a>
             ) : (
@@ -272,7 +310,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                   padding: "20px",
                 }}
               >
-                풍림몰 구매
+                {t("pages.products.detail.buyMall")}
                 <ArrowUpRight className="h-[14px] w-[14px] shrink-0" strokeWidth={2.5} />
               </div>
             )}
@@ -300,7 +338,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                     marginBottom: `clamp(12px, calc(30 * 100vw / 1920), 30px)`,
                   }}
                 >
-                  제품 정보
+                  {t("pages.products.detail.productInfo")}
                 </h2>
                 <div className="flex flex-col">
                   {specs.map((spec, i) => (
@@ -352,7 +390,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                 className="mb-4 font-bold text-gray-900"
                 style={{ fontSize: pc1920(14, 16), letterSpacing: "-0.03em" }}
               >
-                상세 설명
+                {t("pages.products.detail.detailHeading")}
               </h2>
               <div
                 className="prose prose-sm max-w-none text-gray-700"
@@ -367,7 +405,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               to="/products/all"
               className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
             >
-              ← 제품 목록으로 돌아가기
+              {t("pages.products.detail.backToList")}
             </Link>
           </div>
 

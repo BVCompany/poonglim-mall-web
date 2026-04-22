@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { Link, data } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Link, data, redirect } from "react-router";
 import type { Route } from "./+types/detail";
-import { getRecipeById, hasAnyActiveRecipes } from "../lib/queries.server";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
+import {
+  getRecipeById,
+  getRecipeSiblingByLocale,
+  hasAnyActiveRecipes,
+} from "../lib/queries.server";
 import { Clock3, Users } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920 } from "~/core/lib/pc-fluid";
 
 // ─── 목 데이터 (DB 연결 전 테스트용) ─────────────────────────────────────────
@@ -80,23 +87,32 @@ const MOCK_MAP: Record<number, MockRecipe> = {
 interface Ingredient { name: string; amount: string; }
 interface Step       { step: number; description: string; }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  easy: "가정용", dessert: "카페 & 베이커리", restaurant: "외식업체",
+const RECIPE_CATEGORY_TO_I18N: Record<
+  string,
+  "easy" | "dessert" | "restaurant"
+> = {
+  easy: "easy",
+  home: "easy",
+  dessert: "dessert",
+  cafe: "dessert",
+  restaurant: "restaurant",
 };
 
 // ─── meta ────────────────────────────────────────────────────────────────────
 export const meta: Route.MetaFunction = ({ data }) => {
-  const title = (data as any)?.recipe?.title ?? "레시피 상세";
+  const d = data as { metaTitle?: string; metaDescription?: string } | undefined;
   return [
-    { title: `${title} | 풍림푸드` },
-    { name: "description", content: (data as any)?.recipe?.description ?? "" },
+    { title: d?.metaTitle ?? "" },
+    { name: "description", content: d?.metaDescription ?? "" },
   ];
 };
 
 // ─── loader ───────────────────────────────────────────────────────────────────
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const id = Number(params.id);
   if (!id) throw data("Not Found", { status: 404 });
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
 
   let hasReal = false;
   try {
@@ -105,15 +121,30 @@ export async function loader({ params }: Route.LoaderArgs) {
     hasReal = false;
   }
 
+  const withMeta = (recipe: typeof MOCK_MAP[1], isMock: boolean) => ({
+    recipe,
+    isMock,
+    metaTitle: t("pages.recipes.detail.metaTitle", { name: recipe.title }),
+    metaDescription:
+      (recipe.description && String(recipe.description).trim()) ||
+      t("pages.recipes.detail.metaDescriptionFallback"),
+  });
+
   const dbRecipe = await getRecipeById(id).catch(() => null);
-  if (dbRecipe && dbRecipe.is_active) return { recipe: dbRecipe, isMock: false };
+  if (dbRecipe && dbRecipe.is_active) {
+    if (dbRecipe.locale !== contentLocale) {
+      const sib = await getRecipeSiblingByLocale(dbRecipe.translation_group_id, contentLocale);
+      if (sib) throw redirect(`/recipe/${sib.recipe_id}`);
+    }
+    return withMeta(dbRecipe as unknown as typeof MOCK_MAP[1], false);
+  }
 
   if (hasReal) {
     throw data("Not Found", { status: 404 });
   }
 
   const mock = MOCK_MAP[id];
-  if (mock) return { recipe: mock as any, isMock: true };
+  if (mock) return withMeta(mock, true);
 
   throw data("Not Found", { status: 404 });
 }
@@ -121,6 +152,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 // ─── Page Component ───────────────────────────────────────────────────────────
 export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps) {
   const { recipe } = loaderData;
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
 
   // 재료 파싱
@@ -138,7 +170,10 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
   const cookTime  = recipe.cooking_time ? String(recipe.cooking_time) : null;
   const servings  = recipe.servings ? String(recipe.servings) : null;
   const tags: string[] = recipe.tags ?? [];
-  const categoryLabel = CATEGORY_LABELS[recipe.category] ?? recipe.category;
+  const catKey = RECIPE_CATEGORY_TO_I18N[recipe.category];
+  const categoryLabel = catKey
+    ? t(`pages.recipes.detail.categories.${catKey}`)
+    : recipe.category;
 
   const metaChipClass =
     "inline-flex items-center gap-1 overflow-hidden rounded-full px-[12.58px] py-[7.19px] bg-white";
@@ -152,8 +187,8 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
       <Breadcrumb
         variant="productDetail"
         items={[
-          { label: "제품소개", href: "/products/all" },
-          { label: "레시피", href: "/recipe/main" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+          { label: t("navigation.recipe.title"), href: "/recipe/main" },
           { label: recipe.title },
         ]}
       />
@@ -314,7 +349,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                         letterSpacing: "-0.03em",
                       }}
                     >
-                      재료
+                      {t("pages.recipes.detail.ingredients")}
                     </span>
                     <span
                       className="hidden md:inline"
@@ -327,7 +362,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                         letterSpacing: "-0.04em",
                       }}
                     >
-                      재료
+                      {t("pages.recipes.detail.ingredients")}
                     </span>
                   </h2>
                   <div className="flex flex-col divide-y divide-white">
@@ -392,7 +427,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                         letterSpacing: "-0.03em",
                       }}
                     >
-                      만드는 법
+                      {t("pages.recipes.detail.directions")}
                     </span>
                     <span
                       className="hidden md:inline"
@@ -405,7 +440,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                         letterSpacing: "-0.04em",
                       }}
                     >
-                      만드는 법
+                      {t("pages.recipes.detail.directions")}
                     </span>
                   </h2>
                   <ol className="flex flex-col gap-2.5 md:gap-5">
@@ -466,7 +501,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
               to="/recipe/main"
               className="inline-flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-[#02633E]"
             >
-              ← 레시피 목록으로 돌아가기
+              {t("pages.recipes.detail.backToList")}
             </Link>
           </div>
         </div>

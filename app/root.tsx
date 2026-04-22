@@ -163,6 +163,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** SEO / env — GA4 직연동(`G-…`) 또는 Tag Manager(`GTM-…`) 측정 ID */
+function resolveGoogleTagId(seoGaId: string | undefined): string {
+  return (seoGaId || import.meta.env.VITE_GOOGLE_TAG_ID || "").trim();
+}
+
+function isGtmContainerId(id: string): boolean {
+  return /^GTM-[A-Z0-9]+$/i.test(id);
+}
+
+function isGa4MeasurementId(id: string): boolean {
+  return /^G-[A-Z0-9]+$/i.test(id);
+}
+
 /**
  * Inner Layout Component
  *
@@ -180,6 +193,9 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();
   const { pathname } = useLocation();
   const seo = data?.seo;
+  const googleTagId = resolveGoogleTagId(seo?.gaId);
+  const gtmActive = isGtmContainerId(googleTagId);
+  const ga4DirectActive = isGa4MeasurementId(googleTagId);
 
   // Set the i18next language based on the locale from the loader
   useChangeLanguage(data?.locale ?? "en");
@@ -250,26 +266,41 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         ) : (
           <PreventFlashOnWrongTheme ssrTheme={Boolean(data?.theme)} />
         )}
+        {gtmActive ? (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${googleTagId}');`,
+            }}
+          />
+        ) : null}
       </head>
       <body className="h-full">
+        {gtmActive ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${googleTagId}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        ) : null}
         {children}
         <Toaster richColors position="bottom-right" />
         <ScrollRestoration />
         <Scripts />
-        {/* GA4 — DB 설정값 우선, 없으면 env fallback */}
-        {(seo?.gaId || import.meta.env.VITE_GOOGLE_TAG_ID) && (() => {
-          const gaId = seo?.gaId || import.meta.env.VITE_GOOGLE_TAG_ID;
-          return (
-            <>
-              <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
-              <script
-                dangerouslySetInnerHTML={{
-                  __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`,
-                }}
-              />
-            </>
-          );
-        })()}
+        {/* GA4 직삽입(gtag) — GTM 사용 시에는 태그 매니저 안에서만 GA4를 켜고 여기는 비워 두세요 */}
+        {ga4DirectActive ? (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${googleTagId}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${googleTagId}');`,
+              }}
+            />
+          </>
+        ) : null}
         {import.meta.env.VITE_CHANNEL_PLUGIN_KEY &&
           import.meta.env.VITE_CHANNEL_PLUGIN_KEY !== "" && (
             <script

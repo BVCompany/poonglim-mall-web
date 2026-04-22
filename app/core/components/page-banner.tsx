@@ -9,6 +9,7 @@
  * 브레드크럼 좌표는 `app.css`의 `.page-banner-breadcrumb-x`로 로고와 정렬.
  */
 import { ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
@@ -26,6 +27,7 @@ export interface PageBannerProps {
   title: string;
   subtitle?: string;
   linkUrl?: string;
+  /** 비우면 DB → 이 prop → i18n 기본값(자세히 보기) 순으로 적용 */
   linkText?: string;
   breadcrumb?: BreadcrumbItem[];
   dbBanner?: {
@@ -55,7 +57,7 @@ export function PageBanner({
   title,
   subtitle,
   linkUrl,
-  linkText = "자세히 보기",
+  linkText: linkTextProp,
   breadcrumb = [],
   dbBanner,
   mobileHeightClassName = "max-md:h-[clamp(200px,28vw,380px)]",
@@ -65,13 +67,15 @@ export function PageBanner({
   frostedLinkOnMobile = false,
   mobileSubtitle,
 }: PageBannerProps) {
+  const { t } = useTranslation();
   const resolvedImage = dbBanner?.image_url ?? imageUrl;
   const splitMobileBg = Boolean(mobileImageUrl);
   const mobileBoxByAspect = Boolean(mobileAspectRatio?.trim());
   const resolvedTitle = dbBanner?.title ?? title;
   const resolvedSubtitle = dbBanner?.subtitle ?? subtitle;
   const resolvedLinkUrl = dbBanner?.link_url ?? linkUrl;
-  const resolvedLinkText = dbBanner?.link_text ?? linkText;
+  const resolvedLinkText =
+    dbBanner?.link_text ?? linkTextProp ?? t("home.featuredProducts.learnMore");
 
   return (
     <div className={`px-4 pt-2 md:px-10 md:pt-4 ${hideOnMobile ? "hidden md:block" : ""}`}>

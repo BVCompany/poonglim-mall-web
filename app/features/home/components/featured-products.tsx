@@ -1,5 +1,6 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
@@ -24,12 +25,13 @@ function dbProductToItem(p: Product) {
   };
 }
 
-const MOCK_PRODUCTS = [
+type ProductCard = ReturnType<typeof dbProductToItem>;
+
+const MOCK_PRODUCT_BASE: Array<
+  Pick<ProductCard, "id" | "image" | "fallback" | "badges">
+> = [
   {
     id: 1,
-    name: "프리미엄 스퀴즈 에그 샐러드",
-    category: "간편식",
-    description: "짜먹는 참치 에그샐러드로 간편하게 즐기는 프리미엄 한 끼",
     image: "/home/product-squeeze-egg-salad.png",
     fallback:
       "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=700&fit=crop",
@@ -37,9 +39,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 2,
-    name: "불장닭 로제 / 오리지널",
-    category: "간편식",
-    description: "진한 불맛과 부드러운 로제 소스의 조화",
     image: "/home/product-buljangran.png",
     fallback:
       "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=700&fit=crop",
@@ -47,9 +46,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 3,
-    name: "프리미엄 액란",
-    category: "액란",
-    description: "신선하고 안전한 액상 계란으로 편리한 조리를 경험하세요",
     image: "/home/product-egg-white-grilled.png",
     fallback:
       "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
@@ -57,9 +53,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 4,
-    name: "B2B 식품 솔루션",
-    category: "B2B",
-    description: "식품업계 파트너를 위한 맞춤형 OEM/ODM 솔루션",
     image: "/home/b2b.png",
     fallback:
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=700&fit=crop",
@@ -67,9 +60,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 5,
-    name: "스퀴즈 에그 샐러드 B2B",
-    category: "B2B",
-    description: "대량 납품 가능한 고품질 에그 샐러드 제품",
     image: "/home/product-squeeze-egg-salad.png",
     fallback:
       "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&h=700&fit=crop",
@@ -77,9 +67,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 6,
-    name: "프리미엄 액란 2호",
-    category: "액란",
-    description: "신선하고 안전한 액상 계란으로 편리한 조리를 경험하세요",
     image: "/home/product-egg-white-grilled.png",
     fallback:
       "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
@@ -87,9 +74,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 7,
-    name: "참치 에그 샐러드",
-    category: "간편식",
-    description: "고소한 참치와 부드러운 계란의 완벽한 조화",
     image: "/home/product-squeeze-egg-salad.png",
     fallback:
       "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=700&fit=crop",
@@ -97,9 +81,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 8,
-    name: "카라멜 푸딩",
-    category: "간편식",
-    description: "달콤하고 부드러운 프리미엄 카라멜 푸딩",
     image: "/home/product-caramel-pudding.png",
     fallback:
       "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=700&fit=crop",
@@ -107,9 +88,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 9,
-    name: "OEM/ODM 솔루션",
-    category: "B2B",
-    description: "맞춤형 제품 개발 및 대량 생산 지원",
     image: "/home/b2b.png",
     fallback:
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=700&fit=crop",
@@ -117,9 +95,6 @@ const MOCK_PRODUCTS = [
   },
   {
     id: 10,
-    name: "프리미엄 에그 시리즈",
-    category: "액란",
-    description: "다양한 용도의 프리미엄 액란 제품 라인업",
     image: "/home/product-egg-white-grilled.png",
     fallback:
       "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
@@ -142,10 +117,23 @@ const CARD_WIDTH = 408;
 const CARD_GAP = 16;
 
 export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
-  // DB 데이터가 있으면 사용, 없으면 더미 데이터 폴백
-  const products = dbProducts.length > 0
-    ? dbProducts.map(dbProductToItem)
-    : MOCK_PRODUCTS;
+  const { t, i18n } = useTranslation();
+
+  const mockProducts = useMemo(() => {
+    const raw = t("home.featuredProducts.mocks", { returnObjects: true });
+    const copy = Array.isArray(raw)
+      ? (raw as { name: string; category: string; description: string }[])
+      : [];
+    return MOCK_PRODUCT_BASE.map((base, i) => ({
+      ...base,
+      name: copy[i]?.name ?? "",
+      category: copy[i]?.category ?? "",
+      description: copy[i]?.description ?? "",
+    }));
+  }, [t, i18n.language]);
+
+  const products =
+    dbProducts.length > 0 ? dbProducts.map(dbProductToItem) : mockProducts;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -177,7 +165,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
       clearTimeout(timer);
       window.removeEventListener("resize", checkScroll);
     };
-  }, []);
+  }, [products.length]);
 
   return (
     <section className="overflow-x-hidden bg-transparent py-10 md:py-20">
@@ -198,14 +186,16 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
           >
             <span>
               <span className="md:hidden">
-                풍림푸드의
+                {t("home.featuredProducts.subtitle1")}
                 <br />
-                프리미엄 제품을 만나보세요.
+                {t("home.featuredProducts.subtitle2")}.
               </span>
               <span className="hidden md:contents">
-                <span className="block md:inline">풍림푸드의 </span>
                 <span className="block md:inline">
-                  프리미엄 제품을 만나보세요.
+                  {t("home.featuredProducts.subtitle1")}{" "}
+                </span>
+                <span className="block md:inline">
+                  {t("home.featuredProducts.subtitle2")}.
                 </span>
               </span>
             </span>
@@ -213,9 +203,11 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
           <Link
             to="/products/all"
             className="flex flex-shrink-0 items-center text-[#003F2B]"
-            aria-label="전체보기"
+            aria-label={t("home.featuredProducts.viewAllAria")}
           >
-            <span className="hidden md:inline">전체보기</span>
+            <span className="hidden md:inline">
+              {t("home.featuredProducts.viewAllLink")}
+            </span>
             <ArrowRight className="h-5 w-5 md:ml-1" />
           </Link>
         </div>
@@ -295,19 +287,21 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
           <div className="mt-6 hidden px-0 md:block">
             <div className="inline-flex overflow-hidden rounded-full bg-white">
               <button
+                type="button"
                 onClick={scrollLeft}
                 disabled={!canScrollLeft}
                 className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="이전"
+                aria-label={t("home.featuredProducts.carouselPrev")}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div className="w-px shrink-0 bg-[#EAE3C9]" aria-hidden />
               <button
+                type="button"
                 onClick={scrollRight}
                 disabled={!canScrollRight}
                 className="flex h-10 w-10 items-center justify-center text-[#003F2B] transition-colors hover:bg-[#EAE3C9]/50 disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="다음"
+                aria-label={t("home.featuredProducts.carouselNext")}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

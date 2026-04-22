@@ -32,9 +32,8 @@ import { ServerRouter } from "react-router";
 // Import i18n configuration and translation resources
 import i18next from "./core/lib/i18next.server"; // Server-side i18n instance
 import i18n from "./i18n"; // Shared i18n configuration
-import en from "./locales/en"; // English translations
-import es from "./locales/es"; // Spanish translations
-import ko from "./locales/ko"; // Korean translations
+import en from "./locales/en";
+import ko from "./locales/ko";
 
 /**
  * Maximum time in milliseconds to wait for streaming content
@@ -82,9 +81,6 @@ export default async function handleRequest(
       resources: {
         en: {
           common: en,
-        },
-        es: {
-          common: es,
         },
         ko: {
           common: ko,

@@ -19,6 +19,7 @@ import type { Route } from "./+types/contact-us";
 
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Form, data } from "react-router";
 import Turnstile, { useTurnstile } from "react-turnstile";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
+import i18next from "~/core/lib/i18next.server";
 import resendClient from "~/core/lib/resend-client.server";
 
 /**
@@ -40,13 +42,14 @@ import resendClient from "~/core/lib/resend-client.server";
  *
  * @returns Array of metadata objects for the page
  */
-export const meta: Route.MetaFunction = () => {
-  return [
-    {
-      title: `Contact Us | ${import.meta.env.VITE_APP_NAME}`,
-    },
-  ];
-};
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
+];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.contactUsPage.metaTitle") };
+}
 
 /**
  * Validates a Turnstile CAPTCHA token with Cloudflare's API
@@ -175,6 +178,7 @@ const schema = z.object({
  * @returns JSON response indicating success or error with appropriate details
  */
 export async function action({ request }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
   // Extract form data from the request
   const formData = await request.formData();
 
@@ -199,13 +203,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   // Return error if either CAPTCHA verification fails
   if (!validTurnstile || !validHcaptcha) {
+    const msg = t("pages.contactUsPage.captchaInvalid");
     return data(
       {
         errors: {
-          hcaptcha: !validHcaptcha ? ["Invalid captcha, please try again"] : [],
-          turnstile: !validTurnstile
-            ? ["Invalid captcha, please try again"]
-            : [],
+          hcaptcha: !validHcaptcha ? [msg] : [],
+          turnstile: !validTurnstile ? [msg] : [],
         },
         success: false,
       },
@@ -243,7 +246,12 @@ export async function action({ request }: Route.ActionArgs) {
  * 
  * @param actionData - Data returned from the action function after form submission
  */
-export default function ContactUs({ actionData }: Route.ComponentProps) {
+export default function ContactUs({
+  actionData,
+  loaderData: _loaderData,
+}: Route.ComponentProps) {
+  const { t } = useTranslation();
+
   // State for storing CAPTCHA tokens from both providers
   const [hcaptchaToken, setHcaptchaToken] = useState<string>("");
   const [turnstileToken, setTurnstileToken] = useState<string>("");
@@ -277,8 +285,7 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
     
     // Handle successful submission
     if (actionData?.success) {
-      // Show success message
-      toast.success("Email sent successfully");
+      toast.success(t("pages.contactUsPage.toastSuccess"));
       
       // Reset form and remove focus from inputs
       formRef.current?.reset();
@@ -293,7 +300,7 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
         toast.error(error.message);
       }
     }
-  }, [actionData]);
+  }, [actionData, t]);
   
   /**
    * Effect for delayed rendering of CAPTCHA widgets
@@ -318,15 +325,15 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col items-center gap-20">
       <div className="w-full">
-        <Breadcrumb items={[{ label: "문의하기" }]} />
+        <Breadcrumb items={[{ label: t("pages.contactUsPage.breadcrumb") }]} />
       </div>
       {/* Header section */}
       <div>
         <h1 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
-          Contact Us
+          {t("pages.contactUsPage.title")}
         </h1>
         <p className="text-muted-foreground mt-2 text-center font-medium md:text-lg">
-          This is a page to demo HCaptcha and Turnstile captchas.
+          {t("pages.contactUsPage.subtitle")}
         </p>
       </div>
 
@@ -339,14 +346,14 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
         {/* Name field */}
         <div className="flex flex-col items-start space-y-2">
           <Label htmlFor="name" className="flex flex-col items-start gap-1">
-            Name
+            {t("pages.contactUsPage.labelName")}
           </Label>
           <Input
             id="name"
             name="name"
             required
             type="text"
-            placeholder="Enter your name"
+            placeholder={t("pages.contactUsPage.placeholderName")}
           />
           {/* Display name field validation errors if any */}
           {actionData &&
@@ -359,14 +366,14 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
         {/* Email field */}
         <div className="flex flex-col items-start space-y-2">
           <Label htmlFor="email" className="flex flex-col items-start gap-1">
-            Email
+            {t("pages.contactUsPage.labelEmail")}
           </Label>
           <Input
             id="email"
             name="email"
             required
             type="email"
-            placeholder="Enter your email"
+            placeholder={t("pages.contactUsPage.placeholderEmail")}
           />
           {/* Display email field validation errors if any */}
           {actionData &&
@@ -379,13 +386,13 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
         {/* Message field */}
         <div className="flex flex-col items-start space-y-2">
           <Label htmlFor="message" className="flex flex-col items-start gap-1">
-            Message
+            {t("pages.contactUsPage.labelMessage")}
           </Label>
           <Textarea
             id="message"
             name="message"
             required
-            placeholder="Enter your message"
+            placeholder={t("pages.contactUsPage.placeholderMessage")}
             className="h-32 resize-none"
           />
           {/* Display message field validation errors if any */}
@@ -446,10 +453,7 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
 
         {/* Informational note about the dual CAPTCHA implementation */}
         <span className="text-center text-sm text-amber-500">
-          Note: This is a demo, you will not render two captchas at the same
-          time.
-          <br />
-          You will have to choose between HCaptcha and Turnstile.
+          {t("pages.contactUsPage.captchaNote")}
         </span>
 
         {/* Submit button - disabled until both CAPTCHAs are verified */}
@@ -457,7 +461,7 @@ export default function ContactUs({ actionData }: Route.ComponentProps) {
           type="submit"
           className="w-full"
           disabled={!hcaptchaToken || !turnstileToken}
-          label="Send"
+          label={t("pages.contactUsPage.send")}
         />
       </Form>
     </div>

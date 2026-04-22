@@ -1,7 +1,1188 @@
 export type Translation = {
+  common: {
+    metaTitleSuffix: string;
+    breadcrumbHome: string;
+  };
+  pages: {
+    resources: {
+      metaTitle: string;
+      title: string;
+      subtitle: string;
+      subtitleDetail: string;
+      mobileH1: string;
+      allTab: string;
+      emptySearch: string;
+      emptyList: string;
+      downloadAria: string;
+      paginationPrev: string;
+      paginationNext: string;
+      paginationPage: string;
+      categories: {
+        catalog: string;
+        companyIntro: string;
+        certificate: string;
+        other: string;
+      };
+    };
+    supportArticle: {
+      author: string;
+      views: string;
+      prev: string;
+      next: string;
+      noPrev: string;
+      noNext: string;
+      list: string;
+      attachment: string;
+    };
+    noticeList: {
+      metaTitle: string;
+      bannerTitle: string;
+      bannerSubtitle: string;
+      mobileH1: string;
+      emptySearch: string;
+      pinFallback: string;
+      paginationPrev: string;
+      paginationNext: string;
+      paginationPage: string;
+      categories: {
+        all: string;
+        notice: string;
+        guide: string;
+        event: string;
+      };
+    };
+    noticeDetail: {
+      bannerTitle: string;
+      bannerSubtitle: string;
+    };
+    gradeCertificateList: {
+      metaTitle: string;
+      bannerTitle: string;
+      bannerSubtitle: string;
+      mobileH1: string;
+      tabCurrent: string;
+      tabArchiveSuffix: string;
+      listNoticeParagraph: string;
+      listNoticePcLine1: string;
+      listNoticePcLine2: string;
+      typeAll: string;
+      typeLiquid: string;
+      typePack: string;
+      typeOther: string;
+      searchPlaceholder: string;
+      searchAria: string;
+      emptySearch: string;
+      conformityBadge: string;
+      attachAria: string;
+      downloadAria: string;
+      paginationPrev: string;
+      paginationNext: string;
+      paginationPage: string;
+    };
+    inquiryOnline: {
+      metaTitle: string;
+      breadcrumbPurchase: string;
+      breadcrumbCurrent: string;
+      heroTitle: string;
+      heroSubtitle: string;
+      b2cTitle: string;
+      b2cDesc: string;
+      b2cPoint1: string;
+      b2cPoint2: string;
+      b2cPoint3: string;
+      b2cPoint4: string;
+      b2cCta: string;
+      b2bTitle: string;
+      b2bDesc: string;
+      b2bPoint1: string;
+      b2bPoint2: string;
+      b2bPoint3: string;
+      b2bPoint4: string;
+      b2bCta: string;
+      contactHeading: string;
+      contactLead: string;
+      phoneTitle: string;
+      phoneHoursWeekday: string;
+      phoneHoursSaturday: string;
+      emailTitle: string;
+      emailLine1: string;
+      emailLine2: string;
+      visitTitle: string;
+      visitAddress: string;
+      visitNote: string;
+      visitCta: string;
+      formHeading: string;
+      formLead: string;
+      formName: string;
+      formPhone: string;
+      formEmail: string;
+      formType: string;
+      formMessage: string;
+      formPrivacy: string;
+      formSubmit: string;
+      placeholderName: string;
+      placeholderPhone: string;
+      placeholderEmail: string;
+      placeholderMessage: string;
+      typePlaceholder: string;
+      typeB2c: string;
+      typeB2b: string;
+      typeProduct: string;
+      typePartnership: string;
+    };
+    inquiryBulk: {
+      metaTitle: string;
+      breadcrumbPurchase: string;
+      breadcrumbCurrent: string;
+      badge: string;
+      heroTitle: string;
+      heroLead: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+      benefitsTitle: string;
+      benefitsLead: string;
+      benefitVolumeTitle: string;
+      benefitVolumeDesc: string;
+      benefitVolumeLi1: string;
+      benefitVolumeLi2: string;
+      benefitVolumeLi3: string;
+      benefitQualityTitle: string;
+      benefitQualityDesc: string;
+      benefitQualityLi1: string;
+      benefitQualityLi2: string;
+      benefitQualityLi3: string;
+      benefitDeliveryTitle: string;
+      benefitDeliveryDesc: string;
+      benefitDeliveryLi1: string;
+      benefitDeliveryLi2: string;
+      benefitDeliveryLi3: string;
+      categoriesTitle: string;
+      categoriesLead: string;
+      catCafeBadge: string;
+      catCafeTitle: string;
+      catCafeDesc: string;
+      catCafeP1: string;
+      catCafeP2: string;
+      catCafeP3: string;
+      catCafeCta: string;
+      catBakeryBadge: string;
+      catBakeryTitle: string;
+      catBakeryDesc: string;
+      catBakeryP1: string;
+      catBakeryP2: string;
+      catBakeryP3: string;
+      catBakeryCta: string;
+      catRestaurantBadge: string;
+      catRestaurantTitle: string;
+      catRestaurantDesc: string;
+      catRestaurantP1: string;
+      catRestaurantP2: string;
+      catRestaurantP3: string;
+      catRestaurantCta: string;
+      supportTitle: string;
+      supportLead: string;
+      dedicatedTitle: string;
+      dedicatedBody: string;
+      dedicatedLi1: string;
+      dedicatedLi2: string;
+      dedicatedLi3: string;
+      support247Title: string;
+      support247Body: string;
+      support247Li1: string;
+      support247Li2: string;
+      support247Li3: string;
+      finalTitle: string;
+      finalLead: string;
+      finalCtaPrimary: string;
+      finalCtaSecondary: string;
+    };
+    supportContact: {
+      metaTitle: string;
+      bannerTitle: string;
+      bannerSubtitle: string;
+      mobileH1: string;
+      hqTitle: string;
+      kakaoMap: string;
+      hqAddress: string;
+      hqAddressShort: string;
+      labelTel: string;
+      labelFax: string;
+      labelEmail: string;
+      labelHours: string;
+      emailNote24h: string;
+      hoursWeekday: string;
+      hoursClosedNote: string;
+      tabContact: string;
+      tabLookup: string;
+      successTitle: string;
+      successSubtitle: string;
+      newInquiryCta: string;
+      labelInquiryType: string;
+      requiredNote: string;
+      selectInquiryPlaceholder: string;
+      labelName: string;
+      placeholderName: string;
+      labelPhone: string;
+      placeholderPhone: string;
+      labelEmailField: string;
+      placeholderEmailLocal: string;
+      placeholderDomainCustom: string;
+      emailDomainCustom: string;
+      labelCompany: string;
+      placeholderCompany: string;
+      labelPassword: string;
+      placeholderPassword: string;
+      labelContent: string;
+      placeholderContent: string;
+      privacyCheckbox: string;
+      submitCta: string;
+      submittingCta: string;
+      errorGeneric: string;
+      lookupIntro: string;
+      lookupCta: string;
+      lookupSubmitting: string;
+      noLookupResults: string;
+      privacyAlert: string;
+      errorLookup: string;
+      inquiry: {
+        product: string;
+        delivery: string;
+        b2b: string;
+        quality: string;
+        refund: string;
+        other: string;
+      };
+      status: {
+        pending: string;
+        completed: string;
+      };
+    };
+    contactUsPage: {
+      metaTitle: string;
+      breadcrumb: string;
+      title: string;
+      subtitle: string;
+      labelName: string;
+      labelEmail: string;
+      labelMessage: string;
+      placeholderName: string;
+      placeholderEmail: string;
+      placeholderMessage: string;
+      captchaNote: string;
+      send: string;
+      captchaInvalid: string;
+      toastSuccess: string;
+    };
+    faq: {
+      metaTitle: string;
+      title: string;
+      subtitle: string;
+      mobileH1: string;
+      emptySearch: string;
+      ctaPrompt: string;
+      ctaLine1: string;
+      ctaLine2: string;
+      categories: {
+        all: string;
+        product: string;
+        delivery: string;
+        b2b: string;
+        quality: string;
+        general: string;
+      };
+    };
+    supportHub: {
+      metaTitle: string;
+      breadcrumb: string;
+      heroTitle: string;
+      heroLead: string;
+      heroChat: string;
+      heroPhone: string;
+      methodsTitle: string;
+      methodsLead: string;
+      phoneCardTitle: string;
+      phoneCardDesc: string;
+      phoneFreeBadge: string;
+      phoneHoursWeekday: string;
+      phoneHoursSaturday: string;
+      phoneClosed: string;
+      phoneCta: string;
+      emailCardTitle: string;
+      emailCardDesc: string;
+      emailBadge: string;
+      emailLi1: string;
+      emailLi2: string;
+      emailLi3: string;
+      emailCta: string;
+      chatCardTitle: string;
+      chatCardDesc: string;
+      chatLine: string;
+      chatBadge: string;
+      chatLi1: string;
+      chatLi2: string;
+      chatLi3: string;
+      chatCta: string;
+      faqTitle: string;
+      faqLead: string;
+      faqSearchPlaceholder: string;
+      inquiryTitle: string;
+      inquiryLead: string;
+      successTitle: string;
+      successBody: string;
+      formName: string;
+      formPhone: string;
+      formEmail: string;
+      formType: string;
+      formContent: string;
+      formPrivacy: string;
+      formSubmit: string;
+      formSubmitting: string;
+      placeholderName: string;
+      placeholderPhone: string;
+      placeholderEmail: string;
+      placeholderContent: string;
+      typePlaceholder: string;
+      formInquiry: {
+        order: string;
+        product: string;
+        delivery: string;
+        quality: string;
+        b2b: string;
+        other: string;
+      };
+      resourcesTitle: string;
+      resourcesLead: string;
+      resourceCatalogTitle: string;
+      resourceCatalogDesc: string;
+      resourceCatalogBody: string;
+      resourceManualTitle: string;
+      resourceManualDesc: string;
+      resourceManualBody: string;
+      resourceCertTitle: string;
+      resourceCertDesc: string;
+      resourceCertBody: string;
+      download: string;
+      errorSubmit: string;
+    };
+    products: {
+      shared: {
+        breadcrumbProducts: string;
+        mall: string;
+        viewDetail: string;
+        sortIconAlt: string;
+      };
+      all: {
+        metaTitle: string;
+        metaDescription: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        bannerSubtitleMobile: string;
+        ctaLearnMore: string;
+        categoryHeading: string;
+        categoryAll: string;
+        sortRecommended: string;
+        sortLatest: string;
+        sortName: string;
+        totalMobile: string;
+        totalDesktop: string;
+      };
+      grid: {
+        emptySearch: string;
+        prevPage: string;
+        nextPage: string;
+      };
+      detail: {
+        metaTitle: string;
+        metaDescriptionFallback: string;
+        buyMall: string;
+        productInfo: string;
+        detailHeading: string;
+        backToList: string;
+        categories: {
+          liquidEgg: string;
+          pudding: string;
+          convenience: string;
+          b2b: string;
+        };
+        specs: {
+          volume: string;
+          storage: string;
+          expiry: string;
+          origin: string;
+          ingredients: string;
+        };
+      };
+      categoryLiquid: {
+        breadcrumbLabel: string;
+        heroSub: string;
+      };
+      categoryPudding: {
+        breadcrumbLabel: string;
+        heroSub: string;
+        demoLead: string;
+        addToCart: string;
+        demos: {
+          p1: { name: string; description: string; price: string; category: string };
+          p2: { name: string; description: string; price: string; category: string };
+          p3: { name: string; description: string; price: string; category: string };
+          p4: { name: string; description: string; price: string; category: string };
+          p5: { name: string; description: string; price: string; category: string };
+          p6: { name: string; description: string; price: string; category: string };
+        };
+      };
+      categoryConvenience: {
+        breadcrumbLabel: string;
+        heroSub: string;
+      };
+      eggStory: {
+        metaTitle: string;
+        breadcrumb: string;
+        heroTitleMobile: string;
+        heroTitleDesktop: string;
+        heroLeadLine1: string;
+        heroLeadLine2: string;
+        heroLeadLine3: string;
+        heroLeadDesktopL1: string;
+        heroLeadDesktopL2: string;
+        badgeHealthy: string;
+        badgeTrust: string;
+        badgeEasy: string;
+        introH2: string;
+        introP1: string;
+        introP2: string;
+        introOverlayPrefix: string;
+        introOverlayAccent: string;
+        introDesktopP1: string;
+        introDesktopP2: string;
+        sectionStructureTitle: string;
+        nutrientsHeading: string;
+        foodUsesHeading: string;
+        foodUsesTagline: string;
+        pickTitle: string;
+        pickShellTitle: string;
+        pickShellDesc: string;
+        pickShellAlt: string;
+        pickChillTitle: string;
+        pickChillDesc: string;
+        pickChillAlt: string;
+        pickFreshTitle: string;
+        pickFreshDesc: string;
+        pickFreshAlt: string;
+        philosophyHeading: string;
+        journeyTitleMobile: string;
+        journeyTitleDesktopL1: string;
+        journeyTitleDesktopL2: string;
+        ctaTitle: string;
+        ctaSubtitle: string;
+        ctaButton: string;
+        imgCompleteFoodAlt: string;
+        imgGridAlt: string;
+        nutrients: {
+          p: { name: string; desc: string };
+          a: { name: string; desc: string };
+          d: { name: string; desc: string };
+          c: { name: string; desc: string };
+        };
+        parts: {
+          yolk: { title: string; desc: string };
+          white: { title: string; desc: string };
+          shell: { title: string; desc: string };
+          membrane: { title: string; desc: string };
+        };
+        foods: {
+          roll: { name: string; sub: string };
+          sandwich: { name: string; sub: string };
+          pudding: { name: string; sub: string };
+          salad: { name: string; sub: string };
+        };
+        philosophy: {
+          quality: { title: string; desc: string };
+          safety: { title: string; desc: string };
+          research: { title: string; desc: string };
+        };
+        steps: {
+          s1: { name: string; desc: string };
+          s2: { name: string; desc: string };
+          s3: { name: string; desc: string };
+          s4: { name: string; desc: string };
+        };
+      };
+    };
+    recipes: {
+      main: {
+        metaTitle: string;
+        metaDescription: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        pageHeading: string;
+        categoryAll: string;
+        sortRecommended: string;
+        sortLatest: string;
+        sortName: string;
+        totalMobile: string;
+        totalDesktop: string;
+        sortIconAlt: string;
+      };
+      sub: {
+        home: { heroTitle: string; heroSubtitle: string; breadcrumbCurrent: string };
+        cafe: { heroTitle: string; heroSubtitle: string; breadcrumbCurrent: string };
+        restaurant: { heroTitle: string; heroSubtitle: string; breadcrumbCurrent: string };
+      };
+      detail: {
+        metaTitle: string;
+        metaDescriptionFallback: string;
+        ingredients: string;
+        directions: string;
+        backToList: string;
+        categories: {
+          easy: string;
+          dessert: string;
+          restaurant: string;
+        };
+      };
+      grid: {
+        emptySearch: string;
+        prevPage: string;
+        nextPage: string;
+      };
+    };
+    events: {
+      list: {
+        metaTitle: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        breadcrumbPromo: string;
+        breadcrumbCurrent: string;
+        mobileH1: string;
+        tabs: {
+          all: string;
+          notice: string;
+          guide: string;
+          event: string;
+        };
+        empty: string;
+        venueOnline: string;
+        statusOngoing: string;
+        statusUpcoming: string;
+        statusEnded: string;
+        endedOverlay: string;
+        paginationPrev: string;
+        paginationNext: string;
+        paginationPage: string;
+      };
+      detail: {
+        metaTitle: string;
+        metaTitleFallback: string;
+        breadcrumbPromo: string;
+        breadcrumbList: string;
+        shareAria: string;
+        share: string;
+        period: string;
+        venue: string;
+        contact: string;
+        prev: string;
+        next: string;
+        noPrev: string;
+        noNext: string;
+        list: string;
+        badges: {
+          hot: string;
+          new: string;
+          ending_soon: string;
+          important: string;
+        };
+      };
+    };
+    news: {
+      metaTitle: string;
+      title: string;
+      subtitle: string;
+      detailSubtitle: string;
+      featuredHeading: string;
+      allHeading: string;
+      emptySearch: string;
+      types: {
+        press: string;
+        news: string;
+        announcement: string;
+        /** 홈 뉴스 피드 등에서 이벤트 배지용 */
+        event: string;
+      };
+      badges: {
+        award: string;
+        news: string;
+        press: string;
+      };
+      carouselPrev: string;
+      carouselNext: string;
+      slidePrev: string;
+      slideNext: string;
+      viewsPrefix: string;
+      share: string;
+    };
+    brand: {
+      intro: {
+        metaTitle: string;
+        heroBrandLine1: string;
+        heroBrandLine2: string;
+        /** PC/모바일 히어로 좌측 리드 (줄바꿈: \\n) */
+        heroSub: string;
+        slide30: string;
+        slide500: string;
+        slide50: string;
+        ceoTitle: string;
+        ceoQuote1: string;
+        ceoQuote2: string;
+        ceoBody1: string;
+        ceoBody2: string;
+        ceoBody3: string;
+        ceoPresidentAlt: string;
+        ceoRole: string;
+        ceoName: string;
+        /** 모바일 CEO 본문 (빈 줄은 \\n\\n) */
+        ceoBodyMobile: string;
+        philosophyLabel: string;
+        /** PC 경영철학 좌측 헤드라인 (\\n 줄바꿈) */
+        philosophyHeadline: string;
+        /** 모바일 경영철학 헤드라인 (\\n 줄바꿈) */
+        philosophyHeadlineMobile: string;
+        phCustomerT: string;
+        phCustomerD: string;
+        phQualityT: string;
+        phQualityD: string;
+        phEsgT: string;
+        phEsgD: string;
+        phInnovationT: string;
+        phInnovationD: string;
+        phGlobalT: string;
+        phGlobalD: string;
+        phPartnerT: string;
+        phPartnerD: string;
+        charTitle: string;
+        charSubtitle: string;
+        charSceneAlt: string;
+        ediName: string;
+        ediTagline: string;
+        ediGreeting: string;
+        ediAccent: string;
+        ediBody: string;
+        pudiName: string;
+        pudiTagline: string;
+        pudiGreeting: string;
+        pudiAccent: string;
+        pudiBody: string;
+        downloadLead: string;
+        downloadHeadline: string;
+        downloadKoLabel: string;
+        downloadEnLabel: string;
+        downloadSize: string;
+      };
+      history: {
+        metaTitle: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        mobileH1: string;
+        mobileLead: string;
+        sectionHeading: string;
+        imageAlt: string;
+        mobileHeroAlt: string;
+      };
+      location: {
+        metaTitle: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        mobileH1: string;
+        kakaoMap: string;
+        byCar: string;
+        byTransit: string;
+        labelAddress: string;
+        labelTel: string;
+        labelFax: string;
+        labelHours: string;
+        labelEmail: string;
+        /** 두 거점 공통 운영시간 표기 */
+        hoursWeekday: string;
+        mapTitle: string;
+        tabs: {
+          seoul: string;
+          hq: string;
+        };
+        seoul: {
+          transportTitle: string;
+          carLine1: string;
+          carHighlight: string;
+          carLine2: string;
+          /** 지하철 노선 뱃지(숫자) 바로 뒤에 붙는 문구 */
+          publicAfterBadge: string;
+        };
+        hq: {
+          transportTitle: string;
+          carLine1: string;
+          carHighlight: string;
+          carLine2: string;
+          publicTransit: string;
+        };
+      };
+      certifications: {
+        metaTitle: string;
+        breadcrumbCurrent: string;
+        heroAlt: string;
+        heroAltBanner: string;
+        heroTitle: string;
+        heroLeadMobile: string;
+        heroLeadDesktop: string;
+        sectionCertsTitle: string;
+        sectionCertsSubtitle: string;
+        certListAria: string;
+        tabAwards: string;
+        tabCerts: string;
+      };
+      factoryTour: {
+        metaTitle: string;
+        breadcrumbCurrent: string;
+        heroTitle: string;
+        heroSubtitle: string;
+        mobileSectionTitle: string;
+        factoryImageAlt: string;
+        desktopImageBadge: string;
+        scenesTitle: string;
+        tourInfo: {
+          factory: {
+            title: string;
+            line1Bold: string;
+            line2: string;
+          };
+          period: {
+            title: string;
+            line1Bold: string;
+            line2: string;
+          };
+          hours: {
+            title: string;
+            line1Bold: string;
+            line2: string;
+          };
+          audience: {
+            title: string;
+            line1Bold: string;
+            line2: string;
+          };
+          capacity: {
+            title: string;
+            line1Bold: string;
+            line2: string;
+          };
+          contact: {
+            title: string;
+            phone: string;
+          };
+        };
+        scenes: {
+          intro: string;
+          quality: string;
+          production: string;
+          tasting: string;
+        };
+        notices: {
+          n1: string;
+          n2: string;
+          n3: string;
+          n4: string;
+          n5: string;
+        };
+        form: {
+          applyTitle: string;
+          applyIntroMobile: string;
+          applyIntroDesktop: string;
+          cautionsTitle: string;
+          successTitle: string;
+          successSubtitle: string;
+          submit: string;
+          submitting: string;
+          privacy: string;
+          errorGeneric: string;
+          requiredHint: string;
+          emailCustom: string;
+          datePlaceholderMobile: string;
+          datePlaceholderDesktop: string;
+          datePickerPick: string;
+          dateManualHint: string;
+          dateExamplePlaceholder: string;
+          close: string;
+          visitTimeSelect: string;
+          visitTimeAm: string;
+          visitTimePm: string;
+          labels: {
+            organization: string;
+            managerName: string;
+            phone: string;
+            email: string;
+            visitDate: string;
+            visitTime: string;
+            participants: string;
+            purpose: string;
+            message: string;
+          };
+          placeholders: {
+            organization: string;
+            managerName: string;
+            phone: string;
+            emailLocal: string;
+            emailDomain: string;
+            participants: string;
+            purpose: string;
+            message: string;
+          };
+        };
+      };
+    };
+    careers: {
+      breadcrumb: string;
+      shared: {
+        jobType: {
+          full_time: string;
+          part_time: string;
+          contract: string;
+          intern: string;
+        };
+        expLevel: {
+          entry: string;
+          experienced: string;
+          senior: string;
+          all: string;
+        };
+      };
+      talent: {
+        metaTitle: string;
+        heroTitle: string;
+        heroSubtitle: string;
+        ceoTitle: string;
+        ceoQuote: string;
+        ceoCite: string;
+        growthTitle: string;
+        growthSubtitle: string;
+        traits: {
+          health: { title: string; description: string };
+          trust: { title: string; description: string };
+          innovation: { title: string; description: string };
+          sustainability: { title: string; description: string };
+        };
+        stories: {
+          a: { name: string; department: string; years: string; story: string };
+          b: { name: string; department: string; years: string; story: string };
+          c: { name: string; department: string; years: string; story: string };
+        };
+      };
+      benefits: {
+        metaTitle: string;
+        heroTitle: string;
+        heroSubtitle: string;
+        sectionBenefitsTitle: string;
+        sectionBenefitsSubtitle: string;
+        sectionWorkTitle: string;
+        sectionWorkSubtitle: string;
+        workIntroTitle: string;
+        workIntroImageCaption: string;
+        workIntroBody: string;
+        workInterviewTitle: string;
+        workInterviewQuote: string;
+        workInterviewCite: string;
+        detailSectionTitle: string;
+        detailHoursTitle: string;
+        detailHoursL1: string;
+        detailHoursL2: string;
+        detailHoursL3: string;
+        detailHoursL4: string;
+        detailEduTitle: string;
+        detailEduL1: string;
+        detailEduL2: string;
+        detailEduL3: string;
+        detailEduL4: string;
+        detailHealthTitle: string;
+        detailHealthL1: string;
+        detailHealthL2: string;
+        detailHealthL3: string;
+        detailHealthL4: string;
+        cards: {
+          insurance: { title: string; description: string };
+          education: { title: string; description: string };
+          family: { title: string; description: string };
+          meal: { title: string; description: string };
+          points: { title: string; description: string };
+          health: { title: string; description: string };
+        };
+      };
+      detail: {
+        metaTitle: string;
+        breadcrumbPostings: string;
+        backToList: string;
+        newBadge: string;
+        deadlineOpen: string;
+        requirementsTitle: string;
+        benefitsTitle: string;
+        processTitle: string;
+        applyTitle: string;
+        applyDeadlineLabel: string;
+        applyOnline: string;
+        applyTimeHint: string;
+        companyInfoTitle: string;
+        companyName: string;
+        companyIndustry: string;
+        labelFounded: string;
+        foundedValue: string;
+        labelHeadcount: string;
+        headcountUnit: string;
+        viewIntro: string;
+        contactTitle: string;
+        contactTeam: string;
+        contactHours: string;
+        contactLunch: string;
+        processSteps: {
+          s1: string;
+          s2: string;
+          s3: string;
+          s4: string;
+        };
+      };
+      apply: {
+        metaTitle: string;
+        breadcrumb: string;
+        backToPosting: string;
+        successTitle: string;
+        successBody: string;
+        receiptInfo: string;
+        receiptNo: string;
+        receiptAt: string;
+        otherPostings: string;
+        home: string;
+        step1: string;
+        step2: string;
+        step3: string;
+        step4: string;
+        step1Title: string;
+        step1Desc: string;
+        step2Title: string;
+        step2Desc: string;
+        step3Title: string;
+        step3Desc: string;
+        step4Title: string;
+        step4Desc: string;
+        labelName: string;
+        labelEmail: string;
+        labelPhone: string;
+        labelBirth: string;
+        labelAddress: string;
+        phName: string;
+        phAddress: string;
+        next: string;
+        prev: string;
+        eduHeading: string;
+        careerHeading: string;
+        labelEduLevel: string;
+        phSelect: string;
+        eduHigh: string;
+        eduCollege: string;
+        eduUniv: string;
+        eduMaster: string;
+        eduPhd: string;
+        labelSchool: string;
+        labelMajor: string;
+        labelGradMonth: string;
+        careerType: string;
+        careerFresh: string;
+        careerExp: string;
+        labelCurrentCompany: string;
+        labelCurrentRole: string;
+        military: string;
+        milDone: string;
+        milExempt: string;
+        milNa: string;
+        labelMotivation: string;
+        phMotivation: string;
+        uploadTitle: string;
+        uploadDesc: string;
+        labelResume: string;
+        labelCl: string;
+        labelPortfolio: string;
+        uploadDrop: string;
+        chooseFile: string;
+        summaryTitle: string;
+        summaryName: string;
+        summaryEmail: string;
+        summaryPhone: string;
+        summaryCareer: string;
+        summaryFresh: string;
+        summaryExp: string;
+        summaryFiles: string;
+        fileResume: string;
+        fileCl: string;
+        filePortfolio: string;
+        privacyRequired: string;
+        privacyHint: string;
+        marketingOptional: string;
+        marketingHint: string;
+        submit: string;
+        submitting: string;
+        errors: { invalidJob: string; submitFailed: string };
+      };
+      positions: {
+        metaTitle: string;
+        bannerTitle: string;
+        bannerSubtitle: string;
+        breadcrumbCareers: string;
+        breadcrumbCurrent: string;
+        recruitSummaryAria: string;
+        sectionKeyJobs: string;
+        sectionProcess: string;
+        sectionPostings: string;
+        sectionBenefits: string;
+        benefitsFootnote: string;
+        tabAll: string;
+        tabList: string;
+        tabApply: string;
+        emptyFiltered: string;
+        applyButton: string;
+        expand: string;
+        collapse: string;
+        detailsDuties: string;
+        detailsRequirements: string;
+        filterOptionsAria: string;
+        emailDirectInput: string;
+        jobStatus: { open: string; closing: string; always: string };
+        filters: {
+          job: {
+            all: string;
+            production: string;
+            office: string;
+            sales: string;
+            marketing: string;
+            it: string;
+          };
+          exp: {
+            all: string;
+            entry: string;
+            experienced: string;
+            both: string;
+          };
+          region: {
+            all: string;
+            seoul: string;
+            chungbuk: string;
+            chungnam: string;
+            jeonbuk: string;
+          };
+          status: {
+            all: string;
+            open: string;
+            closing: string;
+            always: string;
+          };
+        };
+        keyJobs: {
+          production: { label: string; desc: string };
+          management: { label: string; desc: string };
+          scm: { label: string; desc: string };
+          quality: { label: string; desc: string };
+          marketing: { label: string; desc: string };
+          tech: { label: string; desc: string };
+        };
+        keyJobTags: { t1: string; t2: string; t3: string; t4: string };
+        process: {
+          step1: {
+            title: string;
+            desc: string;
+            mobile1: string;
+            mobile2: string;
+          };
+          step2: { title: string; desc: string };
+          step3: {
+            title: string;
+            desc: string;
+            mobile1: string;
+            mobile2: string;
+          };
+          step4: {
+            title: string;
+            desc: string;
+            mobile1: string;
+            mobile2: string;
+          };
+        };
+        benefitsStrip: {
+          meal: string;
+          car: string;
+          insurance: string;
+          week5: string;
+          annual: string;
+          holiday: string;
+          family: string;
+          growth: string;
+        };
+        form: {
+          title: string;
+          submittedTitle: string;
+          submittedBody: string;
+          requiredHint: string;
+          basicInfo: string;
+          name: string;
+          phone: string;
+          contactPlaceholder: string;
+          email: string;
+          emailLocalPh: string;
+          emailDomainPh: string;
+          gender: string;
+          genderMale: string;
+          genderFemale: string;
+          education: string;
+          schoolName: string;
+          schoolPlaceholder: string;
+          major: string;
+          majorPlaceholder: string;
+          gradYear: string;
+          careersSection: string;
+          careersMaxHint: string;
+          add: string;
+          careersEmptyHint: string;
+          company: string;
+          companyPlaceholder: string;
+          duty: string;
+          dutyPlaceholder: string;
+          period: string;
+          currentlyEmployed: string;
+          qualificationsSection: string;
+          certifications: string;
+          certificationsPh: string;
+          languageScores: string;
+          languageScoresPh: string;
+          attachments: string;
+          resume: string;
+          resumeHintPc: string;
+          resumeHintMobileLine1: string;
+          resumeHintMobileLine2: string;
+          portfolio: string;
+          portfolioHintPc: string;
+          portfolioHintMobileLine1: string;
+          portfolioHintMobileLine2: string;
+          coverLetterSection: string;
+          coverLetterLabel: string;
+          coverLetterPh: string;
+          coverLetterLegal: string;
+          submitButton: string;
+        };
+      };
+    };
+  };
   home: {
+    /** `<title>` / OG 등 메인 페이지 메타 제목 */
+    metaTitle: string;
     title: string;
     subtitle: string;
+    companyIntro: {
+      defaultTitle: string;
+      videoAriaLabel: string;
+      factoryImageAlt: string;
+      learnMore: string;
+    };
     hero: {
       title1: string;
       title2: string;
@@ -10,6 +1191,20 @@ export type Translation = {
       exploreProducts: string;
       aboutUs: string;
       altText: string;
+      slidePrev: string;
+      slideNext: string;
+      /** CMS 배너 없을 때 히어로 목업 슬라이드 (이미지 경로는 코드 고정) */
+      mockSlide0: { category: string; title1: string; title2: string };
+      mockSlide1: { category: string; title1: string; title2: string };
+      mockSlide2: { category: string; title1: string; title2: string };
+      mockSlide3: { category: string; title1: string; title2: string };
+      mockSlide4: { category: string; title1: string; title2: string };
+    };
+    brandPhilosophy: {
+      tagHealthy: string;
+      tagConvenient: string;
+      tagTrustworthy: string;
+      subtitle: string;
     };
     values: {
       title: string;
@@ -25,10 +1220,29 @@ export type Translation = {
       subtitle1: string;
       subtitle2: string;
       viewAll: string;
+      /** 헤더 우측 짧은 링크 텍스트 (예: 전체보기) */
+      viewAllLink: string;
+      viewAllAria: string;
+      carouselPrev: string;
+      carouselNext: string;
       learnMore: string;
       product1: { name: string; category: string; description: string };
       product2: { name: string; category: string; description: string };
       product3: { name: string; category: string; description: string };
+      /** DB 없을 때 가로 스크롤 목업 카드 (이미지·배지는 코드 고정) */
+      mocks: ReadonlyArray<{
+        name: string;
+        category: string;
+        description: string;
+      }>;
+    };
+    newsFeed: {
+      titleLine1: string;
+      titleLine2: string;
+      viewAllLink: string;
+      viewAllAria: string;
+      carouselPrev: string;
+      carouselNext: string;
     };
     recipes: {
       title: string;
@@ -44,6 +1258,10 @@ export type Translation = {
       subtitle1: string;
       subtitle2: string;
       follow: string;
+      /** i18next 보간: {{id}} */
+      postAlt: string;
+      carouselPrev: string;
+      carouselNext: string;
     };
     eventBanner: {
       title1: string;
@@ -59,7 +1277,6 @@ export type Translation = {
   navigation: {
     en: string;
     kr: string;
-    es: string;
     mall: string;
     brand: {
       title: string;
@@ -67,6 +1284,7 @@ export type Translation = {
       history: string;
       certifications: string;
       factoryTour: string;
+      location: string;
     };
     products: {
       title: string;
@@ -99,6 +1317,81 @@ export type Translation = {
       benefits: string;
       talent: string;
     };
+    mega: {
+      company: string;
+      products: string;
+      promo: string;
+      support: string;
+    };
+    links: {
+      eggStory: string;
+      productBrowse: string;
+      pressReleases: string;
+      eggSafety: string;
+      gradeCertificate: string;
+      contact: string;
+      notice: string;
+      resources: string;
+      faq: string;
+    };
+  };
+  footer: {
+    customerServiceLabel: string;
+    customerServiceHours: string;
+    hqLabel: string;
+    hqAddress: string;
+    hqTelFax: string;
+    hqMobileBlock: string;
+    seoulLabel: string;
+    seoulAddress: string;
+    seoulTelFax: string;
+    seoulMobileBlock: string;
+    customerServiceMobileBlock: string;
+  };
+  search: {
+    hint: string;
+    placeholder: string;
+    ariaSubmit: string;
+    ariaCloseOverlay: string;
+    ariaCloseBar: string;
+    ariaClear: string;
+    metaTitle: string;
+    metaTitleQuery: string;
+    breadcrumb: string;
+    noResultsTitle: string;
+    noResultsHint: string;
+    tipTitle: string;
+    tipBody: string;
+    viewAllProducts: string;
+    resultsTitle: string;
+    resultsLineMobile: string;
+    resultsLineDesktop: string;
+    sectionProducts: string;
+    sectionRecipes: string;
+    sectionNews: string;
+    sectionFaq: string;
+    mallBadge: string;
+  };
+  navChrome: {
+    mall: string;
+    mallFull: string;
+    orderSystem: string;
+    goHome: string;
+    closeMenu: string;
+    mainMenuTitle: string;
+    previousScreen: string;
+    openSearch: string;
+    brandAlt: string;
+  };
+  detailNav: {
+    productList: string;
+    recipes: string;
+    notices: string;
+    resources: string;
+    gradeCert: string;
+    press: string;
+    event: string;
+    eggStory: string;
   };
   admin: {
     login: {

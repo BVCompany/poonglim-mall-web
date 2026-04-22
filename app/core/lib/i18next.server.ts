@@ -8,7 +8,7 @@
  *
  * The configuration includes:
  * - Cookie-based language preference storage with proper security settings
- * - Support for multiple languages (English, Spanish, Korean)
+ * - Korean and English (storefront)
  * - In-memory translation resources for each supported language
  * - Integration with Remix for server-side rendering
  *
@@ -23,7 +23,6 @@ import { RemixI18Next } from "remix-i18next/server";
 import i18n from "~/i18n";
 // Import translation resources for each supported language
 import en from "~/locales/en";
-import es from "~/locales/es";
 import ko from "~/locales/ko";
 
 /**
@@ -67,15 +66,9 @@ const i18next = new RemixI18Next({
     ...i18n,
     // In-memory translation resources for each supported language
     resources: {
-      // English translations
       en: {
         common: en,
       },
-      // Spanish translations
-      es: {
-        common: es,
-      },
-      // Korean translations
       ko: {
         common: ko,
       },

@@ -29,6 +29,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
@@ -38,26 +39,83 @@ import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import { getOpenJobPostings } from "../lib/queries.server";
+import i18next from "~/core/lib/i18next.server";
 
 /* ── 타입 ── */
-type MainTab = "전체공고" | "채용공고" | "입사지원";
+type MainTab = "all" | "list" | "apply";
 
-/* ── 드롭다운 필터 옵션 ── */
-const FILTER_JOBS = [
-  "전체직무",
-  "생산직",
-  "사무직",
-  "영업직",
-  "마케팅",
-  "IT개발",
+const JOB_FILTER_KEYS = [
+  "all",
+  "production",
+  "office",
+  "sales",
+  "marketing",
+  "it",
 ] as const;
-const FILTER_EXP = ["전체 경력", "신입", "경력", "신입/경력"] as const;
-const FILTER_REGION = ["전체 지역", "서울", "충북", "충남", "전북"] as const;
-const FILTER_STATUS = ["전체 상태", "모집중", "마감임박", "상시채용"] as const;
+type JobFilterKey = (typeof JOB_FILTER_KEYS)[number];
 
-/** 입사지원·공장견학과 동일한 메일 도메인 프리셋 */
+const EXP_FILTER_KEYS = ["all", "entry", "experienced", "both"] as const;
+type ExpFilterKey = (typeof EXP_FILTER_KEYS)[number];
+
+const REGION_FILTER_KEYS = [
+  "all",
+  "seoul",
+  "chungbuk",
+  "chungnam",
+  "jeonbuk",
+] as const;
+type RegionFilterKey = (typeof REGION_FILTER_KEYS)[number];
+
+const STATUS_FILTER_KEYS = ["all", "open", "closing", "always"] as const;
+type StatusFilterKey = (typeof STATUS_FILTER_KEYS)[number];
+
+type JobStatusStyleKey = "open" | "closing" | "always";
+
+type DisplayJob = {
+  id: number;
+  dept: string;
+  deptKey: JobFilterKey;
+  title: string;
+  type: string;
+  typeKey: "full_time" | "part_time" | "contract" | "intern";
+  exp: string;
+  expKey: ExpFilterKey;
+  region: string;
+  regionKey: RegionFilterKey;
+  createdAt: string;
+  status: string;
+  statusKey: JobStatusStyleKey;
+  duties: string[];
+  requirements: string[];
+};
+
+function inferDeptKey(dept: string): JobFilterKey {
+  const s = dept.trim();
+  if (/생산|production/i.test(s)) return "production";
+  if (/사무|경영|인사|office|admin|support/i.test(s)) return "office";
+  if (/영업|sales/i.test(s)) return "sales";
+  if (/마케팅|marketing/i.test(s)) return "marketing";
+  if (/IT|개발|developer|engineering/i.test(s)) return "it";
+  return "all";
+}
+
+function inferRegionKey(region: string): RegionFilterKey {
+  const s = region.trim();
+  if (/서울|seoul/i.test(s)) return "seoul";
+  if (/충북|진천|chungbuk|jincheon/i.test(s)) return "chungbuk";
+  if (/충남|chungnam/i.test(s)) return "chungnam";
+  if (/전북|jeonbuk|jeonju/i.test(s)) return "jeonbuk";
+  return "seoul";
+}
+
+function expKeyFromDb(level: string): ExpFilterKey {
+  if (level === "entry") return "entry";
+  if (level === "all") return "both";
+  return "experienced";
+}
+
+/** 입사지원·공장견학과 동일한 메일 도메인 프리셋(직접입력은 i18n) */
 const JOB_APPLY_EMAIL_DOMAINS = [
-  "직접입력",
   "gmail.com",
   "naver.com",
   "kakao.com",
@@ -72,11 +130,6 @@ const JOB_APPLY_EMAIL_DOMAINS = [
 const MOBILE_CAREERS_FILTER_FLOAT_OFFSET_Y = 6;
 /** 모바일 채용 필터 플로팅 패널 가로 너비(px) */
 const MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX = 100;
-
-/** 필터 버튼 표기 (시안: 전체 직무 등) */
-function formatJobFilterDisplay(v: string) {
-  return v === "전체직무" ? "전체 직무" : v;
-}
 
 /** 모바일 필터 트리거 라벨: Pretendard 12px / 500 (시안) */
 const careersFilterDropdownFont =
@@ -170,6 +223,7 @@ function CareersFilterDropdownFloating<T extends string>({
   onPick,
   onClose,
   layout = "pc",
+  listboxAriaLabel = "Filter options",
 }: {
   currentValue: T;
   options: readonly T[];
@@ -177,6 +231,7 @@ function CareersFilterDropdownFloating<T extends string>({
   onPick: (v: T) => void;
   onClose: () => void;
   layout?: "pc" | "mobileOptions";
+  listboxAriaLabel?: string;
 }) {
   const rowPad =
     "px-[clamp(14px,calc(18*100vw/1920),18px)] py-[clamp(12px,calc(16*100vw/1920),16px)] max-lg:px-4 max-lg:py-[14px]";
@@ -205,7 +260,7 @@ function CareersFilterDropdownFloating<T extends string>({
           "shadow-[0_4px_20px_rgba(0,0,0,0.15)]",
         )}
         role="listbox"
-        aria-label="필터 옵션"
+        aria-label={listboxAriaLabel}
       >
         {others.map((opt) => (
           <button
@@ -291,53 +346,6 @@ function CareersFilterDropdownFloating<T extends string>({
   );
 }
 
-type JobFilter = (typeof FILTER_JOBS)[number];
-type ExpFilter = (typeof FILTER_EXP)[number];
-type RegionFilter = (typeof FILTER_REGION)[number];
-type StatusFilter = (typeof FILTER_STATUS)[number];
-
-/* ── 주요 모집 직무 (public/recruit/ 아이콘) ── */
-const KEY_JOBS = [
-  {
-    icon: "/recruit/prod_icon.png",
-    label: "생산·현장직",
-    desc: "생산관리, 지게차, SCM 현장",
-  },
-  {
-    icon: "/recruit/manage_icon.png",
-    label: "경영지원",
-    desc: "인사총무, 기획, 회계",
-  },
-  {
-    icon: "/recruit/dis_icon.png",
-    label: "SCM·물류",
-    desc: "물류관리, 자재, 구매",
-  },
-  {
-    icon: "/recruit/research_icon.png",
-    label: "품질·연구",
-    desc: "품질보증, 공정관리, 연구소",
-  },
-  {
-    icon: "/recruit/marketing_icon.png",
-    label: "마케팅",
-    desc: "브랜드, 온라인, 콘텐츠",
-  },
-  {
-    icon: "/recruit/skill_icon.png",
-    label: "기술·설비",
-    desc: "기계, 전기, 환경안전",
-  },
-];
-
-/** 주요 모집 직무 섹션 하단 요약 태그 (시안: 12px / -2% / medium) */
-const KEY_JOB_SUMMARY_TAGS = [
-  "신입·경력 혼합",
-  "고졸자~대졸자 다양",
-  "충북 진천 중심",
-  "서울 일부(연구소)",
-] as const;
-
 /* ── 채용 절차 (모바일 시안: 카드 gap 10 · 내부 gap 20 · 좌 140px 고정, 4단계만 제목 행 유동) ── */
 type CareerStep = {
   title: string;
@@ -352,51 +360,21 @@ type CareerStep = {
   titleRowFluid?: boolean;
 };
 
-const STEPS: CareerStep[] = [
-  {
-    title: "서류 전형",
-    desc: "홈페이지 내 이력서 + 자기소개서 업로드",
-    descMobileLines: ["홈페이지 내 이력서", "+ 자기소개서 업로드"],
-  },
-  { title: "1차 면접", desc: "팀장급 직무 면접" },
-  {
-    title: "2차 면접",
-    desc: "임원 면접 (직급에 따라 생략 가능)",
-    descMobileLines: ["임원 면접", "(직급에 따라 생략 가능)"],
-    descMobileLine2ClassName:
-      "font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[21px] text-[#1F2121]/60 break-words",
-  },
-  {
-    title: "최종 합격·입사",
-    desc: "처우 협의 후 입사 일정 확정",
-    descMobileLines: ["처우 협의 후", "입사 일정 확정"],
-    titleRowFluid: true,
-  },
-];
-
-/* ── 복리후생 (PC 시안 순서: 식사 → 차량 → 4대보험 → 주5일 → 연차 → 명절 → 경조사 → 자기개발) ── */
-const BENEFITS = [
-  { icon: "/recruit/fi-rr-utensils.png", title: "식사제공" },
-  { icon: "/recruit/fi-rr-school-bus.png", title: "차량유지비" },
-  { icon: "/recruit/Vector.png", title: "4대보험" },
-  { icon: "/recruit/Vector-1.png", title: "주 5일 근무" },
-  { icon: "/recruit/Vector-2.png", title: "연차휴가" },
-  { icon: "/recruit/Vector-3.png", title: "명절 상여" },
-  { icon: "/recruit/Vector-4.png", title: "경조사 지원" },
-  { icon: "/recruit/Vector-5.png", title: "자기개발 지원" },
-];
-
-/* ── 더미 채용공고 ── */
-const MOCK_JOBS = [
+const MOCK_JOBS_KO: DisplayJob[] = [
   {
     id: 1,
     dept: "생산직",
+    deptKey: "production",
     title: "생산관리 담당자",
     type: "정규직",
+    typeKey: "full_time",
     exp: "경력 3년 이상",
+    expKey: "experienced",
     region: "충북 진천",
+    regionKey: "chungbuk",
     createdAt: "2026-02-18",
-    status: "모집중" as const,
+    status: "모집중",
+    statusKey: "open",
     duties: [
       "생산 라인 관리 및 공정 개선",
       "생산 계획 수립 및 실적 관리",
@@ -411,12 +389,17 @@ const MOCK_JOBS = [
   {
     id: 2,
     dept: "생산직",
+    deptKey: "production",
     title: "품질관리 담당자",
     type: "정규직",
+    typeKey: "full_time",
     exp: "신입/경력",
+    expKey: "both",
     region: "충북 진천",
+    regionKey: "chungbuk",
     createdAt: "2026-02-18",
-    status: "모집중" as const,
+    status: "모집중",
+    statusKey: "open",
     duties: [
       "원자재·완제품 품질 검사",
       "불량 원인 분석 및 개선",
@@ -431,12 +414,17 @@ const MOCK_JOBS = [
   {
     id: 3,
     dept: "사무직",
+    deptKey: "office",
     title: "경영지원 담당자",
     type: "정규직",
+    typeKey: "full_time",
     exp: "경력 1-3년",
+    expKey: "experienced",
     region: "서울",
+    regionKey: "seoul",
     createdAt: "2026-02-18",
-    status: "상시채용" as const,
+    status: "상시채용",
+    statusKey: "always",
     duties: [
       "인사·총무 업무 전반",
       "임직원 복리후생 운영",
@@ -451,12 +439,17 @@ const MOCK_JOBS = [
   {
     id: 4,
     dept: "영업직",
+    deptKey: "sales",
     title: "영업관리 담당자",
     type: "정규직",
+    typeKey: "full_time",
     exp: "경력 3년 이상",
+    expKey: "experienced",
     region: "서울",
+    regionKey: "seoul",
     createdAt: "2026-02-18",
-    status: "마감임박" as const,
+    status: "마감임박",
+    statusKey: "closing",
     duties: ["B2B 고객사 관리", "신규 거래처 개발", "영업 실적 분석·보고"],
     requirements: [
       "영업 경력 3년 이상",
@@ -467,12 +460,17 @@ const MOCK_JOBS = [
   {
     id: 5,
     dept: "마케팅",
+    deptKey: "marketing",
     title: "마케팅 전문가",
     type: "정규직",
+    typeKey: "full_time",
     exp: "경력 3-5년",
+    expKey: "experienced",
     region: "충남",
+    regionKey: "chungnam",
     createdAt: "2026-02-18",
-    status: "모집중" as const,
+    status: "모집중",
+    statusKey: "open",
     duties: [
       "브랜드 마케팅 전략 수립",
       "디지털 캠페인 운영",
@@ -486,32 +484,271 @@ const MOCK_JOBS = [
   },
 ];
 
-export const meta: Route.MetaFunction = () => [
-  { title: "채용안내 | 풍림푸드" },
+const MOCK_JOBS_EN: DisplayJob[] = [
+  {
+    id: 1,
+    dept: "Production",
+    deptKey: "production",
+    title: "Production supervisor",
+    type: "Full-time",
+    typeKey: "full_time",
+    exp: "3+ years",
+    expKey: "experienced",
+    region: "Jincheon, Chungbuk",
+    regionKey: "chungbuk",
+    createdAt: "2026-02-18",
+    status: "Open",
+    statusKey: "open",
+    duties: [
+      "Line operations and process improvement",
+      "Production planning and KPI tracking",
+      "Quality and safety management",
+    ],
+    requirements: [
+      "3+ years in a related field",
+      "Food manufacturing experience preferred",
+      "HACCP-related certification preferred",
+    ],
+  },
+  {
+    id: 2,
+    dept: "Production",
+    deptKey: "production",
+    title: "Quality control specialist",
+    type: "Full-time",
+    typeKey: "full_time",
+    exp: "Entry / experienced",
+    expKey: "both",
+    region: "Jincheon, Chungbuk",
+    regionKey: "chungbuk",
+    createdAt: "2026-02-18",
+    status: "Open",
+    statusKey: "open",
+    duties: [
+      "Raw/finished goods inspection",
+      "Root-cause analysis for defects",
+      "Quality documentation",
+    ],
+    requirements: [
+      "Food engineering major preferred",
+      "HACCP certification preferred",
+      "Basic Excel skills",
+    ],
+  },
+  {
+    id: 3,
+    dept: "Office",
+    deptKey: "office",
+    title: "Corporate support specialist",
+    type: "Full-time",
+    typeKey: "full_time",
+    exp: "1–3 years",
+    expKey: "experienced",
+    region: "Seoul",
+    regionKey: "seoul",
+    createdAt: "2026-02-18",
+    status: "Always hiring",
+    statusKey: "always",
+    duties: [
+      "HR and general affairs",
+      "Employee benefits programs",
+      "Contracts and documentation",
+    ],
+    requirements: [
+      "1+ years of related experience",
+      "Proficient in Microsoft Office",
+      "Detail-oriented and responsible",
+    ],
+  },
+  {
+    id: 4,
+    dept: "Sales",
+    deptKey: "sales",
+    title: "Sales operations specialist",
+    type: "Full-time",
+    typeKey: "full_time",
+    exp: "3+ years",
+    expKey: "experienced",
+    region: "Seoul",
+    regionKey: "seoul",
+    createdAt: "2026-02-18",
+    status: "Closing soon",
+    statusKey: "closing",
+    duties: [
+      "B2B account management",
+      "New business development",
+      "Sales reporting and analysis",
+    ],
+    requirements: [
+      "3+ years in sales",
+      "Food or distribution experience preferred",
+      "Valid driver’s license",
+    ],
+  },
+  {
+    id: 5,
+    dept: "Marketing",
+    deptKey: "marketing",
+    title: "Marketing specialist",
+    type: "Full-time",
+    typeKey: "full_time",
+    exp: "3–5 years",
+    expKey: "experienced",
+    region: "Chungnam",
+    regionKey: "chungnam",
+    createdAt: "2026-02-18",
+    status: "Open",
+    statusKey: "open",
+    duties: [
+      "Brand marketing strategy",
+      "Digital campaign operations",
+      "SNS and content production",
+    ],
+    requirements: [
+      "3+ years in marketing",
+      "Digital marketing experience",
+      "Photoshop / Illustrator skills preferred",
+    ],
+  },
+];
+
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle ?? "" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const [dbJobs, pageBanner] = await Promise.all([
     getOpenJobPostings().catch(() => [] as DbJobPosting[]),
     getPageBanner("careers").catch(() => null),
   ]);
-  return { dbJobs, pageBanner };
+  return {
+    dbJobs,
+    pageBanner,
+    metaTitle: t("pages.careers.positions.metaTitle"),
+  };
 }
 
 export default function CareersPositionsScreen({
   loaderData,
 }: Route.ComponentProps) {
   const { dbJobs, pageBanner } = loaderData;
+  const { t, i18n } = useTranslation();
 
-  const [mainTab, setMainTab] = useState<MainTab>("전체공고");
+  const labelJobFilter = useCallback(
+    (k: JobFilterKey) => t(`pages.careers.positions.filters.job.${k}`),
+    [t],
+  );
+  const labelExpFilter = useCallback(
+    (k: ExpFilterKey) => t(`pages.careers.positions.filters.exp.${k}`),
+    [t],
+  );
+  const labelRegionFilter = useCallback(
+    (k: RegionFilterKey) => t(`pages.careers.positions.filters.region.${k}`),
+    [t],
+  );
+  const labelStatusFilter = useCallback(
+    (k: StatusFilterKey) => t(`pages.careers.positions.filters.status.${k}`),
+    [t],
+  );
+
+  const keyJobsUi = useMemo(
+    () => [
+      {
+        icon: "/recruit/prod_icon.png",
+        label: t("pages.careers.positions.keyJobs.production.label"),
+        desc: t("pages.careers.positions.keyJobs.production.desc"),
+      },
+      {
+        icon: "/recruit/manage_icon.png",
+        label: t("pages.careers.positions.keyJobs.management.label"),
+        desc: t("pages.careers.positions.keyJobs.management.desc"),
+      },
+      {
+        icon: "/recruit/dis_icon.png",
+        label: t("pages.careers.positions.keyJobs.scm.label"),
+        desc: t("pages.careers.positions.keyJobs.scm.desc"),
+      },
+      {
+        icon: "/recruit/research_icon.png",
+        label: t("pages.careers.positions.keyJobs.quality.label"),
+        desc: t("pages.careers.positions.keyJobs.quality.desc"),
+      },
+      {
+        icon: "/recruit/marketing_icon.png",
+        label: t("pages.careers.positions.keyJobs.marketing.label"),
+        desc: t("pages.careers.positions.keyJobs.marketing.desc"),
+      },
+      {
+        icon: "/recruit/skill_icon.png",
+        label: t("pages.careers.positions.keyJobs.tech.label"),
+        desc: t("pages.careers.positions.keyJobs.tech.desc"),
+      },
+    ],
+    [t],
+  );
+
+  const keyJobSummaryTags = useMemo(
+    () => [
+      t("pages.careers.positions.keyJobTags.t1"),
+      t("pages.careers.positions.keyJobTags.t2"),
+      t("pages.careers.positions.keyJobTags.t3"),
+      t("pages.careers.positions.keyJobTags.t4"),
+    ],
+    [t],
+  );
+
+  const stepsUi = useMemo((): CareerStep[] => {
+    const p = (k: string) => `pages.careers.positions.process.${k}`;
+    return [
+      {
+        title: t(`${p("step1")}.title`),
+        desc: t(`${p("step1")}.desc`),
+        descMobileLines: [t(`${p("step1")}.mobile1`), t(`${p("step1")}.mobile2`)] as const,
+      },
+      {
+        title: t(`${p("step2")}.title`),
+        desc: t(`${p("step2")}.desc`),
+      },
+      {
+        title: t(`${p("step3")}.title`),
+        desc: t(`${p("step3")}.desc`),
+        descMobileLines: [t(`${p("step3")}.mobile1`), t(`${p("step3")}.mobile2`)] as const,
+        descMobileLine2ClassName:
+          "font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[21px] text-[#1F2121]/60 break-words",
+      },
+      {
+        title: t(`${p("step4")}.title`),
+        desc: t(`${p("step4")}.desc`),
+        descMobileLines: [t(`${p("step4")}.mobile1`), t(`${p("step4")}.mobile2`)] as const,
+        titleRowFluid: true,
+      },
+    ];
+  }, [t]);
+
+  const benefitsStrip = useMemo(
+    () => [
+      { icon: "/recruit/fi-rr-utensils.png", title: t("pages.careers.positions.benefitsStrip.meal") },
+      { icon: "/recruit/fi-rr-school-bus.png", title: t("pages.careers.positions.benefitsStrip.car") },
+      { icon: "/recruit/Vector.png", title: t("pages.careers.positions.benefitsStrip.insurance") },
+      { icon: "/recruit/Vector-1.png", title: t("pages.careers.positions.benefitsStrip.week5") },
+      { icon: "/recruit/Vector-2.png", title: t("pages.careers.positions.benefitsStrip.annual") },
+      { icon: "/recruit/Vector-3.png", title: t("pages.careers.positions.benefitsStrip.holiday") },
+      { icon: "/recruit/Vector-4.png", title: t("pages.careers.positions.benefitsStrip.family") },
+      { icon: "/recruit/Vector-5.png", title: t("pages.careers.positions.benefitsStrip.growth") },
+    ],
+    [t],
+  );
+
+  const [mainTab, setMainTab] = useState<MainTab>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const jobsSectionRef = useRef<HTMLElement>(null);
 
   /* ── 4개 드롭다운 필터 ── */
-  const [jobFilter, setJobFilter] = useState<JobFilter>("전체직무");
-  const [expFilter, setExpFilter] = useState<ExpFilter>("전체 경력");
-  const [regionFilter, setRegionFilter] = useState<RegionFilter>("전체 지역");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("전체 상태");
+  const [jobFilter, setJobFilter] = useState<JobFilterKey>("all");
+  const [expFilter, setExpFilter] = useState<ExpFilterKey>("all");
+  const [regionFilter, setRegionFilter] = useState<RegionFilterKey>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterKey>("all");
 
   /* 어떤 드롭다운이 열려있는지 */
   const [openDropdown, setOpenDropdown] = useState<
@@ -594,63 +831,49 @@ export default function CareersPositionsScreen({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const jobs = useMemo(() => {
-    if (loaderData.dbJobs.length === 0) return MOCK_JOBS;
+  const jobs = useMemo((): DisplayJob[] => {
+    if (loaderData.dbJobs.length === 0) {
+      return i18n.language?.startsWith("en") ? MOCK_JOBS_EN : MOCK_JOBS_KO;
+    }
     return loaderData.dbJobs.map((j) => {
-      const expLabel =
-        j.experience_level === "entry"
-          ? "신입"
-          : j.experience_level === "all"
-            ? "신입/경력"
-            : "경력";
-      const statusUi =
-        j.status === "open" ? ("모집중" as const) : ("마감임박" as const);
-      const typeUi =
-        j.job_type === "full_time"
-          ? "정규직"
-          : j.job_type === "part_time"
-            ? "파트타임"
-            : j.job_type === "contract"
-              ? "계약직"
-              : "인턴";
+      const typeKey = (j.job_type ?? "full_time") as DisplayJob["typeKey"];
+      const typeUi = t(`pages.careers.shared.jobType.${typeKey}`);
+      const expKey = expKeyFromDb(j.experience_level);
+      const expLabel = t(`pages.careers.shared.expLevel.${j.experience_level}`);
+      const statusKey: JobStatusStyleKey = j.status === "open" ? "open" : "closing";
+      const statusUi = t(`pages.careers.positions.jobStatus.${statusKey}`);
       const lines = (j.description ?? "").split(/\n+/).filter(Boolean);
       return {
         id: j.job_id,
         dept: j.department,
+        deptKey: inferDeptKey(j.department),
         title: j.title,
         type: typeUi,
+        typeKey,
         exp: expLabel,
+        expKey,
         region: j.location,
+        regionKey: inferRegionKey(j.location ?? ""),
         createdAt: j.created_at
           ? new Date(j.created_at).toISOString().slice(0, 10)
           : "",
         status: statusUi,
-        duties: lines.slice(0, 6).length ? lines.slice(0, 6) : [j.description],
+        statusKey,
+        duties: lines.slice(0, 6).length ? lines.slice(0, 6) : [j.description ?? ""],
         requirements: (j.requirements ?? "")
           .split(/\n+/)
           .filter(Boolean)
           .slice(0, 6),
       };
     });
-  }, [loaderData.dbJobs]);
+  }, [loaderData.dbJobs, t, i18n.language]);
 
   const filteredJobs = jobs.filter((j) => {
-    if (mainTab === "입사지원") return false;
-    const jobOk = jobFilter === "전체직무" || j.dept === jobFilter;
-    const expOk =
-      expFilter === "전체 경력" ||
-      (expFilter === "경력" && j.exp.includes("경력")) ||
-      (expFilter === "신입" &&
-        j.exp.includes("신입") &&
-        !/\d\s*년/.test(j.exp)) ||
-      (expFilter === "신입/경력" &&
-        j.exp.includes("신입") &&
-        j.exp.includes("경력"));
-    const regionOk =
-      regionFilter === "전체 지역" ||
-      j.region === regionFilter ||
-      j.region.includes(regionFilter);
-    const statusOk = statusFilter === "전체 상태" || j.status === statusFilter;
+    if (mainTab === "apply") return false;
+    const jobOk = jobFilter === "all" || j.deptKey === jobFilter;
+    const expOk = expFilter === "all" || j.expKey === expFilter;
+    const regionOk = regionFilter === "all" || j.regionKey === regionFilter;
+    const statusOk = statusFilter === "all" || j.statusKey === statusFilter;
     return jobOk && expOk && regionOk && statusOk;
   });
 
@@ -660,7 +883,7 @@ export default function CareersPositionsScreen({
   /* 지원하기: 입사지원 탭으로 전환 + 해당 공고 직무 자동 세팅 */
   const handleApply = (jobTitle: string) => {
     setFormData((p) => ({ ...p, position: jobTitle }));
-    setMainTab("입사지원");
+    setMainTab("apply");
     setTimeout(() => {
       jobsSectionRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -761,12 +984,12 @@ export default function CareersPositionsScreen({
       {/* ── 배너 ── */}
       <PageBanner
         imageUrl="/intro/recruit_banner.png"
-        title="채용안내"
-        subtitle="풍림푸드와 함께 성장할 인재를 찾습니다."
+        title={t("pages.careers.positions.bannerTitle")}
+        subtitle={t("pages.careers.positions.bannerSubtitle")}
         breadcrumb={[
           { label: "Home", href: "/" },
-          { label: "채용", href: "/careers/positions" },
-          { label: "채용안내" },
+          { label: t("pages.careers.positions.breadcrumbCareers"), href: "/careers/positions" },
+          { label: t("pages.careers.positions.breadcrumbCurrent") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -777,10 +1000,10 @@ export default function CareersPositionsScreen({
         <PageContentMax className="py-10 md:py-[clamp(40px,calc(100*100vw/1920),100px)]">
           <div className="flex w-full flex-col gap-5 md:gap-[clamp(16px,calc(30*100vw/1920),30px)]">
             <SectionPageTitle as="h2" preset="responsiveLg" className="mb-0">
-              주요 모집 직무
+              {t("pages.careers.positions.sectionKeyJobs")}
             </SectionPageTitle>
             <div className="grid w-full grid-cols-2 gap-x-3 gap-y-5 sm:gap-3 md:gap-[10px]">
-              {KEY_JOBS.map(({ icon, label, desc }, index) => (
+              {keyJobsUi.map(({ icon, label, desc }, index) => (
                 <div
                   key={label}
                   className="rounded-[20px] bg-[#EAE3C9] sm:flex sm:items-stretch sm:rounded-2xl md:min-h-[130px] md:overflow-hidden"
@@ -840,9 +1063,9 @@ export default function CareersPositionsScreen({
 
             <ul
               className="flex w-full list-none flex-wrap items-center justify-start gap-1.5 p-0 md:gap-2"
-              aria-label="모집 요약"
+              aria-label={t("pages.careers.positions.recruitSummaryAria")}
             >
-              {KEY_JOB_SUMMARY_TAGS.map((tag) => (
+              {keyJobSummaryTags.map((tag) => (
                 <li key={tag} className="m-0 p-0">
                   <span className="inline-flex shrink-0 overflow-hidden rounded-full bg-white px-3 py-2 text-center [font-family:Pretendard,system-ui,sans-serif] text-[12px] leading-[12px] font-medium text-[#02633E] shadow-[0_1px_2px_rgba(31,33,33,0.06)] ring-1 ring-[#1F2121]/[0.06] md:py-2 md:leading-[12px] md:tracking-[-0.02em]">
                     {tag}
@@ -863,12 +1086,12 @@ export default function CareersPositionsScreen({
               preset="responsiveLg"
               className="mb-0 max-lg:pt-5"
             >
-              채용 절차
+              {t("pages.careers.positions.sectionProcess")}
             </SectionPageTitle>
 
             <div className="grid w-full grid-cols-1 items-stretch gap-y-0 lg:grid-cols-4 lg:gap-x-[min(4px,calc(4*100vw/1920))] lg:gap-y-0">
-              {STEPS.map((step, i) => {
-                const isLast = i === STEPS.length - 1;
+              {stepsUi.map((step, i) => {
+                const isLast = i === stepsUi.length - 1;
                 const desktopDesc = step.descSmall
                   ? `${step.desc} ${step.descSmall}`
                   : step.desc;
@@ -1017,7 +1240,7 @@ export default function CareersPositionsScreen({
                   preset="responsiveLg"
                   className="mb-0 max-lg:px-4 max-lg:pt-5"
                 >
-                  채용공고
+                  {t("pages.careers.positions.sectionPostings")}
                 </SectionPageTitle>
 
                 {/* 모바일: 탭 + 필터(채용공고 탭 시 가로 한 줄·넘치면 가로 스크롤) / lg: 한 줄 — 탭 | 구분선 | 필터 */}
@@ -1033,14 +1256,15 @@ export default function CareersPositionsScreen({
                   {/* 모바일: 탭 줄 배경=페이지색(흰 카드 제거) · 활성=흰 pill · 비활성=녹색 pill · lg+: 녹색 바 */}
                   <div className="flex w-full shrink-0 flex-col gap-1 py-[14px] max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 lg:w-auto lg:flex-row lg:flex-nowrap lg:items-center lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:px-0 lg:py-0">
                     <div className="flex flex-wrap items-center gap-[10px]">
-                      {(["전체공고", "채용공고", "입사지원"] as MainTab[]).map(
-                        (tab) => {
+                      {(["all", "list", "apply"] as MainTab[]).map((tab) => {
                           const label =
-                            tab === "전체공고"
-                              ? `전체 공고 (${jobs.length})`
-                              : tab === "채용공고"
-                                ? "채용공고"
-                                : "입사지원";
+                            tab === "all"
+                              ? t("pages.careers.positions.tabAll", {
+                                  count: jobs.length,
+                                })
+                              : tab === "list"
+                                ? t("pages.careers.positions.tabList")
+                                : t("pages.careers.positions.tabApply");
                           const active = mainTab === tab;
                           return (
                             <button
@@ -1061,12 +1285,11 @@ export default function CareersPositionsScreen({
                               {label}
                             </button>
                           );
-                        },
-                      )}
+                      })}
                     </div>
                   </div>
 
-                  {mainTab === "채용공고" && (
+                  {mainTab === "list" && (
                     <>
                       <div
                         className="hidden h-5 w-px shrink-0 self-center bg-white/35 lg:block"
@@ -1101,7 +1324,7 @@ export default function CareersPositionsScreen({
                                 "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
-                            {formatJobFilterDisplay(jobFilter)}
+                            {labelJobFilter(jobFilter)}
                             {openDropdown === "job" ? (
                               <ChevronUp
                                 className={cn(
@@ -1126,8 +1349,11 @@ export default function CareersPositionsScreen({
                             <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
                               <CareersFilterDropdownFloating
                                 currentValue={jobFilter}
-                                options={FILTER_JOBS}
-                                formatLabel={formatJobFilterDisplay}
+                                options={JOB_FILTER_KEYS}
+                                formatLabel={(v) => labelJobFilter(v as JobFilterKey)}
+                                listboxAriaLabel={t(
+                                  "pages.careers.positions.filterOptionsAria",
+                                )}
                                 onPick={(opt) => {
                                   setJobFilter(opt);
                                   setOpenDropdown(null);
@@ -1159,7 +1385,7 @@ export default function CareersPositionsScreen({
                                 "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
-                            {expFilter}
+                            {labelExpFilter(expFilter)}
                             {openDropdown === "exp" ? (
                               <ChevronUp
                                 className={cn(
@@ -1184,7 +1410,11 @@ export default function CareersPositionsScreen({
                             <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
                               <CareersFilterDropdownFloating
                                 currentValue={expFilter}
-                                options={FILTER_EXP}
+                                options={EXP_FILTER_KEYS}
+                                formatLabel={(v) => labelExpFilter(v as ExpFilterKey)}
+                                listboxAriaLabel={t(
+                                  "pages.careers.positions.filterOptionsAria",
+                                )}
                                 onPick={(opt) => {
                                   setExpFilter(opt);
                                   setOpenDropdown(null);
@@ -1216,7 +1446,7 @@ export default function CareersPositionsScreen({
                                 "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
-                            {regionFilter}
+                            {labelRegionFilter(regionFilter)}
                             {openDropdown === "region" ? (
                               <ChevronUp
                                 className={cn(
@@ -1241,7 +1471,13 @@ export default function CareersPositionsScreen({
                             <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
                               <CareersFilterDropdownFloating
                                 currentValue={regionFilter}
-                                options={FILTER_REGION}
+                                options={REGION_FILTER_KEYS}
+                                formatLabel={(v) =>
+                                  labelRegionFilter(v as RegionFilterKey)
+                                }
+                                listboxAriaLabel={t(
+                                  "pages.careers.positions.filterOptionsAria",
+                                )}
                                 onPick={(opt) => {
                                   setRegionFilter(opt);
                                   setOpenDropdown(null);
@@ -1273,7 +1509,7 @@ export default function CareersPositionsScreen({
                                 "max-lg:font-semibold max-lg:text-[#32AF32]",
                             )}
                           >
-                            {statusFilter}
+                            {labelStatusFilter(statusFilter)}
                             {openDropdown === "status" ? (
                               <ChevronUp
                                 className={cn(
@@ -1298,7 +1534,13 @@ export default function CareersPositionsScreen({
                             <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
                               <CareersFilterDropdownFloating
                                 currentValue={statusFilter}
-                                options={FILTER_STATUS}
+                                options={STATUS_FILTER_KEYS}
+                                formatLabel={(v) =>
+                                  labelStatusFilter(v as StatusFilterKey)
+                                }
+                                listboxAriaLabel={t(
+                                  "pages.careers.positions.filterOptionsAria",
+                                )}
                                 onPick={(opt) => {
                                   setStatusFilter(opt);
                                   setOpenDropdown(null);
@@ -1315,11 +1557,11 @@ export default function CareersPositionsScreen({
               </div>
 
               {/* ── 공고 목록 (전체공고 / 채용공고 탭) — 행 간 gap 12px ── */}
-              {mainTab !== "입사지원" && (
+              {mainTab !== "apply" && (
                 <div className="flex flex-col gap-3 max-lg:px-4">
                   {filteredJobs.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400">
-                      해당 조건의 채용공고가 없습니다.
+                      {t("pages.careers.positions.emptyFiltered")}
                     </div>
                   ) : (
                     filteredJobs.map((job, index) => {
@@ -1347,11 +1589,11 @@ export default function CareersPositionsScreen({
                               className={cn(
                                 "shrink-0 rounded-full px-3 py-1.5 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs leading-3 font-medium",
                                 "lg:px-[clamp(8px,calc(12*100vw/1920),12px)] lg:py-[clamp(6px,calc(8*100vw/1920),8px)] lg:[font-size:clamp(11px,calc(12*100vw/1920),12px)] lg:[line-height:clamp(11px,calc(12*100vw/1920),12px)]",
-                                job.status === "모집중" &&
+                                job.statusKey === "open" &&
                                   "bg-[#32AF32] text-white",
-                                job.status === "마감임박" &&
+                                job.statusKey === "closing" &&
                                   "bg-[#FFD55D] text-[#1F2121]",
-                                job.status === "상시채용" &&
+                                job.statusKey === "always" &&
                                   "bg-[#003F2B] text-white",
                               )}
                             >
@@ -1441,7 +1683,11 @@ export default function CareersPositionsScreen({
                                   "flex size-[clamp(36px,calc(48*100vw/1920),48px)] shrink-0 items-center justify-center overflow-hidden rounded-[clamp(20px,calc(40*100vw/1920),40px)] transition-colors hover:bg-black/[0.04]",
                                   "lg:bg-[#F0EEDD]",
                                 )}
-                                aria-label={isExpanded ? "접기" : "펼치기"}
+                                aria-label={
+                                  isExpanded
+                                    ? t("pages.careers.positions.collapse")
+                                    : t("pages.careers.positions.expand")
+                                }
                               >
                                 {isExpanded ? (
                                   <ChevronUp
@@ -1462,7 +1708,7 @@ export default function CareersPositionsScreen({
                                 onClick={() => handleApply(job.title)}
                                 className={applyBtnClass}
                               >
-                                지원하기
+                                {t("pages.careers.positions.applyButton")}
                                 <ArrowUpRight
                                   className="h-[1.5em] w-[1.5em] shrink-0 text-white"
                                   strokeWidth={2}
@@ -1482,7 +1728,7 @@ export default function CareersPositionsScreen({
                                       onClick={() => handleApply(job.title)}
                                       className={applyBtnClass}
                                     >
-                                      지원하기
+                                      {t("pages.careers.positions.applyButton")}
                                       <ArrowUpRight
                                         className="size-[1em] shrink-0 text-white"
                                         strokeWidth={2}
@@ -1500,7 +1746,7 @@ export default function CareersPositionsScreen({
                                       onClick={() => handleApply(job.title)}
                                       className={applyBtnClass}
                                     >
-                                      지원하기
+                                      {t("pages.careers.positions.applyButton")}
                                       <ArrowUpRight
                                         className="size-[1em] shrink-0 text-white"
                                         strokeWidth={2}
@@ -1513,7 +1759,7 @@ export default function CareersPositionsScreen({
                                       type="button"
                                       onClick={() => toggleExpand(job.id)}
                                       className="flex size-[18px] items-center justify-center bg-transparent p-0"
-                                      aria-label="펼치기"
+                                      aria-label={t("pages.careers.positions.expand")}
                                     >
                                       <ChevronDown
                                         className="size-[18px] text-[#02633E]"
@@ -1539,7 +1785,7 @@ export default function CareersPositionsScreen({
                               >
                                 <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-3">
                                   <p className={jobCardDetailHeadingClass}>
-                                    담당업무
+                                    {t("pages.careers.positions.detailsDuties")}
                                   </p>
                                   <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
                                     {job.duties.map((d) => (
@@ -1554,7 +1800,7 @@ export default function CareersPositionsScreen({
                                 </div>
                                 <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-3">
                                   <p className={jobCardDetailHeadingClass}>
-                                    자격요건
+                                    {t("pages.careers.positions.detailsRequirements")}
                                   </p>
                                   <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
                                     {job.requirements.map((r) => (
@@ -1575,7 +1821,7 @@ export default function CareersPositionsScreen({
                                   type="button"
                                   onClick={() => toggleExpand(job.id)}
                                   className="flex size-[18px] items-center justify-center bg-transparent p-0"
-                                  aria-label="접기"
+                                  aria-label={t("pages.careers.positions.collapse")}
                                 >
                                   <ChevronUp
                                     className="size-[18px] text-[#02633E]"
@@ -1594,7 +1840,7 @@ export default function CareersPositionsScreen({
               )}
 
               {/* ── 입사지원 탭 콘텐츠 ── */}
-              {mainTab === "입사지원" && (
+              {mainTab === "apply" && (
                 <div className="rounded-2xl bg-[#EAE3C9] px-5 py-8 max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 max-lg:py-0 md:px-8 md:py-10 lg:bg-[#FDFDF5] lg:p-0">
                   {/* PC 시안: 상하 60px·gap 10px·750×90 타이틀 / 모바일: 기존 */}
                   <div
@@ -1611,7 +1857,7 @@ export default function CareersPositionsScreen({
                       )}
                       style={{ color: "#1F2121" }}
                     >
-                      입사지원서
+                      {t("pages.careers.positions.form.title")}
                     </h3>
                   </div>
 
@@ -1624,10 +1870,10 @@ export default function CareersPositionsScreen({
                         <Check className="h-7 w-7 text-white" />
                       </div>
                       <p className="text-base font-semibold text-gray-900">
-                        지원서가 제출되었습니다!
+                        {t("pages.careers.positions.form.submittedTitle")}
                       </p>
                       <p className="mt-2 text-sm text-gray-500">
-                        서류 검토 후 1주일 내에 개별 연락드리겠습니다.
+                        {t("pages.careers.positions.form.submittedBody")}
                       </p>
                     </div>
                   ) : (
@@ -1645,7 +1891,7 @@ export default function CareersPositionsScreen({
                               jobApplyPcSectionHeading,
                             )}
                           >
-                            기본정보
+                            {t("pages.careers.positions.form.basicInfo")}
                           </p>
                           <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
                             {/* 성함 */}
@@ -1659,13 +1905,13 @@ export default function CareersPositionsScreen({
                                       "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                     )}
                                   >
-                                    성함
+                                    {t("pages.careers.positions.form.name")}
                                   </span>
                                   <span className={jobApplyStarClass}>*</span>
                                 </div>
                                 <span className="shrink-0 text-right font-[family-name:var(--font-nanum)] text-[13px] font-normal text-black max-lg:text-xs">
                                   <span className="text-[#F3372C]">* </span>
-                                  필수 입력사항
+                                  {t("pages.careers.positions.form.requiredHint")}
                                 </span>
                               </div>
                               <input
@@ -1678,7 +1924,7 @@ export default function CareersPositionsScreen({
                                     name: e.target.value,
                                   }))
                                 }
-                                placeholder="홍길동"
+                                placeholder={t("pages.careers.apply.phName")}
                                 className={jobApplyInputClass}
                               />
                             </div>
@@ -1693,7 +1939,7 @@ export default function CareersPositionsScreen({
                                     "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                   )}
                                 >
-                                  연락처
+                                  {t("pages.careers.positions.form.phone")}
                                 </label>
                                 <span className={jobApplyStarClass}>*</span>
                               </div>
@@ -1707,7 +1953,9 @@ export default function CareersPositionsScreen({
                                     phone: e.target.value,
                                   }))
                                 }
-                                placeholder="연락처를 입력해주세요."
+                                placeholder={t(
+                                  "pages.careers.positions.form.contactPlaceholder",
+                                )}
                                 className={jobApplyInputClass}
                               />
                             </div>
@@ -1722,7 +1970,7 @@ export default function CareersPositionsScreen({
                                   "lg:block",
                                 )}
                               >
-                                이메일
+                                {t("pages.careers.positions.form.email")}
                               </label>
                               {/* 모바일 */}
                               <div className="flex w-full flex-col gap-5 lg:hidden">
@@ -1735,7 +1983,9 @@ export default function CareersPositionsScreen({
                                       emailLocal: e.target.value,
                                     }))
                                   }
-                                  placeholder="이메일 아이디"
+                                  placeholder={t(
+                                    "pages.careers.positions.form.emailLocalPh",
+                                  )}
                                   autoComplete="email"
                                   className={jobApplyInputClass}
                                 />
@@ -1748,7 +1998,9 @@ export default function CareersPositionsScreen({
                                       emailDomainCustom: e.target.value,
                                     }))
                                   }
-                                  placeholder="메일 도메인 주소"
+                                  placeholder={t(
+                                    "pages.careers.positions.form.emailDomainPh",
+                                  )}
                                   disabled={formData.emailDomain !== ""}
                                   className={cn(
                                     jobApplyInputClass,
@@ -1760,8 +2012,10 @@ export default function CareersPositionsScreen({
                                   onChange={handleJobApplyEmailDomainChange}
                                   className={jobApplyInputClass}
                                 >
-                                  <option value="">직접입력</option>
-                                  {JOB_APPLY_EMAIL_DOMAINS.slice(1).map((d) => (
+                                  <option value="">
+                                    {t("pages.careers.positions.emailDirectInput")}
+                                  </option>
+                                  {JOB_APPLY_EMAIL_DOMAINS.map((d) => (
                                     <option key={d} value={d}>
                                       {d}
                                     </option>
@@ -1779,7 +2033,9 @@ export default function CareersPositionsScreen({
                                       emailLocal: e.target.value,
                                     }))
                                   }
-                                  placeholder="이메일 아이디"
+                                  placeholder={t(
+                                    "pages.careers.positions.form.emailLocalPh",
+                                  )}
                                   autoComplete="email"
                                   className={cn(
                                     jobApplyInputClass,
@@ -1799,7 +2055,9 @@ export default function CareersPositionsScreen({
                                         emailDomainCustom: e.target.value,
                                       }))
                                     }
-                                    placeholder="메일 도메인 주소"
+                                    placeholder={t(
+                                      "pages.careers.positions.form.emailDomainPh",
+                                    )}
                                     className={cn(
                                       jobApplyInputClass,
                                       "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px] lg:font-light lg:text-[#7B7B7B]",
@@ -1814,8 +2072,10 @@ export default function CareersPositionsScreen({
                                     "lg:min-w-0 lg:flex-1",
                                   )}
                                 >
-                                  <option value="">직접입력</option>
-                                  {JOB_APPLY_EMAIL_DOMAINS.slice(1).map((d) => (
+                                  <option value="">
+                                    {t("pages.careers.positions.emailDirectInput")}
+                                  </option>
+                                  {JOB_APPLY_EMAIL_DOMAINS.map((d) => (
                                     <option key={d} value={d}>
                                       {d}
                                     </option>
@@ -1834,21 +2094,36 @@ export default function CareersPositionsScreen({
                                     "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                   )}
                                 >
-                                  성별
+                                  {t("pages.careers.positions.form.gender")}
                                 </label>
                                 <span className={jobApplyStarClass}>*</span>
                               </div>
                               <div className="flex gap-2">
-                                {["남성", "여성"].map((g) => (
+                                {(
+                                  [
+                                    {
+                                      k: "male",
+                                      label: t(
+                                        "pages.careers.positions.form.genderMale",
+                                      ),
+                                    },
+                                    {
+                                      k: "female",
+                                      label: t(
+                                        "pages.careers.positions.form.genderFemale",
+                                      ),
+                                    },
+                                  ] as const
+                                ).map(({ k, label }) => (
                                   <button
-                                    key={g}
+                                    key={k}
                                     type="button"
                                     onClick={() =>
-                                      setFormData((p) => ({ ...p, gender: g }))
+                                      setFormData((p) => ({ ...p, gender: k }))
                                     }
                                     className="rounded-lg border px-5 py-2.5 text-sm font-medium transition-all max-lg:min-h-[48px] max-lg:flex-1 max-lg:rounded-[10px] max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base"
                                     style={
-                                      formData.gender === g
+                                      formData.gender === k
                                         ? {
                                             backgroundColor: "#02633E",
                                             color: "#fff",
@@ -1861,7 +2136,7 @@ export default function CareersPositionsScreen({
                                           }
                                     }
                                   >
-                                    {g}
+                                    {label}
                                   </button>
                                 ))}
                               </div>
@@ -1877,7 +2152,7 @@ export default function CareersPositionsScreen({
                               jobApplyPcSectionHeading,
                             )}
                           >
-                            학력
+                            {t("pages.careers.positions.form.education")}
                           </p>
                           <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
                             <div>
@@ -1890,13 +2165,13 @@ export default function CareersPositionsScreen({
                                       "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                     )}
                                   >
-                                    학교명
+                                    {t("pages.careers.positions.form.schoolName")}
                                   </label>
                                   <span className={jobApplyStarClass}>*</span>
                                 </div>
                                 <span className="hidden text-right max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-xs max-lg:font-normal max-lg:text-black lg:hidden">
                                   <span className="text-[#F3372C]">* </span>
-                                  필수 입력사항
+                                  {t("pages.careers.positions.form.requiredHint")}
                                 </span>
                               </div>
                               <input
@@ -1909,7 +2184,9 @@ export default function CareersPositionsScreen({
                                     schoolName: e.target.value,
                                   }))
                                 }
-                                placeholder="예 : 00초등학교"
+                                placeholder={t(
+                                  "pages.careers.positions.form.schoolPlaceholder",
+                                )}
                                 className={jobApplyInputClass}
                               />
                             </div>
@@ -1923,7 +2200,7 @@ export default function CareersPositionsScreen({
                                       "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                     )}
                                   >
-                                    전공
+                                    {t("pages.careers.positions.form.major")}
                                   </label>
                                   <span className={jobApplyStarClass}>*</span>
                                 </div>
@@ -1937,7 +2214,9 @@ export default function CareersPositionsScreen({
                                       major: e.target.value,
                                     }))
                                   }
-                                  placeholder="식품공학과"
+                                  placeholder={t(
+                                    "pages.careers.positions.form.majorPlaceholder",
+                                  )}
                                   className={cn(
                                     jobApplyInputClass,
                                     "max-lg:leading-4",
@@ -1953,7 +2232,7 @@ export default function CareersPositionsScreen({
                                       "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                     )}
                                   >
-                                    졸업연도
+                                    {t("pages.careers.positions.form.gradYear")}
                                   </label>
                                   <span className={jobApplyStarClass}>*</span>
                                 </div>
@@ -1992,7 +2271,7 @@ export default function CareersPositionsScreen({
                                 "lg:mb-0 lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black",
                               )}
                             >
-                              경력
+                              {t("pages.careers.positions.form.careersSection")}
                             </p>
                             {/* 시안: flex 1 1 0 — 남는 가로를 채워 「추가」를 오른쪽으로 밀음 */}
                             <span
@@ -2001,7 +2280,7 @@ export default function CareersPositionsScreen({
                                 "lg:text-lg lg:leading-none lg:font-normal",
                               )}
                             >
-                              *최대 5개 추가
+                              {t("pages.careers.positions.form.careersMaxHint")}
                             </span>
                             <button
                               type="button"
@@ -2017,13 +2296,13 @@ export default function CareersPositionsScreen({
                                 +
                               </span>
                               <span className="font-[Pretendard,system-ui,sans-serif] text-sm leading-[21px] font-bold">
-                                추가
+                                {t("pages.careers.positions.form.add")}
                               </span>
                             </button>
                           </div>
                           {careers.length === 0 && (
                             <p className="text-sm text-gray-400 max-lg:hidden">
-                              경력이 있으시면 위 버튼을 눌러 추가해 주세요.
+                              {t("pages.careers.positions.form.careersEmptyHint")}
                             </p>
                           )}
                           <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
@@ -2052,7 +2331,7 @@ export default function CareersPositionsScreen({
                                         "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                       )}
                                     >
-                                      회사명
+                                      {t("pages.careers.positions.form.company")}
                                     </label>
                                     <span className={jobApplyStarClass}>*</span>
                                   </div>
@@ -2067,7 +2346,9 @@ export default function CareersPositionsScreen({
                                         e.target.value,
                                       )
                                     }
-                                    placeholder="00식품"
+                                    placeholder={t(
+                                      "pages.careers.positions.form.companyPlaceholder",
+                                    )}
                                     className={jobApplyInputClass}
                                   />
                                 </div>
@@ -2081,7 +2362,7 @@ export default function CareersPositionsScreen({
                                         "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                       )}
                                     >
-                                      직무
+                                      {t("pages.careers.positions.form.duty")}
                                     </label>
                                     <span className={jobApplyStarClass}>*</span>
                                   </div>
@@ -2096,7 +2377,9 @@ export default function CareersPositionsScreen({
                                         e.target.value,
                                       )
                                     }
-                                    placeholder="생산관리"
+                                    placeholder={t(
+                                      "pages.careers.positions.form.dutyPlaceholder",
+                                    )}
                                     className={cn(
                                       jobApplyInputClass,
                                       "max-lg:leading-4",
@@ -2113,7 +2396,7 @@ export default function CareersPositionsScreen({
                                         "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                       )}
                                     >
-                                      기간
+                                      {t("pages.careers.positions.form.period")}
                                     </label>
                                     <span className={jobApplyStarClass}>*</span>
                                   </div>
@@ -2172,7 +2455,9 @@ export default function CareersPositionsScreen({
                                       }
                                       className="size-[18px] shrink-0 rounded-full border border-[#DDDDDD] accent-[#02633E] max-lg:rounded-full"
                                     />
-                                    재직 중
+                                    {t(
+                                      "pages.careers.positions.form.currentlyEmployed",
+                                    )}
                                   </label>
                                 </div>
                               </div>
@@ -2188,7 +2473,7 @@ export default function CareersPositionsScreen({
                               jobApplyPcSectionHeading,
                             )}
                           >
-                            자격 어학
+                            {t("pages.careers.positions.form.qualificationsSection")}
                           </p>
                           <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
                             <div>
@@ -2201,7 +2486,7 @@ export default function CareersPositionsScreen({
                                       "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                     )}
                                   >
-                                    관련 자격증
+                                    {t("pages.careers.positions.form.certifications")}
                                   </label>
                                   <span className={jobApplyStarClass}>*</span>
                                 </div>
@@ -2215,7 +2500,9 @@ export default function CareersPositionsScreen({
                                     qualifications: e.target.value,
                                   }))
                                 }
-                                placeholder="식품기사, HACCP 등"
+                                placeholder={t(
+                                  "pages.careers.positions.form.certificationsPh",
+                                )}
                                 className={cn(
                                   jobApplyInputClass,
                                   "lg:leading-[18px] lg:placeholder:leading-[18px]",
@@ -2231,7 +2518,7 @@ export default function CareersPositionsScreen({
                                     "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                   )}
                                 >
-                                  어학 점수
+                                  {t("pages.careers.positions.form.languageScores")}
                                 </label>
                                 <span className={jobApplyStarClass}>*</span>
                               </div>
@@ -2244,7 +2531,9 @@ export default function CareersPositionsScreen({
                                     languageSkills: e.target.value,
                                   }))
                                 }
-                                placeholder="TOEIC 800점"
+                                placeholder={t(
+                                  "pages.careers.positions.form.languageScoresPh",
+                                )}
                                 className={cn(
                                   jobApplyInputClass,
                                   "max-lg:leading-4",
@@ -2262,7 +2551,7 @@ export default function CareersPositionsScreen({
                               jobApplyPcSectionHeading,
                             )}
                           >
-                            파일 첨부
+                            {t("pages.careers.positions.form.attachments")}
                           </p>
                           <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
                             <div className={jobApplySubfieldMobile}>
@@ -2274,7 +2563,7 @@ export default function CareersPositionsScreen({
                                     "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                   )}
                                 >
-                                  이력서
+                                  {t("pages.careers.positions.form.resume")}
                                 </label>
                                 <span className={jobApplyStarClass}>*</span>
                               </div>
@@ -2290,13 +2579,16 @@ export default function CareersPositionsScreen({
                                 />
                                 <span className="flex-1 font-[family-name:var(--font-nanum)] text-sm text-gray-400 max-lg:text-base max-lg:leading-5 max-lg:text-[#003F2B] lg:text-[18px] lg:leading-5 lg:text-[#1F2121]/60">
                                   <span className="max-lg:hidden">
-                                    클릭하여 파일 업로드 PDF, DOC, DOCX (최대
-                                    10MB)
+                                    {t("pages.careers.positions.form.resumeHintPc")}
                                   </span>
                                   <span className="hidden max-lg:inline">
-                                    클릭하여 파일 업로드 PDF, DOC, DOCX
+                                    {t(
+                                      "pages.careers.positions.form.resumeHintMobileLine1",
+                                    )}
                                     <br />
-                                    (최대 10MB)
+                                    {t(
+                                      "pages.careers.positions.form.resumeHintMobileLine2",
+                                    )}
                                   </span>
                                 </span>
                                 <input
@@ -2315,7 +2607,7 @@ export default function CareersPositionsScreen({
                                   "lg:block",
                                 )}
                               >
-                                포트폴리오(선택사항)
+                                {t("pages.careers.positions.form.portfolio")}
                               </label>
                               <label
                                 className={cn(
@@ -2329,12 +2621,18 @@ export default function CareersPositionsScreen({
                                 />
                                 <span className="flex-1 font-[family-name:var(--font-nanum)] text-sm text-gray-400 max-lg:text-base max-lg:leading-5 max-lg:text-[#003F2B] lg:text-[18px] lg:leading-5 lg:text-[#1F2121]/60">
                                   <span className="max-lg:hidden">
-                                    클릭하여 파일 업로드 PDF, ZIP (최대 50MB)
+                                    {t(
+                                      "pages.careers.positions.form.portfolioHintPc",
+                                    )}
                                   </span>
                                   <span className="hidden max-lg:inline">
-                                    클릭하여 파일 업로드 PDF, ZIP
+                                    {t(
+                                      "pages.careers.positions.form.portfolioHintMobileLine1",
+                                    )}
                                     <br />
-                                    (최대 50MB)
+                                    {t(
+                                      "pages.careers.positions.form.portfolioHintMobileLine2",
+                                    )}
                                   </span>
                                 </span>
                                 <input
@@ -2356,7 +2654,7 @@ export default function CareersPositionsScreen({
                               jobApplyPcSectionHeading,
                             )}
                           >
-                            자기소개서
+                            {t("pages.careers.positions.form.coverLetterSection")}
                           </p>
                           <div className="space-y-2.5 max-lg:space-y-2.5 lg:space-y-5">
                             <div className="flex max-lg:items-center max-lg:gap-0.5">
@@ -2367,7 +2665,7 @@ export default function CareersPositionsScreen({
                                   "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
                                 )}
                               >
-                                지원동기 / 직무 역량
+                                {t("pages.careers.positions.form.coverLetterLabel")}
                               </label>
                               <span className={jobApplyStarClass}>*</span>
                             </div>
@@ -2382,14 +2680,16 @@ export default function CareersPositionsScreen({
                                   coverLetter: e.target.value,
                                 }))
                               }
-                              placeholder="지원 동기와 본인의 강점, 직무 관련 역량 등을 자유롭게 작성해주세요."
+                              placeholder={t(
+                                "pages.careers.positions.form.coverLetterPh",
+                              )}
                               className={cn(
                                 jobApplyInputClass,
                                 "h-auto min-h-[150px] resize-none py-3 max-lg:h-auto max-lg:min-h-[200px] max-lg:py-[18px] max-lg:leading-5 lg:min-h-[200px] lg:py-[18px]",
                               )}
                             />
                             <p className="font-[family-name:var(--font-nanum)] text-sm leading-4 text-[#1F2121] max-lg:text-sm lg:text-lg lg:leading-normal">
-                              ※ 채용절차법 준수 — 외모·신체조건·출신지 수집 금지
+                              {t("pages.careers.positions.form.coverLetterLegal")}
                             </p>
                             <div className="mt-1 text-right text-xs text-gray-400 lg:hidden">
                               {formData.coverLetter.length}/1000
@@ -2409,7 +2709,7 @@ export default function CareersPositionsScreen({
                           )}
                           style={{ backgroundColor: "#02633E" }}
                         >
-                          입사지원서 제출
+                          {t("pages.careers.positions.form.submitButton")}
                         </button>
                       </div>
                     </form>
@@ -2437,12 +2737,12 @@ export default function CareersPositionsScreen({
               className="mb-0 w-full"
               titleClassName="max-lg:text-[#1F2121]"
             >
-              복리후생
+              {t("pages.careers.positions.sectionBenefits")}
             </SectionPageTitle>
 
             {/* PC: SectionPageTitle responsiveLg — 마크 21px + lg:gap-5(1.25rem) = 제목 텍스트 시작선; 그만큼 들여 첫 카드 왼쪽 정렬 일치 */}
             <div className="grid w-full grid-cols-3 gap-x-2 gap-y-5 max-lg:gap-y-6 lg:grid-cols-4 lg:gap-x-[clamp(16px,calc(40*100vw/1920),48px)] lg:gap-y-[clamp(28px,calc(48*100vw/1920),56px)] lg:pl-[calc(21px+1.25rem)]">
-              {BENEFITS.map((b) => (
+              {benefitsStrip.map((b) => (
                 <div
                   key={b.title}
                   className={cn(
@@ -2483,7 +2783,7 @@ export default function CareersPositionsScreen({
             </div>
 
             <p className="text-left font-[family-name:var(--font-nanum)] text-xs leading-[18px] font-bold text-[#1F2121] opacity-40 max-lg:mt-1 md:mt-0 md:text-[14px] md:leading-[21px] lg:pl-[calc(21px+1.25rem)]">
-              ※ 상세 복리후생은 입사 시 안내드립니다.
+              {t("pages.careers.positions.benefitsFootnote")}
             </p>
           </div>
         </PageContentMax>
@@ -2492,7 +2792,7 @@ export default function CareersPositionsScreen({
       {/* 모바일: 필터 행 `overflow-x-auto` + 형제 공고 목록 때문에 absolute 패널이 잘리거나 가려짐 → body 고정 레이어 */}
       {typeof document !== "undefined" &&
         isMaxLg &&
-        mainTab === "채용공고" &&
+        mainTab === "list" &&
         openDropdown &&
         filterFloatingPos &&
         createPortal(
@@ -2510,8 +2810,9 @@ export default function CareersPositionsScreen({
             {openDropdown === "job" && (
               <CareersFilterDropdownFloating
                 currentValue={jobFilter}
-                options={FILTER_JOBS}
-                formatLabel={formatJobFilterDisplay}
+                options={JOB_FILTER_KEYS}
+                formatLabel={(v) => labelJobFilter(v as JobFilterKey)}
+                listboxAriaLabel={t("pages.careers.positions.filterOptionsAria")}
                 layout="mobileOptions"
                 onPick={(opt) => {
                   setJobFilter(opt);
@@ -2523,7 +2824,9 @@ export default function CareersPositionsScreen({
             {openDropdown === "exp" && (
               <CareersFilterDropdownFloating
                 currentValue={expFilter}
-                options={FILTER_EXP}
+                options={EXP_FILTER_KEYS}
+                formatLabel={(v) => labelExpFilter(v as ExpFilterKey)}
+                listboxAriaLabel={t("pages.careers.positions.filterOptionsAria")}
                 layout="mobileOptions"
                 onPick={(opt) => {
                   setExpFilter(opt);
@@ -2535,7 +2838,9 @@ export default function CareersPositionsScreen({
             {openDropdown === "region" && (
               <CareersFilterDropdownFloating
                 currentValue={regionFilter}
-                options={FILTER_REGION}
+                options={REGION_FILTER_KEYS}
+                formatLabel={(v) => labelRegionFilter(v as RegionFilterKey)}
+                listboxAriaLabel={t("pages.careers.positions.filterOptionsAria")}
                 layout="mobileOptions"
                 onPick={(opt) => {
                   setRegionFilter(opt);
@@ -2547,7 +2852,9 @@ export default function CareersPositionsScreen({
             {openDropdown === "status" && (
               <CareersFilterDropdownFloating
                 currentValue={statusFilter}
-                options={FILTER_STATUS}
+                options={STATUS_FILTER_KEYS}
+                formatLabel={(v) => labelStatusFilter(v as StatusFilterKey)}
+                listboxAriaLabel={t("pages.careers.positions.filterOptionsAria")}
                 layout="mobileOptions"
                 onPick={(opt) => {
                   setStatusFilter(opt);

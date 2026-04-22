@@ -4,17 +4,21 @@
 import type { Route } from "./+types/notice-detail";
 
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
-import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Link, redirect } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 import {
   getAdjacentNotices,
   getNoticeById,
+  getNoticeSiblingByLocale,
   hasAnyActiveNotices,
   incrementNoticeViewCount,
 } from "../lib/queries.server";
@@ -98,8 +102,10 @@ const MOCK_ADJACENT: Record<
 };
 
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const id = Number(params.id);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
 
   const pageBanner = await getPageBanner("notice").catch(() => null);
 
@@ -117,13 +123,18 @@ export async function loader({ params }: Route.LoaderArgs) {
   try {
     const row = await getNoticeById(id);
     if (row?.is_active) {
+      if (row.locale !== contentLocale) {
+        const sib = await getNoticeSiblingByLocale(row.translation_group_id, contentLocale);
+        if (sib) throw redirect(`/support/notice/${sib.notice_id}`);
+      }
       notice = row;
       await incrementNoticeViewCount(id);
-      const adjacent = await getAdjacentNotices(id);
+      const adjacent = await getAdjacentNotices(id, contentLocale);
       prev = adjacent.prev;
       next = adjacent.next;
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof Response) throw e;
     /* DB 오류 시 목업 또는 404 */
   }
 
@@ -140,14 +151,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
-  return { notice, prev, next, pageBanner };
+  const metaTitle = `${notice.title} | ${t("common.metaTitleSuffix")}`;
+
+  return { notice, prev, next, pageBanner, metaTitle };
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  const title =
-    (data as { notice?: { title: string } } | null)?.notice?.title ??
-    "공지사항 상세";
-  return [{ title: `${title} | 풍림푸드` }];
+  const title = (data as { metaTitle?: string } | null)?.metaTitle ?? "";
+  return [{ title }];
 }
 
 /* ── 날짜 포맷 ── */
@@ -166,6 +177,7 @@ const nanum = "font-[family-name:var(--font-nanum)]";
 export default function NoticeDetailScreen({
   loaderData,
 }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const { notice, prev, next, pageBanner } = loaderData;
 
   const articleClassMobile = cn(
@@ -178,12 +190,12 @@ export default function NoticeDetailScreen({
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
-        title="공지사항"
-        subtitle="계란 등급판정 결과를 공개하여 품질 신뢰를 높이고 있습니다"
+        title={t("pages.noticeDetail.bannerTitle")}
+        subtitle={t("pages.noticeDetail.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "공지사항", href: "/support/notice" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.notice"), href: "/support/notice" },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -225,7 +237,7 @@ export default function NoticeDetailScreen({
                     "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
                   )}
                 >
-                  <span>글쓴이:</span>
+                  <span>{t("pages.supportArticle.author")}</span>
                   <span>{notice.author}</span>
                 </span>
                 <span
@@ -234,7 +246,7 @@ export default function NoticeDetailScreen({
                     "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
                   )}
                 >
-                  <span>조회수:</span>
+                  <span>{t("pages.supportArticle.views")}</span>
                   <span>{notice.view_count}</span>
                 </span>
               </div>
@@ -258,7 +270,7 @@ export default function NoticeDetailScreen({
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{prev.title}</span>
-                  <span className="shrink-0">이전글</span>
+                  <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
                   <ChevronUp
                     className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                     strokeWidth={2}
@@ -272,7 +284,7 @@ export default function NoticeDetailScreen({
                     "flex h-[66px] items-center px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  이전글이 없습니다.
+                  {t("pages.supportArticle.noPrev")}
                 </div>
               )}
 
@@ -286,7 +298,7 @@ export default function NoticeDetailScreen({
                 >
                   <span className="min-w-0 flex-1 truncate">{next.title}</span>
                   <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                    <span>다음글</span>
+                    <span>{t("pages.supportArticle.next")}</span>
                     <ChevronDown
                       className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                       strokeWidth={2}
@@ -301,7 +313,7 @@ export default function NoticeDetailScreen({
                     "flex h-[66px] items-center justify-end rounded-[40px] px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  다음글이 없습니다.
+                  {t("pages.supportArticle.noNext")}
                 </div>
               )}
             </div>
@@ -313,7 +325,7 @@ export default function NoticeDetailScreen({
                 "w-full rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors active:brightness-95",
               )}
             >
-              목록
+              {t("pages.supportArticle.list")}
             </Link>
           </div>
         </div>
@@ -352,7 +364,7 @@ export default function NoticeDetailScreen({
                       "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
                     )}
                   >
-                    <span>글쓴이:</span>
+                    <span>{t("pages.supportArticle.author")}</span>
                     <span>{notice.author}</span>
                   </span>
                   <span
@@ -361,7 +373,7 @@ export default function NoticeDetailScreen({
                       "inline-flex items-center gap-2.5 text-sm font-bold leading-[14px] text-[#1F2121]",
                     )}
                   >
-                    <span>조회수:</span>
+                    <span>{t("pages.supportArticle.views")}</span>
                     <span>{notice.view_count}</span>
                   </span>
                 </div>
@@ -389,7 +401,7 @@ export default function NoticeDetailScreen({
                       strokeWidth={2}
                       aria-hidden
                     />
-                    <span className="shrink-0">이전글</span>
+                    <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
                     <span className="min-w-0 flex-1 truncate">{prev.title}</span>
                   </Link>
                 ) : (
@@ -404,7 +416,7 @@ export default function NoticeDetailScreen({
                   "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
                 )}
               >
-                목록
+                {t("pages.supportArticle.list")}
               </Link>
 
               <div className="min-w-0 flex-1">
@@ -420,7 +432,7 @@ export default function NoticeDetailScreen({
                       {next.title}
                     </span>
                     <span className="flex w-[92px] shrink-0 items-center justify-between">
-                      <span>다음글</span>
+                      <span>{t("pages.supportArticle.next")}</span>
                       <ChevronRight
                         className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                         strokeWidth={2}

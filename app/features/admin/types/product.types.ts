@@ -24,6 +24,9 @@ export type ProductBadge = "best" | "new" | "sale" | "recommended";
  */
 export interface AdminProduct {
   id: string;
+  product_id?: number;
+  translation_group_id?: string;
+  locale?: "ko" | "en";
   name: string;
   description: string;
   category: ProductCategory;

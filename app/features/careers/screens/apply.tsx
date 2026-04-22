@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useParams, useActionData, useNavigation } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/apply";
 import { createJobApplication } from "../lib/queries.server";
 import { Button } from "~/core/components/ui/button";
@@ -14,11 +15,20 @@ import { RadioGroup, RadioGroupItem } from "~/core/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/core/components/ui/select";
 import { ArrowLeft, Upload, FileText, CheckCircle } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import i18next from "~/core/lib/i18next.server";
+
+export const meta: Route.MetaFunction = ({ data }) => [{ title: data?.metaTitle ?? "" }];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.careers.apply.metaTitle") };
+}
 
 export async function action({ request, params }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
   const fd = await request.formData();
   const jobId = Number(params.id);
-  if (!jobId) return { success: false, error: "잘못된 채용공고입니다." };
+  if (!jobId) return { success: false, error: t("pages.careers.apply.errors.invalidJob") };
   try {
     const app = await createJobApplication({
       job_id: jobId,
@@ -33,50 +43,42 @@ export async function action({ request, params }: Route.ActionArgs) {
     });
     return { success: true, applicationId: app.application_id };
   } catch {
-    return { success: false, error: "지원서 제출 중 오류가 발생했습니다. 다시 시도해주세요." };
+    return { success: false, error: t("pages.careers.apply.errors.submitFailed") };
   }
 }
 
 interface FormData {
-  // Personal Info
   name: string;
   email: string;
   phone: string;
   birthDate: string;
   address: string;
-
-  // Education
   education: string;
   university: string;
   major: string;
   graduationDate: string;
-
-  // Experience
   experience: string;
   currentCompany: string;
   currentPosition: string;
-
-  // Additional
   militaryService: string;
   motivation: string;
-
-  // Files
   resume: File | null;
   coverLetter: File | null;
   portfolio: File | null;
-
-  // Agreement
   privacyAgreement: boolean;
   marketingAgreement: boolean;
 }
 
 export default function CareerApplyScreen() {
   const { id } = useParams();
+  const { t, i18n } = useTranslation();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const [step, setStep] = useState(1);
   const isSubmitted = actionData?.success === true;
+  const locale = i18n.language?.startsWith("en") ? "en-US" : "ko-KR";
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -99,7 +101,7 @@ export default function CareerApplyScreen() {
     marketingAgreement: false,
   });
 
-  const handleInputChange = (field: keyof FormData, value: any) => {
+  const handleInputChange = (field: keyof FormData, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -112,7 +114,6 @@ export default function CareerApplyScreen() {
       e.preventDefault();
       setStep((s) => s + 1);
     }
-    // step === 4: 폼이 실제 submit 되어 action으로 전달됨
   };
 
   if (isSubmitted) {
@@ -123,24 +124,28 @@ export default function CareerApplyScreen() {
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h1 className="mb-4 text-3xl font-bold text-foreground">지원서가 성공적으로 제출되었습니다!</h1>
-            <p className="mb-8 text-muted-foreground">
-              지원해주셔서 감사합니다. 서류 검토 후 1주일 내에 개별 연락드리겠습니다.
-            </p>
+            <h1 className="mb-4 text-3xl font-bold text-foreground">{t("pages.careers.apply.successTitle")}</h1>
+            <p className="mb-8 text-muted-foreground">{t("pages.careers.apply.successBody")}</p>
             <div className="space-y-4">
               <div className="rounded-lg bg-muted/50 p-4">
-                <h3 className="mb-2 font-semibold">접수 정보</h3>
+                <h3 className="mb-2 font-semibold">{t("pages.careers.apply.receiptInfo")}</h3>
                 {actionData?.applicationId && (
-                  <p className="text-sm text-muted-foreground">접수번호: APP-{actionData.applicationId}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("pages.careers.apply.receiptNo", { id: actionData.applicationId })}
+                  </p>
                 )}
-                <p className="text-sm text-muted-foreground">접수일시: {new Date().toLocaleString("ko-KR")}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("pages.careers.apply.receiptAt", {
+                    datetime: new Date().toLocaleString(locale),
+                  })}
+                </p>
               </div>
               <div className="flex justify-center gap-4">
                 <Link to="/careers/positions">
-                  <Button>다른 채용공고 보기</Button>
+                  <Button>{t("pages.careers.apply.otherPostings")}</Button>
                 </Link>
                 <Link to="/">
-                  <Button variant="outline">홈으로 돌아가기</Button>
+                  <Button variant="outline">{t("pages.careers.apply.home")}</Button>
                 </Link>
               </div>
             </div>
@@ -154,28 +159,26 @@ export default function CareerApplyScreen() {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
-          { label: "채용", href: "/careers/positions" },
-          { label: "입사지원" },
+          { label: t("pages.careers.breadcrumb"), href: "/careers/positions" },
+          { label: t("pages.careers.apply.breadcrumb") },
         ]}
       />
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
         <Link
           to={`/careers/${id}`}
           className="mb-6 inline-flex items-center gap-2 text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
-          채용공고로 돌아가기
+          {t("pages.careers.apply.backToPosting")}
         </Link>
 
-        {/* Progress Steps */}
         <div className="mx-auto mb-8 max-w-4xl">
           <div className="mb-8 flex items-center justify-center gap-4">
             {[
-              { step: 1, title: "기본정보" },
-              { step: 2, title: "학력/경력" },
-              { step: 3, title: "서류업로드" },
-              { step: 4, title: "최종확인" },
+              { step: 1, title: t("pages.careers.apply.step1") },
+              { step: 2, title: t("pages.careers.apply.step2") },
+              { step: 3, title: t("pages.careers.apply.step3") },
+              { step: 4, title: t("pages.careers.apply.step4") },
             ].map((item) => (
               <div key={item.step} className="flex items-center gap-2">
                 <div
@@ -194,27 +197,26 @@ export default function CareerApplyScreen() {
           </div>
 
           <form method="post" onSubmit={handleSubmit}>
-            {/* Step 1: Basic Information */}
             {step === 1 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>기본 정보</CardTitle>
-                  <CardDescription>지원자의 기본 정보를 입력해주세요</CardDescription>
+                  <CardTitle>{t("pages.careers.apply.step1Title")}</CardTitle>
+                  <CardDescription>{t("pages.careers.apply.step1Desc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <Label htmlFor="name">이름 *</Label>
+                      <Label htmlFor="name">{t("pages.careers.apply.labelName")}</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => handleInputChange("name", e.target.value)}
-                        placeholder="홍길동"
+                        placeholder={t("pages.careers.apply.phName")}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">이메일 *</Label>
+                      <Label htmlFor="email">{t("pages.careers.apply.labelEmail")}</Label>
                       <Input
                         id="email"
                         type="email"
@@ -228,7 +230,7 @@ export default function CareerApplyScreen() {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <Label htmlFor="phone">연락처 *</Label>
+                      <Label htmlFor="phone">{t("pages.careers.apply.labelPhone")}</Label>
                       <Input
                         id="phone"
                         value={formData.phone}
@@ -238,7 +240,7 @@ export default function CareerApplyScreen() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="birthDate">생년월일</Label>
+                      <Label htmlFor="birthDate">{t("pages.careers.apply.labelBirth")}</Label>
                       <Input
                         id="birthDate"
                         type="date"
@@ -249,73 +251,74 @@ export default function CareerApplyScreen() {
                   </div>
 
                   <div>
-                    <Label htmlFor="address">주소</Label>
+                    <Label htmlFor="address">{t("pages.careers.apply.labelAddress")}</Label>
                     <Input
                       id="address"
                       value={formData.address}
                       onChange={(e) => handleInputChange("address", e.target.value)}
-                      placeholder="서울특별시 강남구..."
+                      placeholder={t("pages.careers.apply.phAddress")}
                     />
                   </div>
 
                   <div className="flex justify-end">
                     <Button type="button" onClick={() => setStep(2)}>
-                      다음 단계
+                      {t("pages.careers.apply.next")}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Step 2: Education & Experience */}
             {step === 2 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>학력 및 경력</CardTitle>
-                  <CardDescription>학력과 경력 사항을 입력해주세요</CardDescription>
+                  <CardTitle>{t("pages.careers.apply.step2Title")}</CardTitle>
+                  <CardDescription>{t("pages.careers.apply.step2Desc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Education */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">학력</h3>
+                    <h3 className="text-lg font-semibold">{t("pages.careers.apply.eduHeading")}</h3>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <Label htmlFor="education">최종학력 *</Label>
-                        <Select value={formData.education} onValueChange={(value) => handleInputChange("education", value)}>
+                        <Label htmlFor="education">{t("pages.careers.apply.labelEduLevel")}</Label>
+                        <Select
+                          value={formData.education}
+                          onValueChange={(value) => handleInputChange("education", value)}
+                        >
                           <SelectTrigger>
-                            <SelectValue placeholder="선택해주세요" />
+                            <SelectValue placeholder={t("pages.careers.apply.phSelect")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="high-school">고등학교 졸업</SelectItem>
-                            <SelectItem value="college">전문대 졸업</SelectItem>
-                            <SelectItem value="university">대학교 졸업</SelectItem>
-                            <SelectItem value="master">석사 졸업</SelectItem>
-                            <SelectItem value="phd">박사 졸업</SelectItem>
+                            <SelectItem value="high-school">{t("pages.careers.apply.eduHigh")}</SelectItem>
+                            <SelectItem value="college">{t("pages.careers.apply.eduCollege")}</SelectItem>
+                            <SelectItem value="university">{t("pages.careers.apply.eduUniv")}</SelectItem>
+                            <SelectItem value="master">{t("pages.careers.apply.eduMaster")}</SelectItem>
+                            <SelectItem value="phd">{t("pages.careers.apply.eduPhd")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="university">학교명</Label>
+                        <Label htmlFor="university">{t("pages.careers.apply.labelSchool")}</Label>
                         <Input
                           id="university"
                           value={formData.university}
                           onChange={(e) => handleInputChange("university", e.target.value)}
-                          placeholder="○○대학교"
+                          placeholder="○○ University"
                         />
                       </div>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <Label htmlFor="major">전공</Label>
+                        <Label htmlFor="major">{t("pages.careers.apply.labelMajor")}</Label>
                         <Input
                           id="major"
                           value={formData.major}
                           onChange={(e) => handleInputChange("major", e.target.value)}
-                          placeholder="경영학과"
+                          placeholder="Business administration"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="graduationDate">졸업일</Label>
+                        <Label htmlFor="graduationDate">{t("pages.careers.apply.labelGradMonth")}</Label>
                         <Input
                           id="graduationDate"
                           type="month"
@@ -326,11 +329,10 @@ export default function CareerApplyScreen() {
                     </div>
                   </div>
 
-                  {/* Experience */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">경력</h3>
+                    <h3 className="text-lg font-semibold">{t("pages.careers.apply.careerHeading")}</h3>
                     <div>
-                      <Label>경력 구분 *</Label>
+                      <Label>{t("pages.careers.apply.careerType")}</Label>
                       <RadioGroup
                         value={formData.experience}
                         onValueChange={(value) => handleInputChange("experience", value)}
@@ -338,11 +340,11 @@ export default function CareerApplyScreen() {
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="fresh" id="fresh" />
-                          <Label htmlFor="fresh">신입</Label>
+                          <Label htmlFor="fresh">{t("pages.careers.apply.careerFresh")}</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="experienced" id="experienced" />
-                          <Label htmlFor="experienced">경력</Label>
+                          <Label htmlFor="experienced">{t("pages.careers.apply.careerExp")}</Label>
                         </div>
                       </RadioGroup>
                     </div>
@@ -350,30 +352,29 @@ export default function CareerApplyScreen() {
                     {formData.experience === "experienced" && (
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <Label htmlFor="currentCompany">현재/최근 직장</Label>
+                          <Label htmlFor="currentCompany">{t("pages.careers.apply.labelCurrentCompany")}</Label>
                           <Input
                             id="currentCompany"
                             value={formData.currentCompany}
                             onChange={(e) => handleInputChange("currentCompany", e.target.value)}
-                            placeholder="○○회사"
+                            placeholder="○○ Inc."
                           />
                         </div>
                         <div>
-                          <Label htmlFor="currentPosition">직책/직급</Label>
+                          <Label htmlFor="currentPosition">{t("pages.careers.apply.labelCurrentRole")}</Label>
                           <Input
                             id="currentPosition"
                             value={formData.currentPosition}
                             onChange={(e) => handleInputChange("currentPosition", e.target.value)}
-                            placeholder="대리"
+                            placeholder="Assistant manager"
                           />
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Military Service */}
                   <div>
-                    <Label>병역사항</Label>
+                    <Label>{t("pages.careers.apply.military")}</Label>
                     <RadioGroup
                       value={formData.militaryService}
                       onValueChange={(value) => handleInputChange("militaryService", value)}
@@ -381,59 +382,60 @@ export default function CareerApplyScreen() {
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="completed" id="completed" />
-                        <Label htmlFor="completed">군필</Label>
+                        <Label htmlFor="completed">{t("pages.careers.apply.milDone")}</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="exempted" id="exempted" />
-                        <Label htmlFor="exempted">면제</Label>
+                        <Label htmlFor="exempted">{t("pages.careers.apply.milExempt")}</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="not-applicable" id="not-applicable" />
-                        <Label htmlFor="not-applicable">해당없음</Label>
+                        <Label htmlFor="not-applicable">{t("pages.careers.apply.milNa")}</Label>
                       </div>
                     </RadioGroup>
                   </div>
 
                   <div>
-                    <Label htmlFor="motivation">지원동기 및 포부 *</Label>
+                    <Label htmlFor="motivation">{t("pages.careers.apply.labelMotivation")}</Label>
                     <Textarea
                       id="motivation"
                       value={formData.motivation}
                       onChange={(e) => handleInputChange("motivation", e.target.value)}
-                      placeholder="지원동기와 입사 후 포부를 작성해주세요 (500자 이내)"
+                      placeholder={t("pages.careers.apply.phMotivation")}
                       rows={5}
                       maxLength={500}
                       required
                     />
-                    <div className="mt-1 text-right text-sm text-muted-foreground">{formData.motivation.length}/500</div>
+                    <div className="mt-1 text-right text-sm text-muted-foreground">
+                      {formData.motivation.length}/500
+                    </div>
                   </div>
 
                   <div className="flex justify-between">
                     <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                      이전 단계
+                      {t("pages.careers.apply.prev")}
                     </Button>
                     <Button type="button" onClick={() => setStep(3)}>
-                      다음 단계
+                      {t("pages.careers.apply.next")}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Step 3: File Upload */}
             {step === 3 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>서류 업로드</CardTitle>
-                  <CardDescription>필요한 서류를 업로드해주세요 (PDF, DOC, DOCX 파일만 가능)</CardDescription>
+                  <CardTitle>{t("pages.careers.apply.step3Title")}</CardTitle>
+                  <CardDescription>{t("pages.careers.apply.step3Desc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="resume">이력서 *</Label>
+                      <Label htmlFor="resume">{t("pages.careers.apply.labelResume")}</Label>
                       <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 text-center">
                         <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground">파일을 드래그하거나 클릭하여 업로드</p>
+                        <p className="mb-2 text-sm text-muted-foreground">{t("pages.careers.apply.uploadDrop")}</p>
                         <input
                           type="file"
                           id="resume"
@@ -447,7 +449,7 @@ export default function CareerApplyScreen() {
                           size="sm"
                           onClick={() => document.getElementById("resume")?.click()}
                         >
-                          파일 선택
+                          {t("pages.careers.apply.chooseFile")}
                         </Button>
                         {formData.resume && (
                           <p className="mt-2 text-sm text-primary">
@@ -459,10 +461,10 @@ export default function CareerApplyScreen() {
                     </div>
 
                     <div>
-                      <Label htmlFor="coverLetter">자기소개서</Label>
+                      <Label htmlFor="coverLetter">{t("pages.careers.apply.labelCl")}</Label>
                       <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 text-center">
                         <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground">파일을 드래그하거나 클릭하여 업로드</p>
+                        <p className="mb-2 text-sm text-muted-foreground">{t("pages.careers.apply.uploadDrop")}</p>
                         <input
                           type="file"
                           id="coverLetter"
@@ -476,7 +478,7 @@ export default function CareerApplyScreen() {
                           size="sm"
                           onClick={() => document.getElementById("coverLetter")?.click()}
                         >
-                          파일 선택
+                          {t("pages.careers.apply.chooseFile")}
                         </Button>
                         {formData.coverLetter && (
                           <p className="mt-2 text-sm text-primary">
@@ -488,10 +490,10 @@ export default function CareerApplyScreen() {
                     </div>
 
                     <div>
-                      <Label htmlFor="portfolioFile">포트폴리오 (선택)</Label>
+                      <Label htmlFor="portfolioFile">{t("pages.careers.apply.labelPortfolio")}</Label>
                       <div className="rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 text-center">
                         <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground">파일을 드래그하거나 클릭하여 업로드</p>
+                        <p className="mb-2 text-sm text-muted-foreground">{t("pages.careers.apply.uploadDrop")}</p>
                         <input
                           type="file"
                           id="portfolioFile"
@@ -505,7 +507,7 @@ export default function CareerApplyScreen() {
                           size="sm"
                           onClick={() => document.getElementById("portfolioFile")?.click()}
                         >
-                          파일 선택
+                          {t("pages.careers.apply.chooseFile")}
                         </Button>
                         {formData.portfolio && (
                           <p className="mt-2 text-sm text-primary">
@@ -519,52 +521,64 @@ export default function CareerApplyScreen() {
 
                   <div className="flex justify-between">
                     <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                      이전 단계
+                      {t("pages.careers.apply.prev")}
                     </Button>
                     <Button type="button" onClick={() => setStep(4)}>
-                      다음 단계
+                      {t("pages.careers.apply.next")}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Step 4: Final Confirmation */}
             {step === 4 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>최종 확인 및 제출</CardTitle>
-                  <CardDescription>입력하신 정보를 확인하고 지원서를 제출해주세요</CardDescription>
+                  <CardTitle>{t("pages.careers.apply.step4Title")}</CardTitle>
+                  <CardDescription>{t("pages.careers.apply.step4Desc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Summary */}
                   <div className="space-y-3 rounded-lg bg-muted/50 p-4">
-                    <h3 className="font-semibold">지원 정보 요약</h3>
+                    <h3 className="font-semibold">{t("pages.careers.apply.summaryTitle")}</h3>
                     <div className="grid gap-4 text-sm md:grid-cols-2">
                       <div>
-                        <span className="font-medium">이름:</span> {formData.name}
+                        <span className="font-medium">{t("pages.careers.apply.summaryName")}</span> {formData.name}
                       </div>
                       <div>
-                        <span className="font-medium">이메일:</span> {formData.email}
+                        <span className="font-medium">{t("pages.careers.apply.summaryEmail")}</span> {formData.email}
                       </div>
                       <div>
-                        <span className="font-medium">연락처:</span> {formData.phone}
+                        <span className="font-medium">{t("pages.careers.apply.summaryPhone")}</span> {formData.phone}
                       </div>
                       <div>
-                        <span className="font-medium">경력:</span> {formData.experience === "fresh" ? "신입" : "경력"}
+                        <span className="font-medium">{t("pages.careers.apply.summaryCareer")}</span>{" "}
+                        {formData.experience === "fresh"
+                          ? t("pages.careers.apply.summaryFresh")
+                          : t("pages.careers.apply.summaryExp")}
                       </div>
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">업로드된 파일:</span>
+                      <span className="font-medium">{t("pages.careers.apply.summaryFiles")}</span>
                       <ul className="mt-1 space-y-1">
-                        {formData.resume && <li>• 이력서: {formData.resume.name}</li>}
-                        {formData.coverLetter && <li>• 자기소개서: {formData.coverLetter.name}</li>}
-                        {formData.portfolio && <li>• 포트폴리오: {formData.portfolio.name}</li>}
+                        {formData.resume && (
+                          <li>
+                            • {t("pages.careers.apply.fileResume")} {formData.resume.name}
+                          </li>
+                        )}
+                        {formData.coverLetter && (
+                          <li>
+                            • {t("pages.careers.apply.fileCl")} {formData.coverLetter.name}
+                          </li>
+                        )}
+                        {formData.portfolio && (
+                          <li>
+                            • {t("pages.careers.apply.filePortfolio")} {formData.portfolio.name}
+                          </li>
+                        )}
                       </ul>
                     </div>
                   </div>
 
-                  {/* Agreements */}
                   <div className="space-y-4">
                     <div className="flex items-start space-x-2">
                       <Checkbox
@@ -574,9 +588,9 @@ export default function CareerApplyScreen() {
                       />
                       <div className="grid gap-1.5 leading-none">
                         <Label htmlFor="privacy" className="text-sm font-medium leading-none">
-                          개인정보 수집 및 이용 동의 (필수)
+                          {t("pages.careers.apply.privacyRequired")}
                         </Label>
-                        <p className="text-xs text-muted-foreground">채용 전형을 위한 개인정보 수집 및 이용에 동의합니다.</p>
+                        <p className="text-xs text-muted-foreground">{t("pages.careers.apply.privacyHint")}</p>
                       </div>
                     </div>
 
@@ -588,20 +602,15 @@ export default function CareerApplyScreen() {
                       />
                       <div className="grid gap-1.5 leading-none">
                         <Label htmlFor="marketing" className="text-sm font-medium leading-none">
-                          채용 정보 수신 동의 (선택)
+                          {t("pages.careers.apply.marketingOptional")}
                         </Label>
-                        <p className="text-xs text-muted-foreground">
-                          향후 채용 정보 및 회사 소식을 이메일로 받아보시겠습니까?
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t("pages.careers.apply.marketingHint")}</p>
                       </div>
                     </div>
                   </div>
 
-                  {actionData?.error && (
-                    <p className="text-sm text-red-500">{actionData.error}</p>
-                  )}
+                  {actionData?.error && <p className="text-sm text-red-500">{actionData.error}</p>}
 
-                  {/* 폼 필드 hidden으로 action에 전달 */}
                   <input type="hidden" name="name" value={formData.name} />
                   <input type="hidden" name="email" value={formData.email} />
                   <input type="hidden" name="phone" value={formData.phone} />
@@ -611,7 +620,7 @@ export default function CareerApplyScreen() {
 
                   <div className="flex justify-between">
                     <Button type="button" variant="outline" onClick={() => setStep(3)}>
-                      이전 단계
+                      {t("pages.careers.apply.prev")}
                     </Button>
                     <Button
                       type="submit"
@@ -623,7 +632,7 @@ export default function CareerApplyScreen() {
                         !formData.phone
                       }
                     >
-                      {isSubmitting ? "제출 중..." : "지원서 제출"}
+                      {isSubmitting ? t("pages.careers.apply.submitting") : t("pages.careers.apply.submit")}
                     </Button>
                   </div>
                 </CardContent>
@@ -635,4 +644,3 @@ export default function CareerApplyScreen() {
     </div>
   );
 }
-

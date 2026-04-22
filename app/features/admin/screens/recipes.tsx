@@ -1,6 +1,7 @@
 /**
  * Admin Recipes Management Screen
  */
+import { randomUUID } from "node:crypto";
 import { useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/recipes";
@@ -17,6 +18,7 @@ import {
   textToIngredientRows,
   textToStepRows,
 } from "../components/recipe-add-modal";
+import { Badge } from "~/core/components/ui/badge";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import {
@@ -38,12 +40,15 @@ import { toRecipeCategorySlug } from "~/features/recipe-categories/lib/slug";
 import { recipeCategories } from "~/features/recipe-categories/schema";
 import db from "~/core/db/drizzle-client.server";
 import { recipes } from "~/features/recipe/schema";
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, ne, sql } from "drizzle-orm";
 import { cn } from "~/core/lib/utils";
 import { RecipeCategoryManageModal } from "../components/recipe-category-manage-modal";
 import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 
 const PROTECTED_RECIPE_CATEGORY_SLUG = "easy";
+
+const TG_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
@@ -66,8 +71,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "create") {
     const ingredientsJson = fd.get("ingredients") as string;
     const stepsJson = fd.get("steps") as string;
+    const localeRaw = ((fd.get("locale") as string) || "ko").toLowerCase();
+    const locale = localeRaw === "en" ? "en" : "ko";
+    const groupFromForm = (fd.get("translation_group_id") as string)?.trim();
+    const translation_group_id =
+      groupFromForm && TG_UUID_RE.test(groupFromForm) ? groupFromForm : randomUUID();
 
     await db.insert(recipes).values({
+      translation_group_id,
+      locale,
       title: fd.get("name") as string,
       category: (fd.get("category") as string) || "easy",
       description: (fd.get("description") as string) || null,
@@ -88,24 +100,68 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "create_translation") {
+    const baseId = Number(fd.get("base_id"));
+    const targetLocale =
+      ((fd.get("target_locale") as string) || "en").toLowerCase() === "en" ? "en" : "ko";
+    if (!baseId) return { success: false as const, error: "translation" as const };
+    const [base] = await db.select().from(recipes).where(eq(recipes.recipe_id, baseId)).limit(1);
+    if (!base) return { success: false as const, error: "translation" as const };
+    const [exists] = await db
+      .select({ id: recipes.recipe_id })
+      .from(recipes)
+      .where(and(eq(recipes.translation_group_id, base.translation_group_id), eq(recipes.locale, targetLocale)))
+      .limit(1);
+    if (exists) return { success: false as const, error: "translation_exists" as const };
+    await db.insert(recipes).values({
+      translation_group_id: base.translation_group_id,
+      locale: targetLocale,
+      title: "",
+      category: base.category,
+      description: null,
+      cooking_time: base.cooking_time,
+      servings: base.servings,
+      difficulty: base.difficulty,
+      ingredients: null,
+      steps: null,
+      nutrition: null,
+      tips: null,
+      thumbnail_url: base.thumbnail_url,
+      image_urls: base.image_urls,
+      tags: [],
+      is_active: base.is_active,
+      sort_order: base.sort_order,
+    });
+    return { success: true as const };
+  }
+
   if (intent === "update") {
     const id = Number(fd.get("id"));
     if (!id) return { success: false };
     const ingredientsJson = fd.get("ingredients") as string;
     const stepsJson = fd.get("steps") as string;
 
+    const [editing] = await db.select().from(recipes).where(eq(recipes.recipe_id, id)).limit(1);
+    if (!editing) return { success: false };
+
+    const categoryVal = (fd.get("category") as string) || "easy";
+    const prepTime = (fd.get("prepTime") as string) || null;
+    const servings = (fd.get("servings") as string) || null;
+    const difficulty = (fd.get("difficulty") as string) || null;
+    const thumb = (fd.get("image") as string) || null;
+
     await db
       .update(recipes)
       .set({
         title: fd.get("name") as string,
-        category: (fd.get("category") as string) || "easy",
+        category: categoryVal,
         description: (fd.get("description") as string) || null,
-        cooking_time: (fd.get("prepTime") as string) || null,
-        servings: (fd.get("servings") as string) || null,
-        difficulty: (fd.get("difficulty") as string) || null,
+        cooking_time: prepTime,
+        servings,
+        difficulty,
         ingredients: ingredientsJson || null,
         steps: stepsJson || null,
-        thumbnail_url: (fd.get("image") as string) || null,
+        thumbnail_url: thumb,
         tags: fd.get("tags")
           ? (fd.get("tags") as string)
               .split(",")
@@ -115,12 +171,30 @@ export async function action({ request }: Route.ActionArgs) {
         updated_at: new Date(),
       })
       .where(eq(recipes.recipe_id, id));
+
+    await db
+      .update(recipes)
+      .set({
+        category: categoryVal,
+        cooking_time: prepTime,
+        servings,
+        difficulty,
+        thumbnail_url: thumb,
+        updated_at: new Date(),
+      })
+      .where(and(eq(recipes.translation_group_id, editing.translation_group_id), ne(recipes.recipe_id, id)));
+
     return { success: true };
   }
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(recipes).where(eq(recipes.recipe_id, id));
+    if (id) {
+      const [row] = await db.select().from(recipes).where(eq(recipes.recipe_id, id)).limit(1);
+      if (row) {
+        await db.delete(recipes).where(eq(recipes.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true };
   }
 
@@ -281,6 +355,10 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
     const d = fetcher.data;
+    if ("error" in d && d.error === "translation_exists") {
+      window.alert("이미 같은 그룹에 EN 행이 있습니다.");
+      return;
+    }
     if ("error" in d && d.error === "category_protected") {
       window.alert("기본 카테고리(가정용)는 삭제하거나 슬러그를 바꿀 수 없습니다.");
       return;
@@ -318,8 +396,11 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   const sourceRecipes: AdminRecipe[] = useMemo(
     () =>
       dbRecipes.length > 0
-        ? dbRecipes.map((r) => ({
+        ?       dbRecipes.map((r) => ({
             id: String(r.recipe_id),
+            recipe_id: r.recipe_id,
+            translation_group_id: r.translation_group_id,
+            locale: r.locale as "ko" | "en",
             title: r.title,
             description: r.description ?? "",
             category: r.category as AdminRecipe["category"],
@@ -339,9 +420,18 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
     r.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
+  const submitEnTranslation = (recipeId: number) => {
+    const fd = new FormData();
+    fd.append("intent", "create_translation");
+    fd.append("base_id", String(recipeId));
+    fd.append("target_locale", "en");
+    fetcher.submit(fd, { method: "POST" });
+  };
+
   const handleAddRecipe = (recipeData: RecipeFormData) => {
     const fd = formPayloadFromRecipeData(recipeData);
     fd.append("intent", "create");
+    fd.append("locale", recipeData.locale ?? "ko");
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
   };
@@ -378,6 +468,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
 
     setEditingId(raw.recipe_id);
     setEditingData({
+      locale: raw.locale === "en" ? "en" : "ko",
       name: raw.title,
       category: raw.category,
       difficulty: raw.difficulty ?? "easy",
@@ -502,6 +593,14 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                     <div className="min-w-0 flex-1">
                       <div className="mb-1.5 flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-semibold text-gray-900">{recipe.title}</h3>
+                        {"locale" in recipe && recipe.locale ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-semibold uppercase text-gray-700"
+                          >
+                            {recipe.locale}
+                          </Badge>
+                        ) : null}
                         <span
                           className={cn(
                             "inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
@@ -550,6 +649,30 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                   </div>
 
                   <div className="flex shrink-0 items-center justify-end gap-1.5 self-center">
+                    {!usingMockData &&
+                    "locale" in recipe &&
+                    recipe.locale === "ko" &&
+                    "recipe_id" in recipe &&
+                    recipe.recipe_id != null &&
+                    "translation_group_id" in recipe &&
+                    !dbRecipes.some(
+                      (r) =>
+                        r.translation_group_id === recipe.translation_group_id && r.locale === "en",
+                    ) ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-[#02633E]/35 text-xs text-[#02633E]"
+                        onClick={() =>
+                          "recipe_id" in recipe && recipe.recipe_id != null
+                            ? submitEnTranslation(recipe.recipe_id)
+                            : undefined
+                        }
+                      >
+                        EN 추가
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
