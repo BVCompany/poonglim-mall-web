@@ -10,6 +10,7 @@ import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 
 export interface FaqFormData {
+  locale: "ko" | "en";
   category: "product" | "delivery" | "b2b" | "quality" | "general";
   question: string;
   answer: string;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const EMPTY: FaqFormData = {
+  locale: "ko",
   category: "general",
   question: "",
   answer: "",
@@ -66,6 +68,20 @@ export function FaqAddModal({ open, onOpenChange, onSubmit, editId, initialData 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {!isEditMode ? (
+            <div>
+              <Label className="mb-1.5 block text-sm font-medium">언어</Label>
+              <select
+                value={form.locale}
+                onChange={(e) => set("locale", e.target.value as "ko" | "en")}
+                className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm"
+                aria-label="게시 언어"
+              >
+                <option value="ko">한국어 (ko)</option>
+                <option value="en">English (en)</option>
+              </select>
+            </div>
+          ) : null}
           {/* 카테고리 */}
           <div>
             <Label className="mb-1.5 block text-sm font-medium">카테고리</Label>

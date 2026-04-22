@@ -9,7 +9,7 @@
  * - Dropdown menu with language options
  * - Integration with i18next for language switching
  * - Server-side persistence of language preference
- * - Support for multiple languages (English, Korean, Spanish)
+ * - Korean and English only on the storefront
  * - Translated language names in the current language
  */
 import { GlobeIcon } from "lucide-react";
@@ -46,7 +46,7 @@ export default function LangSwitcher() {
   
   /**
    * Handle language change by updating both client and server state
-   * @param locale - The language code to switch to (e.g., 'en', 'ko', 'es')
+   * @param locale - The language code to switch to (`en` or `ko`)
    */
   const handleLocaleChange = async (locale: string) => {
     // Change language in i18n context (client-side)
@@ -74,19 +74,11 @@ export default function LangSwitcher() {
       
       {/* Dropdown menu with language options */}
       <DropdownMenuContent align="end">
-        {/* Spanish language option */}
-        <DropdownMenuItem onClick={() => handleLocaleChange("es")}>
-          🇪🇸 {t("navigation.es")} {/* Translated name of Spanish */}
-        </DropdownMenuItem>
-        
-        {/* Korean language option */}
         <DropdownMenuItem onClick={() => handleLocaleChange("ko")}>
-          🇰🇷 {t("navigation.kr")} {/* Translated name of Korean */}
+          🇰🇷 {t("navigation.kr")}
         </DropdownMenuItem>
-        
-        {/* English language option */}
         <DropdownMenuItem onClick={() => handleLocaleChange("en")}>
-          🇬🇧 {t("navigation.en")} {/* Translated name of English */}
+          🇬🇧 {t("navigation.en")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

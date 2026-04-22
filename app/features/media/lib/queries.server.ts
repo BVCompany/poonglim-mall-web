@@ -3,38 +3,47 @@
  */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
+import type { ContentLocale } from "~/core/db/content-locale.server";
+import { pickBestLocaleRows } from "~/core/db/content-locale.server";
 import db from "~/core/db/drizzle-client.server";
 import { catalogs, news } from "../schema";
 
 export type News = typeof news.$inferSelect;
 export type Catalog = typeof catalogs.$inferSelect;
 
-
-/** 활성 뉴스 전체 */
-export async function getNews() {
-  return db
-    .select()
-    .from(news)
-    .where(eq(news.is_active, true))
-    .orderBy(desc(news.created_at));
+function sortNewsRows<T extends News>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const pa = a.published_at ?? "";
+    const pb = b.published_at ?? "";
+    if (pa !== pb) return pb.localeCompare(pa);
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 }
 
-/** 타입별 뉴스 조회 */
-export async function getNewsByType(type: "news" | "press" | "announcement") {
-  return db
-    .select()
-    .from(news)
-    .where(and(eq(news.is_active, true), eq(news.type, type)))
-    .orderBy(desc(news.created_at));
-}
-
-/** 홈 뉴스피드용 최근 N개 */
-export async function getRecentNews(limit = 5) {
+/** 활성 뉴스 전체 (locale 우선, 그룹당 1행) */
+export async function getNews(locale: ContentLocale) {
   const rows = await db
     .select()
     .from(news)
-    .where(eq(news.is_active, true))
-    .orderBy(desc(news.created_at));
+    .where(eq(news.is_active, true));
+  return sortNewsRows(pickBestLocaleRows(rows, locale));
+}
+
+/** 타입별 뉴스 조회 */
+export async function getNewsByType(
+  type: "news" | "press" | "announcement",
+  locale: ContentLocale,
+) {
+  const rows = await db
+    .select()
+    .from(news)
+    .where(and(eq(news.is_active, true), eq(news.type, type)));
+  return sortNewsRows(pickBestLocaleRows(rows, locale));
+}
+
+/** 홈 뉴스피드용 최근 N개 */
+export async function getRecentNews(limit = 5, locale: ContentLocale = "ko") {
+  const rows = await getNews(locale);
   return rows.slice(0, limit);
 }
 
@@ -48,7 +57,9 @@ export async function hasAnyActiveNews(): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** 활성 뉴스 단건 */
+/**
+ * ID로 단건 — 활성만. (locale 불일치 시 상위에서 형제 조회/리다이렉트)
+ */
 export async function getNewsById(id: number) {
   const rows = await db
     .select()
@@ -58,35 +69,56 @@ export async function getNewsById(id: number) {
   return rows[0] ?? null;
 }
 
-/** 상세 조회 시 조회수 1 증가 후 갱신된 값 반환 */
+/** 같은 그룹에서 요청 locale 행 (없으면 null) */
+export async function getNewsSiblingByLocale(
+  translationGroupId: string,
+  locale: ContentLocale,
+) {
+  const rows = await db
+    .select()
+    .from(news)
+    .where(
+      and(
+        eq(news.translation_group_id, translationGroupId),
+        eq(news.locale, locale),
+        eq(news.is_active, true),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** 상세 조회 시 조회수 1 증가 — 동일 그룹(ko/en) 행에 동일 값 반영 */
 export async function incrementNewsViewCount(id: number): Promise<string | null> {
   const rows = await db
-    .update(news)
-    .set({
-      view_count: sql`(COALESCE(NULLIF(TRIM(${news.view_count}), ''), '0')::integer + 1)::text`,
-    })
+    .select()
+    .from(news)
     .where(and(eq(news.news_id, id), eq(news.is_active, true)))
-    .returning({ view_count: news.view_count });
-  return rows[0]?.view_count ?? null;
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+
+  const current = Number.parseInt(String(row.view_count ?? "0"), 10);
+  const next = String(Number.isFinite(current) && current >= 0 ? current + 1 : 1);
+
+  await db
+    .update(news)
+    .set({ view_count: next })
+    .where(eq(news.translation_group_id, row.translation_group_id));
+
+  return next;
 }
 
 /**
- * 인접 글 (목록 정렬: published_at desc, created_at desc 기준)
- * - 이전글: 더 오래된 글(목록에서 아래)
- * - 다음글: 더 최신 글(목록에서 위)
+ * 인접 글 (목록 정렬: published_at desc, created_at desc 기준, locale 반영 목록과 동일)
  */
-export async function getAdjacentNews(newsId: number) {
-  const rows = await db
-    .select({ news_id: news.news_id, title: news.title })
-    .from(news)
-    .where(eq(news.is_active, true))
-    .orderBy(desc(news.published_at), desc(news.created_at));
-
-  const idx = rows.findIndex((r) => r.news_id === newsId);
+export async function getAdjacentNews(newsId: number, locale: ContentLocale) {
+  const ordered = await getNews(locale);
+  const idx = ordered.findIndex((r) => r.news_id === newsId);
   if (idx === -1) return { prev: null as { news_id: number; title: string } | null, next: null as { news_id: number; title: string } | null };
 
-  const older = rows[idx + 1];
-  const newer = rows[idx - 1];
+  const older = ordered[idx + 1];
+  const newer = ordered[idx - 1];
 
   return {
     prev: older ? { news_id: older.news_id, title: older.title } : null,

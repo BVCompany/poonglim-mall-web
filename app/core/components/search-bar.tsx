@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "~/core/lib/utils";
 
@@ -12,17 +13,24 @@ interface SearchBarProps {
   inputClassName?: string;
   /** 검색 버튼에만 추가 */
   buttonClassName?: string;
+  /** 검색 실행 버튼 접근성 라벨 */
+  buttonAriaLabel?: string;
 }
 
 export function SearchBar({
   value,
   onChange,
   onSearch,
-  placeholder = "검색어를 입력해주세요.",
+  placeholder,
   className = "",
   inputClassName = "",
   buttonClassName = "",
+  buttonAriaLabel,
 }: SearchBarProps) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("search.placeholder");
+  const resolvedAria = buttonAriaLabel ?? t("search.ariaSubmit");
+
   return (
     <div className={cn("flex min-w-0 items-center gap-3", className)}>
       <input
@@ -30,7 +38,7 @@ export function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onSearch()}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         className={cn(
           "h-16 min-w-0 flex-1 rounded-full border-0 bg-white px-5 text-sm outline-none placeholder:text-gray-400 md:w-64 md:flex-none",
           inputClassName,
@@ -44,7 +52,7 @@ export function SearchBar({
         )}
         style={{ backgroundColor: "#02633E" }}
         type="button"
-        aria-label="검색"
+        aria-label={resolvedAria}
       >
         <Search className="h-5 w-5" />
       </button>

@@ -29,6 +29,7 @@ export interface StepRow {
 }
 
 export interface RecipeFormData {
+  locale?: "ko" | "en";
   name: string;
   category: string;
   difficulty: string;
@@ -87,6 +88,7 @@ const DIFFICULTY_OPTIONS = [
 ];
 
 const EMPTY_FORM: RecipeFormData = {
+  locale: "ko",
   name: "",
   category: "easy",
   difficulty: "easy",
@@ -125,14 +127,14 @@ export function RecipeAddModal({
       setForm(initialData);
     } else {
       const defaultCategory = categoryOptions[0]?.slug ?? "easy";
-      setForm({ ...EMPTY_FORM, category: defaultCategory });
+      setForm({ ...EMPTY_FORM, locale: "ko", category: defaultCategory });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialData, dbCategories]);
 
   const reset = () => {
     const defaultCategory = categoryOptions[0]?.slug ?? "easy";
-    setForm({ ...EMPTY_FORM, category: defaultCategory });
+    setForm({ ...EMPTY_FORM, locale: "ko", category: defaultCategory });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -158,6 +160,40 @@ export function RecipeAddModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {isEditMode ? (
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              언어:{" "}
+              <span className="font-semibold">
+                {form.locale === "en" ? "English (en)" : "한국어 (ko)"}
+              </span>
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">언어 *</Label>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { v: "ko" as const, label: "한국어 (ko)" },
+                    { v: "en" as const, label: "English (en)" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, locale: opt.v }))}
+                    className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      (form.locale ?? "ko") === opt.v
+                        ? "border-[#02633E] bg-[#02633E] text-white"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-[#02633E]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="recipe-name" className="text-sm font-medium text-gray-700">
               레시피명 <span className="text-red-500">*</span>

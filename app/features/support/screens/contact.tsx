@@ -7,6 +7,7 @@ import type { Route } from "./+types/contact";
 
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { data, useFetcher } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
@@ -15,22 +16,25 @@ import {
   SectionPageTitle,
   SectionTitleStar,
 } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import { createContact, lookupContacts } from "../lib/queries.server";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "문의하기 | 풍림푸드" },
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const pageBanner = await getPageBanner("contact").catch(() => null);
-  return { pageBanner };
+  return { pageBanner, metaTitle: t("pages.supportContact.metaTitle") };
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -55,7 +59,9 @@ export async function action({ request }: Route.ActionArgs) {
     } catch (err) {
       console.error("[문의하기] DB 저장 오류:", err);
       const message =
-        err instanceof Error ? err.message : "제출 중 오류가 발생했습니다.";
+        err instanceof Error && err.message
+          ? err.message
+          : t("pages.supportContact.errorGeneric");
       return data(
         { success: false, intent: "contact", error: message },
         { status: 500 },
@@ -80,7 +86,7 @@ export async function action({ request }: Route.ActionArgs) {
           success: false,
           intent: "lookup",
           results: [],
-          error: "조회 중 오류가 발생했습니다.",
+          error: t("pages.supportContact.errorLookup"),
         },
         { status: 500 },
       );
@@ -90,19 +96,20 @@ export async function action({ request }: Route.ActionArgs) {
   return data({ success: false }, { status: 400 });
 }
 
-/* ── 문의유형 옵션 ── */
-const INQUIRY_TYPES = [
-  "제품 문의",
-  "배송 문의",
-  "B2B/대량구매",
-  "품질/안전",
-  "환불/교환",
-  "기타",
+/** DB·폼 값은 기존 한글 유지 (서버/기존 데이터 호환) */
+const INQUIRY_OPTIONS = [
+  { value: "제품 문의", key: "product" as const },
+  { value: "배송 문의", key: "delivery" as const },
+  { value: "B2B/대량구매", key: "b2b" as const },
+  { value: "품질/안전", key: "quality" as const },
+  { value: "환불/교환", key: "refund" as const },
+  { value: "기타", key: "other" as const },
 ];
 
-/* ── 이메일 도메인 옵션 ── */
+const EMAIL_DOMAIN_CUSTOM = "직접입력";
+
 const EMAIL_DOMAINS = [
-  "직접입력",
+  EMAIL_DOMAIN_CUSTOM,
   "gmail.com",
   "naver.com",
   "kakao.com",
@@ -110,11 +117,6 @@ const EMAIL_DOMAINS = [
   "nate.com",
   "hanmail.net",
 ];
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "접수 완료",
-  completed: "처리 완료",
-};
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -134,31 +136,8 @@ const inputCls = cn(
 
 const selectCls = cn(inputCls, "cursor-pointer appearance-none pr-10");
 
-const requiredMark = (
-  <span
-    className="ml-0.5 [font-family:Pretendard,system-ui,sans-serif] text-base font-medium text-[#F3372C] lg:text-xl lg:font-medium"
-    aria-hidden
-  >
-    *
-  </span>
-);
-
-const requiredNote = (
-  <span className={cn(nanum, "text-xs font-normal text-black lg:text-[13px]")}>
-    <span className="text-[#F3372C]">* </span>
-    필수 입력사항
-  </span>
-);
-
-/** 문의내역 조회 탭 PC 시안: 필수 안내 12px */
-const requiredNoteLookup = (
-  <span className={cn(nanum, "text-xs font-normal text-black")}>
-    <span className="text-[#F3372C]">* </span>
-    필수 입력사항
-  </span>
-);
-
 export default function ContactScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const pageBanner = loaderData?.pageBanner ?? null;
   const fetcher = useFetcher<typeof action>();
   const [activeTab, setActiveTab] = useState<"contact" | "lookup">("contact");
@@ -168,7 +147,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
     name: "",
     phone: "",
     email_local: "",
-    email_domain: "직접입력",
+    email_domain: EMAIL_DOMAIN_CUSTOM,
     email_custom: "",
     company: "",
     lookup_password: "",
@@ -209,7 +188,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.agreed) {
-      alert("개인정보 처리방침에 동의해주세요.");
+      alert(t("pages.supportContact.privacyAlert"));
       return;
     }
     const fd = new FormData();
@@ -220,7 +199,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
     fd.append("email_local", form.email_local);
     fd.append(
       "email_domain",
-      form.email_domain === "직접입력" ? form.email_custom : form.email_domain,
+      form.email_domain === EMAIL_DOMAIN_CUSTOM ? form.email_custom : form.email_domain,
     );
     fd.append("company", form.company);
     fd.append("lookup_password", form.lookup_password);
@@ -243,6 +222,46 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
 
+  const requiredMark = (
+    <span
+      className="ml-0.5 [font-family:Pretendard,system-ui,sans-serif] text-base font-medium text-[#F3372C] lg:text-xl lg:font-medium"
+      aria-hidden
+    >
+      *
+    </span>
+  );
+
+  const requiredNote = (
+    <span className={cn(nanum, "text-xs font-normal text-black lg:text-[13px]")}>
+      <span className="text-[#F3372C]">* </span>
+      {t("pages.supportContact.requiredNote")}
+    </span>
+  );
+
+  const requiredNoteLookup = (
+    <span className={cn(nanum, "text-xs font-normal text-black")}>
+      <span className="text-[#F3372C]">* </span>
+      {t("pages.supportContact.requiredNote")}
+    </span>
+  );
+
+  const inquiryLabel = (value: string) => {
+    const opt = INQUIRY_OPTIONS.find((o) => o.value === value);
+    return opt ? t(`pages.supportContact.inquiry.${opt.key}`) : value;
+  };
+
+  const statusLabel = (status: string) => {
+    if (status === "pending") return t("pages.supportContact.status.pending");
+    if (status === "completed") return t("pages.supportContact.status.completed");
+    return status;
+  };
+
+  const domainOptionLabel = (d: string) =>
+    d === EMAIL_DOMAIN_CUSTOM ? t("pages.supportContact.emailDomainCustom") : d;
+
+  const hqAddress = t("pages.supportContact.hqAddress");
+  const hqAddressShort = t("pages.supportContact.hqAddressShort");
+
   const labelClass = cn(
     nanum,
     "text-base font-bold text-black md:text-[clamp(15px,3vw,20px)] md:font-semibold md:text-gray-800",
@@ -255,19 +274,16 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
     "max-md:inline-flex max-md:w-[200px] max-md:max-w-full max-md:shrink-0 max-md:items-center max-md:gap-0.5",
   );
 
-  const HQ_ADDRESS = "충청북도 진천군 이월면 궁동길 51-21";
-  const HQ_ADDRESS_SHORT = "충북 진천군 이월면 궁동길 51-21";
-
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/support_banner_temp.png"
-        title="문의하기"
-        subtitle="궁금한 점이 있으시면 언제든 문의해주세요."
+        title={t("pages.supportContact.bannerTitle")}
+        subtitle={t("pages.supportContact.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "문의하기" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.contact") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -281,7 +297,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
           starVariant="product"
           className={cn(nanum, "pt-5 md:hidden")}
         >
-          문의하기
+          {t("pages.supportContact.mobileH1")}
         </SectionPageTitle>
 
         <div className="flex flex-col gap-5 pt-5 pb-10 max-md:gap-5 md:gap-6 lg:flex-row lg:items-start lg:gap-[100px] lg:pt-0 lg:pb-0">
@@ -300,15 +316,15 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                   "lg:text-[28px] lg:leading-[42px] lg:font-extrabold",
                 )}
               >
-                본사/공장
+                {t("pages.supportContact.hqTitle")}
               </h3>
               <a
-                href={`https://map.kakao.com/link/search/${encodeURIComponent(HQ_ADDRESS)}`}
+                href={`https://map.kakao.com/link/search/${encodeURIComponent(hqAddress)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-[42px] shrink-0 items-center gap-1 rounded-[60px] bg-[#FAE100] py-2 pr-3 pl-6 [font-family:Pretendard,system-ui,sans-serif] text-sm font-medium text-[#1F2121] transition-opacity hover:opacity-90 lg:h-[42px] lg:py-2 lg:pr-3 lg:pl-6"
               >
-                카카오맵
+                {t("pages.supportContact.kakaoMap")}
                 <img
                   src="/faq/marker_icon.png"
                   alt=""
@@ -324,7 +340,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                 "lg:mt-3 lg:text-lg lg:leading-[27px] lg:font-bold lg:text-[#1F2121]",
               )}
             >
-              {HQ_ADDRESS_SHORT}
+              {hqAddressShort}
             </p>
 
             <div className="my-5 border-t border-[#1F2121]/20 pt-5 max-md:my-5 md:my-4 md:border-gray-100 lg:my-10 lg:border-[#1F2121]/20 lg:pt-10" />
@@ -337,7 +353,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
             >
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-2.5">
                 <span className="w-[100px] shrink-0 text-base leading-6 font-extrabold text-[#1F2121] md:w-16 md:text-xs md:font-semibold md:text-gray-400 lg:w-[100px] lg:text-base lg:leading-6 lg:font-extrabold lg:text-[#1F2121]">
-                  TEL
+                  {t("pages.supportContact.labelTel")}
                 </span>
                 <a
                   href="tel:02-538-5617"
@@ -348,7 +364,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
               </div>
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-2.5">
                 <span className="w-[100px] shrink-0 text-base leading-6 font-extrabold text-[#1F2121] md:w-16 md:text-xs md:font-semibold md:text-gray-400 lg:w-[100px] lg:text-base lg:leading-6 lg:font-extrabold lg:text-[#1F2121]">
-                  FAX
+                  {t("pages.supportContact.labelFax")}
                 </span>
                 <span className="text-base leading-6 font-extrabold text-[#02633E] md:text-sm md:font-normal lg:text-base lg:leading-6 lg:font-extrabold">
                   02-538-5623
@@ -356,7 +372,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
               </div>
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-2.5">
                 <span className="w-[100px] shrink-0 text-base leading-6 font-extrabold text-[#1F2121] md:w-16 md:text-xs md:font-semibold md:text-gray-400 lg:w-[100px] lg:text-base lg:leading-6 lg:font-extrabold lg:text-[#1F2121]">
-                  이메일
+                  {t("pages.supportContact.labelEmail")}
                 </span>
                 <div className="min-w-0 lg:flex-1">
                   <div className="flex flex-col gap-1 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-2 lg:gap-y-0">
@@ -367,22 +383,22 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                       poonglim@freshegg.co.kr
                     </a>
                     <p className="text-sm leading-[21px] font-bold text-[#1F2121]/50 md:text-xs md:font-normal md:text-gray-400 lg:text-sm lg:leading-[21px] lg:font-bold">
-                      24시간 접수 가능
+                      {t("pages.supportContact.emailNote24h")}
                     </p>
                   </div>
                 </div>
               </div>
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-2.5">
                 <span className="w-[100px] shrink-0 text-base leading-6 font-extrabold text-[#1F2121] md:w-16 md:text-xs md:font-semibold md:text-gray-400 lg:w-[100px] lg:text-base lg:leading-6 lg:font-extrabold lg:text-[#1F2121]">
-                  운영시간
+                  {t("pages.supportContact.labelHours")}
                 </span>
                 <div className="min-w-0 lg:flex-1">
                   <div className="flex flex-col gap-1 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-2">
                     <p className="text-base leading-6 font-extrabold text-[#02633E] md:text-sm md:font-normal md:text-gray-600 lg:text-base lg:leading-6 lg:font-extrabold lg:text-[#02633E]">
-                      평일 09:00 - 18:00
+                      {t("pages.supportContact.hoursWeekday")}
                     </p>
                     <p className="text-sm leading-[21px] font-bold text-[#1F2121]/50 md:text-xs md:font-normal md:text-gray-400 lg:text-sm lg:leading-[21px] lg:font-bold">
-                      주말/공휴일 휴무
+                      {t("pages.supportContact.hoursClosedNote")}
                     </p>
                   </div>
                 </div>
@@ -426,7 +442,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                       />
                     </>
                   )}
-                  문의하기
+                  {t("pages.supportContact.tabContact")}
                 </button>
                 <button
                   type="button"
@@ -454,7 +470,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                       />
                     </>
                   )}
-                  문의내역 조회
+                  {t("pages.supportContact.tabLookup")}
                 </button>
               </div>
 
@@ -469,10 +485,10 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                       ✅
                     </div>
                     <p className="text-lg font-bold text-gray-800 md:text-xl">
-                      문의가 접수되었습니다.
+                      {t("pages.supportContact.successTitle")}
                     </p>
                     <p className="text-xs text-gray-500 md:text-sm">
-                      담당자 확인 후 빠르게 연락드리겠습니다.
+                      {t("pages.supportContact.successSubtitle")}
                     </p>
                     <button
                       onClick={() => {
@@ -482,7 +498,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           name: "",
                           phone: "",
                           email_local: "",
-                          email_domain: "직접입력",
+                          email_domain: EMAIL_DOMAIN_CUSTOM,
                           email_custom: "",
                           company: "",
                           lookup_password: "",
@@ -494,7 +510,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                       className="mt-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white"
                       style={{ backgroundColor: "#02633E" }}
                     >
-                      새 문의 작성
+                      {t("pages.supportContact.newInquiryCta")}
                     </button>
                   </div>
                 ) : (
@@ -511,7 +527,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                               "inline-flex items-center gap-0.5",
                             )}
                           >
-                            문의유형
+                            {t("pages.supportContact.labelInquiryType")}
                             {requiredMark}
                           </div>
                           {requiredNote}
@@ -529,11 +545,11 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                             )}
                           >
                             <option value="" disabled>
-                              선택해주세요.
+                              {t("pages.supportContact.selectInquiryPlaceholder")}
                             </option>
-                            {INQUIRY_TYPES.map((t) => (
-                              <option key={t} value={t}>
-                                {t}
+                            {INQUIRY_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {inquiryLabel(opt.value)}
                               </option>
                             ))}
                           </select>
@@ -546,14 +562,14 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                       <div className="flex flex-col gap-5">
                         <label className={fieldLabelClass}>
-                          이름
+                          {t("pages.supportContact.labelName")}
                           {requiredMark}
                         </label>
                         <input
                           type="text"
                           value={form.name}
                           onChange={(e) => setF("name", e.target.value)}
-                          placeholder="홍길동"
+                          placeholder={t("pages.supportContact.placeholderName")}
                           required
                           className={inputCls}
                         />
@@ -561,21 +577,21 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                       <div className="flex flex-col gap-5">
                         <label className={fieldLabelClass}>
-                          연락처
+                          {t("pages.supportContact.labelPhone")}
                           {requiredMark}
                         </label>
                         <input
                           type="tel"
                           value={form.phone}
                           onChange={(e) => setF("phone", e.target.value)}
-                          placeholder="연락처를 입력해주세요."
+                          placeholder={t("pages.supportContact.placeholderPhone")}
                           required
                           className={inputCls}
                         />
                       </div>
 
                       <div className="flex flex-col gap-5">
-                        <label className={fieldLabelClass}>이메일</label>
+                        <label className={fieldLabelClass}>{t("pages.supportContact.labelEmailField")}</label>
                         <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-2 lg:flex-row lg:items-stretch lg:gap-5">
                           <input
                             type="text"
@@ -583,7 +599,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                             onChange={(e) =>
                               setF("email_local", e.target.value)
                             }
-                            placeholder="이메일을 입력해주세요."
+                            placeholder={t("pages.supportContact.placeholderEmailLocal")}
                             className={cn(
                               inputCls,
                               "md:flex-[2] lg:min-w-0 lg:flex-1",
@@ -605,14 +621,14 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           >
                             @
                           </span>
-                          {form.email_domain === "직접입력" && (
+                          {form.email_domain === EMAIL_DOMAIN_CUSTOM && (
                             <input
                               type="text"
                               value={form.email_custom}
                               onChange={(e) =>
                                 setF("email_custom", e.target.value)
                               }
-                              placeholder="도메인 직접입력"
+                              placeholder={t("pages.supportContact.placeholderDomainCustom")}
                               className={cn(
                                 inputCls,
                                 "w-full md:min-w-0 md:flex-1",
@@ -624,14 +640,14 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                               value={form.email_domain}
                               onChange={(e) => {
                                 setF("email_domain", e.target.value);
-                                if (e.target.value !== "직접입력")
+                                if (e.target.value !== EMAIL_DOMAIN_CUSTOM)
                                   setF("email_custom", "");
                               }}
                               className={selectCls}
                             >
                               {EMAIL_DOMAINS.map((d) => (
                                 <option key={d} value={d}>
-                                  {d}
+                                  {domainOptionLabel(d)}
                                 </option>
                               ))}
                             </select>
@@ -645,21 +661,21 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                       <div className="flex flex-col gap-5">
                         <label className={fieldLabelClass}>
-                          회사/기관명
+                          {t("pages.supportContact.labelCompany")}
                           {requiredMark}
                         </label>
                         <input
                           type="text"
                           value={form.company}
                           onChange={(e) => setF("company", e.target.value)}
-                          placeholder="회사명(선택)"
+                          placeholder={t("pages.supportContact.placeholderCompany")}
                           className={inputCls}
                         />
                       </div>
 
                       <div className="flex flex-col gap-5">
                         <label className={fieldLabelClass}>
-                          비밀번호
+                          {t("pages.supportContact.labelPassword")}
                           {requiredMark}
                         </label>
                         <input
@@ -668,7 +684,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           onChange={(e) =>
                             setF("lookup_password", e.target.value)
                           }
-                          placeholder="문의내역 조회 시 필요합니다"
+                          placeholder={t("pages.supportContact.placeholderPassword")}
                           required
                           className={inputCls}
                         />
@@ -676,13 +692,13 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
 
                       <div className="flex flex-col gap-5">
                         <label className={fieldLabelClass}>
-                          문의 내용
+                          {t("pages.supportContact.labelContent")}
                           {requiredMark}
                         </label>
                         <textarea
                           value={form.content}
                           onChange={(e) => setF("content", e.target.value)}
-                          placeholder="문의 내용을 상세히 작성해주세요."
+                          placeholder={t("pages.supportContact.placeholderContent")}
                           required
                           rows={6}
                           className={cn(
@@ -705,9 +721,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           htmlFor="agree"
                           className="min-w-0 flex-1 cursor-pointer lg:min-h-[44px] lg:leading-normal"
                         >
-                          개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
-                          답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관
-                          후 파기됩니다.
+                          {t("pages.supportContact.privacyCheckbox")}
                         </label>
                         <div className="relative h-[18px] w-[18px] shrink-0">
                           <input
@@ -731,7 +745,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           <div className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                             ⚠️{" "}
                             {(actionData as { error?: string }).error ??
-                              "제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."}
+                              t("pages.supportContact.errorGeneric")}
                           </div>
                         )}
 
@@ -746,8 +760,8 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           )}
                         >
                           {fetcher.state === "submitting"
-                            ? "제출 중..."
-                            : "문의 접수하기"}
+                            ? t("pages.supportContact.submittingCta")
+                            : t("pages.supportContact.submitCta")}
                         </button>
                       </div>
                     </div>
@@ -768,7 +782,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                         "lg:text-[28px] lg:leading-normal lg:font-bold lg:text-black",
                       )}
                     >
-                      문의 시 입력하신 정보로 조회하실 수 있습니다.
+                      {t("pages.supportContact.lookupIntro")}
                     </p>
 
                     <div className="flex flex-col gap-5 lg:gap-5">
@@ -779,7 +793,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                             "inline-flex items-center gap-0.5",
                           )}
                         >
-                          이름
+                          {t("pages.supportContact.labelName")}
                           {requiredMark}
                         </div>
                         <span className="hidden lg:inline">
@@ -793,7 +807,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                         onChange={(e) =>
                           setLookupForm((p) => ({ ...p, name: e.target.value }))
                         }
-                        placeholder="홍길동"
+                        placeholder={t("pages.supportContact.placeholderName")}
                         required
                         className={cn(
                           inputCls,
@@ -809,7 +823,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           "inline-flex items-center gap-0.5 lg:inline-flex",
                         )}
                       >
-                        연락처
+                        {t("pages.supportContact.labelPhone")}
                         {requiredMark}
                       </label>
                       <input
@@ -821,7 +835,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                             phone: e.target.value,
                           }))
                         }
-                        placeholder="연락처를 입력해주세요."
+                        placeholder={t("pages.supportContact.placeholderPhone")}
                         required
                         className={cn(
                           inputCls,
@@ -837,7 +851,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           "inline-flex items-center gap-0.5 lg:inline-flex",
                         )}
                       >
-                        비밀번호
+                        {t("pages.supportContact.labelPassword")}
                         {requiredMark}
                       </label>
                       <input
@@ -849,7 +863,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                             lookup_password: e.target.value,
                           }))
                         }
-                        placeholder="문의내역 조회 시 필요합니다"
+                        placeholder={t("pages.supportContact.placeholderPassword")}
                         required
                         className={cn(
                           inputCls,
@@ -869,8 +883,8 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                         )}
                       >
                         {fetcher.state === "submitting"
-                          ? "조회 중..."
-                          : "문의내역 조회"}
+                          ? t("pages.supportContact.lookupSubmitting")
+                          : t("pages.supportContact.lookupCta")}
                         <Search
                           className="h-6 w-6 shrink-0 text-white md:h-4 md:w-4 lg:h-6 lg:w-6"
                           strokeWidth={2}
@@ -887,7 +901,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                           className="rounded-xl py-10 text-center text-sm text-gray-400"
                           style={{ backgroundColor: "#fff" }}
                         >
-                          일치하는 문의내역이 없습니다.
+                          {t("pages.supportContact.noLookupResults")}
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -901,7 +915,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
                                     <span className="rounded-full bg-[#EAE3C9] px-2.5 py-0.5 text-xs font-semibold text-[#003F2B]">
-                                      {item.inquiry_type}
+                                      {inquiryLabel(item.inquiry_type)}
                                     </span>
                                     <span className="text-sm font-semibold text-gray-800">
                                       {item.title}
@@ -915,7 +929,7 @@ export default function ContactScreen({ loaderData }: Route.ComponentProps) {
                                   <span
                                     className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_COLOR[item.status] ?? "bg-gray-100 text-gray-600"}`}
                                   >
-                                    {STATUS_LABEL[item.status] ?? item.status}
+                                    {statusLabel(item.status)}
                                   </span>
                                   <span className="text-xs text-gray-400">
                                     {formatDate(item.created_at)}

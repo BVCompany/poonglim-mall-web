@@ -1,11 +1,13 @@
 import type { Route } from "./+types/factory-tour";
 
 import { CalendarDays, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   type ChangeEvent,
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,103 +16,106 @@ import { Form, useActionData, useNavigation } from "react-router";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 
 import { createFactoryTourApplication } from "../lib/queries.server";
 
-/* ── 견학 안내 카드 (본문: 시안 bold/regular 분리) ── */
-const TOUR_INFO: {
+function buildTourInfo(t: (key: string) => string): {
   num: string;
   title: string;
   body: ReactNode;
-}[] = [
-  {
-    num: "1",
-    title: "견학공장",
-    body: (
-      <>
-        <span className="font-bold">충청북도 진천군 이월면 공동길 51-21 </span>
-        <br />
-        <span className="font-normal">(본사/공장)</span>
-      </>
-    ),
-  },
-  {
-    num: "2",
-    title: "견학기간",
-    body: (
-      <>
-        <span className="font-bold">견학기간3~6월, 9~11월 </span>
-        <br />
-        <span className="font-normal">
-          (7~8월, 12~2월은 견학을 실시하지 않습니다)
+}[] {
+  return [
+    {
+      num: "1",
+      title: t("pages.brand.factoryTour.tourInfo.factory.title"),
+      body: (
+        <>
+          <span className="font-bold">
+            {t("pages.brand.factoryTour.tourInfo.factory.line1Bold")}
+          </span>
+          <br />
+          <span className="font-normal">
+            {t("pages.brand.factoryTour.tourInfo.factory.line2")}
+          </span>
+        </>
+      ),
+    },
+    {
+      num: "2",
+      title: t("pages.brand.factoryTour.tourInfo.period.title"),
+      body: (
+        <>
+          <span className="font-bold">
+            {t("pages.brand.factoryTour.tourInfo.period.line1Bold")}
+          </span>
+          <br />
+          <span className="font-normal">
+            {t("pages.brand.factoryTour.tourInfo.period.line2")}
+          </span>
+        </>
+      ),
+    },
+    {
+      num: "3",
+      title: t("pages.brand.factoryTour.tourInfo.hours.title"),
+      body: (
+        <>
+          <span className="font-bold">
+            {t("pages.brand.factoryTour.tourInfo.hours.line1Bold")}
+          </span>
+          <br />
+          <span className="font-normal">
+            {t("pages.brand.factoryTour.tourInfo.hours.line2")}
+          </span>
+        </>
+      ),
+    },
+    {
+      num: "4",
+      title: t("pages.brand.factoryTour.tourInfo.audience.title"),
+      body: (
+        <>
+          <span className="font-bold">
+            {t("pages.brand.factoryTour.tourInfo.audience.line1Bold")}
+          </span>
+          <br />
+          <span className="font-normal">
+            {t("pages.brand.factoryTour.tourInfo.audience.line2")}
+          </span>
+        </>
+      ),
+    },
+    {
+      num: "5",
+      title: t("pages.brand.factoryTour.tourInfo.capacity.title"),
+      body: (
+        <>
+          <span className="font-bold">
+            {t("pages.brand.factoryTour.tourInfo.capacity.line1Bold")}
+          </span>
+          <span className="font-normal">
+            {t("pages.brand.factoryTour.tourInfo.capacity.line2")}
+          </span>
+          <br />
+        </>
+      ),
+    },
+    {
+      num: "6",
+      title: t("pages.brand.factoryTour.tourInfo.contact.title"),
+      body: (
+        <span className="font-bold">
+          {t("pages.brand.factoryTour.tourInfo.contact.phone")}
+          <br />
         </span>
-      </>
-    ),
-  },
-  {
-    num: "3",
-    title: "견학시간",
-    body: (
-      <>
-        <span className="font-bold">오전 10:00 / 오후 14:00</span>
-        <br />
-        <span className="font-normal">(약 1시간 30분 소요)</span>
-      </>
-    ),
-  },
-  {
-    num: "4",
-    title: "견학대상",
-    body: (
-      <>
-        <span className="font-bold">10명 이상 단체 </span>
-        <br />
-        <span className="font-normal">(단, 유아/어린이 체험 견학 시 가능)</span>
-      </>
-    ),
-  },
-  {
-    num: "5",
-    title: "견학인원",
-    body: (
-      <>
-        <span className="font-bold">1회당 40명 </span>
-        <span className="font-normal">(최소 10명)</span>
-        <br />
-      </>
-    ),
-  },
-  {
-    num: "6",
-    title: "견학문의",
-    body: (
-      <span className="font-bold">
-        043-533-2285
-        <br />
-      </span>
-    ),
-  },
-];
-
-/* ── 한눈에 보는 공장견학 사진 ── */
-const SCENE_PHOTOS = [
-  { src: "/visit/01.png", label: "회사 및 공장소개" },
-  { src: "/visit/02.png", label: "품질관리실 견학" },
-  { src: "/visit/03.png", label: "생산라인 견학" },
-  { src: "/visit/04.png", label: "제품 시식" },
-];
-
-/* ── 유의사항 ── */
-const NOTICES = [
-  "견학 예정일 7일 전까지 신청해주세요.",
-  "견학 취소는 3일 전까지 연락 부탁드립니다.",
-  "안전을 위해 견학 시 지정된 경로만 이동 가능합니다.",
-  "위생 관리를 위해 위생복과 위생모를 착용합니다.",
-  "공장 내 촬영은 담당자 안내에 따라주세요.",
-];
+      ),
+    },
+  ];
+}
 
 const EMAIL_DOMAINS = [
   "직접입력",
@@ -184,6 +189,7 @@ function FactoryTourVisitDateField({
   mobile,
   setPopoverRoot,
 }: FactoryTourVisitDateFieldProps) {
+  const { t } = useTranslation();
   const datePickerRef = useRef<HTMLInputElement>(null);
   const [dateTextDraft, setDateTextDraft] = useState(visitDateStr);
 
@@ -234,8 +240,8 @@ function FactoryTourVisitDateField({
           {visitDateStr
             ? visitDateStr
             : mobile
-              ? "날짜를 선택해주세요."
-              : "날짜를 선택하거나 직접 입력해 주세요."}
+              ? t("pages.brand.factoryTour.form.datePlaceholderMobile")
+              : t("pages.brand.factoryTour.form.datePlaceholderDesktop")}
         </span>
         <CalendarDays
           className={cn(
@@ -248,7 +254,7 @@ function FactoryTourVisitDateField({
       {visitDateOpen && !disabled ? (
         <div className="absolute left-0 right-0 z-30 mt-2 rounded-[10px] border border-[#E5E0D4] bg-white p-4 shadow-lg">
           <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
-            달력에서 선택
+            {t("pages.brand.factoryTour.form.datePickerPick")}
           </p>
           <input
             ref={datePickerRef}
@@ -262,12 +268,14 @@ function FactoryTourVisitDateField({
             className={cn(ftInputClass, "mb-4")}
           />
           <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
-            또는 YYYY-MM-DD 형식으로 입력
+            {t("pages.brand.factoryTour.form.dateManualHint")}
           </p>
           <input
             type="text"
             inputMode="numeric"
-            placeholder="예: 2026-06-15"
+            placeholder={t(
+              "pages.brand.factoryTour.form.dateExamplePlaceholder",
+            )}
             value={dateTextDraft}
             onChange={(e) => setDateTextDraft(e.target.value)}
             onBlur={() => {
@@ -291,7 +299,7 @@ function FactoryTourVisitDateField({
             className="mt-3 w-full rounded-lg border border-[#E5E0D4] py-2 font-[family-name:var(--font-nanum)] text-sm font-bold text-[#1F2121] hover:bg-[#FDFDF5]"
             onClick={() => setVisitDateOpen(false)}
           >
-            닫기
+            {t("pages.brand.factoryTour.form.close")}
           </button>
         </div>
       ) : null}
@@ -299,11 +307,17 @@ function FactoryTourVisitDateField({
   );
 }
 
-export const meta: Route.MetaFunction = () => [
-  { title: "공장견학 | 풍림푸드" },
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
 ];
 
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.brand.factoryTour.metaTitle") };
+}
+
 export async function action({ request }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
   const fd = await request.formData();
   const factory = (fd.get("factory") as string) || "충북 진천공장";
   const visitTime = fd.get("visit_time") as string;
@@ -347,12 +361,42 @@ export async function action({ request }: Route.ActionArgs) {
   } catch {
     return {
       success: false,
-      error: "신청 중 오류가 발생했습니다. 다시 시도해주세요.",
+      error: t("pages.brand.factoryTour.form.errorGeneric"),
     };
   }
 }
 
-export default function FactoryTourScreen() {
+export default function FactoryTourScreen(_props: Route.ComponentProps) {
+  const { t } = useTranslation();
+  const tourInfo = useMemo(() => buildTourInfo(t), [t]);
+  const scenePhotos = useMemo(
+    () => [
+      { src: "/visit/01.png", label: t("pages.brand.factoryTour.scenes.intro") },
+      {
+        src: "/visit/02.png",
+        label: t("pages.brand.factoryTour.scenes.quality"),
+      },
+      {
+        src: "/visit/03.png",
+        label: t("pages.brand.factoryTour.scenes.production"),
+      },
+      {
+        src: "/visit/04.png",
+        label: t("pages.brand.factoryTour.scenes.tasting"),
+      },
+    ],
+    [t],
+  );
+  const notices = useMemo(
+    () => [
+      t("pages.brand.factoryTour.notices.n1"),
+      t("pages.brand.factoryTour.notices.n2"),
+      t("pages.brand.factoryTour.notices.n3"),
+      t("pages.brand.factoryTour.notices.n4"),
+      t("pages.brand.factoryTour.notices.n5"),
+    ],
+    [t],
+  );
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -442,8 +486,8 @@ export default function FactoryTourScreen() {
         <Breadcrumb
           variant="productDetail"
           items={[
-            { label: "홍보센터", href: "/media/news" },
-            { label: "공장견학" },
+            { label: t("navigation.mega.promo"), href: "/media/news" },
+            { label: t("pages.brand.factoryTour.breadcrumbCurrent") },
           ]}
         />
 
@@ -457,7 +501,7 @@ export default function FactoryTourScreen() {
                   lineHeight: pc1920(48, 84),
                 }}
               >
-                공장견학
+                {t("pages.brand.factoryTour.heroTitle")}
               </h1>
               <p
                 className="font-[family-name:var(--font-nanum)] font-normal tracking-[-0.02em] text-[#003F2B]"
@@ -466,8 +510,7 @@ export default function FactoryTourScreen() {
                   lineHeight: pc1920(18, 19.2),
                 }}
               >
-                신선한 달걀이 어떻게 안전한 제품으로 만들어지는지 직접
-                확인해보세요
+                {t("pages.brand.factoryTour.heroSubtitle")}
               </p>
             </div>
           </div>
@@ -488,18 +531,18 @@ export default function FactoryTourScreen() {
                 className="px-0 pb-4"
                 titleClassName="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-[#1F2121]"
               >
-                풍림 공장견학 안내
+                {t("pages.brand.factoryTour.mobileSectionTitle")}
               </SectionPageTitle>
               <div className="overflow-hidden rounded-[30px]">
                 <img
                   src="/visit/00.png"
-                  alt="충북 진천공장 전경"
+                  alt={t("pages.brand.factoryTour.factoryImageAlt")}
                   className="h-[343px] w-full object-cover sm:h-[380px]"
                 />
               </div>
             </div>
             <div className="flex flex-col gap-5">
-              {TOUR_INFO.map((item) => (
+              {tourInfo.map((item) => (
                 <div
                   key={item.num}
                   className="flex min-h-[126px] flex-col gap-5 rounded-[10px] bg-white p-5"
@@ -530,13 +573,13 @@ export default function FactoryTourScreen() {
             <div className="relative aspect-square min-h-0 w-full min-w-0 overflow-hidden rounded-[10px]">
               <img
                 src="/visit/00.png"
-                alt="충북 진천공장 전경"
+                alt={t("pages.brand.factoryTour.factoryImageAlt")}
                 className="h-full w-full object-cover"
               />
               <div className="absolute right-0 bottom-0 left-0 flex flex-col gap-6 px-6 pt-8 pb-10 lg:px-8 lg:pt-10 lg:pb-12 xl:px-10 xl:pt-10 xl:pb-[70px]">
                 <div className="inline-flex w-fit max-w-[calc(100%-2rem)] rounded-[40px] bg-black/20 px-4 py-2 xl:px-5 xl:py-2.5">
                   <p className="font-[family-name:var(--font-nanum)] text-lg leading-8 font-extrabold text-white xl:text-2xl xl:leading-9">
-                    풍림 공장견학 안내
+                    {t("pages.brand.factoryTour.desktopImageBadge")}
                   </p>
                 </div>
               </div>
@@ -548,7 +591,7 @@ export default function FactoryTourScreen() {
                 "[grid-template-rows:repeat(3,minmax(0,1fr))]",
               )}
             >
-              {TOUR_INFO.map((item) => (
+              {tourInfo.map((item) => (
                 <div
                   key={item.num}
                   className="flex h-full min-h-0 min-w-0 flex-col gap-5 rounded-[10px] bg-white px-10 py-[30px]"
@@ -585,12 +628,12 @@ export default function FactoryTourScreen() {
               className="px-0 py-5"
               titleClassName="font-[family-name:var(--font-nanum)] text-[18px] leading-[30px] font-extrabold text-white"
             >
-              한눈에 보는 공장견학
+              {t("pages.brand.factoryTour.scenesTitle")}
             </SectionPageTitle>
             {/* PageContentMax 우측 gutter(px-4/md:px-6)만큼 당겨 슬라이드가 화면 오른쪽까지 붙도록 */}
             <div className="max-lg:-mr-4 md:max-lg:-mr-6">
               <div className="flex gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {SCENE_PHOTOS.map((photo, i) => (
+                {scenePhotos.map((photo, i) => (
                   <div
                     key={photo.label}
                     className="flex w-[min(243px,calc(100vw-5rem))] shrink-0 snap-start snap-always flex-col gap-3"
@@ -626,11 +669,11 @@ export default function FactoryTourScreen() {
               markClassName="mt-2.5 h-[21px] w-[21px] shrink-0"
               titleClassName="max-w-[1200px] font-[family-name:var(--font-nanum)] text-[28px] font-bold leading-[42px] text-white"
             >
-              한눈에 보는 공장견학
+              {t("pages.brand.factoryTour.scenesTitle")}
             </SectionPageTitle>
 
             <div className="flex gap-5">
-              {SCENE_PHOTOS.map((photo, i) => (
+              {scenePhotos.map((photo, i) => (
                 <div
                   key={photo.label}
                   className="flex min-w-0 flex-1 flex-col gap-3"
@@ -674,12 +717,17 @@ export default function FactoryTourScreen() {
               <div className="flex flex-col gap-10">
                 <div className="flex flex-col gap-3">
                   <h2 className="font-[family-name:var(--font-nanum)] text-[28px] leading-[42px] font-extrabold text-[#1F2121]">
-                    견학신청하기
+                    {t("pages.brand.factoryTour.form.applyTitle")}
                   </h2>
                   <p className="font-[family-name:var(--font-nanum)] text-lg leading-[27px] font-bold text-[#1F2121]">
-                    현재 견학 신청을 받고 있습니다.
-                    <br />
-                    참여를 원하시는 분은 오른쪽 신청서를 작성해 주세요.
+                    {t("pages.brand.factoryTour.form.applyIntroDesktop")
+                      .split("\n")
+                      .map((line, i, arr) => (
+                        <span key={i}>
+                          {line}
+                          {i < arr.length - 1 ? <br /> : null}
+                        </span>
+                      ))}
                   </p>
                 </div>
 
@@ -689,11 +737,11 @@ export default function FactoryTourScreen() {
                       !
                     </span>
                     <p className="font-[family-name:var(--font-nanum)] text-lg leading-[27px] font-extrabold text-[#003F2B]">
-                      공장견학 유의사항
+                      {t("pages.brand.factoryTour.form.cautionsTitle")}
                     </p>
                   </div>
                   <ul className="flex flex-col gap-1">
-                    {NOTICES.map((n, i) => (
+                    {notices.map((n, i) => (
                       <li
                         key={i}
                         className="font-[family-name:var(--font-nanum)] text-base leading-6 font-normal text-[#1F2121]"
@@ -709,12 +757,17 @@ export default function FactoryTourScreen() {
             {/* 모바일: 안내 + 유의사항 (흰 카드) */}
             <div className="rounded-[10px] bg-white p-5 lg:hidden">
               <h2 className="font-[family-name:var(--font-nanum)] text-[18px] leading-[27px] font-extrabold text-[#1F2121]">
-                견학신청하기
+                {t("pages.brand.factoryTour.form.applyTitle")}
               </h2>
               <p className="mt-3 font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-[#1F2121]">
-                현재 견학 신청을 받고 있습니다.
-                <br />
-                참여를 원하시는 분은 신청서를 작성해 주세요.
+                {t("pages.brand.factoryTour.form.applyIntroMobile")
+                  .split("\n")
+                  .map((line, i, arr) => (
+                    <span key={i}>
+                      {line}
+                      {i < arr.length - 1 ? <br /> : null}
+                    </span>
+                  ))}
               </p>
               <div className="mt-5 border-t border-[#1F2121]/20 pt-5">
                 <div className="mb-3 flex items-center gap-2.5">
@@ -722,11 +775,11 @@ export default function FactoryTourScreen() {
                     !
                   </span>
                   <p className="font-[family-name:var(--font-nanum)] text-base leading-6 font-extrabold text-[#003F2B]">
-                    공장견학 유의사항
+                    {t("pages.brand.factoryTour.form.cautionsTitle")}
                   </p>
                 </div>
                 <ul className="space-y-1">
-                  {NOTICES.map((n, i) => (
+                  {notices.map((n, i) => (
                     <li
                       key={i}
                       className="font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-normal text-[#1F2121]"
@@ -749,10 +802,10 @@ export default function FactoryTourScreen() {
                     <Check className="h-7 w-7 text-white" />
                   </div>
                   <p className="text-base font-bold text-gray-900">
-                    신청이 완료되었습니다!
+                    {t("pages.brand.factoryTour.form.successTitle")}
                   </p>
                   <p className="mt-2 text-sm text-gray-500">
-                    담당자가 확인 후 빠르게 연락드리겠습니다.
+                    {t("pages.brand.factoryTour.form.successSubtitle")}
                   </p>
                 </div>
               ) : (
@@ -766,13 +819,13 @@ export default function FactoryTourScreen() {
                       <div className="mb-0 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-0.5">
                           <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                            단체/기관명
+                            {t("pages.brand.factoryTour.form.labels.organization")}
                           </span>
                           <span className={ftStarClass}>*</span>
                         </div>
                         <span className="text-right font-[family-name:var(--font-nanum)] text-xs font-normal text-black">
-                          <span className="text-[#F3372C]">* </span>필수
-                          입력사항
+                          <span className="text-[#F3372C]">* </span>
+                          {t("pages.brand.factoryTour.form.requiredHint")}
                         </span>
                       </div>
                       <input
@@ -780,7 +833,9 @@ export default function FactoryTourScreen() {
                         name="organization"
                         required={mobile}
                         disabled={formLocked || !mobile}
-                        placeholder="예 : 00초등학교"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.organization",
+                        )}
                         className={cn(ftInputClass, "mt-5")}
                       />
                     </div>
@@ -788,7 +843,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          담당자 성함
+                          {t("pages.brand.factoryTour.form.labels.managerName")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -797,7 +852,9 @@ export default function FactoryTourScreen() {
                         name="manager_name"
                         required={mobile}
                         disabled={formLocked || !mobile}
-                        placeholder="홍길동"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.managerName",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
@@ -805,7 +862,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          연락처
+                          {t("pages.brand.factoryTour.form.labels.phone")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -814,14 +871,16 @@ export default function FactoryTourScreen() {
                         name="phone"
                         required={mobile}
                         disabled={formLocked || !mobile}
-                        placeholder="연락처를 입력해주세요."
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.phone",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <label className="block font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                        이메일
+                        {t("pages.brand.factoryTour.form.labels.email")}
                       </label>
                       <div className="flex flex-col gap-5">
                         <input
@@ -830,7 +889,9 @@ export default function FactoryTourScreen() {
                           value={emailLocal}
                           onChange={(e) => setEmailLocal(e.target.value)}
                           disabled={formLocked || !mobile}
-                          placeholder="이메일 아이디"
+                          placeholder={t(
+                            "pages.brand.factoryTour.form.placeholders.emailLocal",
+                          )}
                           autoComplete="email"
                           className={ftInputClass}
                         />
@@ -846,7 +907,9 @@ export default function FactoryTourScreen() {
                               setEmailDomainCustom(e.target.value)
                             }
                             disabled={formLocked || !mobile}
-                            placeholder="메일 도메인 주소"
+                            placeholder={t(
+                              "pages.brand.factoryTour.form.placeholders.emailDomain",
+                            )}
                             className={cn(
                               ftInputClass,
                               "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40",
@@ -862,7 +925,9 @@ export default function FactoryTourScreen() {
                           disabled={formLocked || !mobile}
                           className={ftInputClass}
                         >
-                          <option value="">직접입력</option>
+                          <option value="">
+                            {t("pages.brand.factoryTour.form.emailCustom")}
+                          </option>
                           {EMAIL_DOMAINS.slice(1).map((d) => (
                             <option key={d} value={d}>
                               {d}
@@ -875,7 +940,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          희망 견학일
+                          {t("pages.brand.factoryTour.form.labels.visitDate")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -895,7 +960,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          희망 시간대
+                          {t("pages.brand.factoryTour.form.labels.visitTime")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -905,16 +970,22 @@ export default function FactoryTourScreen() {
                         disabled={formLocked || !mobile}
                         className={ftInputClass}
                       >
-                        <option value="">선택</option>
-                        <option value="오전 10:00">오전 10:00</option>
-                        <option value="오후 14:00">오후 14:00</option>
+                        <option value="">
+                          {t("pages.brand.factoryTour.form.visitTimeSelect")}
+                        </option>
+                        <option value="오전 10:00">
+                          {t("pages.brand.factoryTour.form.visitTimeAm")}
+                        </option>
+                        <option value="오후 14:00">
+                          {t("pages.brand.factoryTour.form.visitTimePm")}
+                        </option>
                       </select>
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          예상 인원
+                          {t("pages.brand.factoryTour.form.labels.participants")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -925,7 +996,9 @@ export default function FactoryTourScreen() {
                         max={40}
                         required={mobile}
                         disabled={formLocked || !mobile}
-                        placeholder="예 : 30"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.participants",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
@@ -933,7 +1006,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          견학 목적
+                          {t("pages.brand.factoryTour.form.labels.purpose")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -942,7 +1015,9 @@ export default function FactoryTourScreen() {
                         name="purpose_text"
                         required={mobile}
                         disabled={formLocked || !mobile}
-                        placeholder="예 : 현장학습, 기업탐방 등"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.purpose",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
@@ -950,7 +1025,7 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex max-w-[200px] items-center gap-0.5">
                         <span className="font-[family-name:var(--font-nanum)] text-base font-bold text-black">
-                          요청사항
+                          {t("pages.brand.factoryTour.form.labels.message")}
                         </span>
                         <span className={ftStarClass}>*</span>
                       </div>
@@ -959,7 +1034,9 @@ export default function FactoryTourScreen() {
                         required={mobile}
                         disabled={formLocked || !mobile}
                         rows={5}
-                        placeholder="기타 문의사항이나 요청사항을 입력해주세요"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.message",
+                        )}
                         className={cn(
                           ftInputClass,
                           "h-auto min-h-[120px] max-lg:h-auto max-lg:min-h-[200px] max-lg:py-[18px] max-lg:leading-5",
@@ -973,12 +1050,14 @@ export default function FactoryTourScreen() {
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-0.5">
-                          <span className={ftLabelPc}>단체/기관명</span>
+                          <span className={ftLabelPc}>
+                            {t("pages.brand.factoryTour.form.labels.organization")}
+                          </span>
                           <span className={ftStarClass}>*</span>
                         </div>
                         <span className="shrink-0 text-right font-[family-name:var(--font-nanum)] text-[13px] font-normal text-black">
                           <span className="text-[#F3372C]">* </span>
-                          필수 입력사항
+                          {t("pages.brand.factoryTour.form.requiredHint")}
                         </span>
                       </div>
                       <input
@@ -986,14 +1065,18 @@ export default function FactoryTourScreen() {
                         name="organization"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="예 : 00초등학교"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.organization",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>담당자 성함</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.managerName")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <input
@@ -1001,14 +1084,18 @@ export default function FactoryTourScreen() {
                         name="manager_name"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="홍길동"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.managerName",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>연락처</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.phone")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <input
@@ -1016,7 +1103,9 @@ export default function FactoryTourScreen() {
                         name="phone"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="연락처를 입력해주세요."
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.phone",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
@@ -1025,7 +1114,7 @@ export default function FactoryTourScreen() {
                       <label
                         className={cn(labelCls, ftLabelPc, "lg:mb-0 lg:block")}
                       >
-                        이메일
+                        {t("pages.brand.factoryTour.form.labels.email")}
                       </label>
                       <div className="flex w-full min-w-0 flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
                         <input
@@ -1034,7 +1123,9 @@ export default function FactoryTourScreen() {
                           value={emailLocal}
                           onChange={(e) => setEmailLocal(e.target.value)}
                           disabled={formLocked || mobile}
-                          placeholder="이메일 아이디"
+                          placeholder={t(
+                            "pages.brand.factoryTour.form.placeholders.emailLocal",
+                          )}
                           autoComplete="email"
                           className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
                         />
@@ -1050,7 +1141,9 @@ export default function FactoryTourScreen() {
                               setEmailDomainCustom(e.target.value)
                             }
                             disabled={formLocked || mobile}
-                            placeholder="메일 도메인 주소"
+                            placeholder={t(
+                              "pages.brand.factoryTour.form.placeholders.emailDomain",
+                            )}
                             className={cn(
                               ftInputClass,
                               "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px]",
@@ -1066,7 +1159,9 @@ export default function FactoryTourScreen() {
                           disabled={formLocked || mobile}
                           className={cn(ftInputClass, "lg:min-w-0 lg:flex-1")}
                         >
-                          <option value="">직접입력</option>
+                          <option value="">
+                            {t("pages.brand.factoryTour.form.emailCustom")}
+                          </option>
                           {EMAIL_DOMAINS.slice(1).map((d) => (
                             <option key={d} value={d}>
                               {d}
@@ -1078,7 +1173,9 @@ export default function FactoryTourScreen() {
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>희망 견학일</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.visitDate")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <FactoryTourVisitDateField
@@ -1096,7 +1193,9 @@ export default function FactoryTourScreen() {
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>희망 시간대</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.visitTime")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <select
@@ -1105,15 +1204,23 @@ export default function FactoryTourScreen() {
                         disabled={formLocked || mobile}
                         className={ftInputClass}
                       >
-                        <option value="">선택</option>
-                        <option value="오전 10:00">오전 10:00</option>
-                        <option value="오후 14:00">오후 14:00</option>
+                        <option value="">
+                          {t("pages.brand.factoryTour.form.visitTimeSelect")}
+                        </option>
+                        <option value="오전 10:00">
+                          {t("pages.brand.factoryTour.form.visitTimeAm")}
+                        </option>
+                        <option value="오후 14:00">
+                          {t("pages.brand.factoryTour.form.visitTimePm")}
+                        </option>
                       </select>
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>예상 인원</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.participants")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <input
@@ -1123,14 +1230,18 @@ export default function FactoryTourScreen() {
                         max={40}
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="예 : 30"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.participants",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>견학 목적</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.purpose")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <input
@@ -1138,14 +1249,18 @@ export default function FactoryTourScreen() {
                         name="purpose_text"
                         required={!mobile}
                         disabled={formLocked || mobile}
-                        placeholder="예 : 현장학습, 기업탐방 등"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.purpose",
+                        )}
                         className={ftInputClass}
                       />
                     </div>
 
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-0.5">
-                        <span className={ftLabelPc}>요청사항</span>
+                        <span className={ftLabelPc}>
+                          {t("pages.brand.factoryTour.form.labels.message")}
+                        </span>
                         <span className={ftStarClass}>*</span>
                       </div>
                       <textarea
@@ -1153,7 +1268,9 @@ export default function FactoryTourScreen() {
                         required={!mobile}
                         disabled={formLocked || mobile}
                         rows={6}
-                        placeholder="기타 문의사항이나 요청사항을 입력해주세요"
+                        placeholder={t(
+                          "pages.brand.factoryTour.form.placeholders.message",
+                        )}
                         className={cn(
                           ftInputClass,
                           "h-auto min-h-[200px] resize-none lg:py-[18px]",
@@ -1170,9 +1287,7 @@ export default function FactoryTourScreen() {
                     )}
                   >
                     <span className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold break-words text-[#1F2121] lg:font-[Pretendard,system-ui,sans-serif] lg:text-lg lg:leading-normal lg:font-medium">
-                      개인정보 수집 및 이용에 동의합니다. 수집된 정보는 문의
-                      답변 목적으로만 사용되며, 답변 완료 후 일정 기간 보관 후
-                      파기됩니다
+                      {t("pages.brand.factoryTour.form.privacy")}
                     </span>
                     <input
                       type="checkbox"
@@ -1197,7 +1312,9 @@ export default function FactoryTourScreen() {
                       )}
                       style={{ backgroundColor: "#02633E" }}
                     >
-                      {isSubmitting ? "신청 중..." : "견학 신청하기"}
+                      {isSubmitting
+                        ? t("pages.brand.factoryTour.form.submitting")
+                        : t("pages.brand.factoryTour.form.submit")}
                     </button>
                   </div>
                 </Form>

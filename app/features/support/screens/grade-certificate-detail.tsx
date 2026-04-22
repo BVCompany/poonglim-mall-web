@@ -2,11 +2,13 @@
  * 등급판정서 상세 페이지
  */
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import type { Route } from "./+types/grade-certificate-detail";
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -79,7 +81,8 @@ const MOCK_ADJACENT: Record<
   },
 };
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const id = Number(params.id);
   const pageBanner = await getPageBanner("grade-certificate").catch(() => null);
 
@@ -120,14 +123,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     next = MOCK_ADJACENT[id]?.next ?? null;
   }
 
-  return { cert, prev, next, pageBanner };
+  const metaTitle = `${cert.title} | ${t("common.metaTitleSuffix")}`;
+
+  return { cert, prev, next, pageBanner, metaTitle };
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  const title =
-    (data as { cert?: { title: string } } | null)?.cert?.title ??
-    "등급판정서 상세";
-  return [{ title: `${title} | 풍림푸드` }];
+  const title = (data as { metaTitle?: string } | null)?.metaTitle ?? "";
+  return [{ title }];
 }
 
 function formatDateTime(val: string | Date) {
@@ -149,6 +152,7 @@ function certBodyHtml(content: string) {
 }
 
 export default function GradeCertDetailScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const { cert, prev, next, pageBanner } = loaderData;
 
   const hasRealFileUrl = Boolean(
@@ -166,12 +170,12 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
-        title="등급판정서"
-        subtitle="계란 등급판정 결과를 공개하여 품질 신뢰를 높이고 있습니다"
+        title={t("pages.gradeCertificateList.bannerTitle")}
+        subtitle={t("pages.gradeCertificateList.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "등급판정서", href: "/support/grade-certificate" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.gradeCertificate"), href: "/support/grade-certificate" },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -240,7 +244,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                         "flex items-start gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121]",
                       )}
                     >
-                      <span>글쓴이:</span>
+                      <span>{t("pages.supportArticle.author")}</span>
                       <span>{cert.author}</span>
                     </div>
                     <div
@@ -249,7 +253,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                         "flex items-start gap-2.5 text-sm font-medium leading-[14px] text-[#1F2121]",
                       )}
                     >
-                      <span>조회수:</span>
+                      <span>{t("pages.supportArticle.views")}</span>
                       <span>{cert.view_count}</span>
                     </div>
                   </div>
@@ -267,7 +271,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                             "text-base font-extrabold leading-[20.8px] text-[#1F2121]",
                           )}
                         >
-                          첨부 {cert.file_name}
+                          {t("pages.supportArticle.attachment", { file: cert.file_name })}
                         </span>
                         <Download
                           className="h-3.5 w-3.5 shrink-0 text-[#02633E]"
@@ -283,7 +287,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                             "text-base font-extrabold leading-[20.8px] text-[#1F2121]",
                           )}
                         >
-                          첨부 {cert.file_name}
+                          {t("pages.supportArticle.attachment", { file: cert.file_name })}
                         </span>
                         <Download
                           className="h-3.5 w-3.5 shrink-0 text-[#02633E]"
@@ -318,7 +322,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                       strokeWidth={2}
                       aria-hidden
                     />
-                    <span className="shrink-0">이전글</span>
+                    <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
                     <span className="min-w-0 flex-1 truncate">{prev.title}</span>
                   </Link>
                 ) : (
@@ -333,7 +337,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                   "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
                 )}
               >
-                목록
+                {t("pages.supportArticle.list")}
               </Link>
 
               <div className="min-w-0 flex-1">
@@ -349,7 +353,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                       {next.title}
                     </span>
                     <span className="flex w-[92px] shrink-0 items-center justify-between">
-                      <span>다음글</span>
+                      <span>{t("pages.supportArticle.next")}</span>
                       <ChevronRight
                         className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                         strokeWidth={2}

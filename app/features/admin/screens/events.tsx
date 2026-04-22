@@ -4,6 +4,7 @@
  * 이벤트·공지 통합 목록 관리 (DB 비어 있을 때 예시 더미 표시)
  */
 
+import { randomUUID } from "node:crypto";
 import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/events";
@@ -44,6 +45,7 @@ function mapEventToForm(e: Event): EventFormData {
   const category: EventCategory = e.type === "notice" ? "notice" : "event";
   return {
     eventId: e.event_id,
+    locale: e.locale === "en" ? "en" : "ko",
     title: e.title,
     category,
     status: e.is_active ? "active" : "ended",
@@ -71,7 +73,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "create") {
     const typeRaw = fd.get("type") as string;
+    const locale =
+      ((fd.get("locale") as string) || "ko").toLowerCase() === "en" ? "en" : "ko";
     await db.insert(events).values({
+      translation_group_id: randomUUID(),
+      locale,
       type: typeRaw === "notice" ? "notice" : "event",
       title: fd.get("title") as string,
       content: fd.get("content") as string,
@@ -112,14 +118,27 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(events).where(eq(events.event_id, id));
+    if (id) {
+      const [row] = await db.select().from(events).where(eq(events.event_id, id)).limit(1);
+      if (row) {
+        await db.delete(events).where(eq(events.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true };
   }
 
   if (intent === "toggle") {
     const id = Number(fd.get("id"));
     const isActive = fd.get("isActive") === "true";
-    if (id) await db.update(events).set({ is_active: !isActive }).where(eq(events.event_id, id));
+    if (id) {
+      const [row] = await db.select().from(events).where(eq(events.event_id, id)).limit(1);
+      if (row) {
+        await db
+          .update(events)
+          .set({ is_active: !isActive })
+          .where(eq(events.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true };
   }
 
@@ -150,6 +169,8 @@ function isDemoEventRow(id: number) {
 const MOCK_EVENTS: Event[] = [
   {
     event_id: -1,
+    translation_group_id: "00000000-0000-4000-8000-0000000000e1",
+    locale: "ko",
     type: "event",
     title: "설 맞이 특별 프로모션",
     content: "<p>설 명절을 맞이한 특별 프로모션 상세 안내입니다.</p>",
@@ -167,6 +188,8 @@ const MOCK_EVENTS: Event[] = [
   },
   {
     event_id: -2,
+    translation_group_id: "00000000-0000-4000-8000-0000000000e2",
+    locale: "ko",
     type: "notice",
     title: "신제품 출시 안내",
     content: "<p>짜먹는 에그샐러드 신제품 출시 안내입니다.</p>",
@@ -184,6 +207,8 @@ const MOCK_EVENTS: Event[] = [
   },
   {
     event_id: -3,
+    translation_group_id: "00000000-0000-4000-8000-0000000000e3",
+    locale: "ko",
     type: "event",
     title: "봄맞이 샘플링 행사",
     content: "<p>매장 샘플링 행사 상세 일정입니다.</p>",
@@ -239,6 +264,7 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     } else {
       fd.append("intent", "create");
       fd.append("type", typeVal);
+      fd.append("locale", eventData.locale ?? "ko");
     }
     fd.append("isActive", isActive ? "true" : "false");
     fd.append("title", eventData.title);

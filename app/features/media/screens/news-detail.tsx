@@ -1,6 +1,7 @@
 /**
  * 보도자료 상세 페이지 (모바일 시안: Figma 375)
  */
+import type { TFunction } from "i18next";
 import type { Route } from "./+types/news-detail";
 
 import {
@@ -10,15 +11,19 @@ import {
   ChevronUp,
   Share2,
 } from "lucide-react";
-import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Link, redirect } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 import {
   getAdjacentNews,
   getNewsById,
+  getNewsSiblingByLocale,
   hasAnyActiveNews,
   incrementNewsViewCount,
 } from "~/features/media/lib/queries.server";
@@ -77,6 +82,46 @@ const MOCK_ITEMS: NewsRow[] = [
   },
 ];
 
+const MOCK_ITEMS_EN: NewsRow[] = [
+  {
+    news_id: 1,
+    type: "announcement",
+    title:
+      "Poonglim Food launches ‘Sweet Maron Pudding’ with a rich chestnut flavor",
+    content: `<p>Poonglim Food received an excellence award at the 2024 Food Safety Awards hosted by the Ministry of Food and Drug Safety.</p>
+<p>The award recognizes decades of rigorous quality management and ongoing commitment to food safety. The company maintains HACCP and FSSC 22000 certifications and runs in-house quality labs with strict checks from raw materials to finished goods.</p>
+<p>The CEO said, “This honor belongs to every employee,” and pledged to keep providing safe, trustworthy products.</p>
+<p>Since its founding in 1994, Poonglim Food has grown as an egg-processing specialist in liquid eggs and puddings, and leads the domestic liquid egg market.</p>`,
+    summary: null,
+    thumbnail_url: null,
+    published_at: "2026-02-18",
+    created_at: new Date("2026-02-18T14:44:00"),
+    view_count: "128",
+  },
+  {
+    news_id: 2,
+    type: "press",
+    title: "New ‘Premium Liquid Egg Plus’ line now available…",
+    content: "<p>Article body.</p>",
+    summary: null,
+    thumbnail_url: null,
+    published_at: "2026-02-19",
+    created_at: new Date("2026-02-19"),
+    view_count: "45",
+  },
+  {
+    news_id: 3,
+    type: "press",
+    title: "Poonglim Food wins the 2024 Food Safety Award…",
+    content: "<p>Article body.</p>",
+    summary: null,
+    thumbnail_url: null,
+    published_at: "2026-02-17",
+    created_at: new Date("2026-02-17"),
+    view_count: "210",
+  },
+];
+
 function sortNewsLikeDb(a: NewsRow, b: NewsRow) {
   const pa = a.published_at ?? "";
   const pb = b.published_at ?? "";
@@ -86,8 +131,8 @@ function sortNewsLikeDb(a: NewsRow, b: NewsRow) {
   );
 }
 
-function getMockAdjacent(newsId: number) {
-  const sorted = [...MOCK_ITEMS].sort(sortNewsLikeDb);
+function getMockAdjacent(newsId: number, pool: NewsRow[]) {
+  const sorted = [...pool].sort(sortNewsLikeDb);
   const idx = sorted.findIndex((r) => r.news_id === newsId);
   if (idx === -1) return { prev: null, next: null };
   const older = sorted[idx + 1];
@@ -99,24 +144,37 @@ function getMockAdjacent(newsId: number) {
 }
 
 /** 모바일 상단 뱃지 — 시안: 수상 = Light Green #32AF32 */
-function badgeForType(type: string): { label: string; bg: string } {
-  const t = type.toLowerCase();
-  if (t === "announcement") return { label: "수상", bg: "#32AF32" };
-  if (t === "news" || type === "뉴스") return { label: "뉴스", bg: "#003F2B" };
-  return { label: "보도자료", bg: "#02633E" };
+function badgeForType(
+  type: string,
+  t: TFunction,
+): { label: string; bg: string } {
+  const tl = type.toLowerCase();
+  if (tl === "announcement")
+    return { label: t("pages.news.badges.award"), bg: "#32AF32" };
+  if (tl === "news" || type === "뉴스")
+    return { label: t("pages.news.badges.news"), bg: "#003F2B" };
+  return { label: t("pages.news.badges.press"), bg: "#02633E" };
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.newsId);
   if (!Number.isFinite(id)) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const [pageBanner, articleDb, hasRealNews] = await Promise.all([
+  const [localeRaw, pageBanner, articleDb, hasRealNews] = await Promise.all([
+    i18next.getLocale(request),
     getPageBanner("news").catch(() => null),
     getNewsById(id).catch(() => null),
     hasAnyActiveNews().catch(() => false),
   ]);
+  const lng = normalizeContentLocale(localeRaw);
+  const mockPool = localeRaw.startsWith("en") ? MOCK_ITEMS_EN : MOCK_ITEMS;
+
+  if (articleDb && articleDb.locale !== lng) {
+    const sib = await getNewsSiblingByLocale(articleDb.translation_group_id, lng);
+    if (sib) throw redirect(`/media/news/${sib.news_id}`);
+  }
 
   let article: NewsRow | null = articleDb as NewsRow | null;
   let prev: { news_id: number; title: string } | null = null;
@@ -128,7 +186,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       ...(articleDb as NewsRow),
       view_count: newCount ?? (articleDb as NewsRow).view_count ?? "0",
     };
-    const adjacentTry = await getAdjacentNews(id).catch(() => ({
+    const adjacentTry = await getAdjacentNews(id, lng).catch(() => ({
       prev: null,
       next: null,
     }));
@@ -138,8 +196,8 @@ export async function loader({ params }: Route.LoaderArgs) {
     if (hasRealNews) {
       throw new Response("Not Found", { status: 404 });
     }
-    article = MOCK_ITEMS.find((m) => m.news_id === id) ?? null;
-    const m = getMockAdjacent(id);
+    article = mockPool.find((m) => m.news_id === id) ?? null;
+    const m = getMockAdjacent(id, mockPool);
     prev = m.prev;
     next = m.next;
   }
@@ -148,39 +206,47 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  return { article, prev, next, pageBanner };
+  const t = await i18next.getFixedT(request);
+  const metaTitle = `${article.title} | ${t("common.metaTitleSuffix")}`;
+
+  return { article, prev, next, pageBanner, metaTitle };
 }
 
-export function meta({ data }: Route.MetaArgs) {
-  const title =
-    (data as { article?: { title: string } } | null)?.article?.title ??
-    "보도자료";
-  return [{ title: `${title} | 풍림푸드` }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
-function formatDateTime(val: string | Date | null) {
+function formatDateTime(val: string | Date | null, lang: string) {
   if (!val) return "";
   const d = new Date(val);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  const locale = lang.startsWith("en") ? "en-US" : "ko-KR";
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
 }
 
-function formatViewCount(v: string | null | undefined): string {
+function formatViewCount(
+  v: string | null | undefined,
+  lang: string,
+): string {
   const n = Number.parseInt(String(v ?? "0"), 10);
   const safe = Number.isFinite(n) && n >= 0 ? n : 0;
-  return safe.toLocaleString("ko-KR");
+  const locale = lang.startsWith("en") ? "en-US" : "ko-KR";
+  return safe.toLocaleString(locale);
 }
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 
 export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
+  const { t, i18n } = useTranslation();
   const { article, prev, next, pageBanner } = loaderData;
 
-  const badge = badgeForType(article.type);
+  const badge = badgeForType(article.type, t);
   const displayAt = article.published_at ?? article.created_at;
   const bodyGalleryUrls = parseNewsBodyImageUrls(article.body_image_urls);
   const html =
@@ -213,12 +279,12 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/notice_banner_temp.png"
-        title="보도자료"
-        subtitle="풍림푸드의 보도자료와 소식을 확인하세요."
+        title={t("pages.news.title")}
+        subtitle={t("pages.news.detailSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "홍보센터", href: "/media/news" },
-          { label: "보도자료", href: "/media/news" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.mega.promo"), href: "/media/news" },
+          { label: t("pages.news.title"), href: "/media/news" },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -258,18 +324,20 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   )}
                 >
                   <span className="shrink-0">
-                    {formatDateTime(displayAt)}
+                    {formatDateTime(displayAt, i18n.language)}
                   </span>
                   <span className="flex shrink-0 items-center gap-2.5">
-                    <span>조회수:</span>
-                    <span>{formatViewCount(article.view_count)}</span>
+                    <span>{t("pages.supportArticle.views")}</span>
+                    <span>
+                      {formatViewCount(article.view_count, i18n.language)}
+                    </span>
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleShare}
                   className="shrink-0 rounded-[40px] bg-[#EAE3C9] p-2.5 text-[#4F4F4F] transition-colors active:brightness-95"
-                  aria-label="공유"
+                  aria-label={t("pages.news.share")}
                 >
                   <Share2 className="h-4 w-4" strokeWidth={1.5} />
                 </button>
@@ -314,7 +382,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{prev.title}</span>
-                  <span className="shrink-0">이전글</span>
+                  <span className="shrink-0">{t("pages.supportArticle.prev")}</span>
                   <ChevronUp
                     className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                     strokeWidth={2}
@@ -328,7 +396,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                     "flex h-[66px] items-center px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  이전글이 없습니다.
+                  {t("pages.supportArticle.noPrev")}
                 </div>
               )}
 
@@ -342,7 +410,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                 >
                   <span className="min-w-0 flex-1 truncate">{next.title}</span>
                   <div className="flex w-[92px] shrink-0 items-center justify-end gap-5">
-                    <span>다음글</span>
+                    <span>{t("pages.supportArticle.next")}</span>
                     <ChevronDown
                       className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                       strokeWidth={2}
@@ -357,7 +425,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                     "flex h-[66px] items-center justify-end rounded-[40px] px-5 text-sm text-[#1F2121]/35",
                   )}
                 >
-                  다음글이 없습니다.
+                  {t("pages.supportArticle.noNext")}
                 </div>
               )}
             </div>
@@ -369,7 +437,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                 "w-full rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors active:brightness-95",
               )}
             >
-              목록
+              {t("pages.supportArticle.list")}
             </Link>
           </div>
         </div>
@@ -395,9 +463,10 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
               </h1>
             </div>
             <span className="shrink-0 text-xs text-gray-400 md:pt-1 md:text-sm">
-              {formatDateTime(displayAt)}
+              {formatDateTime(displayAt, i18n.language)}
               <span className="mx-2 text-gray-300">·</span>
-              조회 {formatViewCount(article.view_count)}
+              {t("pages.news.viewsPrefix")}{" "}
+              {formatViewCount(article.view_count, i18n.language)}
             </span>
           </div>
 
@@ -447,7 +516,9 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                       strokeWidth={2}
                       aria-hidden
                     />
-                    <span className="shrink-0">이전글</span>
+                    <span className="shrink-0">
+                      {t("pages.supportArticle.prev")}
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{prev.title}</span>
                   </Link>
                 ) : (
@@ -462,7 +533,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                   "shrink-0 rounded-[60px] bg-[#EAE3C9] px-[60px] py-5 text-center text-base font-extrabold leading-[20.8px] text-[#003F2B] transition-colors hover:brightness-95",
                 )}
               >
-                목록
+                {t("pages.supportArticle.list")}
               </Link>
 
               <div className="min-w-0 flex-1">
@@ -478,7 +549,7 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
                       {next.title}
                     </span>
                     <span className="flex w-[92px] shrink-0 items-center justify-between">
-                      <span>다음글</span>
+                      <span>{t("pages.supportArticle.next")}</span>
                       <ChevronRight
                         className="h-[18px] w-[18px] shrink-0 text-[#02633E]"
                         strokeWidth={2}

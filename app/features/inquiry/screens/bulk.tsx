@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "~/core/components/ui/button";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
@@ -5,55 +6,100 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/cor
 import { Badge } from "~/core/components/ui/badge";
 import { Users, TrendingUp, Shield, Truck, HeadphonesIcon } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import type { Route } from "./+types/bulk";
+import i18next from "~/core/lib/i18next.server";
 
-export default function BulkInquiryScreen() {
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
+];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.inquiryBulk.metaTitle") };
+}
+
+export default function BulkInquiryScreen({ loaderData: _loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
+
+  const categories = [
+    {
+      badge: t("pages.inquiryBulk.catCafeBadge"),
+      title: t("pages.inquiryBulk.catCafeTitle"),
+      description: t("pages.inquiryBulk.catCafeDesc"),
+      products: [
+        t("pages.inquiryBulk.catCafeP1"),
+        t("pages.inquiryBulk.catCafeP2"),
+        t("pages.inquiryBulk.catCafeP3"),
+      ],
+      cta: t("pages.inquiryBulk.catCafeCta"),
+    },
+    {
+      badge: t("pages.inquiryBulk.catBakeryBadge"),
+      title: t("pages.inquiryBulk.catBakeryTitle"),
+      description: t("pages.inquiryBulk.catBakeryDesc"),
+      products: [
+        t("pages.inquiryBulk.catBakeryP1"),
+        t("pages.inquiryBulk.catBakeryP2"),
+        t("pages.inquiryBulk.catBakeryP3"),
+      ],
+      cta: t("pages.inquiryBulk.catBakeryCta"),
+    },
+    {
+      badge: t("pages.inquiryBulk.catRestaurantBadge"),
+      title: t("pages.inquiryBulk.catRestaurantTitle"),
+      description: t("pages.inquiryBulk.catRestaurantDesc"),
+      products: [
+        t("pages.inquiryBulk.catRestaurantP1"),
+        t("pages.inquiryBulk.catRestaurantP2"),
+        t("pages.inquiryBulk.catRestaurantP3"),
+      ],
+      cta: t("pages.inquiryBulk.catRestaurantCta"),
+    },
+  ];
+
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
-          { label: "구매문의" },
-          { label: "사업자 문의" },
+          { label: t("pages.inquiryBulk.breadcrumbPurchase") },
+          { label: t("pages.inquiryBulk.breadcrumbCurrent") },
         ]}
       />
-      {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto w-full max-w-3xl text-center md:max-w-[min(768px,calc(768*100vw/1920))]">
-            <Badge className="mb-4">B2B 전용</Badge>
-            <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">사업자 전용 서비스</h1>
-            <p className="mb-8 text-xl text-muted-foreground">
-              카페, 베이커리, 레스토랑을 위한 프리미엄 식자재 솔루션
-            </p>
+            <Badge className="mb-4">{t("pages.inquiryBulk.badge")}</Badge>
+            <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">{t("pages.inquiryBulk.heroTitle")}</h1>
+            <p className="mb-8 text-xl text-muted-foreground">{t("pages.inquiryBulk.heroLead")}</p>
             <Button size="lg" className="mr-4">
-              상담 신청하기
+              {t("pages.inquiryBulk.ctaPrimary")}
             </Button>
             <Button size="lg" variant="outline">
-              카탈로그 다운로드
+              {t("pages.inquiryBulk.ctaSecondary")}
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Benefits */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">B2B 서비스 혜택</h2>
-            <p className="text-muted-foreground">사업 성공을 위한 차별화된 서비스</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.inquiryBulk.benefitsTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.inquiryBulk.benefitsLead")}</p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
             <Card className="text-center">
               <CardHeader>
                 <TrendingUp className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>대용량 할인</CardTitle>
-                <CardDescription>수량에 따른 차등 할인 혜택</CardDescription>
+                <CardTitle>{t("pages.inquiryBulk.benefitVolumeTitle")}</CardTitle>
+                <CardDescription>{t("pages.inquiryBulk.benefitVolumeDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• 100개 이상: 5% 할인</li>
-                  <li>• 500개 이상: 10% 할인</li>
-                  <li>• 1000개 이상: 15% 할인</li>
+                  <li>• {t("pages.inquiryBulk.benefitVolumeLi1")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitVolumeLi2")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitVolumeLi3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -61,14 +107,14 @@ export default function BulkInquiryScreen() {
             <Card className="text-center">
               <CardHeader>
                 <Shield className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>품질 보장</CardTitle>
-                <CardDescription>엄격한 품질 관리 시스템</CardDescription>
+                <CardTitle>{t("pages.inquiryBulk.benefitQualityTitle")}</CardTitle>
+                <CardDescription>{t("pages.inquiryBulk.benefitQualityDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• HACCP 인증 시설</li>
-                  <li>• 실시간 품질 모니터링</li>
-                  <li>• 100% 품질 보증</li>
+                  <li>• {t("pages.inquiryBulk.benefitQualityLi1")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitQualityLi2")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitQualityLi3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -76,14 +122,14 @@ export default function BulkInquiryScreen() {
             <Card className="text-center">
               <CardHeader>
                 <Truck className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>정기 배송</CardTitle>
-                <CardDescription>안정적인 공급 시스템</CardDescription>
+                <CardTitle>{t("pages.inquiryBulk.benefitDeliveryTitle")}</CardTitle>
+                <CardDescription>{t("pages.inquiryBulk.benefitDeliveryDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• 주 1-3회 정기 배송</li>
-                  <li>• 콜드체인 시스템</li>
-                  <li>• 긴급 주문 대응</li>
+                  <li>• {t("pages.inquiryBulk.benefitDeliveryLi1")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitDeliveryLi2")}</li>
+                  <li>• {t("pages.inquiryBulk.benefitDeliveryLi3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -91,37 +137,19 @@ export default function BulkInquiryScreen() {
         </div>
       </section>
 
-      {/* Product Categories */}
       <section className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">B2B 전용 제품군</h2>
-            <p className="text-muted-foreground">업종별 맞춤형 제품 라인업</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.inquiryBulk.categoriesTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.inquiryBulk.categoriesLead")}</p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                title: "카페 전용",
-                description: "음료 및 디저트용 프리미엄 액상계란",
-                products: ["라떼용 액상계란", "디저트용 푸딩믹스", "베이킹용 계란물"],
-                badge: "인기",
-              },
-              {
-                title: "베이커리 전용",
-                description: "제빵 전문가를 위한 고품질 재료",
-                products: ["제빵용 액상계란", "크림용 푸딩베이스", "케이크용 계란믹스"],
-                badge: "신제품",
-              },
-              {
-                title: "레스토랑 전용",
-                description: "요리 전문가를 위한 대용량 제품",
-                products: ["요리용 액상계란", "소스용 계란베이스", "대용량 푸딩"],
-                badge: "할인",
-              },
-            ].map((category, index) => (
+            {categories.map((category, index) => (
               <Card key={index} className="relative">
-                {category.badge && <Badge className="absolute -right-2 -top-2 z-10">{category.badge}</Badge>}
+                {category.badge ? (
+                  <Badge className="absolute -right-2 -top-2 z-10">{category.badge}</Badge>
+                ) : null}
                 <CardHeader>
                   <CardTitle>{category.title}</CardTitle>
                   <CardDescription>{category.description}</CardDescription>
@@ -135,7 +163,7 @@ export default function BulkInquiryScreen() {
                     ))}
                   </ul>
                   <Button variant="outline" className="w-full">
-                    자세히 보기
+                    {category.cta}
                   </Button>
                 </CardContent>
               </Card>
@@ -144,26 +172,25 @@ export default function BulkInquiryScreen() {
         </div>
       </section>
 
-      {/* Support */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">전담 지원 서비스</h2>
-            <p className="text-muted-foreground">성공적인 사업 운영을 위한 토탈 솔루션</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.inquiryBulk.supportTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.inquiryBulk.supportLead")}</p>
           </div>
 
           <div className="mx-auto grid w-full max-w-4xl gap-8 md:max-w-[min(896px,calc(896*100vw/1920))] md:grid-cols-2">
             <Card>
               <CardHeader>
                 <Users className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>전담 영업팀</CardTitle>
+                <CardTitle>{t("pages.inquiryBulk.dedicatedTitle")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-muted-foreground">업종별 전문 영업 담당자가 배정되어 맞춤형 서비스를 제공합니다.</p>
+                <p className="text-muted-foreground">{t("pages.inquiryBulk.dedicatedBody")}</p>
                 <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>• 정기 방문 상담</li>
-                  <li>• 신제품 우선 소개</li>
-                  <li>• 맞춤형 솔루션 제안</li>
+                  <li>• {t("pages.inquiryBulk.dedicatedLi1")}</li>
+                  <li>• {t("pages.inquiryBulk.dedicatedLi2")}</li>
+                  <li>• {t("pages.inquiryBulk.dedicatedLi3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -171,14 +198,14 @@ export default function BulkInquiryScreen() {
             <Card>
               <CardHeader>
                 <HeadphonesIcon className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>24시간 고객지원</CardTitle>
+                <CardTitle>{t("pages.inquiryBulk.support247Title")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-muted-foreground">언제든지 문의하실 수 있는 전용 고객지원 서비스를 운영합니다.</p>
+                <p className="text-muted-foreground">{t("pages.inquiryBulk.support247Body")}</p>
                 <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>• 긴급 주문 대응</li>
-                  <li>• 기술 지원 서비스</li>
-                  <li>• 품질 관련 즉시 대응</li>
+                  <li>• {t("pages.inquiryBulk.support247Li1")}</li>
+                  <li>• {t("pages.inquiryBulk.support247Li2")}</li>
+                  <li>• {t("pages.inquiryBulk.support247Li3")}</li>
                 </ul>
               </CardContent>
             </Card>
@@ -186,21 +213,20 @@ export default function BulkInquiryScreen() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="bg-primary py-16 text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="mb-4 text-3xl font-bold">지금 시작하세요</h2>
-          <p className="mb-8 text-xl opacity-90">풍림푸드와 함께 더 나은 비즈니스를 만들어가세요</p>
+          <h2 className="mb-4 text-3xl font-bold">{t("pages.inquiryBulk.finalTitle")}</h2>
+          <p className="mb-8 text-xl opacity-90">{t("pages.inquiryBulk.finalLead")}</p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button size="lg" variant="secondary">
-              무료 상담 신청
+              {t("pages.inquiryBulk.finalCtaPrimary")}
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
             >
-              제품 카탈로그 받기
+              {t("pages.inquiryBulk.finalCtaSecondary")}
             </Button>
           </div>
         </div>

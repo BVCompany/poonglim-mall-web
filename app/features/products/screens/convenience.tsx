@@ -11,8 +11,8 @@ export default function ConvenienceScreen() {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
-          { label: "제품소개", href: "/products/all" },
-          { label: "간편식" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+          { label: t("pages.products.categoryConvenience.breadcrumbLabel") },
         ]}
       />
       {/* Hero Section */}
@@ -22,7 +22,7 @@ export default function ConvenienceScreen() {
             {t("navigation.products.convenience", "간편식 제품")}
           </h1>
           <p className="text-pretty text-xl opacity-90">
-            외식업체와 가정용 간편식 솔루션
+            {t("pages.products.categoryConvenience.heroSub")}
           </p>
         </div>
       </section>

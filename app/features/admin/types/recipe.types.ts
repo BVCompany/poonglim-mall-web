@@ -25,6 +25,10 @@ export type RecipeBadge = "popular" | "new" | "recommended" | "seasonal";
  */
 export interface AdminRecipe {
   id: string;
+  /** DB 행일 때만 */
+  recipe_id?: number;
+  translation_group_id?: string;
+  locale?: "ko" | "en";
   title: string;
   description: string;
   category: RecipeCategory;

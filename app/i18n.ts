@@ -7,11 +7,9 @@
  */
 
 /**
- * List of supported languages in the application
- * Currently supports English (en), Spanish (es), and Korean (ko)
- * Using 'as const' to create a readonly tuple type for type safety
+ * List of supported languages on the public site (Korean + English only).
  */
-export const supportedLngs = ["en", "es", "ko"] as const;
+export const supportedLngs = ["ko", "en"] as const;
 
 /**
  * Default i18next configuration

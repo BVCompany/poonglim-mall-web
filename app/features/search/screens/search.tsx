@@ -1,13 +1,16 @@
 import type { Route } from "./+types/search";
 
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, or } from "drizzle-orm";
 import { ArrowUpRight, ChevronDown, Lightbulb, SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { normalizeContentLocale, pickBestLocaleRows } from "~/core/db/content-locale.server";
 import db from "~/core/db/drizzle-client.server";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { news } from "~/features/media/schema";
@@ -17,16 +20,32 @@ import { faqs } from "~/features/support/schema";
 
 /* ─── Loader ─────────────────────────────────── */
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const url = new URL(request.url);
   const q = url.searchParams.get("q")?.trim() ?? "";
+  const metaTitle = q
+    ? t("search.metaTitleQuery", { query: q })
+    : t("search.metaTitle");
 
   if (!q) {
-    return { q: "", products: [], recipes: [], news: [], faqs: [] };
+    return {
+      q: "",
+      products: [],
+      recipes: [],
+      news: [],
+      faqs: [],
+      metaTitle,
+    };
   }
 
   const term = `%${q}%`;
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
+  const newsLocales = contentLocale === "en" ? (["en", "ko"] as const) : (["ko"] as const);
+  const faqLocales = contentLocale === "en" ? (["en", "ko"] as const) : (["ko"] as const);
+  const productLocales = contentLocale === "en" ? (["en", "ko"] as const) : (["ko"] as const);
+  const recipeLocales = contentLocale === "en" ? (["en", "ko"] as const) : (["ko"] as const);
 
-  const [productItems, recipeItems, newsItems, faqItems] = await Promise.all([
+  const [productRowsRaw, recipeRowsRaw, newsRowsRaw, faqRowsRaw] = await Promise.all([
     db
       .select({
         product_id: products.product_id,
@@ -37,15 +56,19 @@ export async function loader({ request }: Route.LoaderArgs) {
         is_b2b: products.is_b2b,
         tags: products.tags,
         description: products.description,
+        translation_group_id: products.translation_group_id,
+        locale: products.locale,
+        created_at: products.created_at,
       })
       .from(products)
       .where(
         and(
           eq(products.is_active, true),
+          inArray(products.locale, [...productLocales]),
           or(ilike(products.name, term), ilike(products.description, term)),
         ),
       )
-      .limit(8)
+      .limit(48)
       .catch(() => []),
 
     db
@@ -57,15 +80,19 @@ export async function loader({ request }: Route.LoaderArgs) {
         description: recipes.description,
         cooking_time: recipes.cooking_time,
         servings: recipes.servings,
+        translation_group_id: recipes.translation_group_id,
+        locale: recipes.locale,
+        created_at: recipes.created_at,
       })
       .from(recipes)
       .where(
         and(
           eq(recipes.is_active, true),
+          inArray(recipes.locale, [...recipeLocales]),
           or(ilike(recipes.title, term), ilike(recipes.description, term)),
         ),
       )
-      .limit(6)
+      .limit(36)
       .catch(() => []),
 
     db
@@ -77,15 +104,18 @@ export async function loader({ request }: Route.LoaderArgs) {
         thumbnail_url: news.thumbnail_url,
         published_at: news.published_at,
         created_at: news.created_at,
+        translation_group_id: news.translation_group_id,
+        locale: news.locale,
       })
       .from(news)
       .where(
         and(
           eq(news.is_active, true),
+          inArray(news.locale, [...newsLocales]),
           or(ilike(news.title, term), ilike(news.summary, term)),
         ),
       )
-      .limit(4)
+      .limit(24)
       .catch(() => []),
 
     db
@@ -94,17 +124,39 @@ export async function loader({ request }: Route.LoaderArgs) {
         category: faqs.category,
         question: faqs.question,
         answer: faqs.answer,
+        translation_group_id: faqs.translation_group_id,
+        locale: faqs.locale,
+        created_at: faqs.created_at,
       })
       .from(faqs)
       .where(
         and(
           eq(faqs.is_active, true),
+          inArray(faqs.locale, [...faqLocales]),
           or(ilike(faqs.question, term), ilike(faqs.answer, term)),
         ),
       )
-      .limit(5)
+      .limit(30)
       .catch(() => []),
   ]);
+
+  const newsPicked = pickBestLocaleRows(newsRowsRaw, contentLocale).slice(0, 4);
+  const newsItems = newsPicked.map(
+    ({ translation_group_id: _tg, locale: _lc, ...rest }) => rest,
+  );
+  const faqPicked = pickBestLocaleRows(faqRowsRaw, contentLocale).slice(0, 5);
+  const faqItems = faqPicked.map(
+    ({ translation_group_id: _tg, locale: _lc, created_at: _c, ...rest }) => rest,
+  );
+
+  const productPicked = pickBestLocaleRows(productRowsRaw, contentLocale).slice(0, 8);
+  const productItems = productPicked.map(
+    ({ translation_group_id: _tg, locale: _lc, created_at: _c, ...rest }) => rest,
+  );
+  const recipePicked = pickBestLocaleRows(recipeRowsRaw, contentLocale).slice(0, 6);
+  const recipeItems = recipePicked.map(
+    ({ translation_group_id: _tg, locale: _lc, created_at: _c, ...rest }) => rest,
+  );
 
   return {
     q,
@@ -112,35 +164,29 @@ export async function loader({ request }: Route.LoaderArgs) {
     recipes: recipeItems,
     news: newsItems,
     faqs: faqItems,
+    metaTitle,
   };
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  const q = (data as any)?.q ?? "";
-  return [{ title: q ? `"${q}" 검색 결과 | 풍림푸드` : "검색 | 풍림푸드" }];
+  return [{ title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" }];
 }
 
 /* ─── Types ──────────────────────────────────── */
 type LoaderData = Awaited<ReturnType<typeof loader>>;
 
 /* ─── Helpers ────────────────────────────────── */
-const NEWS_TYPE_LABEL: Record<string, string> = {
-  press: "보도자료",
-  news: "뉴스",
-  announcement: "공지",
-};
-
-function formatDate(d: string | Date | null | undefined) {
+function formatDate(
+  d: string | Date | null | undefined,
+  locale: string,
+) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("ko-KR", {
+  const loc = locale.startsWith("ko") ? "ko-KR" : "en-US";
+  return new Date(d).toLocaleDateString(loc, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-}
-
-function getNewsTypeLabel(type: string) {
-  return NEWS_TYPE_LABEL[type] ?? type;
 }
 
 /* ─── Search Input Bar ───────────────────────── */
@@ -156,6 +202,7 @@ function SearchInputBar({
   onSearch: () => void;
   pcPlainPill?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto flex w-full max-w-[750px] items-center gap-1.5">
       <div className="flex h-[42px] min-h-0 w-full min-w-0 flex-1 items-center rounded-full border border-[#02633E] bg-white px-5 py-2.5 lg:hidden">
@@ -164,7 +211,7 @@ function SearchInputBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder="검색어를 입력해주세요."
+          placeholder={t("search.placeholder")}
           className="h-full min-w-0 flex-1 bg-transparent font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold text-[#1F2121] outline-none placeholder:font-bold placeholder:text-[#A3A3A3]"
           style={{ letterSpacing: "-0.02em" }}
           autoFocus
@@ -175,7 +222,7 @@ function SearchInputBar({
         className="flex size-[42px] shrink-0 items-center justify-center rounded-full text-white transition-all hover:brightness-110 lg:hidden"
         style={{ backgroundColor: "#02633E" }}
         type="button"
-        aria-label="검색"
+        aria-label={t("search.ariaSubmit")}
       >
         <SearchIcon className="size-5" strokeWidth={1.8} />
       </button>
@@ -193,7 +240,7 @@ function SearchInputBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onSearch()}
-            placeholder="검색어를 입력해주세요."
+            placeholder={t("search.placeholder")}
             className="min-h-0 min-w-0 flex-1 bg-transparent font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-[#1F2121] outline-none placeholder:font-bold placeholder:text-[#666666]"
           />
           {value ? (
@@ -201,7 +248,7 @@ function SearchInputBar({
               onClick={() => onChange("")}
               className="flex size-6 shrink-0 items-center justify-center text-[#1F2121] hover:opacity-70"
               type="button"
-              aria-label="지우기"
+              aria-label={t("search.ariaClear")}
             >
               <svg
                 width="20"
@@ -232,7 +279,7 @@ function SearchInputBar({
           onClick={onSearch}
           className="flex shrink-0 items-center justify-center rounded-[60px] bg-[#02633E] p-5 text-white transition-all hover:brightness-110 active:scale-[0.99]"
           type="button"
-          aria-label="검색"
+          aria-label={t("search.ariaSubmit")}
         >
           <SearchIcon className="size-6" strokeWidth={2} />
         </button>
@@ -288,6 +335,9 @@ function NoResults({
   onChange: (v: string) => void;
   onSearch: () => void;
 }) {
+  const { t } = useTranslation();
+  const tipLines = t("search.tipBody").split("\n");
+
   return (
     <div className="mx-auto flex w-full max-w-[760px] flex-col items-center text-center lg:max-w-[750px] lg:gap-10">
       <div className="flex w-full flex-col items-center gap-5 py-8 lg:gap-5 lg:py-0">
@@ -295,7 +345,7 @@ function NoResults({
           className="font-[family-name:var(--font-nanum)] text-[20px] leading-[30px] font-extrabold text-[#1F2121] lg:text-[28px] lg:leading-[42px] lg:font-extrabold"
           style={{ letterSpacing: "-0.04em" }}
         >
-          검색 결과가 없습니다.
+          {t("search.noResultsTitle")}
         </h1>
 
         <div className="w-full max-w-[640px] lg:max-w-none">
@@ -313,16 +363,7 @@ function NoResults({
               className="mx-auto w-full max-w-[311px] font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold text-[#1F2121] opacity-60 lg:max-w-none lg:text-base lg:leading-6 lg:font-bold"
               style={{ letterSpacing: "-0.02em" }}
             >
-              <span className="lg:hidden">
-                <span className="text-[#1F2121]">'{q}'</span>
-                <span className="text-[#1F2121]">
-                  {" "}
-                  에 대한 검색 결과를 찾을 수 없습니다
-                </span>
-              </span>
-              <span className="hidden lg:inline">
-                &apos;{q}&apos;에 대한 검색 결과를 찾을 수 없습니다
-              </span>
+              {t("search.noResultsHint", { query: q })}
             </p>
           </div>
         ) : null}
@@ -338,7 +379,7 @@ function NoResults({
                 strokeWidth={1.75}
               />
               <span className="font-[family-name:var(--font-nanum)] text-[13px] leading-[19.5px] font-extrabold text-[#1F2121] lg:text-sm lg:leading-[21px] lg:font-extrabold">
-                검색 TIP
+                {t("search.tipTitle")}
               </span>
             </div>
           </div>
@@ -346,18 +387,12 @@ function NoResults({
             className="min-w-0 shrink text-left font-[family-name:var(--font-nanum)] text-xs leading-[18px] font-bold text-[#1F2121] lg:text-sm lg:leading-[21px] lg:font-bold"
             style={{ letterSpacing: "-0.02em" }}
           >
-            <span className="lg:hidden">
-              - 검색어의 철자가 정확한지 확인해주세요.
-              <br />
-              - 다른 검색어로 검색해보세요.
-              <br />- 더 일반적인 단어로 검색해보세요.
-            </span>
-            <span className="hidden lg:inline">
-              - 검색어의 철자가 정확한지 확인해주세요.
-              <br />
-              - 다른 검색어로 검색해보세요.
-              <br />- 더 일반적인 단어로 검색해보세요.
-            </span>
+            {tipLines.map((line, i) => (
+              <span key={i}>
+                {i > 0 ? <br /> : null}
+                {line}
+              </span>
+            ))}
           </p>
         </div>
       </div>
@@ -375,7 +410,13 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
     faqs: faqItems,
   } = loaderData as LoaderData;
 
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
+  const newsTypeLabel = (type: string) =>
+    type === "press" || type === "news" || type === "announcement"
+      ? t(`pages.news.types.${type}` as "pages.news.types.press")
+      : type;
   const [inputValue, setInputValue] = useState(q);
   const [openFaqId, setOpenFaqId] = useState<number | null>(null);
 
@@ -406,12 +447,12 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
             <div className="mb-6 hidden border-b border-[#EAE3C9] py-2.5 lg:mb-8 lg:block">
               <div className="flex items-center gap-2.5 font-[family-name:var(--font-nanum)] text-sm leading-[21px] text-[#1F2121]">
                 <Link to="/" className="font-normal hover:text-[#003F2B]">
-                  Home
+                  {t("common.breadcrumbHome")}
                 </Link>
                 <span className="text-[#1F2121] opacity-50" aria-hidden>
                   ›
                 </span>
-                <span className="font-bold">검색</span>
+                <span className="font-bold">{t("search.breadcrumb")}</span>
               </div>
             </div>
 
@@ -432,7 +473,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                   className="inline-flex h-[44px] w-full max-w-full items-center justify-center gap-[10px] rounded-[10px] bg-[#32AF32] px-5 py-1.5 font-[family-name:var(--font-nanum)] text-base font-bold text-white uppercase transition-all hover:brightness-110 active:scale-[0.98] lg:w-auto lg:max-w-none"
                   style={{ letterSpacing: "-0.02em" }}
                 >
-                  전체 제품 보기
+                  {t("search.viewAllProducts")}
                   <ArrowUpRight
                     className="size-3 h-6 w-6 shrink-0 text-[#FDFDF5]"
                     strokeWidth={1.5}
@@ -447,12 +488,12 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
             <div className="mb-6 hidden border-b border-[#EAE3C9] py-2.5 lg:mb-0 lg:block">
               <div className="flex items-center gap-2.5 font-[family-name:var(--font-nanum)] text-sm leading-[21px] text-[#1F2121]">
                 <Link to="/" className="font-normal hover:text-[#003F2B]">
-                  Home
+                  {t("common.breadcrumbHome")}
                 </Link>
                 <span className="text-[#1F2121] opacity-50" aria-hidden>
                   ›
                 </span>
-                <span className="font-bold">검색</span>
+                <span className="font-bold">{t("search.breadcrumb")}</span>
               </div>
             </div>
 
@@ -463,7 +504,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                   className="font-[family-name:var(--font-nanum)] text-[20px] leading-[30px] font-extrabold text-[#1F2121] lg:text-[28px] lg:leading-[42px]"
                   style={{ letterSpacing: "-0.04em" }}
                 >
-                  검색 결과
+                  {t("search.resultsTitle")}
                 </h1>
                 <div className="mx-auto w-full max-w-[560px] lg:max-w-none">
                   <SearchInputBar
@@ -478,19 +519,16 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                       className="mt-0 font-[family-name:var(--font-nanum)] text-sm leading-[21px] font-bold lg:hidden"
                       style={{ letterSpacing: "-0.02em" }}
                     >
-                      <span className="text-[#1F2121]">'{q}'</span>
-                      <span className="text-[#1F2121]"> 검색 결과</span>
-                      <span className="font-extrabold text-[#02633E]">
-                        {" "}
-                        {total}건
-                      </span>
+                      {t("search.resultsLineMobile", {
+                        query: q,
+                        count: total,
+                      })}
                     </p>
                     <p className="hidden w-full text-center font-[family-name:var(--font-nanum)] text-base leading-6 font-bold text-[#1F2121] opacity-60 lg:block">
-                      <span>'{q}' 검색 결과</span>
-                      <span className="font-extrabold text-[#02633E]">
-                        {" "}
-                        {total}건
-                      </span>
+                      {t("search.resultsLineDesktop", {
+                        query: q,
+                        count: total,
+                      })}
                     </p>
                   </>
                 ) : null}
@@ -502,7 +540,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
               {productItems.length > 0 && (
                 <section>
                   <SectionHeader
-                    title="제품 카테고리"
+                    title={t("search.sectionProducts")}
                     count={productItems.length}
                   />
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 lg:flex lg:flex-wrap lg:gap-[10px]">
@@ -544,7 +582,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                               </div>
                               {showMallPill && (
                                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#32AF32] px-1.5 py-1 font-[family-name:var(--font-nanum)] text-xs leading-3 font-bold text-white uppercase lg:hidden">
-                                  풍림몰
+                                  {t("search.mallBadge")}
                                   <ArrowUpRight
                                     className="size-1.5 text-[#FDFDF5]"
                                     strokeWidth={2.5}
@@ -596,7 +634,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
               {recipeItems.length > 0 && (
                 <section>
                   <SectionHeader
-                    title="레시피"
+                    title={t("search.sectionRecipes")}
                     count={recipeItems.length}
                     variant="recipe"
                   />
@@ -653,7 +691,10 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
               {/* ── 보도자료 ── */}
               {newsItems.length > 0 && (
                 <section>
-                  <SectionHeader title="보도자료" count={newsItems.length} />
+                  <SectionHeader
+                    title={t("search.sectionNews")}
+                    count={newsItems.length}
+                  />
                   <div className="flex flex-col gap-2.5 lg:space-y-3">
                     {newsItems.map((item) => (
                       <Link
@@ -678,7 +719,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                         {/* PC: p-30 · 태그↔본문 gap-40 · (제목·요약)↔날짜 gap-24 · 제목↔요약 gap-12 */}
                         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2.5 py-5 pr-5 pl-3 text-left lg:justify-start lg:gap-10 lg:px-[30px] lg:py-[30px]">
                           <span className="inline-flex w-fit items-center rounded-full bg-[#003F2B] px-3 py-2 [font-family:Pretendard,system-ui,sans-serif] text-xs leading-3 font-medium text-white transition-colors duration-300 lg:group-hover:bg-white/15 lg:group-hover:text-[#EAE3C9]">
-                            {getNewsTypeLabel(item.type)}
+                            {newsTypeLabel(item.type)}
                           </span>
                           <div className="flex min-w-0 flex-col gap-3 lg:gap-6">
                             <div className="flex min-w-0 flex-col gap-2.5 lg:gap-3">
@@ -692,7 +733,10 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
                               )}
                             </div>
                             <span className="font-[family-name:var(--font-nanum)] text-[10px] leading-[14px] font-normal text-[#1F2121] uppercase transition-colors duration-300 lg:text-sm lg:leading-[19.6px] lg:group-hover:text-[#EAE3C9]/80">
-                              {formatDate(item.published_at ?? item.created_at)}
+                              {formatDate(
+                                item.published_at ?? item.created_at,
+                                i18n.language,
+                              )}
                             </span>
                           </div>
                         </div>
@@ -706,7 +750,7 @@ export default function SearchScreen({ loaderData }: Route.ComponentProps) {
               {faqItems.length > 0 && (
                 <section>
                   <SectionHeader
-                    title="자주 묻는 질문"
+                    title={t("search.sectionFaq")}
                     count={faqItems.length}
                   />
                   <div className="space-y-2.5 lg:space-y-2">

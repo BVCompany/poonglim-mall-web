@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { Form, useNavigation, useActionData } from "react-router";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/support";
 import { Button } from "~/core/components/ui/button";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
@@ -8,24 +9,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/cor
 import { Badge } from "~/core/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/core/components/ui/accordion";
 import { Phone, Mail, MessageCircle, Clock, Search, HelpCircle, FileText, Users } from "lucide-react";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
+import i18next from "~/core/lib/i18next.server";
 import { getFaqs, createContact } from "../lib/queries.server";
 import type { Faq as DbFaq } from "../lib/queries.server";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 
-const FAQ_CATEGORY_LABEL: Record<string, string> = {
-  product: "제품 정보",
-  delivery: "주문 및 배송",
-  b2b: "B2B 서비스",
-  quality: "품질 및 안전",
-  general: "일반 문의",
-};
+const FAQ_CAT_ORDER = ["product", "delivery", "b2b", "quality", "general"] as const;
 
-export async function loader(_: Route.LoaderArgs) {
-  const dbFaqs = await getFaqs().catch(() => [] as DbFaq[]);
-  return { dbFaqs };
+/** 폼 value는 DB·기존 로직 호환을 위해 한글 유지, 라벨만 i18n */
+const INQUIRY_FORM_OPTIONS = [
+  { value: "주문 관련", tKey: "order" as const },
+  { value: "제품 문의", tKey: "product" as const },
+  { value: "배송 문의", tKey: "delivery" as const },
+  { value: "품질 문의", tKey: "quality" as const },
+  { value: "B2B 문의", tKey: "b2b" as const },
+  { value: "기타", tKey: "other" as const },
+];
+
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
+];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
+  const dbFaqs = await getFaqs(undefined, contentLocale).catch(() => [] as DbFaq[]);
+  return { dbFaqs, metaTitle: t("pages.supportHub.metaTitle") };
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
   const fd = await request.formData();
   try {
     await createContact({
@@ -33,13 +47,13 @@ export async function action({ request }: Route.ActionArgs) {
       name: fd.get("name") as string,
       phone: (fd.get("phone") as string) || null,
       email: fd.get("email") as string,
-      title: (fd.get("type") as string) || "일반 문의",
+      title: (fd.get("type") as string) || "기타",
       content: fd.get("content") as string,
       lookup_password: "",
     });
     return { success: true };
   } catch {
-    return { success: false, error: "문의 접수 중 오류가 발생했습니다." };
+    return { success: false, error: t("pages.supportHub.errorSubmit") };
   }
 }
 
@@ -49,13 +63,14 @@ interface FAQ {
 }
 
 interface FAQCategory {
+  /** `faq_category` enum 값과 동일 */
   category: string;
   questions: FAQ[];
 }
 
 const MOCK_FAQS: FAQCategory[] = [
   {
-    category: "주문 및 배송",
+    category: "delivery",
     questions: [
       {
         question: "주문은 어떻게 하나요?",
@@ -75,7 +90,7 @@ const MOCK_FAQS: FAQCategory[] = [
     ],
   },
   {
-    category: "제품 정보",
+    category: "product",
     questions: [
       {
         question: "제품의 유통기한은 어떻게 되나요?",
@@ -95,7 +110,7 @@ const MOCK_FAQS: FAQCategory[] = [
     ],
   },
   {
-    category: "B2B 서비스",
+    category: "b2b",
     questions: [
       {
         question: "B2B 할인 혜택은 무엇인가요?",
@@ -117,43 +132,57 @@ const MOCK_FAQS: FAQCategory[] = [
 ];
 
 export default function SupportScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const { dbFaqs } = loaderData;
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const formSubmitted = actionData?.success === true;
 
-  // DB FAQ → 카테고리별 그룹핑 (없으면 더미 폴백)
-  const faqs: FAQCategory[] = dbFaqs.length > 0
-    ? Object.entries(
-        dbFaqs.reduce<Record<string, FAQ[]>>((acc, f) => {
-          const cat = FAQ_CATEGORY_LABEL[f.category] ?? f.category;
-          if (!acc[cat]) acc[cat] = [];
-          acc[cat].push({ question: f.question, answer: f.answer });
-          return acc;
-        }, {}),
-      ).map(([category, questions]) => ({ category, questions }))
-    : MOCK_FAQS;
+  const faqs: FAQCategory[] = useMemo(() => {
+    if (dbFaqs.length > 0) {
+      const grouped = dbFaqs.reduce<Record<string, FAQ[]>>((acc, f) => {
+        const cat = f.category;
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push({ question: f.question, answer: f.answer });
+        return acc;
+      }, {});
+      const entries = Object.entries(grouped).sort((a, b) => {
+        const ia = FAQ_CAT_ORDER.indexOf(a[0] as (typeof FAQ_CAT_ORDER)[number]);
+        const ib = FAQ_CAT_ORDER.indexOf(b[0] as (typeof FAQ_CAT_ORDER)[number]);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      });
+      return entries.map(([category, questions]) => ({ category, questions }));
+    }
+    return MOCK_FAQS;
+  }, [dbFaqs]);
+
+  const faqCategoryTitle = (cat: string) => {
+    if ((FAQ_CAT_ORDER as readonly string[]).includes(cat)) {
+      return t(`pages.faq.categories.${cat}`);
+    }
+    return cat;
+  };
 
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
-      <Breadcrumb items={[{ label: "고객지원" }]} />
+      <Breadcrumb items={[{ label: t("pages.supportHub.breadcrumb") }]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">고객 지원</h1>
-            <p className="mb-8 text-xl text-muted-foreground">
-              궁금한 점이 있으시면 언제든지 문의해주세요. 전문 상담원이 친절하게 도와드립니다.
-            </p>
+            <h1 className="mb-6 text-4xl font-bold text-foreground md:text-5xl">
+              {t("pages.supportHub.heroTitle")}
+            </h1>
+            <p className="mb-8 text-xl text-muted-foreground">{t("pages.supportHub.heroLead")}</p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
               <Button size="lg">
                 <MessageCircle className="mr-2 h-5 w-5" />
-                실시간 채팅
+                {t("pages.supportHub.heroChat")}
               </Button>
               <Button size="lg" variant="outline">
                 <Phone className="mr-2 h-5 w-5" />
-                전화 상담
+                {t("pages.supportHub.heroPhone")}
               </Button>
             </div>
           </div>
@@ -164,56 +193,56 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">연락 방법</h2>
-            <p className="text-muted-foreground">다양한 방법으로 문의하실 수 있습니다</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.supportHub.methodsTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.supportHub.methodsLead")}</p>
           </div>
 
           <div className="mx-auto grid max-w-4xl gap-8 md:grid-cols-3">
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <Phone className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>전화 상담</CardTitle>
-                <CardDescription>즉시 상담 가능</CardDescription>
+                <CardTitle>{t("pages.supportHub.phoneCardTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.phoneCardDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-lg font-semibold">1588-1234</p>
                   <Badge variant="secondary" className="mt-1">
-                    무료
+                    {t("pages.supportHub.phoneFreeBadge")}
                   </Badge>
                 </div>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <Clock className="h-4 w-4" />
-                    <span>평일 09:00 - 18:00</span>
+                    <span>{t("pages.supportHub.phoneHoursWeekday")}</span>
                   </div>
-                  <p>토요일 09:00 - 13:00</p>
-                  <p>일요일 및 공휴일 휴무</p>
+                  <p>{t("pages.supportHub.phoneHoursSaturday")}</p>
+                  <p>{t("pages.supportHub.phoneClosed")}</p>
                 </div>
-                <Button className="w-full">지금 전화하기</Button>
+                <Button className="w-full">{t("pages.supportHub.phoneCta")}</Button>
               </CardContent>
             </Card>
 
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <Mail className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>이메일 문의</CardTitle>
-                <CardDescription>상세한 문의 가능</CardDescription>
+                <CardTitle>{t("pages.supportHub.emailCardTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.emailCardDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
                   <p className="font-semibold">support@pungrimfood.co.kr</p>
                   <Badge variant="secondary" className="mt-1">
-                    24시간 접수
+                    {t("pages.supportHub.emailBadge")}
                   </Badge>
                 </div>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>1영업일 내 답변</p>
-                  <p>첨부파일 전송 가능</p>
-                  <p>상세한 문의 내용 작성 가능</p>
+                  <p>{t("pages.supportHub.emailLi1")}</p>
+                  <p>{t("pages.supportHub.emailLi2")}</p>
+                  <p>{t("pages.supportHub.emailLi3")}</p>
                 </div>
                 <Button className="w-full bg-transparent" variant="outline">
-                  이메일 보내기
+                  {t("pages.supportHub.emailCta")}
                 </Button>
               </CardContent>
             </Card>
@@ -221,22 +250,22 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <MessageCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>실시간 채팅</CardTitle>
-                <CardDescription>빠른 답변 제공</CardDescription>
+                <CardTitle>{t("pages.supportHub.chatCardTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.chatCardDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="font-semibold">온라인 채팅</p>
+                  <p className="font-semibold">{t("pages.supportHub.chatLine")}</p>
                   <Badge variant="secondary" className="mt-1">
-                    즉시 연결
+                    {t("pages.supportHub.chatBadge")}
                   </Badge>
                 </div>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>평일 09:00 - 18:00</p>
-                  <p>평균 응답시간 2분</p>
-                  <p>간단한 문의에 최적</p>
+                  <p>{t("pages.supportHub.chatLi1")}</p>
+                  <p>{t("pages.supportHub.chatLi2")}</p>
+                  <p>{t("pages.supportHub.chatLi3")}</p>
                 </div>
-                <Button className="w-full">채팅 시작하기</Button>
+                <Button className="w-full">{t("pages.supportHub.chatCta")}</Button>
               </CardContent>
             </Card>
           </div>
@@ -247,8 +276,8 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
       <section className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">자주 묻는 질문</h2>
-            <p className="text-muted-foreground">고객님들이 자주 문의하시는 내용을 정리했습니다</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.supportHub.faqTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.supportHub.faqLead")}</p>
           </div>
 
           <div className="mx-auto max-w-4xl">
@@ -257,7 +286,7 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <input
                 type="text"
-                placeholder="궁금한 내용을 검색해보세요..."
+                placeholder={t("pages.supportHub.faqSearchPlaceholder")}
                 className="w-full rounded-lg border border-input py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -268,7 +297,7 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
                 <div key={categoryIndex}>
                   <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">
                     <HelpCircle className="h-5 w-5 text-primary" />
-                    {category.category}
+                    {faqCategoryTitle(category.category)}
                   </h3>
                   <Accordion type="single" collapsible className="space-y-2">
                     {category.questions.map((faq, index) => (
@@ -294,8 +323,8 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
-              <h2 className="mb-4 text-3xl font-bold text-foreground">문의하기</h2>
-              <p className="text-muted-foreground">FAQ에서 답을 찾지 못하셨나요? 직접 문의해주세요.</p>
+              <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.supportHub.inquiryTitle")}</h2>
+              <p className="text-muted-foreground">{t("pages.supportHub.inquiryLead")}</p>
             </div>
 
             <Card>
@@ -312,56 +341,82 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="mb-2 text-xl font-semibold">문의가 접수되었습니다</h3>
-                    <p className="text-muted-foreground">빠른 시일 내에 답변드리겠습니다.</p>
+                    <h3 className="mb-2 text-xl font-semibold">{t("pages.supportHub.successTitle")}</h3>
+                    <p className="text-muted-foreground">{t("pages.supportHub.successBody")}</p>
                   </div>
                 ) : (
                   <Form method="post" className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-medium">이름 *</label>
-                        <input name="name" type="text" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="홍길동" required />
+                        <label className="mb-2 block text-sm font-medium">{t("pages.supportHub.formName")}</label>
+                        <input
+                          name="name"
+                          type="text"
+                          className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder={t("pages.supportHub.placeholderName")}
+                          required
+                        />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium">연락처</label>
-                        <input name="phone" type="tel" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="010-1234-5678" />
+                        <label className="mb-2 block text-sm font-medium">{t("pages.supportHub.formPhone")}</label>
+                        <input
+                          name="phone"
+                          type="tel"
+                          className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder={t("pages.supportHub.placeholderPhone")}
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium">이메일 *</label>
-                      <input name="email" type="email" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="example@email.com" required />
+                      <label className="mb-2 block text-sm font-medium">{t("pages.supportHub.formEmail")}</label>
+                      <input
+                        name="email"
+                        type="email"
+                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder={t("pages.supportHub.placeholderEmail")}
+                        required
+                      />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium">문의 유형 *</label>
-                      <select name="type" className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" required>
-                        <option value="">선택해주세요</option>
-                        <option value="주문 관련">주문 관련</option>
-                        <option value="제품 문의">제품 문의</option>
-                        <option value="배송 문의">배송 문의</option>
-                        <option value="품질 문의">품질 문의</option>
-                        <option value="B2B 문의">B2B 문의</option>
-                        <option value="기타">기타</option>
+                      <label className="mb-2 block text-sm font-medium">{t("pages.supportHub.formType")}</label>
+                      <select
+                        name="type"
+                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                        required
+                      >
+                        <option value="">{t("pages.supportHub.typePlaceholder")}</option>
+                        {INQUIRY_FORM_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {t(`pages.supportHub.formInquiry.${opt.tKey}`)}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium">문의 내용 *</label>
-                      <textarea name="content" rows={5} className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="문의하실 내용을 자세히 적어주세요" required></textarea>
+                      <label className="mb-2 block text-sm font-medium">{t("pages.supportHub.formContent")}</label>
+                      <textarea
+                        name="content"
+                        rows={5}
+                        className="w-full rounded-md border border-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder={t("pages.supportHub.placeholderContent")}
+                        required
+                      />
                     </div>
 
                     <div className="flex items-center gap-2">
                       <input type="checkbox" id="privacy" className="rounded" required />
                       <label htmlFor="privacy" className="text-sm text-muted-foreground">
-                        개인정보 수집 및 이용에 동의합니다 *
+                        {t("pages.supportHub.formPrivacy")}
                       </label>
                     </div>
 
                     {actionData?.error && <p className="text-sm text-red-500">{actionData.error}</p>}
 
                     <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                      {isSubmitting ? "접수 중..." : "문의 접수하기"}
+                      {isSubmitting ? t("pages.supportHub.formSubmitting") : t("pages.supportHub.formSubmit")}
                     </Button>
                   </Form>
                 )}
@@ -375,23 +430,21 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
       <section className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold text-foreground">추가 자료</h2>
-            <p className="text-muted-foreground">더 자세한 정보가 필요하시면 아래 자료를 참고해주세요</p>
+            <h2 className="mb-4 text-3xl font-bold text-foreground">{t("pages.supportHub.resourcesTitle")}</h2>
+            <p className="text-muted-foreground">{t("pages.supportHub.resourcesLead")}</p>
           </div>
 
           <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <FileText className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>제품 카탈로그</CardTitle>
-                <CardDescription>전체 제품 정보</CardDescription>
+                <CardTitle>{t("pages.supportHub.resourceCatalogTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.resourceCatalogDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  풍림푸드의 모든 제품 정보와 영양성분, 사용법을 담은 종합 카탈로그
-                </p>
+                <p className="mb-4 text-sm text-muted-foreground">{t("pages.supportHub.resourceCatalogBody")}</p>
                 <Button variant="outline" className="w-full bg-transparent">
-                  다운로드
+                  {t("pages.supportHub.download")}
                 </Button>
               </CardContent>
             </Card>
@@ -399,15 +452,13 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <Users className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>사용자 매뉴얼</CardTitle>
-                <CardDescription>제품 활용 가이드</CardDescription>
+                <CardTitle>{t("pages.supportHub.resourceManualTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.resourceManualDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  제품별 보관법, 조리법, 주의사항 등을 상세히 안내하는 매뉴얼
-                </p>
+                <p className="mb-4 text-sm text-muted-foreground">{t("pages.supportHub.resourceManualBody")}</p>
                 <Button variant="outline" className="w-full bg-transparent">
-                  다운로드
+                  {t("pages.supportHub.download")}
                 </Button>
               </CardContent>
             </Card>
@@ -415,15 +466,13 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
             <Card className="text-center transition-shadow hover:shadow-lg">
               <CardHeader>
                 <HelpCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
-                <CardTitle>품질 인증서</CardTitle>
-                <CardDescription>안전성 확인</CardDescription>
+                <CardTitle>{t("pages.supportHub.resourceCertTitle")}</CardTitle>
+                <CardDescription>{t("pages.supportHub.resourceCertDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  HACCP, ISO 등 각종 품질 인증서와 검사 성적서 모음
-                </p>
+                <p className="mb-4 text-sm text-muted-foreground">{t("pages.supportHub.resourceCertBody")}</p>
                 <Button variant="outline" className="w-full bg-transparent">
-                  다운로드
+                  {t("pages.supportHub.download")}
                 </Button>
               </CardContent>
             </Card>

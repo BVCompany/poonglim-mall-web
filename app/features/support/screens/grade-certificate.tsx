@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 
 import { PageBanner } from "~/core/components/page-banner";
@@ -20,33 +21,62 @@ import {
   SectionPageTitle,
   SectionTitleStar,
 } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 import { getGradeCertificates } from "../lib/queries.server";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "등급판정서 | 풍림푸드" },
+export type GradeCertTypeKey = "all" | "liquid" | "pack" | "other";
+
+const GRADE_CERT_TYPE_KEYS: GradeCertTypeKey[] = ["all", "liquid", "pack", "other"];
+
+const LEGACY_CERT_TYPE_PARAM: Record<string, GradeCertTypeKey> = {
+  전체: "all",
+  전체보기: "all",
+  액란: "liquid",
+  포장란: "pack",
+  기타: "other",
+};
+
+const CERT_TYPE_KEY_TO_DB: Record<GradeCertTypeKey, string> = {
+  all: "전체",
+  liquid: "액란",
+  pack: "포장란",
+  other: "기타",
+};
+
+function normalizeGradeCertType(raw: string | null): GradeCertTypeKey {
+  if (!raw) return "all";
+  if (LEGACY_CERT_TYPE_PARAM[raw]) return LEGACY_CERT_TYPE_PARAM[raw];
+  if (GRADE_CERT_TYPE_KEYS.includes(raw as GradeCertTypeKey)) return raw as GradeCertTypeKey;
+  return "all";
+}
+
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const url = new URL(request.url);
-  const tab = (url.searchParams.get("tab") ?? "current") as
-    | "current"
-    | "archive";
-  const rawType = url.searchParams.get("type") ?? "전체";
-  const activeType = rawType === "전체보기" ? "전체" : rawType;
+  const tab = (url.searchParams.get("tab") ?? "current") as "current" | "archive";
+  const activeTypeKey = normalizeGradeCertType(url.searchParams.get("type"));
+  const dbType = CERT_TYPE_KEY_TO_DB[activeTypeKey];
 
   const [dbCerts, pageBanner] = await Promise.all([
-    getGradeCertificates(
-      tab,
-      activeType === "전체" ? undefined : activeType,
-    ).catch(() => []),
+    getGradeCertificates(tab, activeTypeKey === "all" ? undefined : dbType).catch(() => []),
     getPageBanner("grade-certificate").catch(() => null),
   ]);
 
-  return { dbCerts, pageBanner, activeTab: tab, activeType };
+  return {
+    dbCerts,
+    pageBanner,
+    activeTab: tab,
+    activeTypeKey,
+    metaTitle: t("pages.gradeCertificateList.metaTitle"),
+  };
 }
 
 /* ── 더미 데이터 (is_new: 모바일 N 뱃지 — DB 연동 시 필드 추가 가능) ── */
@@ -233,23 +263,13 @@ const MOCK_CERTS = [
   },
 ];
 
-/** URL/필터 값 유지 — 모바일 시안 라벨만 다름 */
-const CERT_TYPES = ["전체", "액란", "포장란", "기타"] as const;
-const TYPE_FILTER_LABEL: Record<string, string> = {
-  전체: "전체보기",
-  액란: "액란",
-  포장란: "포장란",
-  기타: "기타",
-};
 const ITEMS_PER_PAGE = 10;
-
-const GRADE_CERT_NOTICE_CURRENT =
-  "아래의 게시판의 등급판정서는 당사에 공급된 계란 중에 당사 내에 위치한 축산물품질평가원 지원사무소 축산물품질평가사로부터 1+등급 또는 1등급 판정 받은 계란에 한하여 판정서를 게시하고 있으며, 해당 계란을 공급받으신 곳에 한하여 열람이 가능합니다.";
 
 export default function GradeCertificateScreen({
   loaderData,
 }: Route.ComponentProps) {
-  const { dbCerts, pageBanner, activeTab, activeType } = loaderData;
+  const { t } = useTranslation();
+  const { dbCerts, pageBanner, activeTab, activeTypeKey } = loaderData;
   const [, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -258,13 +278,14 @@ export default function GradeCertificateScreen({
   const allCerts = (
     dbCerts.length > 0 ? dbCerts : MOCK_CERTS
   ) as typeof MOCK_CERTS;
+  const dbTypeForKey = CERT_TYPE_KEY_TO_DB[activeTypeKey];
   const sourceCerts = allCerts
     .filter((c) => c.tab === activeTab)
-    .filter((c) => activeType === "전체" || c.cert_type === activeType);
+    .filter((c) => activeTypeKey === "all" || c.cert_type === dbTypeForKey);
 
   useEffect(() => {
     setPage(1);
-  }, [activeTab, activeType, query]);
+  }, [activeTab, activeTypeKey, query]);
 
   const filtered = sourceCerts.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase()),
@@ -293,15 +314,22 @@ export default function GradeCertificateScreen({
     });
   };
 
-  const handleTypeChange = (type: string) => {
+  const handleTypeChange = (key: GradeCertTypeKey) => {
     setInputValue("");
     setQuery("");
     setPage(1);
     setSearchParams((p) => {
-      if (type === "전체") p.delete("type");
-      else p.set("type", type);
+      if (key === "all") p.delete("type");
+      else p.set("type", key);
       return p;
     });
+  };
+
+  const typeFilterLabel = (key: GradeCertTypeKey) => {
+    if (key === "all") return t("pages.gradeCertificateList.typeAll");
+    if (key === "liquid") return t("pages.gradeCertificateList.typeLiquid");
+    if (key === "pack") return t("pages.gradeCertificateList.typePack");
+    return t("pages.gradeCertificateList.typeOther");
   };
 
   const formatDate = (val: string | Date) => {
@@ -321,12 +349,12 @@ export default function GradeCertificateScreen({
     >
       <PageBanner
         imageUrl="/banner/rating_banner_temp.png"
-        title="등급판정서"
-        subtitle="계란 등급판정 결과를 공개하여 품질 신뢰를 높이고 있습니다"
+        title={t("pages.gradeCertificateList.bannerTitle")}
+        subtitle={t("pages.gradeCertificateList.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "등급판정서" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.gradeCertificate") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -338,7 +366,7 @@ export default function GradeCertificateScreen({
         starVariant="brandIntro"
         className="px-4 py-5 md:hidden"
       >
-        등급판정서
+        {t("pages.gradeCertificateList.mobileH1")}
       </SectionPageTitle>
 
       <PageContentMax className="py-6 max-md:pt-0 md:py-0 md:pt-[60px] md:pb-[100px]">
@@ -361,7 +389,7 @@ export default function GradeCertificateScreen({
                   className="h-3.5 w-3.5 shrink-0 brightness-0 invert"
                 />
               )}
-              등급판정서
+              {t("pages.gradeCertificateList.tabCurrent")}
             </button>
             <button
               type="button"
@@ -374,7 +402,7 @@ export default function GradeCertificateScreen({
               )}
             >
               <span className="font-[family-name:var(--font-nanum)] text-[16px] leading-5 font-extrabold">
-                등급판정서
+                {t("pages.gradeCertificateList.tabCurrent")}
               </span>
               <span
                 className={cn(
@@ -382,14 +410,14 @@ export default function GradeCertificateScreen({
                   activeTab === "archive" ? "text-white" : "text-[#1F2121]",
                 )}
               >
-                (2022.11 이전)
+                {t("pages.gradeCertificateList.tabArchiveSuffix")}
               </span>
             </button>
           </div>
 
           {activeTab === "current" && (
             <p className="pt-5 font-[family-name:var(--font-nanum)] text-[14px] leading-[21px] font-bold text-[#1F2121]/50 md:hidden">
-              {GRADE_CERT_NOTICE_CURRENT}
+              {t("pages.gradeCertificateList.listNoticeParagraph")}
             </p>
           )}
         </div>
@@ -414,7 +442,7 @@ export default function GradeCertificateScreen({
                   className="h-[21px] w-[21px] brightness-0 invert"
                 />
               )}
-              등급판정서
+              {t("pages.gradeCertificateList.tabCurrent")}
             </button>
             <button
               type="button"
@@ -427,14 +455,14 @@ export default function GradeCertificateScreen({
                   : "bg-[#EAE3C9] text-[#1F2121]",
               )}
             >
-              <span className="font-extrabold">등급판정서</span>
+              <span className="font-extrabold">{t("pages.gradeCertificateList.tabCurrent")}</span>
               <span
                 className={cn(
                   "font-normal",
                   activeTab === "archive" ? "text-white" : "text-[#1F2121]",
                 )}
               >
-                (2022.11 이전)
+                {t("pages.gradeCertificateList.tabArchiveSuffix")}
               </span>
             </button>
           </div>
@@ -445,11 +473,9 @@ export default function GradeCertificateScreen({
                 "pt-5 pb-3 text-center text-sm leading-[22.4px] font-bold text-[#1F2121]/50",
               )}
             >
-              아래의 게시판의 등급판정서는 당사에 공급된 계란 중에 당사 내에
-              위치한 축산물품질평가원 지원사무소 축산물품질평가사로부터
+              {t("pages.gradeCertificateList.listNoticePcLine1")}
               <br />
-              1+등급 또는 1등급 판정 받은 계란에 한하여 판정서를 게시하고
-              있으며, 해당 계란을 공급받으신 곳에 한하여 열람이 가능합니다.
+              {t("pages.gradeCertificateList.listNoticePcLine2")}
             </p>
           )}
         </div>
@@ -457,8 +483,8 @@ export default function GradeCertificateScreen({
         <div className="flex flex-col gap-5 md:gap-[30px]">
           <div className="flex flex-col gap-4 pb-0 max-md:pt-5 md:flex-row md:items-end md:justify-between md:pb-5">
             <div className="inline-flex w-full max-w-full min-w-0 flex-nowrap items-center gap-[10px] overflow-x-auto overscroll-x-contain [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden">
-              {CERT_TYPES.map((type) => {
-                const isActive = type === activeType;
+              {GRADE_CERT_TYPE_KEYS.map((type) => {
+                const isActive = type === activeTypeKey;
                 return (
                   <button
                     key={type}
@@ -481,7 +507,7 @@ export default function GradeCertificateScreen({
                         aria-hidden
                       />
                     )}
-                    {TYPE_FILTER_LABEL[type] ?? type}
+                    {typeFilterLabel(type)}
                   </button>
                 );
               })}
@@ -493,7 +519,7 @@ export default function GradeCertificateScreen({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="검색어를 입력해주세요."
+                placeholder={t("pages.gradeCertificateList.searchPlaceholder")}
                 className={cn(
                   nanum,
                   "h-auto w-[360px] max-w-[min(360px,calc(100vw-12rem))] rounded-[60px] border-0 bg-white px-10 py-5 text-base leading-6 font-bold text-[#1F2121] outline-none placeholder:text-[#1F2121]",
@@ -503,7 +529,7 @@ export default function GradeCertificateScreen({
                 type="button"
                 onClick={handleSearch}
                 className="flex shrink-0 items-center justify-center rounded-[60px] bg-[#02633E] p-5 text-white transition-all hover:brightness-110 active:scale-[0.98]"
-                aria-label="검색"
+                aria-label={t("pages.gradeCertificateList.searchAria")}
               >
                 <Search className="h-6 w-6" strokeWidth={2} aria-hidden />
               </button>
@@ -513,7 +539,7 @@ export default function GradeCertificateScreen({
           <div className="flex flex-col gap-10">
             {paginated.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">
-                검색 결과가 없습니다.
+                {t("pages.gradeCertificateList.emptySearch")}
               </div>
             ) : (
               <div className="flex flex-col gap-2.5 md:gap-[10px]">
@@ -558,7 +584,7 @@ export default function GradeCertificateScreen({
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="relative h-5 w-5 shrink-0 text-[#02633E] transition-opacity hover:opacity-80"
-                                    aria-label="첨부파일"
+                                    aria-label={t("pages.gradeCertificateList.attachAria")}
                                   >
                                     <Paperclip
                                       className="h-5 w-5"
@@ -570,7 +596,7 @@ export default function GradeCertificateScreen({
                                   <Link
                                     to={`/support/grade-certificate/${cert.cert_id}`}
                                     className="relative h-5 w-5 shrink-0 text-[#02633E] transition-opacity hover:opacity-80"
-                                    aria-label="첨부파일"
+                                    aria-label={t("pages.gradeCertificateList.attachAria")}
                                   >
                                     <Paperclip
                                       className="h-5 w-5"
@@ -634,7 +660,7 @@ export default function GradeCertificateScreen({
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="relative h-5 w-5 shrink-0 text-[#32AF32] transition-opacity hover:opacity-80"
-                                    aria-label="첨부파일"
+                                    aria-label={t("pages.gradeCertificateList.attachAria")}
                                   >
                                     <Paperclip
                                       className="h-5 w-5"
@@ -646,7 +672,7 @@ export default function GradeCertificateScreen({
                                   <Link
                                     to={`/support/grade-certificate/${cert.cert_id}`}
                                     className="relative h-5 w-5 shrink-0 text-[#32AF32] transition-opacity hover:opacity-80"
-                                    aria-label="첨부파일"
+                                    aria-label={t("pages.gradeCertificateList.attachAria")}
                                   >
                                     <Paperclip
                                       className="h-5 w-5"
@@ -671,7 +697,7 @@ export default function GradeCertificateScreen({
                                 "inline-flex shrink-0 items-center justify-center rounded-[100px] bg-[#003F2B] px-3 py-2 text-center text-xs leading-3 font-medium text-white",
                               )}
                             >
-                              적합
+                              {t("pages.gradeCertificateList.conformityBadge")}
                             </span>
                             <div
                               className={cn(
@@ -704,7 +730,7 @@ export default function GradeCertificateScreen({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[#F3BC1E] transition-opacity hover:opacity-80"
-                                  aria-label="다운로드"
+                                  aria-label={t("pages.gradeCertificateList.downloadAria")}
                                 >
                                   <Download
                                     className="h-3.5 w-3.5"
@@ -715,7 +741,7 @@ export default function GradeCertificateScreen({
                                 <Link
                                   to={`/support/grade-certificate/${cert.cert_id}`}
                                   className="text-[#F3BC1E] transition-opacity hover:opacity-80"
-                                  aria-label="다운로드"
+                                  aria-label={t("pages.gradeCertificateList.downloadAria")}
                                 >
                                   <Download
                                     className="h-3.5 w-3.5"
@@ -748,7 +774,7 @@ export default function GradeCertificateScreen({
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                aria-label="이전 페이지"
+                aria-label={t("pages.gradeCertificateList.paginationPrev")}
                 className={cn(
                   "flex shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30",
                   "h-12 w-12 max-md:overflow-hidden",
@@ -766,7 +792,7 @@ export default function GradeCertificateScreen({
                   key={p}
                   type="button"
                   onClick={() => setPage(p)}
-                  aria-label={`${p}페이지`}
+                  aria-label={t("pages.gradeCertificateList.paginationPage", { page: p })}
                   aria-current={p === page ? "page" : undefined}
                   className={cn(
                     nanum,
@@ -783,7 +809,7 @@ export default function GradeCertificateScreen({
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                aria-label="다음 페이지"
+                aria-label={t("pages.gradeCertificateList.paginationNext")}
                 className={cn(
                   "flex shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30",
                   "h-12 w-12 max-md:overflow-hidden",

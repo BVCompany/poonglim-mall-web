@@ -4,15 +4,26 @@
  */
 import type { Route } from "./+types/intro";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 import { cn } from "~/core/lib/utils";
 
 const nanum = "font-[family-name:var(--font-nanum)]";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.brand.intro.metaTitle") };
+}
+
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
 /**
  * 회사소개 장식 스파클(히어로·대표 사진 등). 섹션 라벨은 `SectionPageTitle` + `starVariant="brandIntro"`.
@@ -89,72 +100,56 @@ const HERO_SPARKLES_50: PcHeroSparkle[] = [
   },
 ];
 
-const SLIDES = [
-  { num: "30", unit: "년의 전통", sparkles: HERO_SPARKLES_30 },
-  { num: "500", unit: "거래처", sparkles: HERO_SPARKLES_500 },
-  { num: "50", unit: "제품 라인업", sparkles: HERO_SPARKLES_50 },
-];
+const SLIDE_COUNT = 3;
 
-/* ── 경영 철학 카드 ── */
-const PHILOSOPHIES = [
+/** 경영 철학 카드 — 문구는 `useMemo` + i18n */
+const PHILOSOPHY_META = [
   {
-    category: "고객 중심",
-    desc: "고객의 건강과 만족을 최우선으로 생각하는 제품 개발과 서비스 제공",
+    id: "customer" as const,
     image: "/intro/intro_img_01.png",
     bg: "#FFFFFF",
     highlight: false,
   },
   {
-    category: "품질 신뢰",
-    desc: "HACCP, ISO 등 국제 인증을 통한 철저한 품질 관리 시스템 구축",
+    id: "quality" as const,
     image: "/intro/intro_img_02.png",
     bg: "#F0EEDD",
     highlight: false,
   },
   {
-    category: "ESG 경영",
-    desc: "환경을 생각하는 지속가능한 경영과 사회적 책임 실천",
+    id: "esg" as const,
     image: "/intro/intro_img_03.png",
     bg: "#F0EEDD",
     highlight: false,
   },
   {
-    category: "혁신 추구",
-    desc: "끊임없는 연구개발을 통한 혁신적인 제품과 기술 개발",
+    id: "innovation" as const,
     image: "/intro/intro_img_04.png",
     bg: "#FBE28A",
     highlight: true,
   },
   {
-    category: "글로벌 진출",
-    desc: "한국의 우수한 식품 기술을 세계에 알리는 글로벌 기업으로 도약",
+    id: "global" as const,
     image: "/intro/intro_img_05.png",
     bg: "#FFFFFF",
     highlight: false,
   },
   {
-    category: "상생 협력",
-    desc: "파트너사와의 동반성장을 통한 건전한 생태계 조성",
+    id: "partner" as const,
     image: "/intro/intro_img_06.png",
     bg: "#F0EEDD",
     highlight: false,
   },
-];
+] as const;
 
-/* ── 공식 캐릭터 ── */
-const CHARACTERS = [
+const CHARACTER_META = [
   {
-    id: "edi",
-    name: "에디",
-    nameEn: "Egg + Delight",
+    id: "edi" as const,
     showcaseImage: "/intro/edi01.png",
     sceneImage: "/intro/edi02.png",
     mainBg: "#02633E",
     insetBg: "#F0EEDD",
-    greeting: "안녕, 난 에디야.\n기쁨이 넘치는 시간을 선사해줄게!",
-    accentText: "일상 속 '기쁨'을 선사하는 계란, 에디를 소개합니다.",
     accentColor: "#F3BC1E",
-    body: "언제나 곁에 있어주는 따뜻하고 포근한 친구 '에디'. 하루의 작은 기쁨을 나누고, 든든함과 동시에 사랑스러움까지 겸비한 우리의 단짝친구!",
     bodyColor: "#003F2B",
     greetingColor: "#003F2B",
     nameColor: "#FFFFFF",
@@ -162,24 +157,19 @@ const CHARACTERS = [
     imageLeft: true,
   },
   {
-    id: "pudi",
-    name: "푸디",
-    nameEn: "Pudding + Dessert",
+    id: "pudi" as const,
     showcaseImage: "/intro/puding.png",
     sceneImage: "/intro/pudings.png",
     mainBg: "#F3BC1E",
     insetBg: "#1F2121",
-    greeting: "반가워, 난 푸디.\n달콤함이 가득한 하루를 만들어줄게!",
-    accentText: "일상 속 '달콤함'을 채우는 푸딩,\n푸디를 소개합니다.",
     accentColor: "#F3BC1E",
-    body: "한입 베어물면 몽글몽글 퍼지는 달콤한 친구 '푸디'.\n우리의 일상을 소소한 행복으로 가득 채워주는 \n작고 귀여운, 통통튀는 매력을 가진 존재랍니다!",
     bodyColor: "#FFFFFF",
     greetingColor: "#FFFFFF",
     nameColor: "#1F2121",
     nameEnColor: "#1F2121",
     imageLeft: false,
   },
-];
+] as const;
 
 /**
  * 푸디 인셋 스토리 카드 — 모바일 시안 (NanumSquareRound / word-wrap)
@@ -211,10 +201,6 @@ const PUDI_INSET_MOBILE = {
     overflowWrap: "break-word",
   },
 } as const satisfies Record<string, import("react").CSSProperties>;
-
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "회사소개 | 풍림푸드" }];
-}
 
 function Sparkle({
   src,
@@ -252,20 +238,6 @@ function Sparkle({
  * - pos가 0 (clone-last)에 도달하면  → 트랜지션 후 animation 없이 pos=3 로 텔레포트
  * 두 슬라이드가 동일하게 생겼으므로 시각적 점프가 없음
  */
-const N = SLIDES.length;
-
-/**
- * 모바일 경영 철학 — 2×3 그리드 (행 우선: 좌→우)
- * 시안(IVORY-2 #F0EEDD / 혁신 #FBE28A / 흰 #FFFFFF) — PHILOSOPHIES와 동일 토큰
- */
-const PHILOSOPHY_MOBILE_GRID = [
-  { category: "고객 중심", bg: "#FFFFFF" },
-  { category: "품질 신뢰", bg: "#F0EEDD" },
-  { category: "ESG 경영", bg: "#F0EEDD" },
-  { category: "혁신 추구", bg: "#FBE28A" },
-  { category: "글로벌 진출", bg: "#FFFFFF" },
-  { category: "상생 협력", bg: "#F0EEDD" },
-] as const;
 
 /** CEO 무대 시안 (1460×690 기준 픽셀) — 리사이즈 시 동일 비율 유지 */
 const CEO_STAGE_W = 1460;
@@ -379,10 +351,104 @@ type CeoLayoutMetrics = {
   bodyH: number;
 };
 
-export default function BrandIntroScreen() {
+export default function BrandIntroScreen(_props: Route.ComponentProps) {
+  const { t } = useTranslation();
+
+  const slides = useMemo(
+    () => [
+      {
+        num: "30",
+        unit: t("pages.brand.intro.slide30"),
+        sparkles: HERO_SPARKLES_30,
+      },
+      {
+        num: "500",
+        unit: t("pages.brand.intro.slide500"),
+        sparkles: HERO_SPARKLES_500,
+      },
+      {
+        num: "50",
+        unit: t("pages.brand.intro.slide50"),
+        sparkles: HERO_SPARKLES_50,
+      },
+    ],
+    [t],
+  );
+
+  const philosophies = useMemo(() => {
+    const copy = (
+      id: (typeof PHILOSOPHY_META)[number]["id"],
+    ): { category: string; desc: string } => {
+      switch (id) {
+        case "customer":
+          return {
+            category: t("pages.brand.intro.phCustomerT"),
+            desc: t("pages.brand.intro.phCustomerD"),
+          };
+        case "quality":
+          return {
+            category: t("pages.brand.intro.phQualityT"),
+            desc: t("pages.brand.intro.phQualityD"),
+          };
+        case "esg":
+          return {
+            category: t("pages.brand.intro.phEsgT"),
+            desc: t("pages.brand.intro.phEsgD"),
+          };
+        case "innovation":
+          return {
+            category: t("pages.brand.intro.phInnovationT"),
+            desc: t("pages.brand.intro.phInnovationD"),
+          };
+        case "global":
+          return {
+            category: t("pages.brand.intro.phGlobalT"),
+            desc: t("pages.brand.intro.phGlobalD"),
+          };
+        case "partner":
+          return {
+            category: t("pages.brand.intro.phPartnerT"),
+            desc: t("pages.brand.intro.phPartnerD"),
+          };
+        default: {
+          const _x: never = id;
+          throw new Error(`unknown philosophy id: ${_x}`);
+        }
+      }
+    };
+    return PHILOSOPHY_META.map((row) => ({
+      ...row,
+      ...copy(row.id),
+    }));
+  }, [t]);
+
+  const characters = useMemo(
+    () =>
+      CHARACTER_META.map((c) =>
+        c.id === "edi"
+          ? {
+              ...c,
+              name: t("pages.brand.intro.ediName"),
+              nameEn: t("pages.brand.intro.ediTagline"),
+              greeting: t("pages.brand.intro.ediGreeting"),
+              accentText: t("pages.brand.intro.ediAccent"),
+              body: t("pages.brand.intro.ediBody"),
+            }
+          : {
+              ...c,
+              name: t("pages.brand.intro.pudiName"),
+              nameEn: t("pages.brand.intro.pudiTagline"),
+              greeting: t("pages.brand.intro.pudiGreeting"),
+              accentText: t("pages.brand.intro.pudiAccent"),
+              body: t("pages.brand.intro.pudiBody"),
+            },
+      ),
+    [t],
+  );
+
   // ── PC 스크롤 드리븐 서큘러 리빌 상태 ──
   const panelWrapRef = useRef<HTMLDivElement>(null);
-  const [gp, setGp] = useState(0); // global progress: 0 to SLIDES.length
+  const [gp, setGp] = useState(0); // global progress: 0 to SLIDE_COUNT
 
   const ceoStageRef = useRef<HTMLDivElement>(null);
   const [ceoLayout, setCeoLayout] = useState<CeoLayoutMetrics | null>(null);
@@ -472,10 +538,10 @@ export default function BrandIntroScreen() {
         return;
       }
       if (scrolled >= totalScrollable) {
-        setGp(SLIDES.length);
+        setGp(SLIDE_COUNT);
         return;
       }
-      setGp((scrolled / totalScrollable) * SLIDES.length);
+      setGp((scrolled / totalScrollable) * SLIDE_COUNT);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
@@ -484,7 +550,12 @@ export default function BrandIntroScreen() {
 
   return (
     <div className="w-full bg-[var(--site-chrome-header-bg,#FDFDF5)]">
-      <Breadcrumb items={[{ label: "회사소개" }, { label: "회사소개" }]} />
+      <Breadcrumb
+        items={[
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("navigation.brand.intro") },
+        ]}
+      />
 
       {/* ══════════════════════════════════════════
           섹션 1: 스크롤 드리븐 패널 리빌 (PC) / 자동 슬라이더 (모바일)
@@ -498,7 +569,7 @@ export default function BrandIntroScreen() {
       <div
         ref={panelWrapRef}
         className="hidden md:block"
-        style={{ height: `${SLIDES.length * 100}vh` }}
+        style={{ height: `${SLIDE_COUNT * 100}vh` }}
       >
         <section
           className="sticky overflow-hidden"
@@ -529,9 +600,9 @@ export default function BrandIntroScreen() {
                 lineHeight: 1.1,
               }}
             >
-              Poonglim,
+              {t("pages.brand.intro.heroBrandLine1")}
               <br />
-              Brand Story
+              {t("pages.brand.intro.heroBrandLine2")}
             </h1>
             <p
               style={{
@@ -542,18 +613,15 @@ export default function BrandIntroScreen() {
                 color: "#003F2B",
                 lineHeight: 1.65,
                 opacity: 0.75,
+                whiteSpace: "pre-line",
               }}
             >
-              1994년 설립 이래 30년간 축적된 노하우와
-              <br />
-              혁신적인 기술로 고객의 건강하고
-              <br />
-              풍요로운 일상을 만들어가고 있습니다.
+              {t("pages.brand.intro.heroSub")}
             </p>
           </div>
 
           {/* 슬라이드 아이템 — 전체 섹션 기준 absolute, 왼쪽 패널 뒤로 퇴장 가능 */}
-          {SLIDES.map((slide, i) => {
+          {slides.map((slide, i) => {
             const rel = gp - i;
             const easeOut3 = (t: number) => 1 - Math.pow(1 - t, 3);
             const easeIn3 = (t: number) => t * t * t;
@@ -570,9 +638,9 @@ export default function BrandIntroScreen() {
             const ENTER_TX = 65; // 60 + 65 = 125vw (화면 밖 우측)
             const DEPART_TX = -62; // 60 - 62 = -2vw (화면 밖 좌측, 좌 패널 뒤)
 
-            const isLastSlide = i === N - 1;
+            const isLastSlide = i === SLIDE_COUNT - 1;
             // 마지막 슬라이드: 좌측 퇴장 없이 중앙 유지, 스크롤해도 페이드 없음(히어로가 통째로 넘어갈 때까지 표시)
-            if (isLastSlide && gp >= N - 1) {
+            if (isLastSlide && gp >= SLIDE_COUNT - 1) {
               scale = 1;
               txVw = 0;
               opacity = 1;
@@ -694,21 +762,17 @@ export default function BrandIntroScreen() {
                   "self-stretch text-[clamp(32px,10.67vw,40px)] leading-[clamp(40px,12.8vw,48px)] font-extrabold text-[#003F2B]",
                 )}
               >
-                Poonglim,
+                {t("pages.brand.intro.heroBrandLine1")}
                 <br />
-                Brand Story
+                {t("pages.brand.intro.heroBrandLine2")}
               </h1>
               <p
                 className={cn(
                   nanum,
-                  "self-stretch text-[clamp(13px,3.73vw,14px)] leading-[clamp(20px,5.97vw,22.4px)] font-normal text-[#003F2B]",
+                  "self-stretch whitespace-pre-line text-[clamp(13px,3.73vw,14px)] leading-[clamp(20px,5.97vw,22.4px)] font-normal text-[#003F2B]",
                 )}
               >
-                1994년 설립 이래 30년간 축적된 노하우와
-                <br />
-                혁신적인 기술로 고객의 건강하고 풍요로운 일상을
-                <br />
-                만들어가고 있습니다.
+                {t("pages.brand.intro.heroSub")}
               </p>
             </div>
 
@@ -732,9 +796,9 @@ export default function BrandIntroScreen() {
                 aria-hidden
               />
 
-              {SLIDES.map((slide, i) => (
+              {slides.map((slide, i) => (
                 <div
-                  key={slide.unit}
+                  key={`${slide.num}-${slide.unit}`}
                   className={cn(
                     "inline-flex w-full gap-8 self-stretch",
                     i === 0 && "items-center justify-start",
@@ -815,7 +879,7 @@ export default function BrandIntroScreen() {
               color: "#1F2121",
             }}
           >
-            CEO 인사말
+            {t("pages.brand.intro.ceoTitle")}
           </SectionPageTitle>
 
           <div className="relative mx-auto w-full max-w-[var(--pc-stage-max)] overflow-visible">
@@ -848,7 +912,7 @@ export default function BrandIntroScreen() {
                   <div className="relative h-full w-full overflow-hidden">
                     <img
                       src="/intro/president_img.png"
-                      alt="풍림푸드 대표이사 정연현"
+                      alt={t("pages.brand.intro.ceoPresidentAlt")}
                       className="block h-full w-full object-cover"
                     />
                   </div>
@@ -900,8 +964,11 @@ export default function BrandIntroScreen() {
                       overflow: "visible",
                     }}
                   >
-                    "고객의 건강이
-                    <br />곧 우리의 사명입니다"
+                    <>
+                      {t("pages.brand.intro.ceoQuote1")}
+                      <br />
+                      {t("pages.brand.intro.ceoQuote2")}
+                    </>
                   </blockquote>
                 </div>
 
@@ -930,20 +997,12 @@ export default function BrandIntroScreen() {
                       lineHeight: 1.5,
                     }}
                   >
-                    <p>
-                      풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날
-                      대한민국을 대표하는 프리미엄 식품 전문기업으로
-                      성장했습니다.
+                    <p>{t("pages.brand.intro.ceoBody1")}</p>
+                    <p style={{ marginTop: 10 }}>
+                      {t("pages.brand.intro.ceoBody2")}
                     </p>
                     <p style={{ marginTop: 10 }}>
-                      우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고
-                      풍요로운 일상을 만들어가는 파트너가 되고자 합니다. 엄선된
-                      원료와 첨단 기술, 그리고 30년간 축적된 노하우를 바탕으로
-                      최고 품질의 제품을 선보이고 있습니다.
-                    </p>
-                    <p style={{ marginTop: 10 }}>
-                      앞으로도 풍림푸드는 지속가능한 경영과 사회적 책임을
-                      다하며, 고객과 함께 성장하는 기업이 되겠습니다.
+                      {t("pages.brand.intro.ceoBody3")}
                     </p>
                   </div>
                   <p
@@ -956,9 +1015,9 @@ export default function BrandIntroScreen() {
                       color: "#003F2B",
                     }}
                   >
-                    풍림푸드 대표이사{" "}
+                    {t("pages.brand.intro.ceoRole")}{" "}
                     <span style={{ marginLeft: 10, fontWeight: 700 }}>
-                      정연현
+                      {t("pages.brand.intro.ceoName")}
                     </span>
                   </p>
                 </div>
@@ -982,7 +1041,7 @@ export default function BrandIntroScreen() {
               "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
             )}
           >
-            CEO 인사말
+            {t("pages.brand.intro.ceoTitle")}
           </SectionPageTitle>
 
           {/* 타이틀(아래 가장자리) ↔ 인용문 블록 영역: 시안 40px */}
@@ -994,13 +1053,15 @@ export default function BrandIntroScreen() {
                   "absolute bottom-full left-1/2 z-30 w-[min(108%,calc(100%+24px))] max-w-none -translate-x-1/2 translate-y-[min(28%,2.25rem)] text-center text-[clamp(20px,6.4vw,28px)] leading-[1.28] font-extrabold text-[#003F2B]",
                 )}
               >
-                &quot;고객의 건강이 <br />곧 우리의 사명입니다&quot;
+                &quot;{t("pages.brand.intro.ceoQuote1")}{" "}
+                <br />
+                {t("pages.brand.intro.ceoQuote2")}&quot;
               </blockquote>
 
               <div className="relative z-[5] h-full w-full overflow-hidden">
                 <img
                   src="/intro/president_img.png"
-                  alt="풍림푸드 대표이사 정연현"
+                  alt={t("pages.brand.intro.ceoPresidentAlt")}
                   className="block h-full w-full object-cover"
                 />
               </div>
@@ -1024,26 +1085,15 @@ export default function BrandIntroScreen() {
               "mt-[40px] flex w-full flex-col items-start gap-4 self-stretch",
             )}
           >
-            <p className="text-[clamp(13px,3.73vw,14px)] leading-[1.5] font-bold text-[#1F2121]">
-              풍림푸드는 1994년 작은 식품 제조업체로 시작하여, 오늘날 대한민국을
-              대표하는 프리미엄 식품 전문기업으로 성장했습니다.
-              <br />
-              <br />
-              우리는 단순히 제품을 만드는 것이 아니라, 고객의 건강하고 풍요로운
-              일상을 만들어가는 파트너가 되고자 합니다.&nbsp;&nbsp;엄선된 원료와
-              첨단 기술, 그리고 30년간 축적된 노하우를 바탕으로 최고 품질의
-              제품을 선보이고 있습니다.
-              <br />
-              <br />
-              앞으로도 풍림푸드는 지속가능한 경영과 사회적 책임을 다하며, 고객과
-              함께 성장하는 기업이 되겠습니다.
+            <p className="whitespace-pre-line text-[clamp(13px,3.73vw,14px)] leading-[1.5] font-bold text-[#1F2121]">
+              {t("pages.brand.intro.ceoBodyMobile")}
             </p>
             <div className="inline-flex items-center gap-3 self-stretch">
               <span className="text-base leading-6 font-normal text-[#003F2B]">
-                풍림푸드 대표이사
+                {t("pages.brand.intro.ceoRole")}
               </span>
               <span className="text-base leading-6 font-bold text-[#003F2B]">
-                정연현
+                {t("pages.brand.intro.ceoName")}
               </span>
             </div>
           </div>
@@ -1095,7 +1145,7 @@ export default function BrandIntroScreen() {
                   color: "#1F2121",
                 }}
               >
-                경영 철학
+                {t("pages.brand.intro.philosophyLabel")}
               </SectionPageTitle>
               <h2
                 style={{
@@ -1104,12 +1154,10 @@ export default function BrandIntroScreen() {
                   letterSpacing: "-0.04em",
                   lineHeight: pc1920(30, 72.8),
                   color: "#003F2B",
+                  whiteSpace: "pre-line",
                 }}
               >
-                6가지 핵심 가치로
-                <br />더 나은 미래를
-                <br />
-                만들어갑니다.
+                {t("pages.brand.intro.philosophyHeadline")}
               </h2>
             </div>
 
@@ -1123,9 +1171,9 @@ export default function BrandIntroScreen() {
                 flexShrink: 0,
               }}
             >
-              {PHILOSOPHIES.map(({ category, desc, image, bg }) => (
+              {philosophies.map(({ id, category, desc, image, bg }) => (
                 <div
-                  key={category}
+                  key={id}
                   style={{
                     backgroundColor: bg,
                     width: "100%",
@@ -1208,27 +1256,26 @@ export default function BrandIntroScreen() {
                 "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
               )}
             >
-              경영 철학
+              {t("pages.brand.intro.philosophyLabel")}
             </SectionPageTitle>
             <h2
               className={cn(
                 nanum,
-                "self-stretch text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold text-[#003F2B]",
+                "self-stretch whitespace-pre-line text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold text-[#003F2B]",
               )}
             >
-              6가지 핵심 가치로
-              <br />더 나은 미래를 만들어갑니다.
+              {t("pages.brand.intro.philosophyHeadlineMobile")}
             </h2>
           </div>
 
           <div className="grid w-full grid-cols-2 items-stretch gap-[clamp(6px,2.13vw,8px)] self-stretch">
-            {PHILOSOPHY_MOBILE_GRID.map(({ category, bg }) => {
-              const card = PHILOSOPHIES.find((p) => p.category === category);
+            {PHILOSOPHY_META.map(({ id, bg }) => {
+              const card = philosophies.find((p) => p.id === id);
               if (!card) return null;
-              const { desc, image } = card;
+              const { category, desc, image } = card;
               return (
                 <div
-                  key={category}
+                  key={id}
                   className={cn(
                     nanum,
                     "flex h-full min-h-[200px] w-full flex-col items-end justify-start gap-5 overflow-hidden rounded-[20px] p-5",
@@ -1290,7 +1337,7 @@ export default function BrandIntroScreen() {
                 marginBottom: pc1920(6, 10),
               }}
             >
-              풍림푸드 공식 캐릭터
+              {t("pages.brand.intro.charTitle")}
             </h2>
             <p
               style={{
@@ -1301,7 +1348,7 @@ export default function BrandIntroScreen() {
                 letterSpacing: "-0.02em",
               }}
             >
-              Poonglim Characters Story
+              {t("pages.brand.intro.charSubtitle")}
             </p>
           </div>
 
@@ -1312,7 +1359,7 @@ export default function BrandIntroScreen() {
               gap: pc1920(16, 30),
             }}
           >
-            {CHARACTERS.map(
+            {characters.map(
               ({
                 id,
                 name,
@@ -1416,7 +1463,7 @@ export default function BrandIntroScreen() {
                     >
                       <img
                         src={sceneImage}
-                        alt={`${name} scene`}
+                        alt={t("pages.brand.intro.charSceneAlt", { name })}
                         style={{
                           height:
                             id === "pudi" ? pc1920(32, 69) : pc1920(48, 126),
@@ -1531,7 +1578,7 @@ export default function BrandIntroScreen() {
                   "w-full text-[20px] leading-[26px] font-extrabold text-[#003F2B]",
                 )}
               >
-                풍림푸드 공식 캐릭터
+                {t("pages.brand.intro.charTitle")}
               </h2>
               <p
                 className={cn(
@@ -1539,12 +1586,12 @@ export default function BrandIntroScreen() {
                   "w-full text-[14px] leading-[18.2px] font-normal text-[#003F2B]",
                 )}
               >
-                Poonglim Characters Story
+                {t("pages.brand.intro.charSubtitle")}
               </p>
             </div>
 
             <div className="flex w-full flex-col gap-3">
-              {CHARACTERS.map(
+              {characters.map(
                 ({
                   id,
                   name,
@@ -1686,10 +1733,10 @@ export default function BrandIntroScreen() {
                 lineHeight: pc1920(20, 23.4),
               }}
             >
-              풍림푸드를 더 자세히 알아보세요!
+              {t("pages.brand.intro.downloadLead")}
             </p>
             <h2
-              className="max-w-full"
+              className="max-w-full whitespace-pre-line"
               style={{
                 fontSize: pc1920(22, 32),
                 fontWeight: 800,
@@ -1700,16 +1747,22 @@ export default function BrandIntroScreen() {
                 overflowWrap: "break-word",
               }}
             >
-              풍림푸드의 기업 철학, 사업 영역,
-              <br />
-              주요 제품 라인업을 확인하실 수 있습니다.
+              {t("pages.brand.intro.downloadHeadline")}
             </h2>
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center justify-end gap-2">
             {[
-              { label: "회사소개서", size: "PDF, 12.5MB", href: "#" },
-              { label: "Company Brochure", size: "PDF, 12.5MB", href: "#" },
+              {
+                label: t("pages.brand.intro.downloadKoLabel"),
+                size: t("pages.brand.intro.downloadSize"),
+                href: "#",
+              },
+              {
+                label: t("pages.brand.intro.downloadEnLabel"),
+                size: t("pages.brand.intro.downloadSize"),
+                href: "#",
+              },
             ].map(({ label, size, href }) => (
               <a
                 key={label}
@@ -1799,30 +1852,28 @@ export default function BrandIntroScreen() {
                 "text-[14px] leading-[18.2px] font-bold text-[#1F2121]",
               )}
             >
-              풍림푸드를 더 자세히 알아보세요!
+              {t("pages.brand.intro.downloadLead")}
             </p>
             <h2
               className={cn(
                 nanum,
-                "text-[18px] leading-[23.4px] font-extrabold text-[#003F2B]",
+                "whitespace-pre-line text-[18px] leading-[23.4px] font-extrabold text-[#003F2B]",
               )}
             >
-              풍림푸드의 기업 철학, 사업 영역,
-              <br />
-              주요 제품 라인업을 확인하실 수 있습니다.
+              {t("pages.brand.intro.downloadHeadline")}
             </h2>
           </div>
           <div className="flex w-full flex-col gap-2">
             {[
               {
-                label: "회사소개서",
-                size: "PDF, 12.5MB",
+                label: t("pages.brand.intro.downloadKoLabel"),
+                size: t("pages.brand.intro.downloadSize"),
                 href: "#",
                 upper: true,
               },
               {
-                label: "Company Brochure",
-                size: "PDF, 12.5MB",
+                label: t("pages.brand.intro.downloadEnLabel"),
+                size: t("pages.brand.intro.downloadSize"),
                 href: "#",
                 upper: false,
               },

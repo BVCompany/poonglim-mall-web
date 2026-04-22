@@ -2,6 +2,7 @@
  * Admin News/Press Management Screen
  */
 
+import { randomUUID } from "node:crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/media-news";
@@ -101,7 +102,19 @@ export async function action({ request }: Route.ActionArgs) {
     if (wantsFeatured && (await countFeaturedExcluding()) >= MAX_FEATURED) {
       return { success: false as const, error: "max_featured" as const, intent: "create" as const };
     }
+    const localeRaw = ((fd.get("locale") as string) || "ko").toLowerCase();
+    const locale = localeRaw === "en" ? "en" : "ko";
+    if (locale === "en" && wantsFeatured) {
+      return { success: false as const, error: "featured_ko_only" as const, intent: "create" as const };
+    }
+    const groupFromForm = (fd.get("translation_group_id") as string)?.trim();
+    const translation_group_id =
+      groupFromForm && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(groupFromForm)
+        ? groupFromForm
+        : randomUUID();
     await db.insert(news).values({
+      translation_group_id,
+      locale,
       type: (fd.get("type") as string) || "보도자료",
       title,
       content: content || "",
@@ -117,9 +130,44 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true as const, intent: "create" as const };
   }
 
+  if (intent === "create_translation") {
+    const baseId = Number(fd.get("base_id"));
+    const targetLocale = ((fd.get("target_locale") as string) || "en").toLowerCase() === "en" ? "en" : "ko";
+    if (!baseId) return { success: false as const };
+    const [base] = await db.select().from(news).where(eq(news.news_id, baseId)).limit(1);
+    if (!base) return { success: false as const };
+    const [exists] = await db
+      .select({ id: news.news_id })
+      .from(news)
+      .where(and(eq(news.translation_group_id, base.translation_group_id), eq(news.locale, targetLocale)))
+      .limit(1);
+    if (exists) return { success: false as const, error: "translation_exists" as const };
+    await db.insert(news).values({
+      translation_group_id: base.translation_group_id,
+      locale: targetLocale,
+      type: base.type,
+      title: "",
+      content: "",
+      summary: "",
+      thumbnail_url: base.thumbnail_url,
+      source: base.source,
+      source_url: base.source_url,
+      published_at: base.published_at,
+      body_image_urls: base.body_image_urls,
+      is_active: base.is_active,
+      is_featured: false,
+    });
+    return { success: true as const, intent: "create_translation" as const };
+  }
+
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(news).where(eq(news.news_id, id));
+    if (id) {
+      const [row] = await db.select().from(news).where(eq(news.news_id, id)).limit(1);
+      if (row) {
+        await db.delete(news).where(eq(news.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true as const };
   }
 
@@ -140,14 +188,13 @@ export async function action({ request }: Route.ActionArgs) {
         return { success: false as const, error: "need_body" as const, intent: "update" as const };
       }
 
-      const [current] = await db
-        .select({ is_featured: news.is_featured })
-        .from(news)
-        .where(eq(news.news_id, id))
-        .limit(1);
-      const wasFeatured = current?.is_featured === true;
+      const [editing] = await db.select().from(news).where(eq(news.news_id, id)).limit(1);
+      const wasFeatured = editing?.is_featured === true;
       if (wantsFeatured && !wasFeatured && (await countFeaturedExcluding(id)) >= MAX_FEATURED) {
         return { success: false as const, error: "max_featured" as const, intent: "update" as const };
+      }
+      if (editing?.locale === "en" && wantsFeatured) {
+        return { success: false as const, error: "featured_ko_only" as const, intent: "update" as const };
       }
       await db
         .update(news)
@@ -165,6 +212,12 @@ export async function action({ request }: Route.ActionArgs) {
           is_featured: wantsFeatured,
         })
         .where(eq(news.news_id, id));
+      if (editing) {
+        await db
+          .update(news)
+          .set({ is_active: readBool("is_active") })
+          .where(eq(news.translation_group_id, editing.translation_group_id));
+      }
     }
     return { success: true as const, intent: "update" as const };
   }
@@ -173,6 +226,9 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const currently = fd.get("isFeatured") === "true";
     if (!id) return { success: false as const };
+
+    const [row] = await db.select().from(news).where(eq(news.news_id, id)).limit(1);
+    if (row?.locale === "en") return { success: false as const, error: "featured_ko_only" as const };
 
     if (!currently && (await countFeaturedExcluding(id)) >= MAX_FEATURED) {
       return { success: false as const, error: "max_featured" as const };
@@ -266,6 +322,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
+    locale: "ko" as "ko" | "en",
     type: "보도자료",
     title: "",
     summary: "",
@@ -327,6 +384,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
   const resetForm = useCallback(
     () =>
       setForm({
+        locale: "ko",
         type: "보도자료",
         title: "",
         summary: "",
@@ -356,6 +414,14 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
       window.alert("본문 내용 또는 본문 이미지를 최소 하나 등록해 주세요.");
       return;
     }
+    if ("error" in fetcher.data && fetcher.data.error === "featured_ko_only") {
+      window.alert("주요 보도는 한국어(ko) 글에서만 지정할 수 있습니다.");
+      return;
+    }
+    if ("error" in fetcher.data && fetcher.data.error === "translation_exists") {
+      window.alert("이미 해당 언어 버전이 있습니다.");
+      return;
+    }
     if ("error" in fetcher.data && fetcher.data.error === "category_protected") {
       window.alert(`「${PROTECTED_NEWS_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
       return;
@@ -373,6 +439,9 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
       return;
     }
     if ("success" in fetcher.data && fetcher.data.success && "intent" in fetcher.data) {
+      if (fetcher.data.intent === "create_translation") {
+        window.alert("영문 초안이 추가되었습니다. 목록에서 해당 글을 열어 내용을 입력해 주세요.");
+      }
       if (fetcher.data.intent === "create") {
         setIsAddModalOpen(false);
         resetForm();
@@ -396,6 +465,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
   };
 
   const appendFormFields = (fd: FormData) => {
+    fd.append("locale", form.locale);
     fd.append("type", form.type);
     fd.append("title", form.title);
     fd.append("summary", form.summary);
@@ -425,9 +495,18 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
     fetcher.submit(fd, { method: "POST" });
   };
 
+  const handleAddTranslation = (baseId: number, targetLocale: "ko" | "en") => {
+    const fd = new FormData();
+    fd.append("intent", "create_translation");
+    fd.append("base_id", String(baseId));
+    fd.append("target_locale", targetLocale);
+    fetcher.submit(fd, { method: "POST" });
+  };
+
   const handleOpenEdit = (item: (typeof dbNews)[number]) => {
     setEditingId(item.news_id);
     setForm({
+      locale: (item.locale === "en" ? "en" : "ko") as "ko" | "en",
       type: item.type || "보도자료",
       title: item.title || "",
       summary: item.summary || "",
@@ -578,6 +657,16 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                         <span
                           className={cn(
                             "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold",
+                            item.locale === "en"
+                              ? "border-blue-200 bg-blue-50 text-blue-800"
+                              : "border-gray-200 bg-gray-50 text-gray-800",
+                          )}
+                        >
+                          {item.locale === "en" ? "EN" : "KO"}
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold",
                             newsCategoryBadgeClass(categoryColorByName.get(item.type) ?? "slate"),
                           )}
                         >
@@ -633,6 +722,18 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                           strokeWidth={2}
                         />
                       </Button>
+                      {item.locale === "ko" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 shrink-0 rounded-lg border-blue-200 text-xs text-blue-800"
+                          title="영문 버전 초안 추가"
+                          onClick={() => handleAddTranslation(item.news_id, "en")}
+                        >
+                          EN 추가
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         size="icon"
@@ -668,6 +769,19 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
             <DialogTitle className="text-xl font-bold text-gray-900">보도자료 추가</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-gray-800">언어</Label>
+              <select
+                value={form.locale}
+                onChange={(e) => setForm({ ...form, locale: e.target.value as "ko" | "en" })}
+                className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#02633E]/25"
+                aria-label="게시 언어"
+              >
+                <option value="ko">한국어 (ko)</option>
+                <option value="en">English (en)</option>
+              </select>
+              <p className="text-xs text-gray-500">영문은 별도 행으로 저장되며, 이후 「EN 추가」로 묶을 수도 있습니다.</p>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-gray-800">
                 제목 <span className="text-red-500">*</span>

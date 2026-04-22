@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
@@ -14,14 +15,14 @@ interface CompanyIntroProps {
 const DEFAULT_IMAGE = "/home/company_intro.jpg";
 /** 관리자 이미지 미설정 시 메인 회사소개 배경 영상 */
 const DEFAULT_VIDEO = "/home/poonglim_main.mp4";
-const DEFAULT_TITLE = "30년간 축적된 노하우와 혁신적인 기술로 고객의 건강하고 풍요로운 일상을 만들어가고 있습니다.";
-const DEFAULT_LINK  = "/brand/intro";
+const DEFAULT_LINK = "/brand/intro";
 
 function isVideoUrl(url: string) {
   return /\.mp4(\?|#|$)/i.test(url);
 }
 
 export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [visible, setVisible] = useState(false);
@@ -91,12 +92,12 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
               loop
               playsInline
               preload="metadata"
-              aria-label="풍림푸드 회사소개 영상"
+              aria-label={t("home.companyIntro.videoAriaLabel")}
             />
           ) : (
             <img
               src={image || DEFAULT_IMAGE}
-              alt="풍림푸드 공장"
+              alt={t("home.companyIntro.factoryImageAlt")}
               className="absolute inset-0 h-full w-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
@@ -119,7 +120,7 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
                 markClassName="hidden h-3.5 w-3.5 flex-shrink-0 md:block"
                 wrapTitle={false}
               >
-                회사소개
+                {t("navigation.brand.intro")}
               </SectionPageTitle>
               <h2
                 className="max-w-md text-[18px] font-bold break-keep md:mb-8 md:text-[24px]"
@@ -129,7 +130,7 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
                   letterSpacing: "-0.04em",
                 }}
               >
-                {title || DEFAULT_TITLE}
+                {title || t("home.companyIntro.defaultTitle")}
               </h2>
             </div>
 
@@ -142,7 +143,7 @@ export function CompanyIntro({ image, title, link }: CompanyIntroProps = {}) {
                 color: "#1e463a",
               }}
             >
-              <span>Learn More</span>
+              <span>{t("home.companyIntro.learnMore")}</span>
               <span
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: "#1e463a" }}

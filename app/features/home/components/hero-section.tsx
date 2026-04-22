@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import type { Banner } from "~/features/home/lib/queries.server";
@@ -20,58 +21,52 @@ interface HeroSectionProps {
   banners?: Banner[];
 }
 
-const MOCK_SLIDES = [
+const HERO_MOCK_IMAGES = [
   {
     image: "/home/hero_1.jpg",
     fallback:
       "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
-    category: "건강하고 풍요로운 일상",
-    title1: "신뢰할 수 있는 품질과 혁신적인 기술로",
-    title2: "만드는 프리미엄 식품 솔루션",
-    link: undefined as string | undefined,
   },
   {
     image: "/home/hero_2.jpg",
     fallback:
       "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=1920&h=1080&fit=crop",
-    category: "풍림푸드의 프리미엄",
-    title1: "30년간 축적된 노하우로",
-    title2: "만들어 가는 건강하고 풍요로운 식품 문화",
-    link: undefined as string | undefined,
   },
   {
     image: "/home/hero_3.jpg",
     fallback:
       "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=1920&h=1080&fit=crop",
-    category: "프리미엄 액란 전문",
-    title1: "신선하고 안전한 액상 계란으로",
-    title2: "편리한 조리를 경험하세요",
-    link: undefined as string | undefined,
   },
   {
     image: "/home/hero_4.jpg",
     fallback:
       "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1920&h=1080&fit=crop",
-    category: "간편식 라인업",
-    title1: "바쁜 일상 속에서도 건강하고 맛있는",
-    title2: "한 끼를 완성하세요",
-    link: undefined as string | undefined,
   },
   {
     image: "/home/hero_5.jpg",
     fallback:
       "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1920&h=1080&fit=crop",
-    category: "B2B 솔루션",
-    title1: "식품업계 파트너를 위한",
-    title2: "맞춤형 식품 솔루션, 풍림푸드와 함께하세요",
-    link: undefined as string | undefined,
   },
-];
+] as const;
 
 export function HeroSection({ banners = [] }: HeroSectionProps) {
+  const { t, i18n } = useTranslation();
+
+  const mockSlides = useMemo(
+    () =>
+      HERO_MOCK_IMAGES.map((meta, i) => ({
+        ...meta,
+        category: t(`home.hero.mockSlide${i}.category`),
+        title1: t(`home.hero.mockSlide${i}.title1`),
+        title2: t(`home.hero.mockSlide${i}.title2`),
+        link: undefined as string | undefined,
+      })),
+    [t, i18n.language],
+  );
+
   const slides = useMemo(
-    () => (banners.length > 0 ? banners.map(dbBannerToSlide) : MOCK_SLIDES),
-    [banners],
+    () => (banners.length > 0 ? banners.map(dbBannerToSlide) : mockSlides),
+    [banners, mockSlides],
   );
   const slideCount = slides.length;
 
@@ -212,9 +207,10 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
          */}
         {/* 좌우 네비 버튼 (모바일: 48px / PC: 72px) */}
         <button
+          type="button"
           onClick={prev}
           className="absolute top-1/2 left-4 z-20 flex h-[48px] w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-r-lg border border-black/5 bg-white/90 transition-all hover:bg-white sm:left-2 md:left-6 md:h-[72px] md:w-12"
-          aria-label="이전 슬라이드"
+          aria-label={t("home.hero.slidePrev")}
         >
           <ChevronLeft
             className="h-[26px] w-[26px] text-[#0E5A3A] md:h-8 md:w-8"
@@ -222,9 +218,10 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
           />
         </button>
         <button
+          type="button"
           onClick={next}
           className="absolute top-1/2 right-4 z-20 flex h-[48px] w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-l-lg border border-black/5 bg-white/90 transition-all hover:bg-white sm:right-2 md:right-6 md:h-[72px] md:w-12"
-          aria-label="다음 슬라이드"
+          aria-label={t("home.hero.slideNext")}
         >
           <ChevronRight
             className="h-[26px] w-[26px] text-[#0E5A3A] md:h-8 md:w-8"

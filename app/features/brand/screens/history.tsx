@@ -3,20 +3,23 @@
  */
 import { ChevronDown } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/history";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { pcMin } from "~/core/lib/pc-fluid";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "연혁 | 풍림푸드" }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
-export async function loader(_: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const pageBanner = await getPageBanner("history").catch(() => null);
-  return { pageBanner };
+  return { pageBanner, metaTitle: t("pages.brand.history.metaTitle") };
 }
 
 const MILESTONES = [
@@ -96,16 +99,99 @@ const MILESTONES = [
   },
 ];
 
-function initialMobileAccordionOpen(): Record<string, boolean> {
+type Milestone = (typeof MILESTONES)[number];
+
+const MILESTONES_EN: Milestone[] = [
+  {
+    id: "period-1994",
+    period: "1994 – 2000",
+    achievements: [
+      "Company founded; factory completed",
+      "Liquid egg business launched",
+      "Current CEO appointed",
+      "ISO 9002 certification (liquid egg division)",
+      "First domestic grilled-egg business; egg processed food manufacturing consulting with Japan’s Kanae Foods",
+    ],
+    image: "/intro/history01.png",
+    imageWidth: 360,
+    imageHeight: 450,
+  },
+  {
+    id: "period-2001",
+    period: "2001 – 2005",
+    achievements: [
+      "Diversified portfolio (grilled egg, omelet, steamed egg, pudding)",
+      "Exhibited at Seoul Food & Hotel",
+      "National pudding grading system implemented",
+    ],
+    image: "/intro/history02.png",
+    imageWidth: 360,
+    imageHeight: 450,
+  },
+  {
+    id: "period-2011",
+    period: "2011 – 2014",
+    achievements: [
+      "Grade A liquid egg in pouch launched",
+      "Recognized as an exemplary HACCP operator for livestock products",
+      "LOHAS certification for shell eggs and peeled quail eggs",
+    ],
+    image: "/intro/history03.png",
+    imageWidth: 350,
+    imageHeight: 450,
+  },
+  {
+    id: "period-2015",
+    period: "2015 – 2018",
+    achievements: [
+      "NH Nonghyup New Year’s Excellence Award for agri-food companies",
+      "Chungbuk Governor’s Award for employment excellence",
+      "Chungbuk SME Grand Prize (overall)",
+      "Poonglim Food R&D center established",
+      "Presidential Commendation for exemplary taxpayers",
+      "Recognized as an outstanding livestock industry company",
+      "In-house pesticide analysis (LC-MS/MS)",
+      "Consumer (B2C) business launched",
+      "Table egg LOHAS certification",
+      "Sales surpassed ₩100 billion",
+    ],
+    image: "/intro/history04.png",
+    imageWidth: 310,
+    imageHeight: 310,
+  },
+  {
+    id: "period-2019",
+    period: "2019 – Present",
+    achievements: [
+      "Certified for youth job creation",
+      "FSSC 22000 certification",
+      "NH Nonghyup Bank green agri-food company",
+      "HACCP for edible eggshell powder",
+      "Sales surpassed ₩150 billion",
+      "New liquid egg & dessert lines",
+      "FHA–Food & Beverage 2024 (Singapore)",
+      "Selected for government export transition support (MOTIE, KOTRA, etc.)",
+    ],
+    image: "/intro/history05.png",
+    imageWidth: 360,
+    imageHeight: 450,
+  },
+];
+
+function initialMobileAccordionOpen(milestones: Milestone[]): Record<string, boolean> {
   const next: Record<string, boolean> = {};
-  for (const m of MILESTONES) next[m.id] = true;
+  for (const m of milestones) next[m.id] = true;
   return next;
 }
 
 export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
+  const { t, i18n } = useTranslation();
   const pageBanner = loaderData?.pageBanner ?? null;
-  const [activePeriod, setActivePeriod] = useState(MILESTONES[0].id);
-  const [mobileOpen, setMobileOpen] = useState(initialMobileAccordionOpen);
+  const milestones = i18n.language.startsWith("en") ? MILESTONES_EN : MILESTONES;
+  const [activePeriod, setActivePeriod] = useState(milestones[0].id);
+  const [mobileOpen, setMobileOpen] = useState(() =>
+    initialMobileAccordionOpen(milestones),
+  );
   /** 모바일 타임라인: 노란 도트는 항상 1개 — 처음은 0번, i번째 연혁이 헤더 기준선을 지나면 (i+1)번 */
   const [mobileActiveDotIndex, setMobileActiveDotIndex] = useState(0);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
@@ -123,12 +209,12 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
       const headerPx = Number.parseFloat(raw) || 50;
       const activationY = headerPx + 16;
       let passed = -1;
-      MILESTONES.forEach((m, i) => {
+      milestones.forEach((m, i) => {
         const el = mobileRowRefs.current.get(m.id);
         if (!el) return;
         if (el.getBoundingClientRect().top <= activationY) passed = i;
       });
-      const last = MILESTONES.length - 1;
+      const last = milestones.length - 1;
       let next = 0;
       if (passed < 0) next = 0;
       else if (passed >= last) next = last;
@@ -142,7 +228,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
       window.removeEventListener("scroll", updateMobileDots);
       window.removeEventListener("resize", updateMobileDots);
     };
-  }, []);
+  }, [milestones]);
 
   // 스크롤 시 뷰포트 중앙에 가장 가까운 섹션 탭 활성화 (PC만)
   useEffect(() => {
@@ -150,9 +236,9 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
       if (typeof window !== "undefined" && window.innerWidth < 768) return;
       if (isScrollingTo.current) return;
       const viewportMid = window.scrollY + window.innerHeight / 2;
-      let best = MILESTONES[0].id;
+      let best = milestones[0].id;
       let bestDist = Infinity;
-      for (const { id } of MILESTONES) {
+      for (const { id } of milestones) {
         const el = sectionRefs.current.get(id);
         if (!el) continue;
         const elMid = el.offsetTop + el.offsetHeight / 2;
@@ -167,7 +253,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
     window.addEventListener("scroll", update, { passive: true });
     update();
     return () => window.removeEventListener("scroll", update);
-  }, []);
+  }, [milestones]);
 
   // 활성 탭 버튼을 탭바 컨테이너 내에서만 가로 스크롤 (PC만)
   useEffect(() => {
@@ -197,12 +283,12 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
       {/* 배너 */}
       <PageBanner
         imageUrl="/intro/history_banner.png"
-        title="연혁"
-        subtitle="1994년부터 현재까지, 30년간의 성장 과정"
+        title={t("pages.brand.history.bannerTitle")}
+        subtitle={t("pages.brand.history.bannerSubtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "회사소개", href: "/brand" },
-          { label: "연혁" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("pages.brand.history.bannerTitle") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -215,15 +301,15 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
             <h1
               className="text-[20px] font-extrabold leading-[26px] tracking-[-0.04em] text-[#003F2B]"
             >
-              풍림푸드의 발자취
+              {t("pages.brand.history.mobileH1")}
             </h1>
             <p className="whitespace-pre-line text-[14px] font-normal leading-[21px] text-[#003F2B]">
-              {`1994년부터 현재까지,\n30년간의 성장 과정과 주요 성과를 소개합니다`}
+              {t("pages.brand.history.mobileLead")}
             </p>
           </div>
           <img
             src="/intro/history.png"
-            alt="풍림푸드 연혁"
+            alt={t("pages.brand.history.mobileHeroAlt")}
             className="mb-12 w-full max-w-[343px] rounded-[30px] object-cover"
           />
 
@@ -238,7 +324,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
               aria-hidden
             />
             <div className="flex flex-col gap-4">
-              {MILESTONES.map(({ id, period, achievements }, idx) => {
+              {milestones.map(({ id, period, achievements }, idx) => {
                 const open = mobileOpen[id] ?? true;
                 const dotActive = mobileActiveDotIndex === idx;
                 return (
@@ -314,7 +400,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
           preset="large"
           className="hidden pb-[30px] pt-[100px] md:flex"
         >
-          풍림푸드의 발자취
+          {t("pages.brand.history.sectionHeading")}
         </SectionPageTitle>
 
         {/* ── 연혁 기간 탭바 (PC) — flex + space-between(양끝 정렬) · 비활성=바와 동색 · pill 뒤 흰 선 — sticky ── */}
@@ -329,7 +415,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                 ref={tabsRef}
                 className="relative z-[1] flex w-full min-w-0 items-center justify-between gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {MILESTONES.map(({ id, period }) => {
+                {milestones.map(({ id, period }) => {
                   const isActive = activePeriod === id;
                   return (
                     <button
@@ -354,7 +440,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
 
         {/* ── 연혁 섹션 목록 (PC만 — 모바일에서 숨기지 않으면 빈 section + gap-[100px]만 쌓여 푸터 위 여백이 커짐) ── */}
         <div className="hidden flex-col gap-[100px] md:flex">
-          {MILESTONES.map(({ id, period, achievements, image, imageWidth, imageHeight }) => (
+          {milestones.map(({ id, period, achievements, image, imageWidth, imageHeight }) => (
             <section
               key={id}
               id={id}
@@ -412,7 +498,7 @@ export default function HistoryScreen({ loaderData }: Route.ComponentProps) {
                     >
                       <img
                         src={image}
-                        alt={`${period} 연혁`}
+                        alt={t("pages.brand.history.imageAlt", { period })}
                         className="h-full w-full object-cover"
                       />
                     </div>

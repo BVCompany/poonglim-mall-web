@@ -16,8 +16,8 @@ export default function CafeRecipesScreen() {
     >
       <Breadcrumb
         items={[
-          { label: "레시피", href: "/recipe/main" },
-          { label: "카페 & 베이커리" },
+          { label: t("navigation.recipe.title"), href: "/recipe/main" },
+          { label: t("pages.recipes.sub.cafe.breadcrumbCurrent") },
         ]}
       />
       {/* Hero Section */}
@@ -29,10 +29,10 @@ export default function CafeRecipesScreen() {
       >
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))] text-center">
           <h1 className="mb-4 text-balance text-4xl font-bold md:text-5xl">
-            카페 & 베이커리
+            {t("pages.recipes.sub.cafe.heroTitle")}
           </h1>
           <p className="text-pretty text-xl opacity-90">
-            전문점을 위한 디저트 활용법
+            {t("pages.recipes.sub.cafe.heroSubtitle")}
           </p>
         </div>
       </section>

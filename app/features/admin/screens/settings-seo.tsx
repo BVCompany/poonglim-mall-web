@@ -450,16 +450,20 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <Label>Google Analytics 4 (GA4) 측정 ID</Label>
-                      <Badge variant="outline" className="text-xs">GA4</Badge>
+                      <Label>GA4 측정 ID 또는 Tag Manager 컨테이너 ID</Label>
+                      <Badge variant="outline" className="text-xs">Analytics</Badge>
                     </div>
                     <Input
                       value={analytics[SETTING_KEYS.SEO_GA_ID]}
                       onChange={(e) => setAnalytics({ ...analytics, [SETTING_KEYS.SEO_GA_ID]: e.target.value })}
-                      placeholder="G-XXXXXXXXXX"
+                      placeholder="G-XXXXXXXXXX 또는 GTM-XXXXXXX"
                     />
                     <p className="text-xs text-gray-400">
-                      Google Analytics → 관리 → 데이터 스트림 → 측정 ID (<code className="bg-gray-100 px-1 rounded">G-</code>로 시작)
+                      <span className="font-medium text-gray-600">직연동:</span> GA4 데이터 스트림 측정 ID (
+                      <code className="rounded bg-gray-100 px-1">G-</code>).{" "}
+                      <span className="font-medium text-gray-600">Tag Manager:</span> 컨테이너 ID (
+                      <code className="rounded bg-gray-100 px-1">GTM-</code>) — GTM 안에서 GA4 태그만 켜면 되고,{" "}
+                      <code className="rounded bg-gray-100 px-1">G-</code>는 이 칸에 넣지 마세요(중복 수집 방지).
                     </p>
                   </div>
 

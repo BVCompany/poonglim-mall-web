@@ -1,5 +1,6 @@
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/main";
 import { RecipeGrid } from "../components/recipe-grid";
 import { getRecipes } from "../lib/queries.server";
@@ -10,42 +11,59 @@ import type { RecipeCategory } from "~/features/recipe-categories/schema";
 import { PageBanner } from "~/core/components/page-banner";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
+import i18next from "~/core/lib/i18next.server";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "레시피 | 풍림푸드" },
-  { name: "description", content: "풍림푸드 제품을 활용한 다양한 레시피를 소개합니다." },
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle ?? "" },
+  { name: "description", content: data?.metaDescription ?? "" },
 ];
 
-export async function loader(_: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
   const [dbRecipes, pageBanner, dbCategories] = await Promise.all([
-    getRecipes().catch(() => [] as Recipe[]),
+    getRecipes(contentLocale).catch(() => [] as Recipe[]),
     getPageBanner("recipe").catch(() => null),
     getActiveRecipeCategories().catch(() => [] as RecipeCategory[]),
   ]);
-  return { dbRecipes, pageBanner, dbCategories };
+  return {
+    dbRecipes,
+    pageBanner,
+    dbCategories,
+    metaTitle: t("pages.recipes.main.metaTitle"),
+    metaDescription: t("pages.recipes.main.metaDescription"),
+  };
 }
 
 export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
   const { dbRecipes, pageBanner, dbCategories } = loaderData;
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const SORT_OPTIONS = [
-    { id: "recommended", label: "추천순" },
-    { id: "latest", label: "최신순" },
-    { id: "name", label: "가나다순" },
-  ] as const;
-  const [sortOption, setSortOption] = useState<(typeof SORT_OPTIONS)[number]["id"]>("recommended");
+  const SORT_OPTIONS = useMemo(
+    () =>
+      [
+        { id: "recommended" as const, label: t("pages.recipes.main.sortRecommended") },
+        { id: "latest" as const, label: t("pages.recipes.main.sortLatest") },
+        { id: "name" as const, label: t("pages.recipes.main.sortName") },
+      ] as const,
+    [t],
+  );
+  const [sortOption, setSortOption] = useState<
+    (typeof SORT_OPTIONS)[number]["id"]
+  >("recommended");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const showBanner = true;
 
   const totalCount = dbRecipes.length;
 
   const categories = [
-    { id: "all", name: "전체 레시피", count: totalCount },
+    { id: "all", name: t("pages.recipes.main.categoryAll"), count: totalCount },
     ...(dbCategories.length > 0
       ? dbCategories.map((cat) => ({
           id: cat.slug,
@@ -74,13 +92,13 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
       {showBanner && (
         <PageBanner
           imageUrl="/banner/recipe_banner_temp.png"
-          title="레시피"
-          subtitle="풍림푸드 제품으로 만드는 다양한 요리를 만나보세요"
+          title={t("pages.recipes.main.bannerTitle")}
+          subtitle={t("pages.recipes.main.bannerSubtitle")}
           dbBanner={pageBanner}
           breadcrumb={[
-            { label: "Home", href: "/" },
-            { label: "제품소개", href: "/products/all" },
-            { label: "레시피" },
+            { label: t("common.breadcrumbHome"), href: "/" },
+            { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+            { label: t("pages.recipes.main.pageHeading") },
           ]}
         />
       )}
@@ -104,7 +122,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             markClassName="h-[21px] w-[21px] flex-shrink-0 md:h-[21px] md:w-[21px]"
             wrapTitle={false}
           >
-            레시피
+            {t("pages.recipes.main.pageHeading")}
           </SectionPageTitle>
 
           <div className="hidden min-w-0 shrink md:block">
@@ -195,9 +213,12 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
       <div className="px-4 pb-4 md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
         <div className="mx-auto flex min-w-0 w-full max-w-[var(--content-max-width)] items-center justify-between">
           <p className="text-sm font-medium text-gray-600 md:text-sm">
-            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>총 </span>
-            <span className="text-xs font-bold text-[#32AF32] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>{currentCount}</span>
-            <span className="text-xs font-bold text-[#02633E] md:hidden" style={{ fontFamily: "NanumSquareRound" }}>개 레시피</span>
+            <span
+              className="text-xs font-bold text-[#02633E] md:hidden"
+              style={{ fontFamily: "NanumSquareRound" }}
+            >
+              {t("pages.recipes.main.totalMobile", { count: currentCount })}
+            </span>
             <span
               className="hidden md:inline"
               style={{
@@ -208,8 +229,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                 fontWeight: 700,
               }}
             >
-              총{" "}
-              <span style={{ fontWeight: 800 }}>{currentCount}개의 레시피</span>
+              {t("pages.recipes.main.totalDesktop", { count: currentCount })}
             </span>
           </p>
           <div className="flex items-center gap-2 md:hidden">
@@ -219,7 +239,8 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
                 className="inline-flex items-center gap-1 rounded-full bg-[var(--site-chrome-header-bg,#FDFDF5)] px-3 py-1 text-xs font-medium text-black"
                 onClick={() => setIsSortOpen((prev) => !prev)}
               >
-                {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ?? "추천순"}
+                {SORT_OPTIONS.find((opt) => opt.id === sortOption)?.label ??
+                  t("pages.recipes.main.sortRecommended")}
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isSortOpen ? "rotate-180" : ""}`} />
               </button>
               {isSortOpen && (
@@ -244,7 +265,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
             </div>
             <img
               src="/product/sort_icon.png"
-              alt="정렬 아이콘"
+              alt={t("pages.recipes.main.sortIconAlt")}
               className="h-7 w-7 rounded-md border border-[#DCD8C8] bg-[var(--site-chrome-header-bg,#FDFDF5)] object-contain p-1.5"
             />
           </div>

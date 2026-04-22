@@ -7,34 +7,33 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import type { Route } from "./+types/news";
 import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import { SearchBar } from "~/core/components/search-bar";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
-import db from "~/core/db/drizzle-client.server";
-import { news } from "~/features/media/schema";
-import { desc, eq } from "drizzle-orm";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
+import { getNews } from "~/features/media/lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-export const meta: Route.MetaFunction = () => [
-  { title: "보도자료 | 풍림푸드" },
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
 ];
 
-export async function loader() {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
   const [items, pageBanner] = await Promise.all([
-    db
-      .select()
-      .from(news)
-      .where(eq(news.is_active, true))
-      .orderBy(desc(news.published_at), desc(news.created_at))
-      .catch(() => []),
+    getNews(contentLocale).catch(() => []),
     getPageBanner("news").catch(() => null),
   ]);
-  return { items, pageBanner };
+  return { items, pageBanner, metaTitle: t("pages.news.metaTitle") };
 }
 
 type NewsItem = {
@@ -62,27 +61,26 @@ const CARD_GAP = 20;
 const MOBILE_FEATURED_W = 310;
 const MOBILE_FEATURED_GAP = 10;
 
-/* 구버전 enum 값 표시명 (레거시 데이터 대응) */
-const LEGACY_LABEL: Record<string, string> = {
-  press: "보도자료",
-  news: "뉴스",
-  announcement: "공지",
-};
-
-function getTypeLabel(type: string) {
-  return LEGACY_LABEL[type] ?? type;
+function getTypeLabel(type: string, t: TFunction) {
+  const key = type.toLowerCase();
+  if (key === "press") return t("pages.news.types.press");
+  if (key === "news" || type === "뉴스") return t("pages.news.types.news");
+  if (key === "announcement") return t("pages.news.types.announcement");
+  return type;
 }
 
-function formatDate(d: string | Date | null) {
+function formatDate(d: string | Date | null, lang: string) {
   if (!d) return "";
-  return new Date(d)
-    .toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-    .replace(/\. /g, "-")
-    .replace(/\.$/, "");
+  const locale = lang.startsWith("en") ? "en-US" : "ko-KR";
+  const s = new Date(d).toLocaleDateString(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  if (locale === "ko-KR") {
+    return s.replace(/\. /g, "-").replace(/\.$/, "");
+  }
+  return s;
 }
 
 const nanum = "font-[family-name:var(--font-nanum)]";
@@ -180,10 +178,93 @@ const MOCK_ITEMS: NewsItem[] = [
   },
 ];
 
+const MOCK_ITEMS_EN: NewsItem[] = [
+  {
+    news_id: 1,
+    type: "press",
+    title:
+      "[Joongbu Daily] Staff-first management… A ‘family-friendly company’ built on care",
+    content: "",
+    summary:
+      "Over the past year Poonglim Food has supported many employees’ families through welfare programs, working to build a workplace where staff and their children can thrive.",
+    thumbnail_url: "/home/poonglim-logo-eng.png",
+    source: "Joongbu Daily",
+    is_active: true,
+    is_featured: true,
+    published_at: "2024-02-19",
+    created_at: new Date("2024-02-19"),
+  },
+  {
+    news_id: 2,
+    type: "press",
+    title:
+      "New ‘Premium Egg’ launch — Poonglim Food targets the domestic liquid egg market",
+    content: "",
+    summary:
+      "Poonglim Food enters the premium liquid egg segment as a strong new player.",
+    thumbnail_url: "/home/poonglim-logo-eng.png",
+    source: "Food & Beverage News",
+    is_active: true,
+    is_featured: true,
+    published_at: "2024-02-14",
+    created_at: new Date("2024-02-14"),
+  },
+  {
+    news_id: 3,
+    type: "news",
+    title:
+      "Meet creator collaborations and unique recipes on our official channels",
+    content: "",
+    summary:
+      "A recipe series with a popular cooking creator is now featured on our platforms.",
+    thumbnail_url: "/home/poonglim-logo-eng.png",
+    source: "Maeil Business",
+    is_active: true,
+    is_featured: false,
+    published_at: "2024-02-19",
+    created_at: new Date("2024-02-19"),
+  },
+  {
+    news_id: 4,
+    type: "news",
+    title:
+      "Poonglim Food unveils a new product line tailored to changing customer needs",
+    content: "",
+    summary:
+      "Pricing and supply policies are being refined to serve a wider range of preferences.",
+    thumbnail_url: "/home/poonglim-logo-eng.png",
+    source: "Hankyung",
+    is_active: true,
+    is_featured: false,
+    published_at: "2024-02-19",
+    created_at: new Date("2024-02-19"),
+  },
+  {
+    news_id: 5,
+    type: "press",
+    title: "Poonglim Food expands exports across Asia",
+    content: "",
+    summary:
+      "Over the past year the company has grown its export footprint and global presence.",
+    thumbnail_url: "/home/poonglim-logo-eng.png",
+    source: "Korea Times",
+    is_active: true,
+    is_featured: false,
+    published_at: "2024-01-19",
+    created_at: new Date("2024-01-19"),
+  },
+];
+
 export default function NewsScreen({ loaderData }: Route.ComponentProps) {
+  const { t, i18n } = useTranslation();
   const { pageBanner } = loaderData;
   const rawItems = loaderData.items as NewsItem[];
-  const items: NewsItem[] = rawItems.length > 0 ? rawItems : MOCK_ITEMS;
+  const items: NewsItem[] =
+    rawItems.length > 0
+      ? rawItems
+      : i18n.language.startsWith("en")
+        ? MOCK_ITEMS_EN
+        : MOCK_ITEMS;
 
   /* ── 주요 보도 슬라이더 (CSS 스크롤 기반) — is_featured 우선, 없으면 최신순 6건 ── */
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -238,12 +319,12 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
       {/* ── 배너 ── */}
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
-        title="보도자료"
-        subtitle="풍림푸드의 최신 소식과 보도자료를 확인하세요."
+        title={t("pages.news.title")}
+        subtitle={t("pages.news.subtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "홍보센터" },
-          { label: "보도자료" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.mega.promo") },
+          { label: t("pages.news.title") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -264,7 +345,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
               markClassName="h-[21px] w-[21px] shrink-0 object-contain md:h-6 md:w-6 lg:h-[21px] lg:w-[21px]"
               titleClassName="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]"
             >
-              주요 보도
+              {t("pages.news.featuredHeading")}
             </SectionPageTitle>
 
             {/*
@@ -348,7 +429,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                         </div>
                         <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 lg:left-[30px] lg:top-[30px]">
                           <span className="inline-flex whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-2 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]">
-                            {getTypeLabel(item.type)}
+                            {getTypeLabel(item.type, t)}
                           </span>
                         </div>
                       </div>
@@ -402,7 +483,10 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                           "lg:text-sm lg:leading-[19.6px] lg:text-[#1F2121] lg:group-hover:text-white/80",
                         )}
                       >
-                        {formatDate(item.published_at ?? item.created_at)}
+                        {formatDate(
+                          item.published_at ?? item.created_at,
+                          i18n.language,
+                        )}
                       </span>
                     </div>
                   </Link>
@@ -415,7 +499,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                 type="button"
                 onClick={prevSlide}
                 className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-l-[40px] bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
-                aria-label="이전"
+                aria-label={t("pages.news.carouselPrev")}
               >
                 <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
               </button>
@@ -424,7 +508,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                 type="button"
                 onClick={nextSlide}
                 className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-r-[40px] bg-white text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80"
-                aria-label="다음"
+                aria-label={t("pages.news.carouselNext")}
               >
                 <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
               </button>
@@ -446,7 +530,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                 wrapTitle={false}
               >
                 <span className="text-[18px] font-extrabold leading-[30px] text-[#1F2121] md:text-2xl md:leading-tight md:text-gray-900 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]">
-                  전체 보도자료
+                  {t("pages.news.allHeading")}
                   <span className="ml-2 text-[18px] font-extrabold text-[#1F2121] md:text-lg md:font-normal md:text-gray-400 lg:text-[36px] lg:font-extrabold lg:leading-[54px] lg:text-[#1F2121]">
                     ({filtered.length})
                   </span>
@@ -458,6 +542,8 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                   value={searchInput}
                   onChange={setSearchInput}
                   onSearch={handleSearch}
+                  placeholder={t("search.placeholder")}
+                  buttonAriaLabel={t("search.ariaSubmit")}
                 />
               </div>
 
@@ -468,7 +554,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="검색어를 입력해주세요."
+                  placeholder={t("search.placeholder")}
                   className={cn(
                     nanum,
                     "h-auto w-[360px] shrink-0 rounded-[60px] border border-[#02633E] bg-white px-10 py-5 text-base font-bold leading-6 text-[#02633E] outline-none placeholder:text-[#02633E] placeholder:opacity-90",
@@ -478,7 +564,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                   type="button"
                   onClick={handleSearch}
                   className="flex shrink-0 items-center justify-center rounded-[60px] bg-[#02633E] p-5 text-white transition-all hover:brightness-110 active:scale-[0.99]"
-                  aria-label="검색"
+                  aria-label={t("search.ariaSubmit")}
                 >
                   <Search className="h-6 w-6" strokeWidth={2} />
                 </button>
@@ -487,7 +573,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
 
             {currentItems.length === 0 ? (
               <div className="rounded-2xl bg-white py-20 text-center text-gray-400">
-                검색 결과가 없습니다.
+                {t("pages.news.emptySearch")}
               </div>
             ) : (
               <div
@@ -546,7 +632,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                         )}
                       >
                         <span className="inline-flex min-h-[28px] w-fit min-w-[56px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-1.5 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif] md:hidden">
-                          {getTypeLabel(item.type)}
+                          {getTypeLabel(item.type, t)}
                         </span>
 
                         <span
@@ -556,7 +642,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                             "lg:bg-[#003F2B] lg:text-white lg:group-hover:bg-white/15 lg:group-hover:text-white",
                           )}
                         >
-                          {getTypeLabel(item.type)}
+                          {getTypeLabel(item.type, t)}
                         </span>
 
                         <div className="flex flex-col max-md:gap-3 md:gap-0 lg:gap-6">
@@ -589,7 +675,10 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                               "lg:text-sm lg:leading-[19.6px] lg:text-[#1F2121] lg:transition-colors lg:duration-300 lg:group-hover:text-white/80",
                             )}
                           >
-                            {formatDate(item.published_at ?? item.created_at)}
+                            {formatDate(
+                              item.published_at ?? item.created_at,
+                              i18n.language,
+                            )}
                           </span>
                         </div>
                       </div>
@@ -619,7 +708,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                       onClick={goPrevSlide}
                       disabled={slideIndex === 0}
                       className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-l-[40px] text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
-                      aria-label="이전 슬라이드"
+                      aria-label={t("pages.news.slidePrev")}
                     >
                       <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.25} />
                     </button>
@@ -629,7 +718,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                       onClick={goNextSlide}
                       disabled={slideIndex === totalSlides - 1}
                       className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-r-[40px] text-[#02633E] transition-colors hover:bg-[#EAE3C9]/80 disabled:cursor-not-allowed disabled:opacity-30"
-                      aria-label="다음 슬라이드"
+                      aria-label={t("pages.news.slideNext")}
                     >
                       <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
                     </button>
@@ -647,7 +736,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                     onClick={goPrevSlide}
                     disabled={slideIndex === 0}
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[40px] bg-white disabled:opacity-30"
-                    aria-label="이전 슬라이드"
+                    aria-label={t("pages.news.slidePrev")}
                   >
                     <ChevronLeft className="h-[18px] w-[18px] text-[#02633E]" strokeWidth={2.5} />
                   </button>
@@ -675,7 +764,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                     onClick={goNextSlide}
                     disabled={slideIndex === totalSlides - 1}
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[40px] bg-white disabled:opacity-30"
-                    aria-label="다음 슬라이드"
+                    aria-label={t("pages.news.slideNext")}
                   >
                     <ChevronRight className="h-[18px] w-[18px] text-[#02633E]" strokeWidth={2.5} />
                   </button>

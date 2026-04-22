@@ -11,8 +11,8 @@ export default function LiquidEggsScreen() {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
-          { label: "제품소개", href: "/products/all" },
-          { label: "액란가공품" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+          { label: t("pages.products.categoryLiquid.breadcrumbLabel") },
         ]}
       />
       {/* Hero Section */}
@@ -22,7 +22,7 @@ export default function LiquidEggsScreen() {
             {t("navigation.products.liquidEggs", "액란 제품")}
           </h1>
           <p className="text-pretty text-xl opacity-90">
-            신선하고 안전한 액상 계란 제품 라인업
+            {t("pages.products.categoryLiquid.heroSub")}
           </p>
         </div>
       </section>

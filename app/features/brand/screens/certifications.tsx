@@ -6,7 +6,8 @@
 import type { Route } from "./+types/certifications";
 import type { ReactNode } from "react";
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   getCertAwards,
@@ -14,17 +15,19 @@ import {
 } from "~/features/brand/lib/queries.server";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
+import i18next from "~/core/lib/i18next.server";
 import { cn } from "~/core/lib/utils";
 import { pc1920, pcMin } from "~/core/lib/pc-fluid";
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 const pretendard = "font-[Pretendard,system-ui,sans-serif]";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "품질 & 인증 | 풍림푸드" }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
-export async function loader(_: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const [dbAwards, dbCerts] = await Promise.all([
     getCertAwards().catch((e) => {
       console.error("[certifications] getCertAwards 실패:", e?.message ?? e);
@@ -35,11 +38,11 @@ export async function loader(_: Route.LoaderArgs) {
       return [];
     }),
   ]);
-  return { dbAwards, dbCerts };
+  return { dbAwards, dbCerts, metaTitle: t("pages.brand.certifications.metaTitle") };
 }
 
 /* ── 폴백 목 데이터 (모바일 카드 시안: p20·gap10·타이포 동일) ── */
-const MOCK_QUALITY_ITEMS: {
+const MOCK_QUALITY_ITEMS_KO: {
   title: string;
   desc: ReactNode;
   image: string;
@@ -77,7 +80,40 @@ const MOCK_QUALITY_ITEMS: {
   },
 ];
 
-const MOCK_CERT_ITEMS = [
+const MOCK_QUALITY_ITEMS_EN: (typeof MOCK_QUALITY_ITEMS_KO)[number][] = [
+  {
+    title: "Food safety",
+    desc: "HACCP and FSSC 22000 cover every step from inbound raw materials to outbound shipment.",
+    image: "/certification/safety_img_transparent.png",
+    bg: "#FBE28A",
+  },
+  {
+    title: "Eco-friendly",
+    desc: (
+      <>
+        Eco-certified ingredients and antibiotic-free practices
+        <br />
+        help us deliver wholesome products as nature intended.
+      </>
+    ),
+    image: "/certification/env_img_transparent.png",
+    bg: "#C3C8AE",
+  },
+  {
+    title: "Quality management",
+    desc: "Our in-house R&D lab and continuous improvement culture drive best-in-class products.",
+    image: "/certification/busi_img_transparent.png",
+    bg: "#FFF9E1",
+  },
+  {
+    title: "Social responsibility",
+    desc: "Family-friendly and employment-excellence certifications reflect how we grow with our people.",
+    image: "/certification/recycle_img_transparent.png",
+    bg: "#FBB8BF",
+  },
+];
+
+const MOCK_CERT_ITEMS_KO = [
   { id: 1, image_url: "/certification/cert01.png", title: "HACCP 인증 (팩란)" },
   { id: 2, image_url: "/certification/cert02.png", title: "표창장" },
   { id: 3, image_url: "/certification/cert03.png", title: "HACCP 인증 (액란)" },
@@ -95,7 +131,25 @@ const MOCK_CERT_ITEMS = [
   { id: 11, image_url: "/certification/cert11.png", title: "우수업체 인증" },
 ];
 
-const MOCK_AWARD_ITEMS = [
+const MOCK_CERT_ITEMS_EN = [
+  { id: 1, image_url: "/certification/cert01.png", title: "HACCP (pouched liquid egg)" },
+  { id: 2, image_url: "/certification/cert02.png", title: "Commendation plaque" },
+  { id: 3, image_url: "/certification/cert03.png", title: "HACCP (liquid egg)" },
+  { id: 4, image_url: "/certification/cert04.png", title: "Water quality report" },
+  { id: 5, image_url: "/certification/cert05.png", title: "FSSC 22000" },
+  { id: 6, image_url: "/certification/cert06.png", title: "Appreciation plaque" },
+  {
+    id: 7,
+    image_url: "/certification/cert07.png",
+    title: "Livestock product manufacturing license",
+  },
+  { id: 8, image_url: "/certification/cert08.png", title: "ISO 22000" },
+  { id: 9, image_url: "/certification/cert09.png", title: "LOHAS certification" },
+  { id: 10, image_url: "/certification/cert10.png", title: "SME confirmation" },
+  { id: 11, image_url: "/certification/cert11.png", title: "Exemplary business certification" },
+];
+
+const MOCK_AWARD_ITEMS_KO = [
   {
     id: 1,
     title: "충북지방 중소벤처기업청 표창장",
@@ -103,14 +157,17 @@ const MOCK_AWARD_ITEMS = [
   },
 ];
 
-// 탭: 수상내역 → 인증서 순서
-const TABS = [
-  { key: "award", label: "수상내역" },
-  { key: "cert", label: "인증서" },
-] as const;
-type TabKey = (typeof TABS)[number]["key"];
+const MOCK_AWARD_ITEMS_EN = [
+  {
+    id: 1,
+    title: "Commendation from Chungbuk Regional SMEs Office",
+    image_url: "/certification/cert-award-sme-1.png",
+  },
+];
 
-type CertListItem = (typeof MOCK_CERT_ITEMS)[number];
+type TabKey = "award" | "cert";
+
+type CertListItem = (typeof MOCK_CERT_ITEMS_KO)[number];
 
 /** 인증서 탭 카드 — 모바일(슬라이드): 기존 시안 / PC(그리드): 1920 시안 px를 100vw/1920로 스케일 */
 function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" | "grid" }) {
@@ -169,22 +226,43 @@ function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" |
 export default function CertificationsScreen({
   loaderData,
 }: Route.ComponentProps) {
+  const { t, i18n } = useTranslation();
   const { dbAwards, dbCerts } = loaderData;
   const [activeTab, setActiveTab] = useState<TabKey>("award");
+  const isEn = i18n.language.startsWith("en");
+
+  const tabDefs = useMemo(
+    () =>
+      [
+        { key: "award" as const, label: t("pages.brand.certifications.tabAwards") },
+        { key: "cert" as const, label: t("pages.brand.certifications.tabCerts") },
+      ] as const,
+    [t],
+  );
+
+  const qualityItems = isEn ? MOCK_QUALITY_ITEMS_EN : MOCK_QUALITY_ITEMS_KO;
 
   const awards = (
-    dbAwards.length > 0 ? dbAwards : MOCK_AWARD_ITEMS
-  ) as typeof MOCK_AWARD_ITEMS;
+    dbAwards.length > 0
+      ? dbAwards
+      : isEn
+        ? MOCK_AWARD_ITEMS_EN
+        : MOCK_AWARD_ITEMS_KO
+  ) as typeof MOCK_AWARD_ITEMS_KO;
   const certs = (
-    dbCerts.length > 0 ? dbCerts : MOCK_CERT_ITEMS
-  ) as typeof MOCK_CERT_ITEMS;
+    dbCerts.length > 0
+      ? dbCerts
+      : isEn
+        ? MOCK_CERT_ITEMS_EN
+        : MOCK_CERT_ITEMS_KO
+  ) as typeof MOCK_CERT_ITEMS_KO;
 
   return (
     <div className="w-full bg-[var(--site-chrome-header-bg,#FDFDF5)]">
       <Breadcrumb
         items={[
-          { label: "회사소개", href: "/brand/intro" },
-          { label: "품질 & 인증" },
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("pages.brand.certifications.breadcrumbCurrent") },
         ]}
       />
 
@@ -199,10 +277,10 @@ export default function CertificationsScreen({
                   "text-[clamp(40px,calc(60*100vw/1920),60px)] font-extrabold leading-[1.4] text-[#003F2B] md:leading-[84px]",
                 )}
               >
-                품질 & 인증
+                {t("pages.brand.certifications.breadcrumbCurrent")}
               </h1>
               <p className={cn(nanum, "text-base font-normal leading-[19.2px] text-[#003F2B]")}>
-                30년 전통의 품질 관리 노하우와 국내외 공인 인증
+                {t("pages.brand.certifications.sectionCertsSubtitle")}
               </p>
             </div>
           </div>
@@ -212,10 +290,10 @@ export default function CertificationsScreen({
       {/* 모바일: 페이지 타이틀 (375) */}
       <div className="px-4 py-8 text-center md:hidden">
         <h1 className={cn(nanum, "text-[36px] font-bold leading-tight tracking-tight text-[#02633E]")}>
-          품질 & 인증
+          {t("pages.brand.certifications.breadcrumbCurrent")}
         </h1>
         <p className={cn(nanum, "mt-3 text-sm text-[#1F2121]/70")}>
-          30년 전통의 품질 관리 노하우와 국내외 공인 인증
+          {t("pages.brand.certifications.sectionCertsSubtitle")}
         </p>
       </div>
 
@@ -224,7 +302,7 @@ export default function CertificationsScreen({
         <div className="relative h-[343px] w-full overflow-hidden rounded-[30px]">
           <img
             src="/certification/certification_banner.png"
-            alt="품질 & 인증"
+            alt={t("pages.brand.certifications.heroAlt")}
             className="absolute inset-0 h-full w-full object-cover object-[56%_42%]"
             width={1840}
             height={800}
@@ -246,24 +324,15 @@ export default function CertificationsScreen({
                     "text-[20px] font-extrabold leading-7 text-[#003F2B]",
                   )}
                 >
-                  품질은 약속입니다
+                  {t("pages.brand.certifications.heroTitle")}
                 </h2>
                 <p
                   className={cn(
                     nanum,
-                    "text-[14px] font-normal leading-[21px] text-[#003F2B]",
+                    "whitespace-pre-line text-[14px] font-normal leading-[21px] text-[#003F2B]",
                   )}
                 >
-                  풍림푸드는 1994년 창업 이래 &quot;품질이 곧 신뢰&quot;라는
-                  <br />
-                  철학 아래, 엄격한 품질 관리 시스템을 구축해 왔습니다.
-                  <br />
-                  <br />
-                  단순히 인증을 획득하는 것을 넘어,
-                  <br />
-                  매일의 생산 현장에서 그 기준을 실천하는 것이
-                  <br />
-                  진정한 품질이라고 믿습니다.
+                  {t("pages.brand.certifications.heroLeadMobile")}
                 </p>
               </div>
             </div>
@@ -280,7 +349,7 @@ export default function CertificationsScreen({
           >
             <img
               src="/certification/certification_banner.png"
-              alt="품질 & 인증 배너"
+              alt={t("pages.brand.certifications.heroAltBanner")}
               className="absolute inset-0 h-full w-full object-cover"
             />
             <div
@@ -297,14 +366,15 @@ export default function CertificationsScreen({
                     "text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-tight text-[#003F2B] md:leading-[44.8px]",
                   )}
                 >
-                  품질은 약속입니다
+                  {t("pages.brand.certifications.heroTitle")}
                 </h2>
-                <p className={cn(nanum, "text-base font-normal leading-[19.2px] text-[#003F2B]")}>
-                  풍림푸드는 1994년 창업 이래 &quot;품질이 곧 신뢰&quot;라는 철학 아래, 엄격한 품질
-                  관리 시스템을 구축해 왔습니다.
-                  <br />
-                  단순히 인증을 획득하는 것을 넘어, 매일의 생산 현장에서 그 기준을 실천하는 것이
-                  진정한 품질이라고 믿습니다.
+                <p
+                  className={cn(
+                    nanum,
+                    "whitespace-pre-line text-base font-normal leading-[19.2px] text-[#003F2B]",
+                  )}
+                >
+                  {t("pages.brand.certifications.heroLeadDesktop")}
                 </p>
               </div>
             </div>
@@ -315,7 +385,7 @@ export default function CertificationsScreen({
       {/* ══ 섹션 1: 품질 약속 카드 — PC 시안: p40·r40·col·center·gap20 / 제목 28·42·800 / 본문 16·700·24 / 310 이미지 darken ══ */}
       <PageContentMax className="py-10 md:rounded-[60px] md:py-[min(100px,calc(100*100vw/1920))]">
         <div className="flex w-full flex-col items-start justify-start gap-2.5 md:mx-auto md:grid md:max-w-[1220px] md:grid-cols-2 md:gap-5">
-          {MOCK_QUALITY_ITEMS.map(({ title, desc, image, bg }) => (
+          {qualityItems.map(({ title, desc, image, bg }) => (
             <div
               key={title}
               className={cn(
@@ -375,7 +445,7 @@ export default function CertificationsScreen({
               "md:text-[clamp(36px,calc(60*100vw/1920),60px)] md:font-extrabold md:leading-[84px]",
             )}
           >
-            주요 인증 및 수상내역
+            {t("pages.brand.certifications.sectionCertsTitle")}
           </h2>
           <p
             className={cn(
@@ -383,13 +453,13 @@ export default function CertificationsScreen({
               "text-[14px] font-bold leading-[16.8px] text-[#1F2121] md:text-base md:font-normal md:leading-[19.2px] md:text-[#003F2B]",
             )}
           >
-            국내외 공인 기관의 엄격한 인증과 수상을 통해 품질을 인정받았습니다
+            {t("pages.brand.certifications.sectionCertsSubtitle")}
           </p>
         </div>
 
         {/* 탭 — 모바일 기존 / PC: Pretendard 16/24 · 비활성 배경 없음 */}
         <div className="mb-8 flex gap-2.5 md:mb-10">
-          {TABS.map(({ key, label }) => (
+          {tabDefs.map(({ key, label }) => (
             <button
               key={key}
               type="button"
@@ -484,7 +554,7 @@ export default function CertificationsScreen({
             <div className="-mx-4 md:hidden">
               <div
                 className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-pl-4 scroll-pr-4 px-4 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                aria-label="인증서 목록"
+                aria-label={t("pages.brand.certifications.certListAria")}
               >
                 {certs.map((item) => (
                   <CertTabCard key={item.id} item={item} variant="slide" />

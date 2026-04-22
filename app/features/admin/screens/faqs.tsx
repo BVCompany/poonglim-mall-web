@@ -2,6 +2,7 @@
  * Admin FAQ Management Screen
  * FAQ 관리 화면
  */
+import { randomUUID } from "node:crypto";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/faqs";
@@ -30,7 +31,11 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = fd.get("intent") as string;
 
   if (intent === "create") {
+    const locale =
+      ((fd.get("locale") as string) || "ko").toLowerCase() === "en" ? "en" : "ko";
     await db.insert(faqs).values({
+      translation_group_id: randomUUID(),
+      locale,
       category: (fd.get("category") as FaqFormData["category"]) ?? "general",
       question: fd.get("question") as string,
       answer: fd.get("answer") as string,
@@ -57,7 +62,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(faqs).where(eq(faqs.faq_id, id));
+    if (id) {
+      const [row] = await db.select().from(faqs).where(eq(faqs.faq_id, id)).limit(1);
+      if (row) {
+        await db.delete(faqs).where(eq(faqs.translation_group_id, row.translation_group_id));
+      }
+    }
     return { success: true };
   }
 
@@ -65,7 +75,13 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const current = fd.get("is_active") === "true";
     if (id) {
-      await db.update(faqs).set({ is_active: !current }).where(eq(faqs.faq_id, id));
+      const [row] = await db.select().from(faqs).where(eq(faqs.faq_id, id)).limit(1);
+      if (row) {
+        await db
+          .update(faqs)
+          .set({ is_active: !current })
+          .where(eq(faqs.translation_group_id, row.translation_group_id));
+      }
     }
     return { success: true };
   }
@@ -115,6 +131,7 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
     const f = sourceFaqs.find((x) => x.faq_id === id);
     if (!f) return;
     setEditingData({
+      locale: (f as { locale?: string }).locale === "en" ? "en" : "ko",
       category: f.category as FaqFormData["category"],
       question: f.question,
       answer: f.answer,
@@ -128,6 +145,7 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
     const fd = new FormData();
     fd.append("intent", intent);
     if (id) fd.append("id", String(id));
+    if (intent === "create") fd.append("locale", data.locale);
     fd.append("category", data.category);
     fd.append("question", data.question);
     fd.append("answer", data.answer);
@@ -153,21 +171,20 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-white">
       <AdminSidebar adminUser={adminUser} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-6xl">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
             {/* 헤더 */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">FAQ 관리</h1>
                 <p className="mt-1 text-sm text-gray-500">전체 {filtered.length}건</p>
               </div>
               <Button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
+                className="flex shrink-0 items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
               >
                 <Plus className="h-4 w-4" />
                 새 FAQ 등록
@@ -175,8 +192,8 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
             </div>
 
             {/* 검색 */}
-            <div className="mb-4 flex max-w-sm items-center gap-2">
-              <div className="relative flex-1">
+            <div className="mb-4 flex w-full max-w-xl items-center gap-2 lg:max-w-2xl">
+              <div className="relative min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="질문/답변 검색..."
@@ -188,8 +205,8 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
             </div>
 
             {/* 테이블 */}
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
                     <th className="px-5 py-3 text-center">순서</th>
@@ -222,12 +239,12 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
                             {CAT_LABEL[faq.category] ?? faq.category}
                           </span>
                         </td>
-                        <td className="max-w-[280px] px-5 py-3">
+                        <td className="min-w-0 max-w-xl px-5 py-3">
                           <span className="line-clamp-2 font-medium text-gray-800">
                             {faq.question}
                           </span>
                         </td>
-                        <td className="max-w-[300px] px-5 py-3">
+                        <td className="min-w-0 max-w-2xl px-5 py-3">
                           <span className="line-clamp-2 text-gray-500">{faq.answer}</span>
                         </td>
                         <td className="px-5 py-3 text-center">
@@ -269,7 +286,6 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
                 </tbody>
               </table>
             </div>
-          </div>
         </main>
       </div>
 

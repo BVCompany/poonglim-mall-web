@@ -16,8 +16,8 @@ export default function RestaurantRecipesScreen() {
     >
       <Breadcrumb
         items={[
-          { label: "레시피", href: "/recipe/main" },
-          { label: "외식업체 솔루션" },
+          { label: t("navigation.recipe.title"), href: "/recipe/main" },
+          { label: t("pages.recipes.sub.restaurant.breadcrumbCurrent") },
         ]}
       />
       {/* Hero Section */}
@@ -29,10 +29,10 @@ export default function RestaurantRecipesScreen() {
       >
         <div className="mx-auto w-full max-w-7xl px-6 md:max-w-[min(1280px,calc(1280*100vw/1920))] text-center">
           <h1 className="mb-4 text-balance text-4xl font-bold md:text-5xl">
-            외식업체 솔루션
+            {t("pages.recipes.sub.restaurant.heroTitle")}
           </h1>
           <p className="text-pretty text-xl opacity-90">
-            대량 조리를 위한 효율적인 레시피
+            {t("pages.recipes.sub.restaurant.heroSubtitle")}
           </p>
         </div>
       </section>

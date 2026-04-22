@@ -4,21 +4,35 @@
  * 계란 구조 섹션: 스크롤 sticky 스태킹 + fade-in 인터랙션
  */
 import type { CSSProperties } from "react";
-
+import type { TFunction } from "i18next";
 import type { Route } from "./+types/egg-story";
 
 import { ArrowUpRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { useBrandPhilosophyReveal } from "~/features/home/lib/brand-philosophy-reveal";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "계란이야기 | 풍림푸드" }];
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: (data as { metaTitle?: string } | undefined)?.metaTitle ?? "" },
+];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
+  return { metaTitle: t("pages.products.eggStory.metaTitle") };
 }
 
 /* ── 공통 clamp 헬퍼 ── */
@@ -46,90 +60,106 @@ function eggNutrientsSectionHeightCss(itemCount: number): string {
 /** 네비·sticky 타이틀 등 상단 고정 요소의 top 오프셋(px) — 계란 구조 섹션과 동일 기준 */
 const EGG_STORY_NAV_SAFE_TOP = 80;
 
-/* ── 데이터 ── */
-const nutrients = [
-  { letter: "P", name: "단백질", desc: "신체 기능에 필요한 고품질 단백질" },
-  { letter: "A", name: "비타민 A", desc: "눈 건강과 면역 기능 지원" },
-  { letter: "D", name: "비타민 D", desc: "뼈 건강에 도움" },
-  { letter: "C", name: "콜린", desc: "두뇌와 신경 기능에 도움" },
-];
+type NutrientItem = { letter: string; name: string; desc: string };
+type EggPartItem = { title: string; desc: string; bg: string; img: string };
+type EggFoodItem = {
+  name: string;
+  sub: string;
+  bg: string;
+  img1: string;
+  img2: string;
+};
+type PhilosophyItem = { title: string; desc: string };
+type StepItem = { name: string; desc: string };
 
-const eggParts = [
-  {
-    title: "난황(노른자)",
-    desc: "신선하고 안전한 프리미엄 액상 계란으로 편리한 조리를 경험하세요.",
-    bg: "#FBE28A",
-    img: "/intro/egg01.png",
-  },
-  {
-    title: "난백 (흰자)",
-    desc: "고품질 단백질이 풍부하게 포함되어 있습니다.",
-    bg: "#C3C8AE",
-    img: "/intro/egg02.png",
-  },
-  {
-    title: "난각 (껍질)",
-    desc: "계란을 보호하는 천연 보호막 역할을 합니다.",
-    bg: "#FBFBFB",
-    img: "/intro/egg03.png",
-  },
-  {
-    title: "난막",
-    desc: "계란 내부를 보호하는 얇은 막입니다.",
-    bg: "#FDF7DA",
-    img: "/intro/egg04.png",
-  },
-];
+type EggStoryContent = {
+  nutrients: NutrientItem[];
+  eggParts: EggPartItem[];
+  eggFoods: EggFoodItem[];
+  eggPhilosophy: PhilosophyItem[];
+  steps: StepItem[];
+};
 
-const eggFoods = [
-  {
-    name: "계란말이",
-    sub: "Egg + katsuo bushi",
-    bg: "#EAE3C9",
-    img1: "/intro/prd01-1.png",
-    img2: "/intro/prd01-2.png",
-  },
-  {
-    name: "샌드위치",
-    sub: "Egg + Sandwich",
-    bg: "#D8E0A5",
-    img1: "/intro/prd02-1.png",
-    img2: "/intro/prd02-2.png",
-  },
-  {
-    name: "푸딩",
-    sub: "Egg + Pudding",
-    bg: "#EED4C8",
-    img1: "/intro/prd03-1.png",
-    img2: "/intro/prd03-2.png",
-  },
-  {
-    name: "샐러드",
-    sub: "Egg + Delight",
-    bg: "var(--site-chrome-header-bg, #FDFDF5)",
-    img1: "/intro/prd04-1.png",
-    img2: "/intro/prd04-2.png",
-  },
-];
+function buildEggStoryContent(t: TFunction): EggStoryContent {
+  const nt = (k: string) =>
+    t(`pages.products.eggStory.nutrients.${k}`, { returnObjects: true }) as {
+      name: string;
+      desc: string;
+    };
+  const pt = (k: string) =>
+    t(`pages.products.eggStory.parts.${k}`, { returnObjects: true }) as {
+      title: string;
+      desc: string;
+    };
+  const ft = (k: string) =>
+    t(`pages.products.eggStory.foods.${k}`, { returnObjects: true }) as {
+      name: string;
+      sub: string;
+    };
+  const ph = (k: string) =>
+    t(`pages.products.eggStory.philosophy.${k}`, { returnObjects: true }) as {
+      title: string;
+      desc: string;
+    };
+  const st = (k: string) =>
+    t(`pages.products.eggStory.steps.${k}`, { returnObjects: true }) as {
+      name: string;
+      desc: string;
+    };
 
-const eggPhilosophy = [
-  { title: "품질", desc: "엄격한 기준을 통해\n신선한 원료만 사용합니다." },
-  {
-    title: "안전",
-    desc: "위생적인 가공 공정을 통해\n안전한 제품을 생산합니다.",
-  },
-  {
-    title: "연구",
-    desc: "계란을 활용한 다양한 식품을\n지속적으로 연구합니다.",
-  },
-];
+  return {
+    nutrients: [
+      { letter: "P", ...nt("p") },
+      { letter: "A", ...nt("a") },
+      { letter: "D", ...nt("d") },
+      { letter: "C", ...nt("c") },
+    ],
+    eggParts: [
+      { ...pt("yolk"), bg: "#FBE28A", img: "/intro/egg01.png" },
+      { ...pt("white"), bg: "#C3C8AE", img: "/intro/egg02.png" },
+      { ...pt("shell"), bg: "#FBFBFB", img: "/intro/egg03.png" },
+      { ...pt("membrane"), bg: "#FDF7DA", img: "/intro/egg04.png" },
+    ],
+    eggFoods: [
+      {
+        ...ft("roll"),
+        bg: "#EAE3C9",
+        img1: "/intro/prd01-1.png",
+        img2: "/intro/prd01-2.png",
+      },
+      {
+        ...ft("sandwich"),
+        bg: "#D8E0A5",
+        img1: "/intro/prd02-1.png",
+        img2: "/intro/prd02-2.png",
+      },
+      {
+        ...ft("pudding"),
+        bg: "#EED4C8",
+        img1: "/intro/prd03-1.png",
+        img2: "/intro/prd03-2.png",
+      },
+      {
+        ...ft("salad"),
+        bg: "var(--site-chrome-header-bg, #FDFDF5)",
+        img1: "/intro/prd04-1.png",
+        img2: "/intro/prd04-2.png",
+      },
+    ],
+    eggPhilosophy: [ph("quality"), ph("safety"), ph("research")],
+    steps: [st("s1"), st("s2"), st("s3"), st("s4")],
+  };
+}
 
-const steps = [
-  { name: "원료선별", desc: "엄격한 기준을 통해 선별된 원료만 사용합니다." },
-  { name: "위생 가공", desc: "식품 안전 기준에 맞춘 시설에서 생산됩니다." },
-  { name: "품질 검사", desc: "모든 제품은 품질 검사를 거쳐 출고됩니다." },
-  { name: "안전 유통", desc: "신선함을 유지한 상태로 고객에게 전달됩니다." },
-];
+const EggStoryContentContext = createContext<EggStoryContent | null>(null);
+
+function useEggStoryContent(): EggStoryContent {
+  const ctx = useContext(EggStoryContentContext);
+  if (!ctx) {
+    throw new Error("useEggStoryContent must be used within EggStoryScreen");
+  }
+  return ctx;
+}
 
 /* ── Placeholder 컬러 박스 ── */
 function ImgBox({
@@ -182,6 +212,7 @@ function StarDeco({
    - opacity: 0 → 1, translateY(80px) → 0 fade-slide-in
 */
 function EggPartsSection() {
+  const { eggParts } = useEggStoryContent();
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -330,6 +361,8 @@ function EggPartsSection() {
    - EggPartsSection 과 동일한 flatMap 구조: 카드·스페이서 단일 부모
 */
 function FoodSection() {
+  const { t } = useTranslation();
+  const { eggFoods } = useEggStoryContent();
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -386,7 +419,7 @@ function FoodSection() {
             textAlign: "center",
           }}
         >
-          계란은 다양한 음식에 활용됩니다
+          {t("pages.products.eggStory.foodUsesHeading")}
         </h2>
         <p
           style={{
@@ -398,7 +431,7 @@ function FoodSection() {
             textAlign: "center",
           }}
         >
-          Poonglim Characters Story
+          {t("pages.products.eggStory.foodUsesTagline")}
         </p>
       </div>
 
@@ -549,8 +582,11 @@ function FoodSection() {
    - scroll: 실제 offsetHeight 대비 진행률로 항목 노출(높이 min()과 동기)
 */
 function NutrientsSection() {
+  const { t } = useTranslation();
+  const { nutrients } = useEggStoryContent();
   const [visibleCount, setVisibleCount] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
+  const nutrientsTitleLines = t("pages.products.eggStory.nutrientsHeading").split("\n");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -636,8 +672,13 @@ function NutrientsSection() {
                 lineHeight: px(84, 32),
               }}
             >
-              계란의 <br />
-              주요 영양소
+              {nutrientsTitleLines[0]}
+              {nutrientsTitleLines.length > 1 ? (
+                <>
+                  <br />
+                  {nutrientsTitleLines.slice(1).join(" ")}
+                </>
+              ) : null}
             </h2>
             <div style={{ marginTop: px(22, 8) }}>
               <StarDeco />
@@ -726,13 +767,6 @@ function NutrientsSection() {
   );
 }
 
-/* 데스크톱: 타이틀만 먼저 → 스크롤로 4 → STEP → 단계 순 (visibleCount 0 = 타이틀만) */
-const JOURNEY_SCROLL_STAGES = 2 + steps.length;
-/** 스크롤 트랙: 타이틀 전용 1구간 + 등장 단계(JOURNEY_SCROLL_STAGES)만큼 */
-const JOURNEY_SECTION_HEIGHT_VH = (JOURNEY_SCROLL_STAGES + 1) * 44 + 72;
-
-const JOURNEY_SECTION_HEIGHT_CSS = `min(${JOURNEY_SECTION_HEIGHT_VH}vh, 7200px)`;
-
 function eggJourneyRevealStyle(
   visibleCount: number,
   minStage: number,
@@ -748,6 +782,8 @@ function eggJourneyRevealStyle(
 }
 
 function EggJourneyScrollSection() {
+  const { t } = useTranslation();
+  const { steps } = useEggStoryContent();
   return (
     <>
       {/* 모바일 — 인터랙션 없음, 기존과 동일 */}
@@ -759,7 +795,7 @@ function EggJourneyScrollSection() {
       >
         <SectionTitleMobile
           omitHorizontalPadding
-          title="계란이 식탁에 오기까지"
+          title={t("pages.products.eggStory.journeyTitleMobile")}
         />
         <div className="mx-auto flex w-full flex-col">
           {steps.map((step, idx) => (
@@ -800,6 +836,12 @@ function EggJourneyScrollSection() {
 }
 
 function EggJourneyDesktopScrollSection() {
+  const { t } = useTranslation();
+  const { steps } = useEggStoryContent();
+  const journeyScrollStages = 2 + steps.length;
+  const journeySectionHeightVh = (journeyScrollStages + 1) * 44 + 72;
+  const journeySectionHeightCss = `min(${journeySectionHeightVh}vh, 7200px)`;
+
   const [visibleCount, setVisibleCount] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -818,8 +860,8 @@ function EggJourneyDesktopScrollSection() {
       const progress = Math.min(1, Math.max(0, scrolledPast / scrollRange));
       /* 0 = 타이틀만 … 실제 섹션 높이(min(vh,px))와 동기 */
       const itemsToShow = Math.min(
-        JOURNEY_SCROLL_STAGES,
-        Math.floor(progress * (JOURNEY_SCROLL_STAGES + 1)),
+        journeyScrollStages,
+        Math.floor(progress * (journeyScrollStages + 1)),
       );
 
       setVisibleCount((prev) => Math.max(prev, itemsToShow));
@@ -828,7 +870,7 @@ function EggJourneyDesktopScrollSection() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [journeyScrollStages]);
 
   return (
     <section
@@ -838,7 +880,7 @@ function EggJourneyDesktopScrollSection() {
         "relative hidden w-full min-w-0 bg-white md:block",
       )}
       style={{
-        height: JOURNEY_SECTION_HEIGHT_CSS,
+        height: journeySectionHeightCss,
       }}
     >
       <div
@@ -869,8 +911,9 @@ function EggJourneyDesktopScrollSection() {
                 lineHeight: px(90, 32),
               }}
             >
-              계란이 <br />
-              식탁에 오기까지
+              {t("pages.products.eggStory.journeyTitleDesktopL1")}
+              <br />
+              {t("pages.products.eggStory.journeyTitleDesktopL2")}
             </h2>
             <div style={{ marginTop: px(22, 10) }}>
               <StarDeco />
@@ -991,6 +1034,8 @@ function EggJourneyDesktopScrollSection() {
    - prefers-reduced-motion: 블러·스케일·페이드 최소화
 */
 function PhilosophySection() {
+  const { t } = useTranslation();
+  const { eggPhilosophy } = useEggStoryContent();
   const [visibleCount, setVisibleCount] = useState(0);
   const [bgActive, setBgActive] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -1144,7 +1189,7 @@ function PhilosophySection() {
             marginBottom: `clamp(24px,calc(60*100vw/1920),60px)`,
           }}
         >
-          풍림푸드의 계란 철학
+          {t("pages.products.eggStory.philosophyHeading")}
         </h2>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:gap-[clamp(12px,calc(20*100vw/1920),20px)]">
@@ -1445,6 +1490,7 @@ function EggHeroMobile({
   badgeStyle,
   sparkleStyle,
 }: EggHeroReveal) {
+  const { t } = useTranslation();
   return (
     <div className="relative mx-auto mb-8 min-h-[300px] w-full max-w-[375px] pt-5 pb-5 md:hidden">
       <div className="absolute inset-0 z-0">
@@ -1496,7 +1542,7 @@ function EggHeroMobile({
               className="text-center text-[clamp(40px,12.2vw,56px)] leading-[1.1] font-extrabold text-[#003F2B]"
               style={{ fontFamily: "NanumSquareRound, sans-serif" }}
             >
-              계란 이야기
+              {t("pages.products.eggStory.heroTitleMobile")}
             </p>
           </div>
         </div>
@@ -1506,11 +1552,11 @@ function EggHeroMobile({
               className="text-center text-base leading-[25.6px] font-bold text-[#003F2B]"
               style={{ fontFamily: "NanumSquareRound, sans-serif" }}
             >
-              작은 알 하나에 담긴 건강한 가치
+              {t("pages.products.eggStory.heroLeadLine1")}
               <br />
-              풍림푸드는 매일 식탁에 오르는 계란의
+              {t("pages.products.eggStory.heroLeadLine2")}
               <br />
-              가치를 연구합니다.
+              {t("pages.products.eggStory.heroLeadLine3")}
             </p>
           </div>
         </div>
@@ -1524,7 +1570,7 @@ function EggHeroMobile({
             ...badgeStyle(780),
           }}
         >
-          건강한
+          {t("pages.products.eggStory.badgeHealthy")}
         </span>
         <span
           className="absolute top-[49%] left-[5.87%] rounded-[24px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
@@ -1534,7 +1580,7 @@ function EggHeroMobile({
             ...badgeStyle(940),
           }}
         >
-          믿을 수 있는
+          {t("pages.products.eggStory.badgeTrust")}
         </span>
         <span
           className="absolute top-[27%] left-[76.27%] rounded-[23px] border border-[#1F2121] bg-white px-2.5 py-2 text-[12px] font-bold whitespace-nowrap text-[#1F2121]"
@@ -1544,7 +1590,7 @@ function EggHeroMobile({
             ...badgeStyle(1100),
           }}
         >
-          간편한
+          {t("pages.products.eggStory.badgeEasy")}
         </span>
       </div>
     </div>
@@ -1557,11 +1603,21 @@ function EggHeroDesktop({
   badgeStyle,
   sparkleStyle,
 }: EggHeroReveal) {
-  const badgeList = [
-    { text: "건강한", style: { left: "37.6%", top: "22.3%" } as const },
-    { text: "믿을 수 있는", style: { left: "23.1%", top: "52%" } as const },
-    { text: "간편한", style: { left: "68.9%", top: "47.1%" } as const },
-  ] as const;
+  const { t } = useTranslation();
+  const badgeList: { text: string; style: { left: string; top: string } }[] = [
+    {
+      text: t("pages.products.eggStory.badgeHealthy"),
+      style: { left: "37.6%", top: "22.3%" },
+    },
+    {
+      text: t("pages.products.eggStory.badgeTrust"),
+      style: { left: "23.1%", top: "52%" },
+    },
+    {
+      text: t("pages.products.eggStory.badgeEasy"),
+      style: { left: "68.9%", top: "47.1%" },
+    },
+  ];
 
   return (
     <div
@@ -1640,7 +1696,7 @@ function EggHeroDesktop({
                   width: "100%",
                 }}
               >
-                EGG 계란 이야기
+                {t("pages.products.eggStory.heroTitleDesktop")}
               </h1>
             </div>
             <div className="w-full" style={slideStyle(620)}>
@@ -1654,18 +1710,18 @@ function EggHeroDesktop({
                   textAlign: "center",
                 }}
               >
-                작은 알 하나에 담긴 건강한 가치
+                {t("pages.products.eggStory.heroLeadDesktopL1")}
                 <br />
-                풍림푸드는 매일 식탁에 오르는 계란의 가치를 연구합니다.
+                {t("pages.products.eggStory.heroLeadDesktopL2")}
               </p>
             </div>
           </div>
         </div>
 
         <div className="pointer-events-none absolute inset-0 z-10">
-          {badgeList.map(({ text, style: pos }, i) => (
+          {badgeList.map(({ text: badgeText, style: pos }, i) => (
             <span
-              key={text}
+              key={`${badgeText}-${i}`}
               className="pointer-events-none absolute select-none"
               style={{
                 ...pos,
@@ -1682,7 +1738,7 @@ function EggHeroDesktop({
                 ...badgeStyle(820 + i * 140),
               }}
             >
-              {text}
+              {badgeText}
             </span>
           ))}
         </div>
@@ -1692,6 +1748,7 @@ function EggHeroDesktop({
 }
 
 function EggIntroYellowMobile() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-5 md:hidden">
       <div className="h-[170px] w-full overflow-hidden rounded-[10px]">
@@ -1705,23 +1762,19 @@ function EggIntroYellowMobile() {
         className="text-[20px] leading-7 font-extrabold text-[#003F2B]"
         style={{ fontFamily: "NanumSquareRound, sans-serif" }}
       >
-        자연이 만든 완전식품, 계란
+        {t("pages.products.eggStory.introH2")}
       </h2>
       <p
         className="text-sm leading-[21px] font-bold text-[#1F2121]"
         style={{ fontFamily: "NanumSquareRound, sans-serif" }}
       >
-        계란은 단백질, 비타민, 미네랄 등 우리 몸에 필요한 영양소를 고루 담고
-        있는 대표적인 완전식품입니다.
+        {t("pages.products.eggStory.introP1")}
       </p>
       <p
-        className="text-sm leading-[21px] font-bold text-[#1F2121]"
+        className="text-sm leading-[21px] font-bold whitespace-pre-line text-[#1F2121]"
         style={{ fontFamily: "NanumSquareRound, sans-serif" }}
       >
-        특히 계란 단백질은 인체에 이상적인 아미노산 구조를 가지고 있어
-        영양학적으로 매우 높은 가치를 인정받고 있습니다.
-        <br />
-        <br />전 세계 식탁에서 사랑받는 식재료이며 다양한 요리에 활용됩니다.
+        {t("pages.products.eggStory.introP2")}
       </p>
       <div className="grid grid-cols-2 gap-2.5">
         {(["img01", "img02", "img03", "img04"] as const).map((name) => (
@@ -1742,6 +1795,7 @@ function EggIntroYellowMobile() {
 }
 
 function EggPartsSectionMobile() {
+  const { eggParts } = useEggStoryContent();
   /* Figma 모바일: 섹션 py 50 · 헤더는 SectionTitleMobile · 카드 열 px 16 gap 10 · 카드 p 20 r 20 gap 20 · 아이콘 79 */
   return (
     <div className="flex flex-col gap-[10px] px-4">
@@ -1781,6 +1835,11 @@ function EggPartsSectionMobile() {
 }
 
 function NutrientsSectionMobile() {
+  const { t } = useTranslation();
+  const { nutrients } = useEggStoryContent();
+  const nutrientsTitle = t("pages.products.eggStory.nutrientsHeading")
+    .split("\n")
+    .join(" ");
   return (
     <section
       className={cn(
@@ -1795,7 +1854,7 @@ function NutrientsSectionMobile() {
         className="mb-5 px-4 pb-5"
         titleClassName="text-[18px] leading-[30px] font-extrabold text-[#003F2B] font-[family-name:var(--font-nanum)]"
       >
-        계란의 주요 영양소
+        {nutrientsTitle}
       </SectionPageTitle>
       <div className="grid grid-cols-2 gap-0 px-4">
         {nutrients.map((n) => (
@@ -1822,13 +1881,7 @@ function NutrientsSectionMobile() {
                 className="text-sm leading-[21px] font-bold whitespace-pre-line text-[#003F2B]"
                 style={{ fontFamily: "NanumSquareRound, sans-serif" }}
               >
-                {n.letter === "P"
-                  ? "신체 기능에 필요한\n고품질 단백질"
-                  : n.letter === "A"
-                    ? "눈 건강과\n면역 기능 지원"
-                    : n.letter === "C"
-                      ? "두뇌와\n신경 기능에 도움"
-                      : n.desc}
+                {n.desc}
               </span>
             </div>
           </div>
@@ -1839,6 +1892,8 @@ function NutrientsSectionMobile() {
 }
 
 function FoodSectionMobile() {
+  const { t } = useTranslation();
+  const { eggFoods } = useEggStoryContent();
   return (
     <section
       className={cn(
@@ -1853,7 +1908,7 @@ function FoodSectionMobile() {
         className="mb-5 px-4"
         titleClassName="text-[18px] leading-[30px] font-extrabold text-[#EAE3C9] font-[family-name:var(--font-nanum)]"
       >
-        계란은 다양한 음식에 활용됩니다
+        {t("pages.products.eggStory.foodUsesHeading")}
       </SectionPageTitle>
       <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch]">
         {eggFoods.map((food) => (
@@ -1918,12 +1973,19 @@ function SectionTitleMobile({
    메인 페이지
    ══════════════════════════════════════════════════════ */
 export default function EggStoryScreen() {
+  const { t, i18n } = useTranslation();
+  const eggContent = useMemo(
+    () => buildEggStoryContent(t),
+    [t, i18n.language],
+  );
+
   const { sectionRef, slideStyle, badgeStyle, sparkleStyle } =
     useBrandPhilosophyReveal({ minTriggerPx: 0 });
 
   const heroReveal = { slideStyle, badgeStyle, sparkleStyle };
 
   return (
+    <EggStoryContentContext.Provider value={eggContent}>
     <div
       className={cn(
         SECTION_VIEWPORT_BLEED,
@@ -1934,8 +1996,8 @@ export default function EggStoryScreen() {
       <Breadcrumb
         variant="productDetail"
         items={[
-          { label: "제품소개", href: "/products/all" },
-          { label: "계란이야기" },
+          { label: t("pages.products.shared.breadcrumbProducts"), href: "/products/all" },
+          { label: t("pages.products.eggStory.breadcrumb") },
         ]}
       />
 
@@ -1990,7 +2052,7 @@ export default function EggStoryScreen() {
                 >
                   <img
                     src={`/intro/${name}.png`}
-                    alt={`계란 이미지 ${name}`}
+                    alt={`${t("pages.products.eggStory.imgGridAlt")} ${name}`}
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -2005,7 +2067,7 @@ export default function EggStoryScreen() {
                 >
                   <img
                     src={`/intro/${name}.png`}
-                    alt={`계란 이미지 ${name}`}
+                    alt={`${t("pages.products.eggStory.imgGridAlt")} ${name}`}
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -2024,7 +2086,7 @@ export default function EggStoryScreen() {
             >
               <img
                 src="/intro/img05.png"
-                alt="자엘이 만든 완전식품 계란"
+                alt={t("pages.products.eggStory.imgCompleteFoodAlt")}
                 className="absolute inset-0 z-0 h-full w-full object-cover"
               />
               {/* 텍스트 블록 뒤 가독성 — 중앙 타원 + 상·하 약한 딤 */}
@@ -2050,8 +2112,12 @@ export default function EggStoryScreen() {
                     lineHeight: px(84, 32),
                   }}
                 >
-                  <span style={{ color: "white" }}>자연이 만든 완전식품, </span>
-                  <span style={{ color: "#F3BC1E" }}>계란</span>
+                  <span style={{ color: "white" }}>
+                    {t("pages.products.eggStory.introOverlayPrefix")}
+                  </span>
+                  <span style={{ color: "#F3BC1E" }}>
+                    {t("pages.products.eggStory.introOverlayAccent")}
+                  </span>
                 </p>
                 <p
                   style={{
@@ -2063,8 +2129,7 @@ export default function EggStoryScreen() {
                     textAlign: "center",
                   }}
                 >
-                  계란은 단백질, 비타민, 미네랄 등 우리 몸에 필요한 영양소를
-                  고루 담고 있는 대표적인 완전식품입니다.
+                  {t("pages.products.eggStory.introDesktopP1")}
                 </p>
                 <p
                   style={{
@@ -2074,13 +2139,10 @@ export default function EggStoryScreen() {
                     fontWeight: 700,
                     lineHeight: px(19.2, 16),
                     textAlign: "center",
+                    whiteSpace: "pre-line",
                   }}
                 >
-                  특히 계란 단백질은 인체에 이상적인 아미노산 구조를 가지고 있어
-                  영양학적으로 매우 높은 가치를 인정받고 있습니다.
-                  <br />
-                  <br />전 세계 식탁에서 사랑받는 식재료이며 다양한 요리에
-                  활용됩니다.
+                  {t("pages.products.eggStory.introDesktopP2")}
                 </p>
               </div>
             </div>
@@ -2100,7 +2162,7 @@ export default function EggStoryScreen() {
       >
         <div className="py-[50px] md:hidden">
           <SectionTitleMobile
-            title="계란은 이렇게 이루어져 있습니다"
+            title={t("pages.products.eggStory.sectionStructureTitle")}
             titleColor="#1F2121"
           />
           <EggPartsSectionMobile />
@@ -2131,7 +2193,7 @@ export default function EggStoryScreen() {
                 textAlign: "center",
               }}
             >
-              계란은 이렇게 이루어져 있습니다
+              {t("pages.products.eggStory.sectionStructureTitle")}
             </h2>
           </div>
           <EggPartsSection />
@@ -2180,7 +2242,7 @@ export default function EggStoryScreen() {
                 textAlign: "center",
               }}
             >
-              좋은 계란을 고르는 방법
+              {t("pages.products.eggStory.pickTitle")}
             </h2>
           </div>
 
@@ -2190,7 +2252,7 @@ export default function EggStoryScreen() {
           <div className="px-4 pt-10 pb-10 md:px-[clamp(64px,calc(160*100vw/1920),160px)] md:pt-[clamp(24px,calc(60*100vw/1920),60px)] md:pb-[clamp(44px,calc(110*100vw/1920),110px)]">
             <SectionTitleMobile
               omitHorizontalPadding
-              title="좋은 계란을 고르는 방법"
+              title={t("pages.products.eggStory.pickTitle")}
             />
             <div
               className="mt-0 flex flex-col gap-[10px] md:mt-0 md:flex-row md:gap-[clamp(8px,calc(20*100vw/1920),20px)]"
@@ -2214,7 +2276,7 @@ export default function EggStoryScreen() {
                 >
                   <img
                     src="/intro/choice01.png"
-                    alt="껍질 상태 확인"
+                    alt={t("pages.products.eggStory.pickShellAlt")}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -2253,7 +2315,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(39.2, 25.2),
                       }}
                     >
-                      껍질 상태 확인
+                      {t("pages.products.eggStory.pickShellTitle")}
                     </h3>
                     <p
                       style={{
@@ -2264,7 +2326,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(30, 21),
                       }}
                     >
-                      껍질이 깨지지 않고 깨끗한 계란을 선택하세요.
+                      {t("pages.products.eggStory.pickShellDesc")}
                     </p>
                   </div>
                 </div>
@@ -2288,7 +2350,7 @@ export default function EggStoryScreen() {
                 >
                   <img
                     src="/intro/choice02.png"
-                    alt="냉장 보관 제품 선택"
+                    alt={t("pages.products.eggStory.pickChillAlt")}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -2332,7 +2394,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(39.2, 22.4),
                       }}
                     >
-                      냉장 보관 제품 선택
+                      {t("pages.products.eggStory.pickChillTitle")}
                     </h3>
                     <p
                       style={{
@@ -2343,7 +2405,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(30, 19.5),
                       }}
                     >
-                      계란은 냉장 상태로 보관된 제품이 좋습니다.
+                      {t("pages.products.eggStory.pickChillDesc")}
                     </p>
                   </div>
                 </div>
@@ -2359,7 +2421,7 @@ export default function EggStoryScreen() {
                 >
                   <img
                     src="/intro/choice03.png"
-                    alt="신선도 확인"
+                    alt={t("pages.products.eggStory.pickFreshAlt")}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -2396,7 +2458,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(39.2, 25.2),
                       }}
                     >
-                      신선도 확인
+                      {t("pages.products.eggStory.pickFreshTitle")}
                     </h3>
                     <p
                       style={{
@@ -2407,7 +2469,7 @@ export default function EggStoryScreen() {
                         lineHeight: px(30, 21),
                       }}
                     >
-                      구입 후 가능한 빠르게 섭취하는 것이 좋습니다.
+                      {t("pages.products.eggStory.pickFreshDesc")}
                     </p>
                   </div>
                 </div>
@@ -2454,7 +2516,7 @@ export default function EggStoryScreen() {
                   lineHeight: px(84, 28),
                 }}
               >
-                풍림푸드의 계란 제품
+                {t("pages.products.eggStory.ctaTitle")}
               </h2>
               <p
                 style={{
@@ -2465,7 +2527,7 @@ export default function EggStoryScreen() {
                   lineHeight: px(19.2, 16.8),
                 }}
               >
-                풍림푸드의 다양한 식품을 확인해 보세요.
+                {t("pages.products.eggStory.ctaSubtitle")}
               </p>
             </div>
 
@@ -2496,7 +2558,7 @@ export default function EggStoryScreen() {
                   lineHeight: px(33.6, 20),
                 }}
               >
-                제품 보러가기
+                {t("pages.products.eggStory.ctaButton")}
               </span>
               <ArrowUpRight
                 aria-hidden
@@ -2556,5 +2618,6 @@ export default function EggStoryScreen() {
         </div>
       </section>
     </div>
+    </EggStoryContentContext.Provider>
   );
 }

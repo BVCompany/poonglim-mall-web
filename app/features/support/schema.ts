@@ -10,7 +10,7 @@
  * - 관리자 CRUD: service_role (RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgPolicy, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -27,6 +27,8 @@ export const notices = pgTable(
   "notices",
   {
     ...makeIdentityColumn("notice_id"),
+    translation_group_id: uuid().notNull(),
+    locale: text().notNull().default("ko"),
     category: noticeCategoryEnum().notNull().default("안내"),
     title: text().notNull(),
     content: text().notNull().default(""),
@@ -122,6 +124,8 @@ export const faqs = pgTable(
   "faqs",
   {
     ...makeIdentityColumn("faq_id"),
+    translation_group_id: uuid().notNull(),
+    locale: text().notNull().default("ko"),
     category: faqCategoryEnum().notNull(),
     question: text().notNull(),
     answer: text().notNull(),

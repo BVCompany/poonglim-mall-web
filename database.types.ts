@@ -257,11 +257,13 @@ export type Database = {
           ended_at: string | null
           event_id: number
           is_active: boolean
+          locale: string
           location: string | null
           started_at: string | null
           summary: string | null
           thumbnail_url: string | null
           title: string
+          translation_group_id: string
           type: Database["public"]["Enums"]["event_type"]
           updated_at: string
           view_count: string | null
@@ -274,11 +276,13 @@ export type Database = {
           ended_at?: string | null
           event_id?: never
           is_active?: boolean
+          locale?: string
           location?: string | null
           started_at?: string | null
           summary?: string | null
           thumbnail_url?: string | null
           title: string
+          translation_group_id: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
           view_count?: string | null
@@ -291,11 +295,13 @@ export type Database = {
           ended_at?: string | null
           event_id?: never
           is_active?: boolean
+          locale?: string
           location?: string | null
           started_at?: string | null
           summary?: string | null
           thumbnail_url?: string | null
           title?: string
+          translation_group_id?: string
           type?: Database["public"]["Enums"]["event_type"]
           updated_at?: string
           view_count?: string | null
@@ -357,8 +363,10 @@ export type Database = {
           created_at: string
           faq_id: number
           is_active: boolean
+          locale: string
           question: string
           sort_order: number
+          translation_group_id: string
           updated_at: string
         }
         Insert: {
@@ -367,8 +375,10 @@ export type Database = {
           created_at?: string
           faq_id?: never
           is_active?: boolean
+          locale?: string
           question: string
           sort_order?: number
+          translation_group_id: string
           updated_at?: string
         }
         Update: {
@@ -377,8 +387,10 @@ export type Database = {
           created_at?: string
           faq_id?: never
           is_active?: boolean
+          locale?: string
           question?: string
           sort_order?: number
+          translation_group_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -668,6 +680,7 @@ export type Database = {
           created_at: string
           is_active: boolean
           is_featured: boolean
+          locale: string
           news_id: number
           published_at: string | null
           source: string | null
@@ -675,6 +688,7 @@ export type Database = {
           summary: string | null
           thumbnail_url: string | null
           title: string
+          translation_group_id: string
           type: string
           updated_at: string
           view_count: string
@@ -685,6 +699,7 @@ export type Database = {
           created_at?: string
           is_active?: boolean
           is_featured?: boolean
+          locale?: string
           news_id?: never
           published_at?: string | null
           source?: string | null
@@ -692,6 +707,7 @@ export type Database = {
           summary?: string | null
           thumbnail_url?: string | null
           title: string
+          translation_group_id: string
           type?: string
           updated_at?: string
           view_count?: string
@@ -702,6 +718,7 @@ export type Database = {
           created_at?: string
           is_active?: boolean
           is_featured?: boolean
+          locale?: string
           news_id?: never
           published_at?: string | null
           source?: string | null
@@ -709,6 +726,7 @@ export type Database = {
           summary?: string | null
           thumbnail_url?: string | null
           title?: string
+          translation_group_id?: string
           type?: string
           updated_at?: string
           view_count?: string
@@ -750,9 +768,11 @@ export type Database = {
           created_at: string
           is_active: boolean
           is_pinned: boolean
+          locale: string
           notice_id: number
           tags: string[]
           title: string
+          translation_group_id: string
           updated_at: string
           view_count: number
         }
@@ -763,9 +783,11 @@ export type Database = {
           created_at?: string
           is_active?: boolean
           is_pinned?: boolean
+          locale?: string
           notice_id?: never
           tags?: string[]
           title: string
+          translation_group_id: string
           updated_at?: string
           view_count?: number
         }
@@ -776,9 +798,11 @@ export type Database = {
           created_at?: string
           is_active?: boolean
           is_pinned?: boolean
+          locale?: string
           notice_id?: never
           tags?: string[]
           title?: string
+          translation_group_id?: string
           updated_at?: string
           view_count?: number
         }
@@ -963,6 +987,7 @@ export type Database = {
           ingredients: string | null
           is_active: boolean
           is_b2b: boolean
+          locale: string
           name: string
           origin: string | null
           original_price: number | null
@@ -972,6 +997,7 @@ export type Database = {
           sort_order: number
           storage_method: string | null
           tags: string[] | null
+          translation_group_id: string
           updated_at: string
           volume: string | null
         }
@@ -988,6 +1014,7 @@ export type Database = {
           ingredients?: string | null
           is_active?: boolean
           is_b2b?: boolean
+          locale?: string
           name: string
           origin?: string | null
           original_price?: number | null
@@ -997,6 +1024,7 @@ export type Database = {
           sort_order?: number
           storage_method?: string | null
           tags?: string[] | null
+          translation_group_id: string
           updated_at?: string
           volume?: string | null
         }
@@ -1013,6 +1041,7 @@ export type Database = {
           ingredients?: string | null
           is_active?: boolean
           is_b2b?: boolean
+          locale?: string
           name?: string
           origin?: string | null
           original_price?: number | null
@@ -1022,6 +1051,7 @@ export type Database = {
           sort_order?: number
           storage_method?: string | null
           tags?: string[] | null
+          translation_group_id?: string
           updated_at?: string
           volume?: string | null
         }
@@ -1097,6 +1127,7 @@ export type Database = {
           image_urls: string[] | null
           ingredients: string | null
           is_active: boolean
+          locale: string
           nutrition: string | null
           recipe_id: number
           servings: string | null
@@ -1106,6 +1137,7 @@ export type Database = {
           thumbnail_url: string | null
           tips: string | null
           title: string
+          translation_group_id: string
           updated_at: string
         }
         Insert: {
@@ -1117,6 +1149,7 @@ export type Database = {
           image_urls?: string[] | null
           ingredients?: string | null
           is_active?: boolean
+          locale?: string
           nutrition?: string | null
           recipe_id?: never
           servings?: string | null
@@ -1126,6 +1159,7 @@ export type Database = {
           thumbnail_url?: string | null
           tips?: string | null
           title: string
+          translation_group_id: string
           updated_at?: string
         }
         Update: {
@@ -1137,6 +1171,7 @@ export type Database = {
           image_urls?: string[] | null
           ingredients?: string | null
           is_active?: boolean
+          locale?: string
           nutrition?: string | null
           recipe_id?: never
           servings?: string | null
@@ -1146,6 +1181,7 @@ export type Database = {
           thumbnail_url?: string | null
           tips?: string | null
           title?: string
+          translation_group_id?: string
           updated_at?: string
         }
         Relationships: []

@@ -225,19 +225,19 @@ export default function AdminPageBannersPage({ loaderData }: Route.ComponentProp
   );
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-white">
       <AdminSidebar adminUser={adminUser} />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
-        <div className="flex-1 overflow-auto p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">페이지 배너 관리</h1>
-            <p className="mt-1 text-sm text-gray-500">
+        <div className="flex-1 overflow-auto p-6 md:p-8">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">페이지 배너 관리</h1>
+            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-gray-600">
               각 페이지 상단에 표시되는 배너를 관리합니다. 저장하지 않은 페이지는 배너가 표시되지 않습니다.
             </p>
           </div>
 
-          <div className="space-y-4 max-w-3xl">
+          <div className="grid w-full gap-4 xl:grid-cols-2 xl:gap-6">
             {PAGE_KEYS.map((key) => (
               <BannerForm
                 key={key}

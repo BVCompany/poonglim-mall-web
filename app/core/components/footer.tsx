@@ -3,82 +3,36 @@
  *
  * 풍림푸드 푸터 — 피그마 시안(#003F2B, py60·px240, 연락처/네비/로고)
  */
+import type { TFunction } from "i18next";
 import { ChevronDown, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
 
+import { getMegaNavSections, type MegaSectionId } from "~/core/lib/public-mega-nav";
 import { cn } from "~/core/lib/utils";
-
-/* ── 링크 데이터 (PC·태블릿 푸터 네비 — navigation-bar의 헤더 메뉴와 동일 구성) ── */
-const EGG_SAFETY_EXTERNAL =
-  "https://www.foodsafetykorea.go.kr/portal/fooddanger/eggHazardList.do?menu_grp=MENU_NEW02&menu_no=3497";
-
-/* ── 연락처 데이터 ── */
-const contactGroups = [
-  {
-    label: "고객상담실",
-    lines: ["080-299-9292", "평일 09:00 ~ 17:00 / 주말과 공휴일은 쉽니다."],
-    mobileBody: "080-299-9292\n평일 09:00 ~ 17:00 / 주말과 공휴일은 쉽니다.",
-  },
-  {
-    label: "본사/공장",
-    lines: [
-      "충청북도 진천군 이월면 궁동길 51-21",
-      "TEL : 043-533-2285 / FAX : 043-533-2988",
-    ],
-    mobileBody: "본사/공장 : 충청북도 진천군 이월면 궁동길 51-21\nTEL : 043-533-2285 / FAX : 043-533-2988",
-  },
-  {
-    label: "서울 사무소",
-    lines: [
-      "서울특별시 강남구 봉은사로 64번길 5",
-      "TEL : 02-538-5617 / FAX : 02-538-5623",
-    ],
-    mobileBody: "서울특별시 강남구 봉은사로 64번길 5\nTEL : 02-538-5617 / FAX : 02-538-5623",
-  },
-];
 
 type NavLink = { name: string; href: string; external?: boolean; underline?: boolean };
 
-const navSections: { title: string; links: NavLink[] }[] = [
-  {
-    title: "회사소개",
-    links: [
-      { name: "회사소개", href: "/brand/intro" },
-      { name: "연혁", href: "/brand/history" },
-      { name: "품질 & 인증", href: "/brand/certifications" },
-      { name: "채용", href: "/careers/positions" },
-      { name: "오시는 길", href: "/brand/location" },
-    ],
-  },
-  {
-    title: "제품소개",
-    links: [
-      { name: "계란이야기", href: "/products/egg-story" },
-      { name: "제품보기", href: "/products/all" },
-      { name: "레시피", href: "/recipe/main" },
-    ],
-  },
-  {
-    title: "홍보센터",
-    links: [
-      { name: "보도자료", href: "/media/news" },
-      { name: "이벤트", href: "/event" },
-      { name: "견학신청", href: "/brand/factory-tour" },
-    ],
-  },
-  {
-    title: "고객지원",
-    links: [
-      { name: "공지사항", href: "/support/notice" },
-      { name: "자료실", href: "/support/resources" },
-      { name: "계란안전성검사결과", href: EGG_SAFETY_EXTERNAL, external: true },
-      { name: "등급판정서", href: "/support/grade-certificate" },
-      { name: "FAQ", href: "/support/faq" },
-      { name: "문의하기", href: "/support/contact" },
-    ],
-  },
-];
+function buildFooterContacts(t: TFunction) {
+  return [
+    {
+      label: t("footer.customerServiceLabel"),
+      lines: ["080-299-9292", t("footer.customerServiceHours")],
+      mobileBody: t("footer.customerServiceMobileBlock"),
+    },
+    {
+      label: t("footer.hqLabel"),
+      lines: [t("footer.hqAddress"), t("footer.hqTelFax")],
+      mobileBody: t("footer.hqMobileBlock"),
+    },
+    {
+      label: t("footer.seoulLabel"),
+      lines: [t("footer.seoulAddress"), t("footer.seoulTelFax")],
+      mobileBody: t("footer.seoulMobileBlock"),
+    },
+  ];
+}
 
 /* ── 공통 타이포 ── */
 const labelClass =
@@ -136,15 +90,17 @@ function FooterSns({ className }: { className?: string }) {
 
 /* ── 모바일 아코디언 ── */
 function FooterAccordion({
+  sectionId,
   title,
   links,
 }: {
+  sectionId: MegaSectionId;
   title: string;
   links: { name: string; href: string; external?: boolean; underline?: boolean }[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-white/10">
+    <div className="border-b border-white/10" data-footer-section={sectionId}>
       <button
         type="button"
         onClick={() => setIsOpen((p) => !p)}
@@ -190,7 +146,18 @@ function FooterAccordion({
 }
 
 export default function Footer() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
+  const contactGroups = buildFooterContacts(t);
+  const navSections = getMegaNavSections(t).map((s) => ({
+    id: s.id,
+    title: s.title,
+    links: s.links.map((l) => ({
+      name: l.name,
+      href: l.href,
+      external: l.external,
+    })) as NavLink[],
+  }));
   /** 계란이야기: 모바일 CTA(아이보리)가 푸터로 바로 이어지도록 크림 스페이서 생략 */
   const showMobileChromeSpacer = pathname !== "/products/egg-story";
 
@@ -308,14 +275,19 @@ export default function Footer() {
             {/* 네비 — md~lg 아코디언 / lg+ 4열 그리드 */}
             <div className="block lg:hidden">
               {navSections.map((s) => (
-                <FooterAccordion key={s.title} title={s.title} links={s.links} />
+                <FooterAccordion
+                  key={s.id}
+                  sectionId={s.id}
+                  title={s.title}
+                  links={s.links}
+                />
               ))}
             </div>
 
             <div className="hidden min-w-0 flex-1 lg:grid lg:grid-cols-4 lg:items-start lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
               {navSections.map((s) => (
                 <div
-                  key={s.title}
+                  key={s.id}
                   className="flex flex-col gap-[clamp(12px,calc(20*100vw/1920),20px)]"
                 >
                   <p className={navHeadClass}>{s.title}</p>

@@ -9,6 +9,7 @@ import { InstagramFeed } from "../components/instagram-feed";
 import { NewsFeed } from "../components/news-feed";
 import { getActiveBanners, getActivePopups } from "../lib/queries.server";
 import { getFeaturedProducts } from "~/features/products/lib/queries.server";
+import { normalizeContentLocale } from "~/core/db/content-locale.server";
 import { getRecentNews } from "~/features/media/lib/queries.server";
 import { getCompanyIntroSettings } from "~/features/site-settings/lib/queries.server";
 
@@ -21,18 +22,19 @@ export const meta: Route.MetaFunction = ({ data }) => {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
+  const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
 
   // DB 데이터 병렬 조회 (실패 시 폴백)
   const [banners, popups, featuredProducts, recentNews, companyIntro] = await Promise.all([
     getActiveBanners().catch((e) => { console.error("[home] 배너 조회 실패:", e); return []; }),
     getActivePopups().catch((e) => { console.error("[home] 팝업 조회 실패:", e); return []; }),
-    getFeaturedProducts(10).catch(() => []),
-    getRecentNews(5).catch(() => []),
+    getFeaturedProducts(10, contentLocale).catch(() => []),
+    getRecentNews(5, contentLocale).catch(() => []),
     getCompanyIntroSettings().catch(() => ({ image: null, title: null, link: null })),
   ]);
 
   return {
-    title: t("home.title"),
+    title: t("home.metaTitle"),
     subtitle: t("home.hero.subtitle1") + " " + t("home.hero.subtitle2"),
     banners,
     popups,

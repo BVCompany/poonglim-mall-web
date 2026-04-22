@@ -5,8 +5,10 @@ import type { Route } from "./+types/resources";
 
 import { Check, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
+import i18next from "~/core/lib/i18next.server";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SearchBar } from "~/core/components/search-bar";
@@ -20,6 +22,10 @@ import {
   getArchiveCategoriesOrdered,
 } from "~/features/support/lib/queries.server";
 import { getLibraryDemoPublicList } from "~/features/support/lib/library-resources-demo";
+import {
+  RESOURCES_ALL_TAB,
+  resourceCategoryTabLabel,
+} from "~/features/support/lib/resource-category-i18n";
 
 /** 모바일 카드 메타 뱃지 — Figma: #F0EEDD · px12 py6 · Pretendard 11/500 · lh 11 */
 const RESOURCE_META_BADGE_CLASS =
@@ -29,17 +35,23 @@ const RESOURCE_META_BADGE_CLASS =
 const PC_META_BADGE_CLASS =
   "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#F0EEDD] px-3 py-2 text-center text-[12px] font-medium leading-3 text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif]";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "자료실 | 풍림푸드" }];
-}
+export const meta: Route.MetaFunction = ({ data }) => [
+  { title: data?.metaTitle },
+];
 
-export async function loader(_: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
+  const t = await i18next.getFixedT(request);
   const [pageBanner, dbResources, dbArchiveCategories] = await Promise.all([
     getPageBanner("resources").catch(() => null),
     getActiveLibraryResources().catch(() => []),
     getArchiveCategoriesOrdered(),
   ]);
-  return { pageBanner, dbResources, dbArchiveCategories };
+  return {
+    pageBanner,
+    dbResources,
+    dbArchiveCategories,
+    metaTitle: t("pages.resources.metaTitle"),
+  };
 }
 
 const FALLBACK_RESOURCE_TAB_NAMES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
@@ -75,6 +87,7 @@ const LIBRARY_DEMO_PUBLIC = getLibraryDemoPublicList();
 const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
+  const { t } = useTranslation();
   const { pageBanner, dbResources, dbArchiveCategories } = loaderData;
   const sourceFiles =
     dbResources.length > 0
@@ -88,14 +101,21 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           url: r.file_url,
         }))
       : LIBRARY_DEMO_PUBLIC;
-  const categoryTabs = useMemo(() => {
+  const categoryTabItems = useMemo(() => {
     const fileCats =
       dbResources.length > 0
         ? dbResources.map((r) => r.category)
         : LIBRARY_DEMO_PUBLIC.map((f) => f.category);
-    return ["전체 보기", ...buildResourceCategoryTabs(dbArchiveCategories, fileCats)];
-  }, [dbArchiveCategories, dbResources]);
-  const [activeCategory, setActiveCategory] = useState("전체 보기");
+    const values = buildResourceCategoryTabs(dbArchiveCategories, fileCats);
+    return [
+      { value: RESOURCES_ALL_TAB, label: t("pages.resources.allTab") },
+      ...values.map((v) => ({
+        value: v,
+        label: resourceCategoryTabLabel(v, t),
+      })),
+    ];
+  }, [dbArchiveCategories, dbResources, t]);
+  const [activeCategory, setActiveCategory] = useState<string>(RESOURCES_ALL_TAB);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -105,10 +125,10 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   }, [activeCategory, query]);
 
   useEffect(() => {
-    if (!categoryTabs.includes(activeCategory)) {
-      setActiveCategory("전체 보기");
+    if (!categoryTabItems.some((item) => item.value === activeCategory)) {
+      setActiveCategory(RESOURCES_ALL_TAB);
     }
-  }, [categoryTabs, activeCategory]);
+  }, [categoryTabItems, activeCategory]);
 
   const handleSearch = () => {
     setQuery(inputValue);
@@ -116,7 +136,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   };
 
   const byCategory =
-    activeCategory === "전체 보기"
+    activeCategory === RESOURCES_ALL_TAB
       ? sourceFiles
       : sourceFiles.filter((f) => f.category === activeCategory);
 
@@ -135,12 +155,12 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <PageBanner
         imageUrl="/banner/report_banner_temp.png"
-        title="자료실"
-        subtitle="풍림푸드의 브로슈어·인증서 등 자료를 확인하세요."
+        title={t("pages.resources.title")}
+        subtitle={t("pages.resources.subtitle")}
         breadcrumb={[
-          { label: "Home", href: "/" },
-          { label: "고객지원", href: "/support" },
-          { label: "자료실" },
+          { label: t("common.breadcrumbHome"), href: "/" },
+          { label: t("navigation.support.title"), href: "/support" },
+          { label: t("navigation.links.resources") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -152,21 +172,21 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         preset="default"
         className="px-4 pt-5 md:hidden"
       >
-        자료실
+        {t("pages.resources.mobileH1")}
       </SectionPageTitle>
 
       <PageContentMax className="max-md:pt-0 py-6 md:pb-10 md:pt-[60px]">
         <div className="mb-0 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between md:pb-5">
           <div className="flex w-full flex-col items-start gap-1 max-md:pt-[14px] max-md:pb-5 md:contents">
             <div className="flex w-full flex-wrap items-center gap-[10px] max-md:flex-nowrap max-md:overflow-x-auto max-md:overscroll-x-contain max-md:[scrollbar-width:none] md:max-w-none md:gap-2.5 [&::-webkit-scrollbar]:hidden">
-              {categoryTabs.map((cat) => {
-                const isActive = cat === activeCategory;
+              {categoryTabItems.map((tab) => {
+                const isActive = tab.value === activeCategory;
                 return (
                   <button
-                    key={cat}
+                    key={tab.value}
                     type="button"
                     onClick={() => {
-                      setActiveCategory(cat);
+                      setActiveCategory(tab.value);
                       setInputValue("");
                       setQuery("");
                     }}
@@ -193,7 +213,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                         aria-hidden
                       />
                     )}
-                    {cat}
+                    {tab.label}
                   </button>
                 );
               })}
@@ -206,6 +226,8 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
               value={inputValue}
               onChange={setInputValue}
               onSearch={handleSearch}
+              placeholder={t("search.placeholder")}
+              buttonAriaLabel={t("search.ariaSubmit")}
               inputClassName="border-0 py-5 font-bold text-[#1F2121] placeholder:font-bold placeholder:text-[#1F2121] md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(360px,calc(360*100vw/1920))] md:px-10 md:font-[NanumSquareRound,sans-serif] md:text-base md:leading-6"
               buttonClassName="md:h-[min(64px,calc(64*100vw/1920))] md:w-[min(64px,calc(64*100vw/1920))] md:p-5"
             />
@@ -214,7 +236,9 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
 
         {paginated.length === 0 ? (
           <div className="py-16 text-center text-sm text-gray-400">
-            {query ? "검색 결과가 없습니다." : "등록된 자료가 없습니다."}
+            {query
+              ? t("pages.resources.emptySearch")
+              : t("pages.resources.emptyList")}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5 md:gap-[10px]">
@@ -260,7 +284,9 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center text-[#F3BC1E] transition-opacity hover:opacity-80"
-                          aria-label={`${file.title} 다운로드`}
+                          aria-label={t("pages.resources.downloadAria", {
+                            title: file.title,
+                          })}
                         >
                           <Download className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
                         </a>
@@ -305,7 +331,9 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex h-10 w-10 shrink-0 items-center justify-center text-[#F3BC1E] transition-opacity hover:opacity-80"
-                      aria-label={`${file.title} 다운로드`}
+                      aria-label={t("pages.resources.downloadAria", {
+                        title: file.title,
+                      })}
                     >
                       <Download className="h-5 w-5" strokeWidth={2.25} aria-hidden />
                     </a>
@@ -322,7 +350,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            aria-label="이전 페이지"
+            aria-label={t("pages.resources.paginationPrev")}
             className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
             <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
@@ -333,7 +361,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
               key={p}
               type="button"
               onClick={() => setPage(p)}
-              aria-label={`${p}페이지`}
+              aria-label={t("pages.resources.paginationPage", { page: p })}
               aria-current={p === page ? "page" : undefined}
               className={cn(
                 "min-h-12 min-w-10 bg-transparent px-2 font-[NanumSquareRound,sans-serif] text-lg font-extrabold leading-[23.4px] text-[#003F2B] transition-opacity",
@@ -348,7 +376,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            aria-label="다음 페이지"
+            aria-label={t("pages.resources.paginationNext")}
             className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-white text-[#02633E] transition-colors disabled:opacity-30"
           >
             <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
