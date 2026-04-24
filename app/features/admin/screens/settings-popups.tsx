@@ -1,6 +1,6 @@
 /**
  * Admin Popup Management Page
- * 
+ *
  * Allows admins to manage modal popups (view, create, edit, delete).
  */
 
@@ -23,13 +23,21 @@ import {
   type Popup as PopupRow,
 } from "~/features/home/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
-import { popups as popupsTable } from "~/features/home/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireAdminAuth(request);
   const dbPopups = await getAllPopups().catch(() => []);
   return { adminUser, dbPopups };
+}
+
+function parseSortOrder(raw: FormDataEntryValue | null): number {
+  if (raw == null || raw === "") return 0;
+  const s = String(raw).trim();
+  if (s === "undefined" || s === "NaN") return 0;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -38,46 +46,79 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = fd.get("intent") as string;
 
   if (intent === "create") {
-    await db.insert(popupsTable).values({
-      title: fd.get("title") as string,
-      content: (fd.get("content") as string) || null,
-      image_url: String(fd.get("imageUrl") ?? "").trim() || null,
-      link_url: (fd.get("linkUrl") as string) || null,
-      is_active: fd.get("isActive") !== "false",
-      started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
-      ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
-    });
+    const title = String(fd.get("title") ?? "");
+    const contentRaw = fd.get("content");
+    const content =
+      contentRaw == null || String(contentRaw).trim() === ""
+        ? null
+        : String(contentRaw);
+    const imageUrl = String(fd.get("imageUrl") ?? "").trim() || null;
+    const linkUrl = String(fd.get("linkUrl") ?? "").trim() || null;
+    const isActive = fd.get("isActive") !== "false";
+    const sortOrder = parseSortOrder(fd.get("sortOrder"));
+    const startDateStr = fd.get("startDate")
+      ? String(fd.get("startDate")).slice(0, 10)
+      : null;
+    const endDateStr = fd.get("endDate")
+      ? String(fd.get("endDate")).slice(0, 10)
+      : null;
+
+    await db.execute(sql`
+      INSERT INTO popups (title, content, image_url, link_url, is_active, sort_order, started_at, ended_at)
+      VALUES (${title}, ${content}, ${imageUrl}, ${linkUrl}, ${isActive}, ${sortOrder}, ${startDateStr}, ${endDateStr})
+    `);
     return { success: true };
   }
 
   if (intent === "update") {
     const id = Number(fd.get("id"));
     if (!id) return { success: false };
-    await db
-      .update(popupsTable)
-      .set({
-        title: fd.get("title") as string,
-        content: (fd.get("content") as string) || null,
-        image_url: String(fd.get("imageUrl") ?? "").trim() || null,
-        link_url: String(fd.get("linkUrl") ?? "").trim() || null,
-        is_active: fd.get("isActive") !== "false",
-        started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
-        ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
-      })
-      .where(eq(popupsTable.popup_id, id));
+    const title = String(fd.get("title") ?? "");
+    const contentRaw = fd.get("content");
+    const content =
+      contentRaw == null || String(contentRaw).trim() === ""
+        ? null
+        : String(contentRaw);
+    const imageUrl = String(fd.get("imageUrl") ?? "").trim() || null;
+    const linkUrl = String(fd.get("linkUrl") ?? "").trim() || null;
+    const isActive = fd.get("isActive") !== "false";
+    const sortOrder = parseSortOrder(fd.get("sortOrder"));
+    const startDateStr = fd.get("startDate")
+      ? String(fd.get("startDate")).slice(0, 10)
+      : null;
+    const endDateStr = fd.get("endDate")
+      ? String(fd.get("endDate")).slice(0, 10)
+      : null;
+
+    await db.execute(sql`
+      UPDATE popups SET
+        title = ${title},
+        content = ${content},
+        image_url = ${imageUrl},
+        link_url = ${linkUrl},
+        is_active = ${isActive},
+        sort_order = ${sortOrder},
+        started_at = ${startDateStr},
+        ended_at = ${endDateStr}
+      WHERE popup_id = ${id}
+    `);
     return { success: true };
   }
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(popupsTable).where(eq(popupsTable.popup_id, id));
+    if (id) await db.execute(sql`DELETE FROM popups WHERE popup_id = ${id}`);
     return { success: true };
   }
 
   if (intent === "toggle") {
     const id = Number(fd.get("id"));
     const isActive = fd.get("isActive") === "true";
-    if (id) await db.update(popupsTable).set({ is_active: !isActive }).where(eq(popupsTable.popup_id, id));
+    if (id) {
+      await db.execute(
+        sql`UPDATE popups SET is_active = ${!isActive} WHERE popup_id = ${id}`,
+      );
+    }
     return { success: true };
   }
 
@@ -89,7 +130,7 @@ function mapPopupRowToForm(p: PopupRow): PopupFormData {
     popupId: p.popup_id,
     title: p.title,
     content: p.content ?? "",
-    frequency: "once",
+    sortOrder: p.sort_order ?? 0,
     startDate: p.started_at
       ? new Date(p.started_at).toISOString().slice(0, 10)
       : "",
@@ -104,7 +145,7 @@ interface Popup {
   id: string;
   title: string;
   content: string;
-  frequency: "once" | "daily" | "always";
+  sortOrder: number;
   startDate: string;
   endDate: string;
   imageUrl?: string;
@@ -118,7 +159,7 @@ const MOCK_POPUPS: Popup[] = [
     id: "1",
     title: "신제품 출시 안내",
     content: "새로운 제품이 출시되었습니다. 지금 확인하세요!",
-    frequency: "once",
+    sortOrder: 0,
     startDate: "2024-01-01",
     endDate: "2024-12-31",
     imageUrl: "",
@@ -145,7 +186,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
         id: String(p.popup_id),
         title: p.title,
         content: p.content ?? "",
-        frequency: "once" as const,
+        sortOrder: p.sort_order ?? 0,
         startDate: p.started_at ? new Date(p.started_at).toISOString().slice(0, 10) : "",
         endDate: p.ended_at ? new Date(p.ended_at).toISOString().slice(0, 10) : "",
         imageUrl: p.image_url ?? "",
@@ -169,7 +210,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
     }
     fd.append("title", popupData.title);
     fd.append("content", popupData.content);
-    fd.append("frequency", popupData.frequency);
+    fd.append("sortOrder", String(popupData.sortOrder ?? 0));
     fd.append("startDate", popupData.startDate);
     fd.append("endDate", popupData.endDate);
     fd.append("imageUrl", popupData.imageUrl ?? "");
@@ -192,15 +233,6 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
     fd.append("intent", "delete");
     fd.append("id", id);
     fetcher.submit(fd, { method: "POST" });
-  };
-
-  const getFrequencyLabel = (frequency: Popup["frequency"]) => {
-    const labels: Record<Popup["frequency"], string> = {
-      once: "1회만",
-      daily: "매일",
-      always: "항상",
-    };
-    return labels[frequency];
   };
 
   return (
@@ -258,13 +290,13 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
                   <thead className="bg-gray-50 border-b">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        순서
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         제목
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         기간
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        빈도
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         상태
@@ -277,6 +309,9 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredPopups.map((popup) => (
                       <tr key={popup.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {popup.sortOrder}
+                        </td>
                         <td className="px-6 py-4">
                           <p className="text-sm font-medium text-gray-900">
                             {popup.title}
@@ -284,9 +319,6 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {popup.startDate} ~ {popup.endDate}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {getFrequencyLabel(popup.frequency)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
@@ -360,4 +392,3 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
     </div>
   );
 }
-

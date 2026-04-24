@@ -212,7 +212,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                     {/* 이미지: PC 시안 — 상하좌 10px inset, 244×라운드 30, 배지 30/30 */}
                     {hasImage ? (
                       <div className="relative p-3 md:p-0 md:pt-[10px] md:pr-[10px] md:pl-[10px]">
-                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[25px] md:aspect-auto md:h-[244px] md:w-full">
+                        <div className="relative aspect-square w-full overflow-hidden rounded-[25px] md:rounded-[30px]">
                           <img
                             src={item.image || item.fallback}
                             alt={item.title}

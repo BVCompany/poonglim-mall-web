@@ -1528,6 +1528,10 @@ const en: Translation = {
       carouselPrev: "Previous",
       carouselNext: "Next",
     },
+    promoPopup: {
+      dontShowToday: "Don't show again today",
+      close: "Close",
+    },
     recipes: {
       title: "Recipes & Tips",
       subtitle1: "Experience various dishes",

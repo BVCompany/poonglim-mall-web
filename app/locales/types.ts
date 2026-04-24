@@ -1244,6 +1244,10 @@ export type Translation = {
       carouselPrev: string;
       carouselNext: string;
     };
+    promoPopup: {
+      dontShowToday: string;
+      close: string;
+    };
     recipes: {
       title: string;
       subtitle1: string;

@@ -1,6 +1,6 @@
 /**
  * Popup Add Modal Component
- * 
+ *
  * Modal for adding new popups in admin panel.
  */
 
@@ -16,13 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/core/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/core/components/ui/select";
 
 interface PopupAddModalProps {
   open: boolean;
@@ -36,7 +29,7 @@ export interface PopupFormData {
   popupId?: number;
   title: string;
   content: string;
-  frequency: "once" | "daily" | "always";
+  sortOrder: number;
   startDate: string;
   endDate: string;
   imageUrl: string;
@@ -48,7 +41,7 @@ function emptyPopupForm(): PopupFormData {
   return {
     title: "",
     content: "",
-    frequency: "once",
+    sortOrder: 0,
     startDate: "",
     endDate: "",
     imageUrl: "",
@@ -65,10 +58,12 @@ export function PopupAddModal({
   initial = null,
 }: PopupAddModalProps) {
   const [formData, setFormData] = useState<PopupFormData>(emptyPopupForm);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setFormData(emptyPopupForm());
+      setImageError(false);
       return;
     }
     if (mode === "edit" && initial) {
@@ -77,31 +72,30 @@ export function PopupAddModal({
         ...initial,
         imageUrl: initial.imageUrl ?? "",
         linkUrl: initial.linkUrl ?? "",
+        sortOrder: initial.sortOrder ?? 0,
       });
+      setImageError(false);
       return;
     }
     if (mode === "create") {
       setFormData(emptyPopupForm());
+      setImageError(false);
     }
   }, [open, mode, initial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.imageUrl.trim()) {
+      setImageError(true);
+      return;
+    }
+    setImageError(false);
     onSubmit({ ...formData, popupId: formData.popupId });
     onOpenChange(false);
   };
 
   const handleCancel = () => {
     onOpenChange(false);
-  };
-
-  const getFrequencyLabel = (value: string) => {
-    const labels: Record<string, string> = {
-      once: "1회만",
-      daily: "매일",
-      always: "항상",
-    };
-    return labels[value] || value;
   };
 
   return (
@@ -119,58 +113,55 @@ export function PopupAddModal({
           className="space-y-4 mt-4"
         >
           <p className="text-sm text-gray-600">
-            모달 팝업 정보를 입력하세요
+            메인에 노출되는 이미지 팝업입니다. 이미지·노출 기간·순서를 설정하세요.
           </p>
 
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">제목</Label>
+            <Label htmlFor="title">제목 (관리용)</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="제목을 입력하세요"
+              placeholder="목록에 표시될 제목"
               required
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="sortOrder">노출 순서</Label>
+            <Input
+              id="sortOrder"
+              type="number"
+              min={0}
+              step={1}
+              value={Number.isNaN(formData.sortOrder) ? 0 : formData.sortOrder}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  sortOrder: Number.parseInt(e.target.value, 10) || 0,
+                })
+              }
+            />
+            <p className="text-xs text-gray-500">
+              숫자가 작을수록 먼저 노출됩니다.
+            </p>
+          </div>
+
           {/* Content */}
           <div className="space-y-2">
-            <Label htmlFor="content">내용</Label>
+            <Label htmlFor="content">메모 (선택)</Label>
             <Textarea
               id="content"
               value={formData.content}
               onChange={(e) =>
                 setFormData({ ...formData, content: e.target.value })
               }
-              placeholder="팝업 내용을 입력하세요"
-              rows={4}
-              required
+              placeholder="내부 참고용 메모"
+              rows={3}
             />
-          </div>
-
-          {/* Frequency */}
-          <div className="space-y-2">
-            <Label htmlFor="frequency">표시 빈도</Label>
-            <Select
-              value={formData.frequency}
-              onValueChange={(value: "once" | "daily" | "always") =>
-                setFormData({ ...formData, frequency: value })
-              }
-            >
-              <SelectTrigger id="frequency">
-                <SelectValue placeholder="빈도 선택">
-                  {getFrequencyLabel(formData.frequency)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="once">1회만</SelectItem>
-                <SelectItem value="daily">매일</SelectItem>
-                <SelectItem value="always">항상</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Start Date & End Date */}
@@ -185,7 +176,7 @@ export function PopupAddModal({
                   setFormData({ ...formData, startDate: e.target.value })
                 }
                 className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                style={{ userSelect: 'none' }}
+                style={{ userSelect: "none" }}
                 onFocus={(e) => e.target.showPicker?.()}
                 required
               />
@@ -200,30 +191,39 @@ export function PopupAddModal({
                   setFormData({ ...formData, endDate: e.target.value })
                 }
                 className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                style={{ userSelect: 'none' }}
+                style={{ userSelect: "none" }}
                 onFocus={(e) => e.target.showPicker?.()}
                 required
               />
             </div>
           </div>
 
-          {/* Image Upload (Optional) */}
+          {/* Image Upload */}
           <div className="space-y-2">
-            <Label>팝업 이미지 (선택)</Label>
+            <Label>팝업 이미지 (필수)</Label>
             <ImageUpload
               bucket="media"
               folder="popups"
               value={formData.imageUrl}
-              onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+              onChange={(url) => {
+                setFormData({ ...formData, imageUrl: url });
+                if (url.trim()) setImageError(false);
+              }}
               aspectRatio="4/5"
               hint="JPG, PNG, WebP 최대 10MB"
             />
             <Input
               value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, imageUrl: e.target.value });
+                if (e.target.value.trim()) setImageError(false);
+              }}
               placeholder="또는 이미지 URL 직접 입력"
               className="text-xs"
             />
+            {imageError && (
+              <p className="text-sm text-red-600">이미지를 등록해 주세요.</p>
+            )}
           </div>
 
           {/* Link URL (Optional) */}
@@ -235,7 +235,7 @@ export function PopupAddModal({
               onChange={(e) =>
                 setFormData({ ...formData, linkUrl: e.target.value })
               }
-              placeholder="/products"
+              placeholder="/products 또는 https://..."
             />
           </div>
 
@@ -286,4 +286,3 @@ export function PopupAddModal({
     </Dialog>
   );
 }
-
