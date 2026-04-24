@@ -5,6 +5,7 @@ import { BrandPhilosophy } from "../components/brand-philosophy";
 import { CompanyIntro } from "../components/company-intro";
 import { FeaturedProducts } from "../components/featured-products";
 import { HeroSection } from "../components/hero-section";
+import { HomePromoPopup } from "../components/home-promo-popup";
 import { InstagramFeed } from "../components/instagram-feed";
 import { NewsFeed } from "../components/news-feed";
 import { getActiveBanners, getActivePopups } from "../lib/queries.server";
@@ -45,10 +46,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { banners, featuredProducts, recentNews, companyIntro } = loaderData;
+  const { banners, popups, featuredProducts, recentNews, companyIntro } =
+    loaderData;
 
   return (
     <>
+      <HomePromoPopup popups={popups} />
       {/* 1. Hero Section - 풀스크린 슬라이더 */}
       <HeroSection banners={banners} />
 

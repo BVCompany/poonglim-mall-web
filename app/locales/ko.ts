@@ -1526,6 +1526,10 @@ const ko: Translation = {
       carouselPrev: "이전",
       carouselNext: "다음",
     },
+    promoPopup: {
+      dontShowToday: "오늘 하루 보지 않기",
+      close: "닫기",
+    },
     recipes: {
       title: "활용법 & 레시피",
       subtitle1: "풍림푸드 제품으로 만드는",

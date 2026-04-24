@@ -908,6 +908,7 @@ export type Database = {
           is_active: boolean
           link_url: string | null
           popup_id: number
+          sort_order: number
           started_at: string | null
           title: string
           updated_at: string
@@ -922,6 +923,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           popup_id?: never
+          sort_order?: number
           started_at?: string | null
           title: string
           updated_at?: string
@@ -936,6 +938,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           popup_id?: never
+          sort_order?: number
           started_at?: string | null
           title?: string
           updated_at?: string

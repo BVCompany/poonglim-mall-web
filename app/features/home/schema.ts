@@ -58,6 +58,7 @@ export const popups = pgTable(
     width: integer().default(400),
     height: integer().default(500),
     is_active: boolean().notNull().default(true),
+    sort_order: integer().notNull().default(0),
     started_at: timestamp(),
     ended_at: timestamp(),
     ...timestamps,
