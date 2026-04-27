@@ -183,6 +183,13 @@
       "when": 1776883200000,
       "tag": "0025_popups_sort_order",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1776969600000,
+      "tag": "0026_library_resources_archive_visibility",
+      "breakpoints": true
     }
   ]
 }

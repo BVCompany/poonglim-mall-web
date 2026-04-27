@@ -4,6 +4,22 @@ import * as React from "react";
 
 import { cn } from "~/core/lib/utils";
 
+/**
+ * Dialog 밖으로 포털된 Popover 등 — 바깥 클릭으로 Dialog가 닫히지 않게 함.
+ * `target`만 보면 포인터가 통과한 레이어(캘린더 버튼 등)를 놓치는 경우가 있어 composedPath도 확인.
+ */
+function eventTouchesRadixPopperLayer(event: Event) {
+  const path =
+    typeof event.composedPath === "function" ? event.composedPath() : [];
+  for (const n of path) {
+    if (n instanceof Element && n.hasAttribute("data-radix-popper-content-wrapper")) {
+      return true;
+    }
+  }
+  const t = event.target;
+  return t instanceof Element && t.closest("[data-radix-popper-content-wrapper]") !== null;
+}
+
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -47,6 +63,9 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  onInteractOutside,
+  onPointerDownOutside,
+  onFocusOutside,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
@@ -58,6 +77,33 @@ function DialogContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           className,
         )}
+        onInteractOutside={(event) => {
+          onInteractOutside?.(event);
+          const orig = event.detail.originalEvent;
+          if (
+            !event.defaultPrevented &&
+            orig &&
+            eventTouchesRadixPopperLayer(orig)
+          ) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          onPointerDownOutside?.(event);
+          if (
+            !event.defaultPrevented &&
+            eventTouchesRadixPopperLayer(event.detail.originalEvent)
+          ) {
+            event.preventDefault();
+          }
+        }}
+        onFocusOutside={(event) => {
+          onFocusOutside?.(event);
+          const orig = event.detail.originalEvent;
+          if (!event.defaultPrevented && orig && eventTouchesRadixPopperLayer(orig)) {
+            event.preventDefault();
+          }
+        }}
         {...props}
       >
         {children}

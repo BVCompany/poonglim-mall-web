@@ -4,8 +4,10 @@
  * Modal for adding new job postings in admin panel.
  */
 
+import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
+import { DatePicker } from "~/core/components/ui/date-picker";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
@@ -233,23 +235,20 @@ export function JobAddModal({
 
               <div className="space-y-2">
                 <Label htmlFor="deadline">마감일</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) =>
-                    setFormData({ ...formData, deadline: e.target.value })
+                <DatePicker
+                  value={
+                    formData.deadline
+                      ? new Date(`${formData.deadline}T12:00:00`)
+                      : undefined
                   }
-                  onFocus={(e) => {
-                    try {
-                      (e.target as HTMLInputElement).showPicker?.();
-                    } catch (error) {
-                      // showPicker not supported
-                    }
-                  }}
-                  className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  style={{ userSelect: "none" }}
-                  required
+                  onChange={(d) =>
+                    setFormData({
+                      ...formData,
+                      deadline: d ? format(d, "yyyy-MM-dd") : "",
+                    })
+                  }
+                  placeholder="마감일"
+                  className="rounded-md border border-input"
                 />
               </div>
             </div>

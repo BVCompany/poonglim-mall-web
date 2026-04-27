@@ -3,6 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/media-news";
@@ -821,7 +822,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                   onChange={(d) =>
                     setForm({
                       ...form,
-                      published_at: d ? d.toISOString().slice(0, 10) : "",
+                      published_at: d ? format(d, "yyyy-MM-dd") : "",
                     })
                   }
                   placeholder="연도. 월. 일."
@@ -971,7 +972,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
                   onChange={(d) =>
                     setForm({
                       ...form,
-                      published_at: d ? d.toISOString().slice(0, 10) : "",
+                      published_at: d ? format(d, "yyyy-MM-dd") : "",
                     })
                   }
                   placeholder="연도. 월. 일."

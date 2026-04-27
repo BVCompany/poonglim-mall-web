@@ -55,6 +55,7 @@ export type Database = {
           category_id: number
           color: string
           created_at: string
+          is_visible_on_site: boolean
           name: string
           sort_order: number
           updated_at: string
@@ -63,6 +64,7 @@ export type Database = {
           category_id?: never
           color?: string
           created_at?: string
+          is_visible_on_site?: boolean
           name: string
           sort_order?: number
           updated_at?: string
@@ -71,6 +73,7 @@ export type Database = {
           category_id?: never
           color?: string
           created_at?: string
+          is_visible_on_site?: boolean
           name?: string
           sort_order?: number
           updated_at?: string
@@ -630,12 +633,14 @@ export type Database = {
           author: string
           category: string
           content: string
+          cover_image_url: string | null
           created_at: string
           file_ext: string | null
           file_name: string
           file_size_label: string | null
           file_url: string
           is_active: boolean
+          published_at: string
           resource_id: number
           title: string
           updated_at: string
@@ -645,12 +650,14 @@ export type Database = {
           author?: string
           category: string
           content?: string
+          cover_image_url?: string | null
           created_at?: string
           file_ext?: string | null
           file_name: string
           file_size_label?: string | null
           file_url: string
           is_active?: boolean
+          published_at?: string
           resource_id?: never
           title: string
           updated_at?: string
@@ -660,12 +667,14 @@ export type Database = {
           author?: string
           category?: string
           content?: string
+          cover_image_url?: string | null
           created_at?: string
           file_ext?: string | null
           file_name?: string
           file_size_label?: string | null
           file_url?: string
           is_active?: boolean
+          published_at?: string
           resource_id?: never
           title?: string
           updated_at?: string

@@ -1,7 +1,7 @@
 /**
  * Admin — 고객지원 자료실 (library_resources)
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/support-resources";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -51,6 +51,11 @@ import {
   isLibraryDemoAdminRow,
 } from "~/features/support/lib/library-resources-demo";
 import { cn } from "~/core/lib/utils";
+import {
+  parseDatetimeLocalToDate,
+  toDatetimeLocalValue,
+} from "~/core/lib/datetime-local";
+import { DateTimePicker } from "~/core/components/ui/datetime-picker";
 
 const FALLBACK_RESOURCE_CATEGORIES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
 const PROTECTED_ARCHIVE_CATEGORY = "기타";
@@ -59,6 +64,12 @@ const PAGE_SIZE = 10;
 
 const DOC_INPUT_ACCEPT =
   ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,application/pdf,application/zip,application/x-zip-compressed";
+
+const COVER_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+
+function parsePublishedAtFromForm(fd: FormData): Date {
+  return parseDatetimeLocalToDate(((fd.get("published_at") as string) ?? "").trim());
+}
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "";
@@ -78,7 +89,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     db
       .select()
       .from(libraryResources)
-      .orderBy(desc(libraryResources.created_at))
+      .orderBy(desc(libraryResources.published_at))
       .catch(() => []),
     getArchiveCategoriesOrdered(),
   ]);
@@ -92,23 +103,27 @@ export async function action({ request }: Route.ActionArgs) {
   const readBool = (k: string) => fd.get(k) === "true";
 
   if (intent === "create") {
+    const coverRaw = ((fd.get("cover_image_url") as string) ?? "").trim();
     await db.insert(libraryResources).values({
       category: fd.get("category") as string,
       title: fd.get("title") as string,
       content: (fd.get("content") as string) || "",
       author: (fd.get("author") as string) || "풍림푸드",
+      cover_image_url: coverRaw || null,
       file_name: fd.get("file_name") as string,
       file_url: fd.get("file_url") as string,
       file_size_label: (fd.get("file_size_label") as string) || null,
       file_ext: (fd.get("file_ext") as string) || "PDF",
       is_active: readBool("is_active"),
+      published_at: parsePublishedAtFromForm(fd),
     });
-    return { success: true as const };
+    return { success: true as const, intent: "resource_create" as const };
   }
 
   if (intent === "update") {
     const id = Number(fd.get("id"));
     if (!id) return { success: false as const };
+    const coverRaw = ((fd.get("cover_image_url") as string) ?? "").trim();
     await db
       .update(libraryResources)
       .set({
@@ -116,14 +131,17 @@ export async function action({ request }: Route.ActionArgs) {
         title: fd.get("title") as string,
         content: (fd.get("content") as string) || "",
         author: (fd.get("author") as string) || "풍림푸드",
+        cover_image_url: coverRaw || null,
         file_name: fd.get("file_name") as string,
         file_url: fd.get("file_url") as string,
         file_size_label: (fd.get("file_size_label") as string) || null,
         file_ext: (fd.get("file_ext") as string) || "PDF",
         is_active: readBool("is_active"),
+        published_at: parsePublishedAtFromForm(fd),
+        updated_at: new Date(),
       })
       .where(eq(libraryResources.resource_id, id));
-    return { success: true as const };
+    return { success: true as const, intent: "resource_update" as const };
   }
 
   if (intent === "delete") {
@@ -190,6 +208,17 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true as const, intent: "category" as const };
   }
 
+  if (intent === "category_set_visibility") {
+    const id = Number(fd.get("id"));
+    const vis = fd.get("is_visible_on_site") === "true";
+    if (!id) return { success: false as const, error: "category_validation" as const };
+    await db
+      .update(archiveCategories)
+      .set({ is_visible_on_site: vis, updated_at: new Date() })
+      .where(eq(archiveCategories.category_id, id));
+    return { success: true as const, intent: "category_visibility" as const };
+  }
+
   if (intent === "category_delete") {
     const id = Number(fd.get("id"));
     if (!id) return { success: false as const, error: "category_validation" as const };
@@ -219,6 +248,8 @@ type FormState = {
   title: string;
   content: string;
   author: string;
+  cover_image_url: string;
+  published_at_local: string;
   file_name: string;
   file_url: string;
   file_size_label: string;
@@ -231,6 +262,8 @@ const emptyForm = (): FormState => ({
   title: "",
   content: "",
   author: "풍림푸드",
+  cover_image_url: "",
+  published_at_local: toDatetimeLocalValue(new Date()),
   file_name: "",
   file_url: "",
   file_size_label: "",
@@ -244,12 +277,37 @@ function rowToForm(r: LibraryResource): FormState {
     title: r.title,
     content: r.content ?? "",
     author: r.author,
+    cover_image_url: r.cover_image_url ?? "",
+    published_at_local: toDatetimeLocalValue(r.published_at ?? r.created_at),
     file_name: r.file_name,
     file_url: r.file_url,
     file_size_label: r.file_size_label ?? "",
     file_ext: r.file_ext ?? "PDF",
     is_active: r.is_active !== false,
   };
+}
+
+/** Single Fetch 등으로 액션 결과가 최상위가 아닐 때를 대비해 얕은 탐색 */
+function findActionPayload(
+  d: unknown,
+  maxDepth = 4,
+): { success: boolean; intent?: string; error?: string } | null {
+  if (maxDepth < 0 || d == null || typeof d !== "object") return null;
+  const o = d as Record<string, unknown>;
+  if (typeof o.success === "boolean") {
+    return {
+      success: o.success,
+      intent: typeof o.intent === "string" ? o.intent : undefined,
+      error: typeof o.error === "string" ? o.error : undefined,
+    };
+  }
+  for (const v of Object.values(o)) {
+    if (v != null && typeof v === "object" && !Array.isArray(v)) {
+      const found = findActionPayload(v, maxDepth - 1);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 function LibraryFileDropzone({
@@ -263,7 +321,7 @@ function LibraryFileDropzone({
   onUploaded: (url: string, name: string, sizeLabel: string, ext: string) => void;
   disabled?: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
   const [err, setErr] = useState("");
   const [drag, setDrag] = useState(false);
@@ -295,7 +353,8 @@ function LibraryFileDropzone({
 
   return (
     <div className="space-y-2">
-      <div
+      <label
+        htmlFor={inputId}
         className={cn(
           "relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 transition-colors",
           drag ? "border-[#02633E] bg-[#02633E]/5" : "border-gray-200 bg-gray-50",
@@ -311,9 +370,6 @@ function LibraryFileDropzone({
           setDrag(false);
           if (!disabled) onPick(e.dataTransfer.files);
         }}
-        onClick={() => {
-          if (!disabled && state !== "uploading") inputRef.current?.click();
-        }}
       >
         {state === "uploading" ? (
           <>
@@ -327,19 +383,130 @@ function LibraryFileDropzone({
             <p className="text-center text-xs text-gray-500">또는 파일을 여기로 드래그하세요</p>
           </>
         )}
-      </div>
+      </label>
       <input
-        ref={inputRef}
+        id={inputId}
         type="file"
-        className="hidden"
+        className="sr-only"
         accept={DOC_INPUT_ACCEPT}
         disabled={disabled || state === "uploading"}
-        onChange={(e) => onPick(e.target.files)}
+        onChange={(e) => {
+          onPick(e.target.files);
+          e.target.value = "";
+        }}
       />
       {fileUrl && fileName ? (
         <p className="text-xs text-gray-600">
           선택된 파일: <span className="font-medium text-gray-900">{fileName}</span>
         </p>
+      ) : null}
+      {state === "error" && err ? <p className="text-xs text-red-500">{err}</p> : null}
+    </div>
+  );
+}
+
+function LibraryCoverImageDropzone({
+  imageUrl,
+  onUploaded,
+  disabled,
+}: {
+  imageUrl: string;
+  onUploaded: (url: string) => void;
+  disabled?: boolean;
+}) {
+  const inputId = useId();
+  const [state, setState] = useState<"idle" | "uploading" | "error">("idle");
+  const [err, setErr] = useState("");
+  const [drag, setDrag] = useState(false);
+
+  const upload = useCallback(
+    async (file: File) => {
+      setState("uploading");
+      setErr("");
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("bucket", "documents");
+      fd.append("folder", "library-resource-covers");
+      try {
+        const res = await fetch("/admin/api/upload", { method: "POST", body: fd });
+        const json = (await res.json()) as { url?: string; error?: string };
+        if (!res.ok || json.error) throw new Error(json.error ?? "업로드에 실패했습니다.");
+        onUploaded(json.url!);
+        setState("idle");
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "업로드 오류");
+        setState("error");
+      }
+    },
+    [onUploaded],
+  );
+
+  const onPick = (files: FileList | null) => {
+    const f = files?.[0];
+    if (f) void upload(f);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label
+        htmlFor={inputId}
+        className={cn(
+          "relative flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 transition-colors",
+          drag ? "border-[#02633E] bg-[#02633E]/5" : "border-gray-200 bg-gray-50",
+          disabled || state === "uploading" ? "pointer-events-none opacity-60" : "hover:border-[#02633E]/50",
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          if (!disabled) onPick(e.dataTransfer.files);
+        }}
+      >
+        {state === "uploading" ? (
+          <>
+            <Loader2 className="h-6 w-6 animate-spin text-[#02633E]" />
+            <span className="text-xs text-gray-600">업로드 중...</span>
+          </>
+        ) : (
+          <>
+            <UploadCloud className="h-6 w-6 text-gray-400" />
+            <p className="text-center text-xs font-medium text-gray-700">목록 썸네일 (JPG, PNG, WEBP)</p>
+            <p className="text-center text-[11px] text-gray-500">클릭 또는 드래그</p>
+          </>
+        )}
+      </label>
+      <input
+        id={inputId}
+        type="file"
+        className="sr-only"
+        accept={COVER_INPUT_ACCEPT}
+        disabled={disabled || state === "uploading"}
+        onChange={(e) => {
+          onPick(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      {imageUrl ? (
+        <div className="flex items-center gap-3">
+          <img src={imageUrl} alt="" className="h-16 w-16 rounded-lg object-cover ring-1 ring-gray-200" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            disabled={disabled}
+            onClick={(e) => {
+              e.preventDefault();
+              onUploaded("");
+            }}
+          >
+            썸네일 제거
+          </Button>
+        </div>
       ) : null}
       {state === "error" && err ? <p className="text-xs text-red-500">{err}</p> : null}
     </div>
@@ -355,7 +522,8 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryResource | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm());
-  const fetcher = useFetcher<typeof action>();
+  const resourceFetcher = useFetcher<typeof action>({ key: "admin-support-resources-item" });
+  const categoryFetcher = useFetcher<typeof action>({ key: "admin-support-resources-archive" });
 
   const baseRows = useMemo(
     () => (rows.length > 0 ? rows : getLibraryDemoAdminRows()),
@@ -400,49 +568,49 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     setPage(1);
   }, [searchQuery, categoryFilter]);
 
-  const prevFetcherState = useRef(fetcher.state);
   useEffect(() => {
-    const prev = prevFetcherState.current;
-    prevFetcherState.current = fetcher.state;
-    if (prev !== "submitting" || fetcher.state !== "idle") return;
-    if (!fetcher.data?.success || !dialogOpen) return;
-    setDialogOpen(false);
-    setEditing(null);
-  }, [fetcher.state, fetcher.data, dialogOpen]);
+    if (resourceFetcher.state !== "idle" || !resourceFetcher.data) return;
+    const parsed = findActionPayload(resourceFetcher.data);
+    if (!parsed || !parsed.success) return;
+    if (parsed.intent === "resource_create" || parsed.intent === "resource_update") {
+      setDialogOpen(false);
+      setEditing(null);
+    }
+  }, [resourceFetcher.state, resourceFetcher.data]);
 
   useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data) return;
-    const d = fetcher.data;
-    if ("error" in d && d.error === "category_protected") {
+    if (categoryFetcher.state !== "idle" || !categoryFetcher.data) return;
+    const parsed = findActionPayload(categoryFetcher.data);
+    if (parsed?.error === "category_protected") {
       window.alert(`「${PROTECTED_ARCHIVE_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
       return;
     }
-    if ("error" in d && d.error === "category_in_use") {
+    if (parsed?.error === "category_in_use") {
       window.alert("이 카테고리를 사용 중인 자료가 있어 삭제할 수 없습니다. 먼저 해당 자료의 카테고리를 변경하세요.");
       return;
     }
-    if ("error" in d && d.error === "category_duplicate") {
+    if (parsed?.error === "category_duplicate") {
       window.alert("이미 같은 이름의 카테고리가 있습니다.");
       return;
     }
-    if ("error" in d && d.error === "category_validation") {
+    if (parsed?.error === "category_validation") {
       window.alert("카테고리 이름을 입력해 주세요.");
       return;
     }
-    if ("error" in d && d.error === "category_not_found") {
+    if (parsed?.error === "category_not_found") {
       window.alert("카테고리를 찾을 수 없습니다.");
       return;
     }
-    if ("success" in d && d.success && "intent" in d && d.intent === "category") {
+    if (parsed?.success && parsed.intent === "category") {
       setCategoryManageOpen(false);
     }
-  }, [fetcher.state, fetcher.data]);
+  }, [categoryFetcher.state, categoryFetcher.data]);
 
   const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
     const fd = new FormData();
     fd.append("intent", intent);
     for (const [k, v] of Object.entries(fields)) fd.append(k, v);
-    fetcher.submit(fd, { method: "POST" });
+    void categoryFetcher.submit(fd, { method: "POST", flushSync: true });
   };
 
   const filtered = useMemo(() => {
@@ -498,7 +666,9 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     fd.append("file_size_label", form.file_size_label);
     fd.append("file_ext", form.file_ext);
     fd.append("is_active", form.is_active ? "true" : "false");
-    fetcher.submit(fd, { method: "POST" });
+    fd.append("cover_image_url", form.cover_image_url.trim());
+    fd.append("published_at", form.published_at_local);
+    void resourceFetcher.submit(fd, { method: "POST", flushSync: true });
   };
 
   const handleDelete = (id: number) => {
@@ -507,7 +677,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     const fd = new FormData();
     fd.append("intent", "delete");
     fd.append("id", String(id));
-    fetcher.submit(fd, { method: "POST" });
+    void resourceFetcher.submit(fd, { method: "POST", flushSync: true });
   };
 
   const onFileUploaded = (url: string, name: string, sizeLabel: string, ext: string) => {
@@ -827,6 +997,39 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-gray-800">게시 일시</Label>
+              <DateTimePicker
+                value={form.published_at_local}
+                onChange={(v) => setForm({ ...form, published_at_local: v })}
+                disabled={resourceFetcher.state !== "idle"}
+                className="rounded-lg border-gray-200"
+              />
+              <div className="rounded-lg border border-gray-100 bg-gray-50/90 px-3 py-2.5 text-xs leading-relaxed text-gray-600">
+                <p className="font-medium text-gray-800">안내</p>
+                <ul className="mt-1.5 list-inside list-disc space-y-1">
+                  <li>
+                    버튼을 누르면 <strong className="font-semibold text-gray-800">캘린더</strong>에서 날짜를 고르고,{" "}
+                    <strong className="font-semibold text-gray-800">시·분 드롭다운</strong>(0–23시, 0–59분)에서 고릅니다.
+                  </li>
+                  <li>
+                    <strong className="font-semibold text-gray-800">지금</strong>은 현재 이 기기 시각으로 맞춥니다.{" "}
+                    <strong className="font-semibold text-gray-800">삭제</strong> 후 저장하면 서버에서 현재 시각으로 처리될 수 있습니다.
+                  </li>
+                  <li>과거·미래 일시 모두 설정 가능합니다(예약 게시 시점 등).</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-800">목록 썸네일 (선택)</Label>
+              <LibraryCoverImageDropzone
+                imageUrl={form.cover_image_url}
+                onUploaded={(url) => setForm((f) => ({ ...f, cover_image_url: url }))}
+                disabled={resourceFetcher.state !== "idle"}
+              />
+            </div>
+
             <div className="space-y-2">
               <div>
                 <Label className="text-sm font-medium text-gray-800">첨부파일</Label>
@@ -838,7 +1041,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                 fileUrl={form.file_url}
                 fileName={form.file_name}
                 onUploaded={onFileUploaded}
-                disabled={fetcher.state === "submitting"}
+                disabled={resourceFetcher.state !== "idle"}
               />
             </div>
 
@@ -868,7 +1071,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
               <Button
                 type="submit"
                 className="h-11 rounded-lg bg-[#02633E] text-base font-semibold hover:bg-[#014d30] sm:min-w-[120px]"
-                disabled={fetcher.state === "submitting"}
+                disabled={resourceFetcher.state !== "idle"}
               >
                 {editing ? "저장" : "등록"}
               </Button>

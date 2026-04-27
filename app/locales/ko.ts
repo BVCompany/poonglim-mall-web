@@ -432,6 +432,7 @@ const ko: Translation = {
         sectionCertsSubtitle:
           "국내외 공인 기관의 엄격한 인증과 수상을 통해 품질을 인정받았습니다",
         certListAria: "인증서 목록",
+        awardsListAria: "수상내역 목록",
         tabAwards: "수상내역",
         tabCerts: "인증서",
       },

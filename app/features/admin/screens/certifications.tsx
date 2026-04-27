@@ -10,6 +10,12 @@ import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
 import { Plus, Search, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
 import { brandCertItems } from "~/features/brand/schema";
@@ -96,6 +102,7 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>();
   const [editingData, setEditingData] = useState<CertFormData | undefined>();
+  const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
 
   const filtered = items.filter((item) => {
     const matchesType = filterType === "all" || item.type === filterType;
@@ -246,18 +253,20 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
                         </td>
                         <td className="px-5 py-3 text-center">
                           {item.image_url ? (
-                            <a
-                              href={item.image_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block overflow-hidden rounded-lg border border-gray-200"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setImagePreview({ url: item.image_url!, title: item.title })
+                              }
+                              className="inline-block overflow-hidden rounded-lg border border-gray-200 transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#003F2B]/40"
+                              aria-label={`${item.title} 이미지 크게 보기`}
                             >
                               <img
                                 src={item.image_url}
-                                alt={item.title}
+                                alt=""
                                 className="h-10 w-10 object-cover"
                               />
-                            </a>
+                            </button>
                           ) : (
                             <span className="text-xs text-gray-300">없음</span>
                           )}
@@ -322,6 +331,25 @@ export default function AdminCertificationsScreen({ loaderData }: Route.Componen
           initialData={editingData}
         />
       )}
+
+      <Dialog open={imagePreview !== null} onOpenChange={(o) => !o && setImagePreview(null)}>
+        <DialogContent className="max-h-[min(92vh,900px)] max-w-[min(1200px,calc(100vw-2rem))] gap-3 overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-base font-semibold text-gray-900">
+              {imagePreview?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {imagePreview?.url ? (
+            <div className="flex justify-center rounded-lg bg-gray-50 p-2">
+              <img
+                src={imagePreview.url}
+                alt={imagePreview.title}
+                className="max-h-[min(78vh,800px)] w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
