@@ -6,7 +6,7 @@
 import type { Route } from "./+types/certifications";
 import type { ReactNode } from "react";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -15,6 +15,12 @@ import {
 } from "~/features/brand/lib/queries.server";
 import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
 import i18next from "~/core/lib/i18next.server";
 import { cn } from "~/core/lib/utils";
 import { pc1920, pcMin } from "~/core/lib/pc-fluid";
@@ -170,8 +176,34 @@ type TabKey = "award" | "cert";
 type CertListItem = (typeof MOCK_CERT_ITEMS_KO)[number];
 
 /** 인증서 탭 카드 — 모바일(슬라이드): 기존 시안 / PC(그리드): 1920 시안 px를 100vw/1920로 스케일 */
-function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" | "grid" }) {
+function CertTabCard({
+  item,
+  variant,
+  onPreview,
+}: {
+  item: CertListItem;
+  variant: "slide" | "grid";
+  onPreview?: (item: CertListItem) => void;
+}) {
   const { image_url, title } = item;
+  const imgClass = cn(
+    "h-full w-full object-contain object-center",
+    "rounded-[10px]",
+    variant === "grid" && "md:rounded-[min(10px,calc(10*100vw/1920))]",
+  );
+  const imageInner =
+    image_url && onPreview ? (
+      <button
+        type="button"
+        onClick={() => onPreview(item)}
+        className="flex h-full w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/50 focus-visible:ring-offset-2"
+        aria-label={`${title} 원본 이미지 보기`}
+      >
+        <img src={image_url} alt="" className={imgClass} />
+      </button>
+    ) : (
+      <img src={image_url ?? ""} alt={title} className={imgClass} />
+    );
   return (
     <div
       className={cn(
@@ -196,16 +228,7 @@ function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" |
             "md:gap-[min(18px,calc(18*100vw/1920))] md:h-[min(345px,calc(345*100vw/1920))]",
         )}
       >
-        <img
-          src={image_url ?? ""}
-          alt={title}
-          className={cn(
-            "h-full w-full object-contain object-center",
-            "rounded-[10px]",
-            variant === "grid" &&
-              "md:rounded-[min(10px,calc(10*100vw/1920))]",
-          )}
-        />
+        {imageInner}
       </div>
       <div
         className={cn(
@@ -223,13 +246,115 @@ function CertTabCard({ item, variant }: { item: CertListItem; variant: "slide" |
   );
 }
 
+type AwardSlideItem = (typeof MOCK_AWARD_ITEMS_KO)[number];
+
+/**
+ * 수상내역 1건 — 슬라이드 한 장 안에 예전과 동일한 카드 UI
+ * · 모바일: 아이보리 세로 카드(이미지 303px + 제목)
+ * · PC: 왼쪽 제목 패널 + 오른쪽 흰 패널(이미지)
+ */
+function AwardSlideItem({
+  title,
+  image_url,
+  onPreview,
+}: {
+  title: string;
+  image_url?: string | null;
+  onPreview: () => void;
+}) {
+  return (
+    <div className="min-w-full shrink-0 snap-start">
+      {/* 모바일 — 기존 단일 카드 UI */}
+      <div
+        className={cn(
+          nanum,
+          "flex min-h-0 flex-col gap-5 rounded-[30px] bg-[#EAE3C9] p-5 md:hidden",
+        )}
+      >
+        <div className="flex h-[303px] w-full flex-col gap-[18px] overflow-hidden rounded-[10px]">
+          {image_url ? (
+            <button
+              type="button"
+              onClick={onPreview}
+              className="flex h-full w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/50"
+              aria-label={`${title} 원본 이미지 보기`}
+            >
+              <img
+                src={image_url}
+                alt=""
+                className="h-full w-full rounded-[10px] object-contain object-center"
+              />
+            </button>
+          ) : null}
+        </div>
+        <p className="text-center text-[14px] font-extrabold leading-[21px] text-[#003F2B]">
+          {title}
+        </p>
+      </div>
+
+      {/* PC — 기존 2열 행 UI */}
+      <div className="hidden min-h-[min(360px,calc(360*100vw/1920))] flex-row gap-5 md:flex">
+        <div
+          className={cn(
+            nanum,
+            "flex min-h-[280px] w-[min(533px,calc(533*100vw/1920))] shrink-0 items-center justify-center rounded-[40px] p-10",
+          )}
+          style={{ backgroundColor: "#EAE3C9" }}
+        >
+          <h3
+            className={cn(
+              nanum,
+              "break-words text-center text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-[44.8px] text-[#003F2B]",
+            )}
+            style={{ letterSpacing: "-0.04em" }}
+          >
+            {title}
+          </h3>
+        </div>
+
+        <div
+          className="flex min-h-[280px] min-w-0 flex-1 items-center justify-center rounded-[60px] bg-white"
+          style={{
+            padding: pc1920(24, 60),
+          }}
+        >
+          {image_url ? (
+            <button
+              type="button"
+              onClick={onPreview}
+              className="flex max-h-full w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/40"
+              aria-label={`${title} 원본 이미지 보기`}
+            >
+              <img
+                src={image_url}
+                alt=""
+                className="max-h-[min(774px,calc(774*100vw/1920))] w-full rounded-[60px] object-contain"
+                style={{
+                  maxWidth: pcMin(1017),
+                }}
+              />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CertificationsScreen({
   loaderData,
 }: Route.ComponentProps) {
   const { t, i18n } = useTranslation();
   const { dbAwards, dbCerts } = loaderData;
   const [activeTab, setActiveTab] = useState<TabKey>("award");
+  const [imagePreview, setImagePreview] = useState<{ src: string; title: string } | null>(null);
   const isEn = i18n.language.startsWith("en");
+
+  const openCertPreview = (item: { image_url?: string | null; title: string }) => {
+    const src = item.image_url?.trim();
+    if (!src) return;
+    setImagePreview({ src, title: item.title });
+  };
 
   const tabDefs = useMemo(
     () =>
@@ -478,74 +603,27 @@ export default function CertificationsScreen({
           ))}
         </div>
 
-        {/* 수상내역 — 모바일: 아이보리 단일 카드(이미지 + 캡션) / PC: 기존 2열 */}
+        {/* 수상내역 — 카드 UI는 기존과 동일, 한 건당 한 장씩 가로 스냅 슬라이드 */}
         {activeTab === "award" && (
-          <>
-            <div className="flex flex-col gap-4 md:hidden">
-              {awards.map(({ id, title, image_url }) => (
-                <div
+          <div className="-mx-4 md:-mx-0">
+            <div
+              className={cn(
+                "flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain pb-2",
+                "scroll-pl-4 scroll-pr-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+                "md:px-0 md:pb-4 md:scroll-pl-0 md:scroll-pr-0",
+              )}
+              aria-label={t("pages.brand.certifications.awardsListAria")}
+            >
+              {(awards as AwardSlideItem[]).map(({ id, title, image_url }) => (
+                <AwardSlideItem
                   key={id}
-                  className={cn(
-                    nanum,
-                    "flex min-h-0 flex-col gap-5 rounded-[30px] bg-[#EAE3C9] p-5",
-                  )}
-                >
-                  <div className="flex h-[303px] w-full flex-col gap-[18px] overflow-hidden rounded-[10px]">
-                    <img
-                      src={image_url ?? ""}
-                      alt={title}
-                      className="h-full w-full rounded-[10px] object-contain object-center"
-                    />
-                  </div>
-                  <p className="text-center text-[14px] font-extrabold leading-[21px] text-[#003F2B]">
-                    {title}
-                  </p>
-                </div>
+                  title={title}
+                  image_url={image_url}
+                  onPreview={() => openCertPreview({ image_url, title })}
+                />
               ))}
             </div>
-
-            <div className="hidden md:flex md:h-[clamp(420px,calc(894*100vw/1920),894px)] md:flex-row md:gap-5">
-              {awards.map(({ id, title, image_url }) => (
-                <Fragment key={id}>
-                  <div
-                    className={cn(
-                      nanum,
-                      "flex items-center justify-center rounded-[40px] md:h-full md:w-[min(533px,calc(533*100vw/1920))] md:shrink-0 md:p-10",
-                    )}
-                    style={{ backgroundColor: "#EAE3C9", minHeight: 280 }}
-                  >
-                    <h3
-                      className={cn(
-                        nanum,
-                        "break-words text-center text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-[44.8px] text-[#003F2B]",
-                      )}
-                      style={{ letterSpacing: "-0.04em" }}
-                    >
-                      {title}
-                    </h3>
-                  </div>
-
-                  <div
-                    className="flex flex-1 items-center justify-center rounded-[60px] bg-white md:h-full"
-                    style={{
-                      padding: pc1920(24, 60),
-                      minHeight: 280,
-                    }}
-                  >
-                    <img
-                      src={image_url ?? ""}
-                      alt={title}
-                      className="max-h-full w-full rounded-[60px] object-contain"
-                      style={{
-                        maxWidth: pcMin(1017),
-                        maxHeight: pcMin(774),
-                      }}
-                    />
-                  </div>
-                </Fragment>
-              ))}
-            </div>
-          </>
+          </div>
         )}
 
         {/* 인증서 — 모바일: 가로 스냅 슬라이드(다음 카드 일부 노출) / PC: 그리드 */}
@@ -557,19 +635,48 @@ export default function CertificationsScreen({
                 aria-label={t("pages.brand.certifications.certListAria")}
               >
                 {certs.map((item) => (
-                  <CertTabCard key={item.id} item={item} variant="slide" />
+                  <CertTabCard
+                    key={item.id}
+                    item={item}
+                    variant="slide"
+                    onPreview={openCertPreview}
+                  />
                 ))}
               </div>
             </div>
 
             <div className="hidden grid-cols-2 gap-4 md:grid md:grid-cols-3 md:gap-5 lg:grid-cols-4">
               {certs.map((item) => (
-                <CertTabCard key={item.id} item={item} variant="grid" />
+                <CertTabCard
+                  key={item.id}
+                  item={item}
+                  variant="grid"
+                  onPreview={openCertPreview}
+                />
               ))}
             </div>
           </>
         )}
       </PageContentMax>
+
+      <Dialog open={imagePreview !== null} onOpenChange={(o) => !o && setImagePreview(null)}>
+        <DialogContent className="max-h-[min(92vh,900px)] max-w-[min(1200px,calc(100vw-2rem))] gap-3 overflow-y-auto border-gray-200 p-4 sm:p-6">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="pr-8 font-[family-name:var(--font-nanum)] text-base font-extrabold text-[#003F2B]">
+              {imagePreview?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {imagePreview?.src ? (
+            <div className="flex justify-center rounded-2xl bg-[#FDFDF5] p-2">
+              <img
+                src={imagePreview.src}
+                alt={imagePreview.title}
+                className="max-h-[min(78vh,800px)] w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

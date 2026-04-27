@@ -28,6 +28,8 @@ export type SupportArticleDetailMobileProps = {
   bodyHtml?: string;
   /** 순수 텍스트 본문 (줄바꿈 → br) */
   bodyPlain?: string;
+  /** 대표 이미지 URL (자료실 썸네일 등) */
+  coverImageUrl?: string | null;
   fileName?: string | null;
   fileUrl?: string | null;
   prev: { href: string; title: string } | null;
@@ -42,6 +44,7 @@ export function SupportArticleDetailMobile({
   viewCount,
   bodyHtml,
   bodyPlain,
+  coverImageUrl,
   fileName,
   fileUrl,
   prev,
@@ -131,6 +134,18 @@ export function SupportArticleDetailMobile({
                 aria-hidden
               />
             </a>
+          ) : null}
+
+          {coverImageUrl ? (
+            <div className="w-full">
+              <img
+                src={coverImageUrl}
+                alt={title}
+                className="mx-auto block max-h-[min(360px,55vh)] w-full object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
           ) : null}
 
           <div className="flex w-full gap-2.5 self-stretch pt-2.5">

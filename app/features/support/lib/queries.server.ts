@@ -1,4 +1,4 @@
-import { asc, desc, eq, and, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, and, inArray, lte, sql } from "drizzle-orm";
 
 import type { ContentLocale } from "~/core/db/content-locale.server";
 import { pickBestLocaleRows } from "~/core/db/content-locale.server";
@@ -276,6 +276,18 @@ export async function getAllGradeCerts() {
 }
 
 /* ─────────────────────── 자료실 (library_resources) ─────────────────────── */
+
+/** 사이트 자료실에 노출되는 행만 (비활성·예약·카테고리 숨김 제외) */
+const libraryResourceSiteConditions = and(
+  eq(libraryResources.is_active, true),
+  lte(libraryResources.published_at, sql`now()`),
+  sql`NOT EXISTS (
+    SELECT 1 FROM ${archiveCategories}
+    WHERE ${archiveCategories.name} = ${libraryResources.category}
+    AND ${archiveCategories.is_visible_on_site} = false
+  )`,
+);
+
 export async function getArchiveCategoriesOrdered() {
   return db
     .select()
@@ -284,23 +296,43 @@ export async function getArchiveCategoriesOrdered() {
     .catch(() => []);
 }
 
+/** 공개 자료실 탭: 사이트 노출 카테고리 중 실제 글이 있는 것 + (아카이브 미등록이지만 글이 있는 카테고리) */
+export async function getSiteVisibleArchiveCategoryNames() {
+  const visibleCats = await db
+    .select({ name: archiveCategories.name })
+    .from(archiveCategories)
+    .where(eq(archiveCategories.is_visible_on_site, true))
+    .orderBy(asc(archiveCategories.sort_order));
+
+  const withResources = await db
+    .selectDistinct({ category: libraryResources.category })
+    .from(libraryResources)
+    .where(libraryResourceSiteConditions);
+
+  const has = new Set(withResources.map((r) => r.category));
+  const ordered = visibleCats.map((c) => c.name).filter((name) => has.has(name));
+  const inArchive = new Set(visibleCats.map((c) => c.name));
+  const orphans = [...has]
+    .filter((name) => !inArchive.has(name))
+    .sort((a, b) => a.localeCompare(b, "ko"));
+  return [...ordered, ...orphans];
+}
+
 export type LibraryResource = typeof libraryResources.$inferSelect;
 
 export async function getActiveLibraryResources() {
   return db
     .select()
     .from(libraryResources)
-    .where(eq(libraryResources.is_active, true))
-    .orderBy(desc(libraryResources.created_at));
+    .where(libraryResourceSiteConditions)
+    .orderBy(desc(libraryResources.published_at));
 }
 
 export async function getLibraryResourceById(id: number) {
   const rows = await db
     .select()
     .from(libraryResources)
-    .where(
-      and(eq(libraryResources.resource_id, id), eq(libraryResources.is_active, true)),
-    )
+    .where(and(eq(libraryResources.resource_id, id), libraryResourceSiteConditions))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -309,7 +341,7 @@ export async function hasAnyActiveLibraryResources(): Promise<boolean> {
   const rows = await db
     .select({ id: libraryResources.resource_id })
     .from(libraryResources)
-    .where(eq(libraryResources.is_active, true))
+    .where(libraryResourceSiteConditions)
     .limit(1);
   return rows.length > 0;
 }
@@ -318,9 +350,7 @@ export async function incrementLibraryResourceViewCount(id: number) {
   await db
     .update(libraryResources)
     .set({ view_count: sql`${libraryResources.view_count} + 1` })
-    .where(
-      and(eq(libraryResources.resource_id, id), eq(libraryResources.is_active, true)),
-    );
+    .where(and(eq(libraryResources.resource_id, id), libraryResourceSiteConditions));
 }
 
 export async function getAllLibraryResourcesForAdmin() {
@@ -338,8 +368,8 @@ export async function getAdjacentLibraryResources(resourceId: number) {
       title: libraryResources.title,
     })
     .from(libraryResources)
-    .where(eq(libraryResources.is_active, true))
-    .orderBy(desc(libraryResources.created_at));
+    .where(libraryResourceSiteConditions)
+    .orderBy(desc(libraryResources.published_at));
 
   const idx = all.findIndex((r) => r.resource_id === resourceId);
   if (idx === -1) {

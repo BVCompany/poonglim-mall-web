@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { useState } from "react";
 import { Link, useParams, useActionData, useNavigation } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "~/core/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/core/components/ui/select";
 import { ArrowLeft, Upload, FileText, CheckCircle } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { DatePicker } from "~/core/components/ui/date-picker";
 import i18next from "~/core/lib/i18next.server";
 
 export const meta: Route.MetaFunction = ({ data }) => [{ title: data?.metaTitle ?? "" }];
@@ -241,11 +243,17 @@ export default function CareerApplyScreen() {
                     </div>
                     <div>
                       <Label htmlFor="birthDate">{t("pages.careers.apply.labelBirth")}</Label>
-                      <Input
-                        id="birthDate"
-                        type="date"
-                        value={formData.birthDate}
-                        onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                      <DatePicker
+                        value={
+                          formData.birthDate
+                            ? new Date(`${formData.birthDate}T12:00:00`)
+                            : undefined
+                        }
+                        onChange={(d) =>
+                          handleInputChange("birthDate", d ? format(d, "yyyy-MM-dd") : "")
+                        }
+                        placeholder={t("pages.careers.apply.labelBirth")}
+                        className="rounded-md border border-input bg-background"
                       />
                     </div>
                   </div>

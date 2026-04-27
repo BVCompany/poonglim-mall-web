@@ -315,7 +315,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
         name: p.name,
         description: p.description,
         category: (Array.isArray(p.category) ? p.category[0] : p.category) as AdminProduct["category"],
-        price: p.price ?? 0,
+        price: p.price ?? null,
         originalPrice: p.original_price ?? undefined,
         image: p.image_url ?? "",
         tags: p.tags ?? [],
@@ -345,7 +345,11 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     fd.append("name", productData.name);
     fd.append("description", productData.description);
     fd.append("categories", JSON.stringify(productData.categories));
-    fd.append("price", String(productData.price));
+    if (productData.price != null && Number.isFinite(productData.price)) {
+      fd.append("price", String(productData.price));
+    } else {
+      fd.append("price", "");
+    }
     if (productData.originalPrice) fd.append("originalPrice", String(productData.originalPrice));
     if (productData.badge) fd.append("badge", productData.badge);
     fd.append("image", productData.image ?? "");
@@ -371,7 +375,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
       locale:         raw.locale === "en" ? "en" : "ko",
       name:           raw.name,
       categories:     Array.isArray(raw.category) ? raw.category : (raw.category ? [raw.category] : []),
-      price:          raw.price ?? 0,
+      price:          raw.price ?? undefined,
       originalPrice:  raw.original_price ?? undefined,
       badge:          raw.badge ?? undefined,
       description:    raw.description ?? "",
@@ -396,7 +400,11 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     fd.append("name",        productData.name);
     fd.append("description", productData.description);
     fd.append("categories",  JSON.stringify(productData.categories));
-    fd.append("price",       String(productData.price));
+    if (productData.price != null && Number.isFinite(productData.price)) {
+      fd.append("price", String(productData.price));
+    } else {
+      fd.append("price", "");
+    }
     if (productData.originalPrice) fd.append("originalPrice", String(productData.originalPrice));
     if (productData.badge)         fd.append("badge",         productData.badge);
     fd.append("image",       productData.image ?? "");
@@ -516,14 +524,18 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
 
                       {/* Price */}
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg font-bold text-gray-900">
-                          {formatPrice(product.price)}원
-                        </span>
-                        {product.originalPrice && (
+                        {product.price != null ? (
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatPrice(product.price)}원
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-gray-500">가격 미표기</span>
+                        )}
+                        {product.originalPrice != null && product.originalPrice > 0 ? (
                           <span className="text-sm text-gray-400 line-through">
                             {formatPrice(product.originalPrice)}원
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Tags */}

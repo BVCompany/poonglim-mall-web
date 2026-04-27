@@ -1,9 +1,11 @@
 import type { Route } from "./+types/factory-tour";
 
+import { format } from "date-fns";
 import { CalendarDays, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   type ChangeEvent,
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -14,6 +16,7 @@ import {
 import { Form, useActionData, useNavigation } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { Calendar } from "~/core/components/ui/calendar";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
 import i18next from "~/core/lib/i18next.server";
@@ -190,21 +193,20 @@ function FactoryTourVisitDateField({
   setPopoverRoot,
 }: FactoryTourVisitDateFieldProps) {
   const { t } = useTranslation();
-  const datePickerRef = useRef<HTMLInputElement>(null);
   const [dateTextDraft, setDateTextDraft] = useState(visitDateStr);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() =>
+    visitDateStr ? new Date(`${visitDateStr}T12:00:00`) : new Date(),
+  );
 
   useEffect(() => {
     if (visitDateOpen) setDateTextDraft(visitDateStr);
   }, [visitDateOpen, visitDateStr]);
 
   useEffect(() => {
-    if (!visitDateOpen || !active || disabled) return;
-    const id = window.requestAnimationFrame(() => {
-      datePickerRef.current?.focus({ preventScroll: true });
-      datePickerRef.current?.showPicker?.();
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [visitDateOpen, active, disabled]);
+    if (visitDateOpen && visitDateStr) {
+      setCalendarMonth(new Date(`${visitDateStr}T12:00:00`));
+    }
+  }, [visitDateOpen, visitDateStr]);
 
   const triggerCls = cn(
     ftInputClass,
@@ -256,17 +258,32 @@ function FactoryTourVisitDateField({
           <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
             {t("pages.brand.factoryTour.form.datePickerPick")}
           </p>
-          <input
-            ref={datePickerRef}
-            type="date"
-            value={visitDateStr}
-            onChange={(e) => {
-              const v = e.target.value;
-              setVisitDateStr(v);
-              setDateTextDraft(v);
-            }}
-            className={cn(ftInputClass, "mb-4")}
-          />
+          <div
+            className="mb-4"
+            style={
+              {
+                "--rdp-accent-color": "#02633E",
+                "--rdp-accent-background-color": "rgba(2, 99, 62, 0.12)",
+              } as CSSProperties
+            }
+          >
+            <Calendar
+              mode="single"
+              selected={
+                visitDateStr ? new Date(`${visitDateStr}T12:00:00`) : undefined
+              }
+              onSelect={(d) => {
+                if (!d) return;
+                const v = format(d, "yyyy-MM-dd");
+                setVisitDateStr(v);
+                setDateTextDraft(v);
+              }}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              disabled={disabled}
+              initialFocus
+            />
+          </div>
           <p className="mb-2 font-[family-name:var(--font-nanum)] text-xs font-bold text-[#1F2121]">
             {t("pages.brand.factoryTour.form.dateManualHint")}
           </p>

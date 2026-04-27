@@ -19,7 +19,7 @@ import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
   getActiveLibraryResources,
-  getArchiveCategoriesOrdered,
+  getSiteVisibleArchiveCategoryNames,
 } from "~/features/support/lib/queries.server";
 import { getLibraryDemoPublicList } from "~/features/support/lib/library-resources-demo";
 import {
@@ -41,15 +41,15 @@ export const meta: Route.MetaFunction = ({ data }) => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
-  const [pageBanner, dbResources, dbArchiveCategories] = await Promise.all([
+  const [pageBanner, dbResources, siteCategoryTabNames] = await Promise.all([
     getPageBanner("resources").catch(() => null),
     getActiveLibraryResources().catch(() => []),
-    getArchiveCategoriesOrdered(),
+    getSiteVisibleArchiveCategoryNames().catch(() => []),
   ]);
   return {
     pageBanner,
     dbResources,
-    dbArchiveCategories,
+    siteCategoryTabNames,
     metaTitle: t("pages.resources.metaTitle"),
   };
 }
@@ -88,7 +88,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
-  const { pageBanner, dbResources, dbArchiveCategories } = loaderData;
+  const { pageBanner, dbResources, siteCategoryTabNames } = loaderData;
   const sourceFiles =
     dbResources.length > 0
       ? dbResources.map((r) => ({
@@ -96,17 +96,20 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           category: r.category,
           title: r.title,
           size: r.file_size_label ?? "—",
-          date: r.created_at.toISOString().slice(0, 10),
+          date: r.published_at.toISOString().slice(0, 10),
           ext: r.file_ext ?? "PDF",
           url: r.file_url,
+          coverImageUrl: r.cover_image_url ?? null,
         }))
       : LIBRARY_DEMO_PUBLIC;
   const categoryTabItems = useMemo(() => {
-    const fileCats =
+    const values =
       dbResources.length > 0
-        ? dbResources.map((r) => r.category)
-        : LIBRARY_DEMO_PUBLIC.map((f) => f.category);
-    const values = buildResourceCategoryTabs(dbArchiveCategories, fileCats);
+        ? siteCategoryTabNames
+        : buildResourceCategoryTabs(
+            [],
+            LIBRARY_DEMO_PUBLIC.map((f) => f.category),
+          );
     return [
       { value: RESOURCES_ALL_TAB, label: t("pages.resources.allTab") },
       ...values.map((v) => ({
@@ -114,7 +117,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         label: resourceCategoryTabLabel(v, t),
       })),
     ];
-  }, [dbArchiveCategories, dbResources, t]);
+  }, [siteCategoryTabNames, dbResources, t]);
   const [activeCategory, setActiveCategory] = useState<string>(RESOURCES_ALL_TAB);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -259,6 +262,13 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                             {displayNum}
                           </div>
                         </div>
+                        {file.coverImageUrl ? (
+                          <img
+                            src={file.coverImageUrl}
+                            alt=""
+                            className="h-11 w-11 shrink-0 rounded-md object-cover"
+                          />
+                        ) : null}
                         <div className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-sm font-bold leading-[21px] text-[#1F2121] [word-wrap:break-word]">
                           {file.title}
                         </div>
@@ -306,6 +316,13 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                         </span>
                       </div>
                       <div className="flex min-w-0 flex-1 items-center gap-5">
+                        {file.coverImageUrl ? (
+                          <img
+                            src={file.coverImageUrl}
+                            alt=""
+                            className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                          />
+                        ) : null}
                         <span
                           className="min-w-0 flex-1 font-[NanumSquareRound,sans-serif] font-bold text-[#1F2121] transition-colors group-hover:text-[#02633E]"
                           style={{

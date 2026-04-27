@@ -23,6 +23,7 @@ import {
   getLibraryDemoDetailMap,
   type LibraryDemoDetail,
 } from "~/features/support/lib/library-resources-demo";
+import { linkifyPlainTextToHtml } from "~/features/support/lib/linkify-plain-text";
 import i18next from "~/core/lib/i18next.server";
 
 type ResourceDetail = {
@@ -32,9 +33,10 @@ type ResourceDetail = {
   content: string;
   author: string;
   view_count: number;
-  created_at: string;
+  publishedAt: string;
   file_name: string;
   file_url: string;
+  cover_image_url: string | null;
 };
 
 const MOCK_MAP = getLibraryDemoDetailMap();
@@ -47,9 +49,10 @@ function demoToResourceDetail(d: LibraryDemoDetail): ResourceDetail {
     content: d.content,
     author: d.author,
     view_count: d.view_count,
-    created_at: d.created_at,
+    publishedAt: d.created_at,
     file_name: d.file_name,
     file_url: d.file_url,
+    cover_image_url: d.cover_image_url ?? null,
   };
 }
 
@@ -98,9 +101,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
           content: row.content,
           author: row.author,
           view_count: row.view_count + 1,
-          created_at: row.created_at.toISOString(),
+          publishedAt: row.published_at.toISOString(),
           file_name: row.file_name,
           file_url: row.file_url,
+          cover_image_url: row.cover_image_url ?? null,
         };
         const adj = await getAdjacentLibraryResources(id).catch(() => ({
           prev: null,
@@ -151,9 +155,16 @@ function formatDateTime(val: string | Date) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
+function resourceBodyHtml(content: string): string {
+  const t = content.trim();
+  if (t.startsWith("<")) return content;
+  return linkifyPlainTextToHtml(content);
+}
+
 export default function ResourcesDetailScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
   const { resource, prev, next, pageBanner } = loaderData;
+  const bodyHtml = resourceBodyHtml(resource.content);
 
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
@@ -173,10 +184,11 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
       <PageContentMax className="max-md:pt-0 pb-[120px] pt-6 md:pt-[60px] md:pb-[100px]">
         <SupportArticleDetailMobile
           title={resource.title}
-          createdAt={resource.created_at}
+          createdAt={resource.publishedAt}
           author={resource.author}
           viewCount={resource.view_count}
-          bodyPlain={resource.content}
+          coverImageUrl={resource.cover_image_url}
+          bodyHtml={bodyHtml}
           fileName={resource.file_name}
           fileUrl={resource.file_url}
           prev={prev}
@@ -213,7 +225,7 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                   </h1>
                 </div>
                 <span className="shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal leading-[19.6px] text-[#1F2121]">
-                  {formatDateTime(resource.created_at)}
+                  {formatDateTime(resource.publishedAt)}
                 </span>
               </div>
             </div>
@@ -257,13 +269,21 @@ export default function ResourcesDetailScreen({ loaderData }: Route.ComponentPro
                   </a>
                 </div>
 
+                {resource.cover_image_url ? (
+                  <figure className="m-0 w-full">
+                    <img
+                      src={resource.cover_image_url}
+                      alt={resource.title}
+                      className="mx-auto block max-h-[min(520px,70vh)] w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                ) : null}
+
                 <div
                   className="font-[NanumSquareRound,sans-serif] text-base font-normal leading-[22.4px] text-[#1F2121]"
-                  dangerouslySetInnerHTML={{
-                    __html: resource.content.trim().startsWith("<")
-                      ? resource.content
-                      : resource.content.replace(/\n/g, "<br/>"),
-                  }}
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
                 />
               </div>
             </div>

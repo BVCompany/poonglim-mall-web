@@ -15,6 +15,8 @@ export type LibraryDemoDetail = {
   file_url: string;
   file_size_label: string;
   file_ext: string;
+  /** 상세 대표 이미지(선택) — 데모는 비워 둠 */
+  cover_image_url?: string | null;
 };
 
 /** 공개 목록·카드용 (resources.tsx) */
@@ -26,6 +28,7 @@ export type LibraryDemoPublic = {
   date: string;
   ext: string;
   url: string;
+  coverImageUrl?: string | null;
 };
 
 const DEMO_ENTRIES: LibraryDemoDetail[] = [
@@ -171,6 +174,7 @@ export function getLibraryDemoPublicList(): LibraryDemoPublic[] {
     date: d.created_at.slice(0, 10),
     ext: d.file_ext,
     url: d.file_url,
+    coverImageUrl: null,
   }));
 }
 
@@ -186,12 +190,14 @@ export function getLibraryDemoAdminRows(): LibraryResource[] {
     title: d.title,
     content: d.content,
     author: d.author,
+    cover_image_url: null,
     file_name: d.file_name,
     file_url: d.file_url,
     file_size_label: d.file_size_label,
     file_ext: d.file_ext,
     view_count: d.view_count,
     is_active: true,
+    published_at: new Date(d.created_at),
     created_at: new Date(d.created_at),
     updated_at: new Date(d.created_at),
   }));

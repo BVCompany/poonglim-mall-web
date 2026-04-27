@@ -4,8 +4,10 @@
  * Modal for adding new popups in admin panel.
  */
 
+import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
+import { DatePicker } from "~/core/components/ui/date-picker";
 import { ImageUpload } from "~/core/components/image-upload";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
@@ -168,32 +170,38 @@ export function PopupAddModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">시작일</Label>
-              <Input
-                type="date"
-                id="startDate"
-                value={formData.startDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value })
+              <DatePicker
+                value={
+                  formData.startDate
+                    ? new Date(`${formData.startDate}T12:00:00`)
+                    : undefined
                 }
-                className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                style={{ userSelect: "none" }}
-                onFocus={(e) => e.target.showPicker?.()}
-                required
+                onChange={(d) =>
+                  setFormData({
+                    ...formData,
+                    startDate: d ? format(d, "yyyy-MM-dd") : "",
+                  })
+                }
+                placeholder="시작일"
+                className="rounded-md border border-input"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="endDate">종료일</Label>
-              <Input
-                type="date"
-                id="endDate"
-                value={formData.endDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, endDate: e.target.value })
+              <DatePicker
+                value={
+                  formData.endDate
+                    ? new Date(`${formData.endDate}T12:00:00`)
+                    : undefined
                 }
-                className="cursor-pointer [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                style={{ userSelect: "none" }}
-                onFocus={(e) => e.target.showPicker?.()}
-                required
+                onChange={(d) =>
+                  setFormData({
+                    ...formData,
+                    endDate: d ? format(d, "yyyy-MM-dd") : "",
+                  })
+                }
+                placeholder="종료일"
+                className="rounded-md border border-input"
               />
             </div>
           </div>

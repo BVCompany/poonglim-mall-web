@@ -10,7 +10,16 @@
  * - 관리자 CRUD: service_role (RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgPolicy, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { anonRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -189,7 +198,10 @@ export const archiveCategories = pgTable(
     name: text().notNull().unique(),
     color: text().notNull().default("sky"),
     sort_order: integer().notNull().default(0),
-    ...timestamps,
+    /** false면 자료실 탭에 카테고리 미노출(자료가 있어도 숨김) */
+    is_visible_on_site: boolean("is_visible_on_site").notNull().default(true),
+    updated_at: timestamp("updated_at").notNull().defaultNow(),
+    created_at: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
     pgPolicy("archive-categories-anon-select", {
@@ -212,20 +224,29 @@ export const libraryResources = pgTable(
     title: text().notNull(),
     content: text().notNull().default(""),
     author: text().notNull().default("풍림푸드"),
+    /** 자료실 목록 썸네일(선택) */
+    cover_image_url: text("cover_image_url"),
     file_name: text().notNull(),
     file_url: text().notNull(),
     file_size_label: text(),
     file_ext: text().default("PDF"),
     view_count: integer().notNull().default(0),
     is_active: boolean().notNull().default(true),
-    ...timestamps,
+    /** 목록·상세 노출·정렬 기준(예약·소급 게시) */
+    published_at: timestamp("published_at").notNull().defaultNow(),
+    /** `...timestamps` 공유 시 Drizzle 컬럼 메타가 꼬일 수 있어 이 테이블만 명시 */
+    updated_at: timestamp("updated_at").notNull().defaultNow(),
+    created_at: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
     pgPolicy("library-resources-anon-select", {
       for: "select",
       to: anonRole,
       as: "permissive",
-      using: sql`${table.is_active} = true`,
+      using: sql`
+        ${table.is_active} = true
+        AND ${table.published_at} <= now()
+      `,
     }),
   ],
 );

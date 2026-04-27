@@ -3,9 +3,11 @@
  */
 import type { EventCategory, EventStatus } from "../types/event.types";
 
+import { format } from "date-fns";
 import { useEffect, useState } from "react";
 
 import { Button } from "~/core/components/ui/button";
+import { DatePicker } from "~/core/components/ui/date-picker";
 import { RichTextEditor } from "~/core/components/rich-text-editor";
 import {
   Dialog,
@@ -242,42 +244,40 @@ export function EventAddModal({
               <Label htmlFor="startDate" className="text-sm font-medium text-gray-700">
                 시작일
               </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value })
+              <DatePicker
+                value={
+                  formData.startDate
+                    ? new Date(`${formData.startDate}T12:00:00`)
+                    : undefined
                 }
-                onFocus={(e) => {
-                  try {
-                    (e.target as HTMLInputElement).showPicker?.();
-                  } catch {
-                    /* showPicker 미지원 */
-                  }
-                }}
-                className="cursor-pointer border-gray-200 [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                onChange={(d) =>
+                  setFormData({
+                    ...formData,
+                    startDate: d ? format(d, "yyyy-MM-dd") : "",
+                  })
+                }
+                placeholder="시작일"
+                className="rounded-lg border border-gray-200"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="endDate" className="text-sm font-medium text-gray-700">
                 종료일 (선택)
               </Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, endDate: e.target.value })
+              <DatePicker
+                value={
+                  formData.endDate
+                    ? new Date(`${formData.endDate}T12:00:00`)
+                    : undefined
                 }
-                onFocus={(e) => {
-                  try {
-                    (e.target as HTMLInputElement).showPicker?.();
-                  } catch {
-                    /* showPicker 미지원 */
-                  }
-                }}
-                className="cursor-pointer border-gray-200 [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                onChange={(d) =>
+                  setFormData({
+                    ...formData,
+                    endDate: d ? format(d, "yyyy-MM-dd") : "",
+                  })
+                }
+                placeholder="종료일"
+                className="rounded-lg border border-gray-200"
               />
             </div>
           </div>

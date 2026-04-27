@@ -436,6 +436,7 @@ const en: Translation = {
         sectionCertsSubtitle:
           "Recognized by trusted authorities at home and abroad",
         certListAria: "Certificate list",
+        awardsListAria: "Awards list",
         tabAwards: "Awards",
         tabCerts: "Certificates",
       },

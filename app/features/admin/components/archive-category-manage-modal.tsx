@@ -12,6 +12,7 @@ import {
 } from "~/core/components/ui/dialog";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
+import { Switch } from "~/core/components/ui/switch";
 import { Tag, Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "~/core/lib/utils";
 
@@ -177,6 +178,18 @@ export function ArchiveCategoryManageModal({
                     >
                       {c.name}
                     </span>
+                    <div className="flex shrink-0 flex-col items-center gap-0.5 px-0.5">
+                      <span className="text-[10px] font-medium text-gray-500">사이트</span>
+                      <Switch
+                        checked={c.is_visible_on_site !== false}
+                        onCheckedChange={(v) =>
+                          onSubmitCategory("category_set_visibility", {
+                            id: String(c.category_id),
+                            is_visible_on_site: v ? "true" : "false",
+                          })
+                        }
+                      />
+                    </div>
                     <Button
                       type="button"
                       variant="outline"

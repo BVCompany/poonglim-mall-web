@@ -9,6 +9,7 @@
 import type { JobPosting as DbJobPosting } from "../lib/queries.server";
 import type { Route } from "./+types/positions";
 
+import { format } from "date-fns";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -31,6 +32,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 
+import { DatePicker } from "~/core/components/ui/date-picker";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SectionPageTitle } from "~/core/components/section-title-star";
@@ -2406,34 +2408,52 @@ export default function CareersPositionsScreen({
                                       "flex items-center gap-2.5 !py-0 max-lg:h-[60px] lg:!px-4",
                                     )}
                                   >
-                                    <input
-                                      type="date"
-                                      value={c.startDate}
-                                      onChange={(e) =>
+                                    <DatePicker
+                                      triggerVariant="ghost"
+                                      value={
+                                        c.startDate
+                                          ? new Date(`${c.startDate}T12:00:00`)
+                                          : undefined
+                                      }
+                                      onChange={(d) =>
                                         updateCareer(
                                           c.id,
                                           "startDate",
-                                          e.target.value,
+                                          d ? format(d, "yyyy-MM-dd") : "",
                                         )
                                       }
                                       disabled={c.isCurrent}
-                                      className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0 disabled:opacity-50 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-[#003F2B] lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]"
+                                      placeholder="시작일"
+                                      className={cn(
+                                        "min-h-0 min-w-0 flex-1 justify-start border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:ring-0",
+                                        "font-[family-name:var(--font-nanum)] text-sm font-normal max-lg:text-base max-lg:text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]",
+                                        "h-auto disabled:opacity-50 [&_svg]:max-lg:size-4 [&_svg]:lg:size-4",
+                                      )}
                                     />
                                     <span className="shrink-0 font-[family-name:var(--font-nanum)] text-base font-normal text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]">
                                       ~
                                     </span>
-                                    <input
-                                      type="date"
-                                      value={c.endDate}
-                                      onChange={(e) =>
+                                    <DatePicker
+                                      triggerVariant="ghost"
+                                      value={
+                                        c.endDate
+                                          ? new Date(`${c.endDate}T12:00:00`)
+                                          : undefined
+                                      }
+                                      onChange={(d) =>
                                         updateCareer(
                                           c.id,
                                           "endDate",
-                                          e.target.value,
+                                          d ? format(d, "yyyy-MM-dd") : "",
                                         )
                                       }
                                       disabled={c.isCurrent}
-                                      className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0 disabled:opacity-50 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-[#003F2B] lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]"
+                                      placeholder="종료일"
+                                      className={cn(
+                                        "min-h-0 min-w-0 flex-1 justify-start border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:ring-0",
+                                        "font-[family-name:var(--font-nanum)] text-sm font-normal max-lg:text-base max-lg:text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]",
+                                        "h-auto disabled:opacity-50 [&_svg]:max-lg:size-4 [&_svg]:lg:size-4",
+                                      )}
                                     />
                                   </div>
                                   <label

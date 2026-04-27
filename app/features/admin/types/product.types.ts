@@ -30,7 +30,7 @@ export interface AdminProduct {
   name: string;
   description: string;
   category: ProductCategory;
-  price: number;
+  price: number | null;
   originalPrice?: number;
   image: string;
   tags: string[];
@@ -48,7 +48,7 @@ export interface ProductFormData {
   name: string;
   description: string;
   category: ProductCategory;
-  price: number;
+  price?: number;
   originalPrice?: number;
   image: string;
   tags: string[];

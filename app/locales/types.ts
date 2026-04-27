@@ -734,6 +734,7 @@ export type Translation = {
         sectionCertsTitle: string;
         sectionCertsSubtitle: string;
         certListAria: string;
+        awardsListAria: string;
         tabAwards: string;
         tabCerts: string;
       };

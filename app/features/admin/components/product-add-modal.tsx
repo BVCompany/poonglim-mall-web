@@ -32,7 +32,8 @@ export interface ProductFormData {
   locale?: "ko" | "en";
   name: string;
   categories: string[];        // 복수 카테고리 슬러그 배열
-  price: number;
+  /** 미입력 시 DB null — 가격 미표기 제품 */
+  price?: number;
   originalPrice?: number;
   badge?: string;
   description: string;
@@ -72,7 +73,7 @@ const EMPTY_FORM: ProductFormData = {
   locale: "ko",
   name: "",
   categories: [],
-  price: 0,
+  price: undefined,
   originalPrice: undefined,
   badge: undefined,
   description: "",
@@ -255,14 +256,26 @@ export function ProductAddModal({
           {/* 판매가 / 정가 */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>판매가 *</Label>
+              <Label>판매가 (선택)</Label>
               <Input
                 type="number"
-                value={form.price || ""}
-                onChange={(e) => setForm({ ...form, price: parseInt(e.target.value) || 0 })}
-                placeholder="14800"
-                required
+                min={0}
+                value={form.price != null ? String(form.price) : ""}
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  if (v === "") {
+                    setForm({ ...form, price: undefined });
+                    return;
+                  }
+                  const n = Number.parseInt(v, 10);
+                  setForm({
+                    ...form,
+                    price: Number.isFinite(n) && n >= 0 ? n : undefined,
+                  });
+                }}
+                placeholder="미입력 시 가격 미표기"
               />
+              <p className="text-xs text-gray-500">비우면 쇼핑몰 등에서 가격을 노출하지 않을 수 있습니다.</p>
             </div>
             <div className="space-y-1.5">
               <Label>정가 (선택)</Label>
