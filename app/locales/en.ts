@@ -437,6 +437,8 @@ const en: Translation = {
           "Recognized by trusted authorities at home and abroad",
         certListAria: "Certificate list",
         awardsListAria: "Awards list",
+        awardsEmpty: "No awards have been published yet.",
+        awardNoImage: "No image",
         tabAwards: "Awards",
         tabCerts: "Certificates",
       },

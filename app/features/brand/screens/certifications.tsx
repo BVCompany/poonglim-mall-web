@@ -6,8 +6,9 @@
 import type { Route } from "./+types/certifications";
 import type { ReactNode } from "react";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { XIcon } from "lucide-react";
 
 import {
   getCertAwards,
@@ -17,13 +18,14 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "~/core/components/ui/dialog";
 import i18next from "~/core/lib/i18next.server";
 import { cn } from "~/core/lib/utils";
-import { pc1920, pcMin } from "~/core/lib/pc-fluid";
+import { pcMin } from "~/core/lib/pc-fluid";
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 const pretendard = "font-[Pretendard,system-ui,sans-serif]";
@@ -246,95 +248,123 @@ function CertTabCard({
   );
 }
 
-type AwardSlideItem = (typeof MOCK_AWARD_ITEMS_KO)[number];
+type AwardListEntry = (typeof MOCK_AWARD_ITEMS_KO)[number];
 
 /**
- * 수상내역 1건 — 슬라이드 한 장 안에 예전과 동일한 카드 UI
- * · 모바일: 아이보리 세로 카드(이미지 303px + 제목)
- * · PC: 왼쪽 제목 패널 + 오른쪽 흰 패널(이미지)
+ * 수상내역
+ * · 모바일: 베이지 카드 1장 — 상단 이미지 · 하단 리스트(스크롤) · 탭 선택 시 상단 이미지 변경 · 이미지 클릭 시 모달
+ * · PC: 왼쪽 리스트 · 오른쪽 이미지(동일 동작)
  */
-function AwardSlideItem({
-  title,
-  image_url,
+function AwardsListPanel({
+  awards,
   onPreview,
+  listAriaLabel,
+  emptyLabel,
+  noImageLabel,
 }: {
-  title: string;
-  image_url?: string | null;
-  onPreview: () => void;
+  awards: AwardListEntry[];
+  onPreview: (item: { image_url?: string | null; title: string }) => void;
+  listAriaLabel: string;
+  emptyLabel: string;
+  noImageLabel: string;
 }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const awardsIdentity = useMemo(() => awards.map((a) => a.id).join(","), [awards]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [awardsIdentity]);
+
+  const safeIndex = awards.length > 0 ? Math.min(selectedIndex, awards.length - 1) : 0;
+  const current = awards[safeIndex];
+
+  if (awards.length === 0) {
+    return (
+      <p className={cn(nanum, "rounded-[30px] bg-[#EAE3C9]/60 px-5 py-10 text-center text-sm text-[#003F2B]/80 md:rounded-[40px] md:text-base")}>
+        {emptyLabel}
+      </p>
+    );
+  }
+
+  const listScrollClass =
+    "min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-color:rgba(0,63,43,0.35)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#003F2B]/30";
+
   return (
-    <div className="min-w-full shrink-0 snap-start">
-      {/* 모바일 — 기존 단일 카드 UI */}
+    <div
+      className={cn(
+        "flex flex-col gap-4 overflow-hidden rounded-[30px] bg-[#EAE3C9] p-4",
+        "md:min-h-[min(360px,calc(360*100vw/1920))] md:flex-row md:items-stretch md:gap-5 md:rounded-none md:bg-transparent md:p-0 md:overflow-visible",
+      )}
+    >
+      {/* 모바일: 상단 이미지 / PC: 오른쪽 이미지 */}
+      <div
+        className={cn(
+          "order-1 flex min-h-[200px] min-w-0 flex-1 items-center justify-center rounded-[16px] bg-white p-3",
+          "md:order-2 md:min-h-[280px] md:rounded-[60px] md:p-[clamp(16px,calc(48*100vw/1920),48px)]",
+        )}
+      >
+        {current?.image_url ? (
+          <button
+            type="button"
+            onClick={() => onPreview({ image_url: current.image_url, title: current.title })}
+            className={cn(
+              "flex w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/40",
+            )}
+            aria-label={`${current.title} 원본 이미지 보기`}
+          >
+            <img
+              src={current.image_url}
+              alt=""
+              className={cn(
+                "w-full object-contain",
+                "max-h-[min(320px,52vh)] rounded-[10px]",
+                "md:max-h-[min(774px,calc(774*100vw/1920))] md:rounded-[40px]",
+              )}
+              style={{ maxWidth: pcMin(1017) }}
+            />
+          </button>
+        ) : (
+          <span className={cn(nanum, "text-sm text-[#003F2B]/50")}>{noImageLabel}</span>
+        )}
+      </div>
+
+      {/* 모바일: 하단 리스트 / PC: 왼쪽 리스트 */}
       <div
         className={cn(
           nanum,
-          "flex min-h-0 flex-col gap-5 rounded-[30px] bg-[#EAE3C9] p-5 md:hidden",
+          "order-2 flex max-h-[min(42vh,300px)] min-h-0 flex-col overflow-hidden md:order-1 md:max-h-none",
+          "md:h-auto md:w-[min(380px,calc(380*100vw/1920))] md:shrink-0 md:self-stretch md:rounded-[40px] md:bg-[#EAE3C9]",
         )}
       >
-        <div className="flex h-[303px] w-full flex-col gap-[18px] overflow-hidden rounded-[10px]">
-          {image_url ? (
-            <button
-              type="button"
-              onClick={onPreview}
-              className="flex h-full w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/50"
-              aria-label={`${title} 원본 이미지 보기`}
-            >
-              <img
-                src={image_url}
-                alt=""
-                className="h-full w-full rounded-[10px] object-contain object-center"
-              />
-            </button>
-          ) : null}
-        </div>
-        <p className="text-center text-[14px] font-extrabold leading-[21px] text-[#003F2B]">
-          {title}
-        </p>
-      </div>
-
-      {/* PC — 기존 2열 행 UI */}
-      <div className="hidden min-h-[min(360px,calc(360*100vw/1920))] flex-row gap-5 md:flex">
         <div
-          className={cn(
-            nanum,
-            "flex min-h-[280px] w-[min(533px,calc(533*100vw/1920))] shrink-0 items-center justify-center rounded-[40px] p-10",
-          )}
-          style={{ backgroundColor: "#EAE3C9" }}
+          className={cn(listScrollClass, "px-0 pb-0.5 pt-0.5 md:flex-1 md:px-6 md:py-6")}
+          aria-label={listAriaLabel}
+          role="region"
         >
-          <h3
-            className={cn(
-              nanum,
-              "break-words text-center text-[clamp(22px,calc(32*100vw/1920),32px)] font-extrabold leading-[44.8px] text-[#003F2B]",
-            )}
-            style={{ letterSpacing: "-0.04em" }}
-          >
-            {title}
-          </h3>
-        </div>
-
-        <div
-          className="flex min-h-[280px] min-w-0 flex-1 items-center justify-center rounded-[60px] bg-white"
-          style={{
-            padding: pc1920(24, 60),
-          }}
-        >
-          {image_url ? (
-            <button
-              type="button"
-              onClick={onPreview}
-              className="flex max-h-full w-full cursor-zoom-in items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/40"
-              aria-label={`${title} 원본 이미지 보기`}
-            >
-              <img
-                src={image_url}
-                alt=""
-                className="max-h-[min(774px,calc(774*100vw/1920))] w-full rounded-[60px] object-contain"
-                style={{
-                  maxWidth: pcMin(1017),
-                }}
-              />
-            </button>
-          ) : null}
+          <ul className="m-0 flex list-none flex-col justify-start gap-1 md:min-h-full md:justify-center md:gap-2">
+            {awards.map((item, idx) => {
+              const selected = idx === safeIndex;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIndex(idx)}
+                    aria-current={selected ? "true" : undefined}
+                    className={cn(
+                      "w-full rounded-xl px-3 py-2.5 text-center transition-colors md:px-4 md:py-3",
+                      "text-[13px] leading-snug md:text-[clamp(15px,calc(18*100vw/1920),18px)] md:leading-relaxed",
+                      selected
+                        ? "bg-[#003F2B]/10 font-extrabold text-[#003F2B] md:bg-[#003F2B]/[0.08]"
+                        : "font-medium text-[#003F2B]/55 hover:bg-black/[0.04]",
+                    )}
+                  >
+                    {item.title}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     </div>
@@ -603,26 +633,16 @@ export default function CertificationsScreen({
           ))}
         </div>
 
-        {/* 수상내역 — 카드 UI는 기존과 동일, 한 건당 한 장씩 가로 스냅 슬라이드 */}
+        {/* 수상내역 — 왼쪽 제목 리스트 + 오른쪽 이미지 · 이미지 클릭 시 모달 */}
         {activeTab === "award" && (
-          <div className="-mx-4 md:-mx-0">
-            <div
-              className={cn(
-                "flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain pb-2",
-                "scroll-pl-4 scroll-pr-4 px-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
-                "md:px-0 md:pb-4 md:scroll-pl-0 md:scroll-pr-0",
-              )}
-              aria-label={t("pages.brand.certifications.awardsListAria")}
-            >
-              {(awards as AwardSlideItem[]).map(({ id, title, image_url }) => (
-                <AwardSlideItem
-                  key={id}
-                  title={title}
-                  image_url={image_url}
-                  onPreview={() => openCertPreview({ image_url, title })}
-                />
-              ))}
-            </div>
+          <div className="px-0">
+            <AwardsListPanel
+              awards={awards as AwardListEntry[]}
+              onPreview={openCertPreview}
+              listAriaLabel={t("pages.brand.certifications.awardsListAria")}
+              emptyLabel={t("pages.brand.certifications.awardsEmpty")}
+              noImageLabel={t("pages.brand.certifications.awardNoImage")}
+            />
           </div>
         )}
 
@@ -659,22 +679,63 @@ export default function CertificationsScreen({
         )}
       </PageContentMax>
 
-      <Dialog open={imagePreview !== null} onOpenChange={(o) => !o && setImagePreview(null)}>
-        <DialogContent className="max-h-[min(92vh,900px)] max-w-[min(1200px,calc(100vw-2rem))] gap-3 overflow-y-auto border-gray-200 p-4 sm:p-6">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="pr-8 font-[family-name:var(--font-nanum)] text-base font-extrabold text-[#003F2B]">
-              {imagePreview?.title}
-            </DialogTitle>
-          </DialogHeader>
-          {imagePreview?.src ? (
-            <div className="flex justify-center rounded-2xl bg-[#FDFDF5] p-2">
-              <img
-                src={imagePreview.src}
-                alt={imagePreview.title}
-                className="max-h-[min(78vh,800px)] w-full object-contain"
-              />
+      {/*
+        modal={false}: Radix 스크롤 잠금(RemoveScroll) 미사용 → 본문 스크롤 위치 유지.
+        딤은 수동 레이어로 처리.
+      */}
+      <Dialog
+        modal={false}
+        open={imagePreview !== null}
+        onOpenChange={(open) => {
+          if (!open) setImagePreview(null);
+        }}
+      >
+        <DialogContent
+          hideClose
+          className={cn(
+            "!fixed !inset-0 z-50 !flex !h-[100dvh] !max-h-[100dvh] !w-full !max-w-none !translate-x-0 !translate-y-0",
+            "flex-col items-center justify-center gap-0 overflow-y-auto border-0 bg-transparent p-4 shadow-none",
+          )}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 z-0 bg-black/50"
+            aria-label={t("home.promoPopup.close")}
+            onClick={() => setImagePreview(null)}
+          />
+          <div
+            className={cn(
+              "relative z-10 flex max-h-[min(92vh,900px)] w-[min(100%,1200px)] max-w-[calc(100vw-2rem)]",
+              "shrink-0 flex-col gap-3 overflow-y-auto rounded-lg border border-gray-200 bg-background p-4 shadow-lg sm:p-6",
+            )}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <DialogHeader className="min-w-0 flex-1 space-y-1 text-left">
+                <DialogTitle className="font-[family-name:var(--font-nanum)] text-base font-extrabold text-[#003F2B] sm:pr-2">
+                  {imagePreview?.title}
+                </DialogTitle>
+              </DialogHeader>
+              <DialogClose
+                className={cn(
+                  "ring-offset-background focus:ring-ring shrink-0 rounded-xs opacity-70 transition-opacity",
+                  "hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden",
+                  "self-end sm:mt-0.5 [&_svg]:size-4",
+                )}
+              >
+                <XIcon />
+                <span className="sr-only">{t("home.promoPopup.close")}</span>
+              </DialogClose>
             </div>
-          ) : null}
+            {imagePreview?.src ? (
+              <div className="flex justify-center rounded-2xl bg-[#FDFDF5] p-2">
+                <img
+                  src={imagePreview.src}
+                  alt={imagePreview.title}
+                  className="max-h-[min(78vh,800px)] w-full object-contain"
+                />
+              </div>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
