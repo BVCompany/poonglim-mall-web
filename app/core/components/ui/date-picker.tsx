@@ -1,7 +1,8 @@
 /**
  * Date Picker Component
  *
- * 캘린더 UI — Radix Popover(Portal)로 열어 Dialog 등 overflow:hidden 안에서도 잘리지 않게 함.
+ * 캘린더 UI — Radix Popover(Portal)로 열어 레이아웃 overflow 안에서도 잘리지 않게 함.
+ * `modal`은 쓰지 않음: 모달 모드는 본문 스크롤 잠금(RemoveScroll) 때문에 모바일 폼에서 캘린더 터치·스크롤이 막히는 경우가 많음.
  */
 
 import * as React from "react";
@@ -28,6 +29,11 @@ export interface DatePickerProps {
   defaultMonth?: Date;
   disablePast?: boolean;
   disableFuture?: boolean;
+  /**
+   * 생년월일 등 장기간 이동이 필요할 때 년·월 네이티브 셀렉트 표시.
+   * `startMonth`/`endMonth`는 min/max·과거·미래 제한에 맞춰 자동 계산됩니다.
+   */
+  yearMonthDropdowns?: boolean;
 }
 
 export function DatePicker({
@@ -42,6 +48,7 @@ export function DatePicker({
   defaultMonth,
   disablePast = false,
   disableFuture = false,
+  yearMonthDropdowns = false,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(value);
@@ -61,6 +68,42 @@ export function DatePicker({
     x.setHours(0, 0, 0, 0);
     return x.getTime();
   };
+
+  const dropdownNavBounds = React.useMemo(() => {
+    if (!yearMonthDropdowns) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let endMonth: Date;
+    if (maxDate) {
+      endMonth = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+    } else if (disableFuture) {
+      endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else {
+      endMonth = new Date(today.getFullYear(), 11, 1);
+    }
+
+    let startMonth: Date;
+    if (minDate) {
+      startMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    } else if (disablePast) {
+      startMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else {
+      startMonth = new Date(today.getFullYear() - 120, 0, 1);
+    }
+
+    if (startMonth.getTime() > endMonth.getTime()) {
+      startMonth = new Date(endMonth.getFullYear() - 1, endMonth.getMonth(), 1);
+    }
+
+    return { startMonth, endMonth };
+  }, [
+    yearMonthDropdowns,
+    minDate,
+    maxDate,
+    disablePast,
+    disableFuture,
+  ]);
 
   const isDayDisabled = React.useCallback(
     (d: Date) => {
@@ -106,7 +149,7 @@ export function DatePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant={triggerVariant}
@@ -150,6 +193,15 @@ export function DatePicker({
             onMonthChange={setCurrentMonth}
             disabled={isDayDisabled}
             initialFocus
+            {...(dropdownNavBounds
+              ? {
+                  captionLayout: "dropdown" as const,
+                  reverseYears: true,
+                  navLayout: "around" as const,
+                  startMonth: dropdownNavBounds.startMonth,
+                  endMonth: dropdownNavBounds.endMonth,
+                }
+              : {})}
           />
         </div>
         <div className="flex justify-between border-t px-3 py-2">

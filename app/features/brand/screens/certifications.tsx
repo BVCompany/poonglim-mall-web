@@ -275,6 +275,14 @@ function AwardsListPanel({
     setSelectedIndex(0);
   }, [awardsIdentity]);
 
+  useEffect(() => {
+    if (awards.length <= 1) return;
+    const id = window.setInterval(() => {
+      setSelectedIndex((i) => (i + 1) % awards.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [awards.length, awardsIdentity]);
+
   const safeIndex = awards.length > 0 ? Math.min(selectedIndex, awards.length - 1) : 0;
   const current = awards[safeIndex];
 

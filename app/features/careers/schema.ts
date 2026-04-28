@@ -62,6 +62,8 @@ export const jobPostings = pgTable(
     description: text().notNull(),
     requirements: text(),
     benefits: text(),
+    /** 채용 절차 단계(줄바꿈 구분). null/공백이면 상세 페이지에서 i18n 기본 문구 사용 */
+    hiring_process: text("hiring_process"),
     headcount: integer().default(1),
     status: jobStatusEnum().notNull().default("draft"),
     deadline: timestamp(),
@@ -97,6 +99,19 @@ export const jobApplications = pgTable(
     cover_letter: text(),
     resume_url: text(),
     portfolio_url: text(),
+    education_level: text(),
+    school_name: text(),
+    major: text(),
+    graduation_month: text(),
+    experience_kind: text(),
+    current_company: text(),
+    current_position: text(),
+    military_service: text(),
+    /** 자기소개서 첨부 파일(이력서 본문 텍스트는 cover_letter) */
+    self_intro_file_url: text(),
+    marketing_opt_in: boolean().notNull().default(false),
+    /** 지원서 조회용 비밀번호(문의하기 조회와 동일하게 평문 저장) */
+    lookup_password: text(),
     status: applicationStatusEnum().notNull().default("submitted"),
     admin_memo: text(),
     ...timestamps,

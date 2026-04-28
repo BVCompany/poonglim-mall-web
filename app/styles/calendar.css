@@ -67,3 +67,20 @@
   opacity: 1;
   background-color: #f3f4f6;
 }
+
+/* 년·월 드롭다운 (captionLayout: dropdown) */
+.rdp-dropdowns {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.rdp-dropdown_root {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.rdp-caption_label {
+  font-size: inherit;
+}

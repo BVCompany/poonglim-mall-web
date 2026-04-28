@@ -148,21 +148,36 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
     }
   };
 
-  const getEducationLabel = (level: string) => {
-    switch (level) {
-      case "high-school":
-        return "고등학교 졸업";
-      case "associate":
-        return "전문대 졸업";
-      case "bachelor":
-        return "대학교 졸업";
-      case "master":
-        return "석사";
-      case "doctorate":
-        return "박사";
-      default:
-        return level;
-    }
+  const getEducationLabel = (level: string | null) => {
+    if (!level) return "—";
+    const map: Record<string, string> = {
+      "high-school": "고등학교 졸업",
+      college: "전문대 졸업",
+      university: "대학교 졸업",
+      master: "석사",
+      phd: "박사",
+      associate: "전문대 졸업",
+      bachelor: "대학교 졸업",
+      doctorate: "박사",
+    };
+    return map[level] ?? level;
+  };
+
+  const getMilitaryLabel = (v: string | null) => {
+    if (!v) return "—";
+    const map: Record<string, string> = {
+      completed: "군필",
+      exempted: "면제",
+      "not-applicable": "해당 없음",
+    };
+    return map[v] ?? v;
+  };
+
+  const getExperienceKindLabel = (v: string | null) => {
+    if (!v) return "—";
+    if (v === "fresh") return "신입";
+    if (v === "experienced") return "경력";
+    return v;
   };
 
   return (
@@ -347,8 +362,73 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                       <span>{selectedApp.app.address}</span>
                     </div>
                   )}
+                  {selectedApp.app.marketing_opt_in ? (
+                    <p className="col-span-2 text-xs text-gray-500">
+                      마케팅 수신 동의: 예
+                    </p>
+                  ) : null}
                 </div>
               </div>
+
+              {(selectedApp.app.education_level ||
+                selectedApp.app.school_name ||
+                selectedApp.app.major ||
+                selectedApp.app.graduation_month ||
+                selectedApp.app.experience_kind ||
+                selectedApp.app.military_service) && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900">학력 · 경력</h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                      <p>
+                        <span className="text-gray-500">최종 학력</span>
+                        <br />
+                        {getEducationLabel(selectedApp.app.education_level)}
+                      </p>
+                      <p>
+                        <span className="text-gray-500">졸업(예정)월</span>
+                        <br />
+                        {selectedApp.app.graduation_month ?? "—"}
+                      </p>
+                      <p className="col-span-2">
+                        <span className="text-gray-500">학교명</span>
+                        <br />
+                        {selectedApp.app.school_name ?? "—"}
+                      </p>
+                      <p className="col-span-2">
+                        <span className="text-gray-500">전공</span>
+                        <br />
+                        {selectedApp.app.major ?? "—"}
+                      </p>
+                      <p>
+                        <span className="text-gray-500">경력 구분</span>
+                        <br />
+                        {getExperienceKindLabel(selectedApp.app.experience_kind)}
+                      </p>
+                      <p>
+                        <span className="text-gray-500">병역</span>
+                        <br />
+                        {getMilitaryLabel(selectedApp.app.military_service)}
+                      </p>
+                      {selectedApp.app.experience_kind === "experienced" ? (
+                        <>
+                          <p className="col-span-2">
+                            <span className="text-gray-500">현 직장</span>
+                            <br />
+                            {selectedApp.app.current_company ?? "—"}
+                          </p>
+                          <p className="col-span-2">
+                            <span className="text-gray-500">현 직무</span>
+                            <br />
+                            {selectedApp.app.current_position ?? "—"}
+                          </p>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {selectedApp.app.cover_letter && (
                 <>
@@ -362,6 +442,40 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                 </>
               )}
 
+              {selectedApp.app.resume_url && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-gray-900">이력서 파일</h3>
+                    <a
+                      href={selectedApp.app.resume_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary underline break-all"
+                    >
+                      열기 / 다운로드
+                    </a>
+                  </div>
+                </>
+              )}
+
+              {selectedApp.app.self_intro_file_url && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-gray-900">자기소개서 파일</h3>
+                    <a
+                      href={selectedApp.app.self_intro_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary underline break-all"
+                    >
+                      열기 / 다운로드
+                    </a>
+                  </div>
+                </>
+              )}
+
               {selectedApp.app.portfolio_url && (
                 <>
                   <Separator />
@@ -371,7 +485,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                       href={selectedApp.app.portfolio_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary underline"
+                      className="text-sm text-primary underline break-all"
                     >
                       {selectedApp.app.portfolio_url}
                     </a>

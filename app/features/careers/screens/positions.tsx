@@ -1,23 +1,24 @@
 /**
  * 채용안내 통합 페이지
  *
- * 주요 모집 직무 / 채용 절차 / 채용공고(4-드롭다운 필터) / 입사지원 / 복리후생
+ * 주요 모집 직무 / 채용 절차 / 채용공고(4-드롭다운 필터·목록) / 복리후생
  *
- * 섹션 타이틀(PC·모바일): 녹색 네모 장식 없음 — 반드시 `SectionPageTitle` + 스파클 PNG(`starVariant`).
- * 복리후생은 시안과 동일한 녹색 톤 마크 → `introVector`(/intro/Vector.png), 모바일 섹션 타이틀 텍스트는 `#1F2121`.
+ * 채용공고·복리후생 등 섹션 타이틀 마크는 `SectionTitleStar` / `SectionPageTitle`의 스파클 PNG(`starVariant`)로 통일.
+ * 복리후생은 `brandIntro`(product-star), 모바일 섹션 타이틀 텍스트는 `#1F2121`.
  */
-import type { JobPosting as DbJobPosting } from "../lib/queries.server";
+import type {
+  JobApplicationLookupRow,
+  JobPosting as DbJobPosting,
+} from "../lib/queries.server";
 import type { Route } from "./+types/positions";
 
 import { format } from "date-fns";
 import {
   ArrowRight,
-  ArrowUpRight,
-  Check,
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Paperclip,
+  FileText,
 } from "lucide-react";
 import {
   useCallback,
@@ -29,23 +30,33 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router";
+import { data, Link, useFetcher } from "react-router";
 import { useTranslation } from "react-i18next";
-
-import { DatePicker } from "~/core/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
-import { SectionPageTitle } from "~/core/components/section-title-star";
+import {
+  SectionPageTitle,
+  SectionTitleStar,
+} from "~/core/components/section-title-star";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
-import { getOpenJobPostings } from "../lib/queries.server";
+import {
+  getOpenJobPostings,
+  lookupJobApplicationsByCredentials,
+  toJobApplicationLookupRows,
+} from "../lib/queries.server";
 import i18next from "~/core/lib/i18next.server";
 
 /* ── 타입 ── */
-type MainTab = "all" | "list" | "apply";
-
 const JOB_FILTER_KEYS = [
   "all",
   "production",
@@ -87,6 +98,9 @@ type DisplayJob = {
   createdAt: string;
   status: string;
   statusKey: JobStatusStyleKey;
+  /** 목록 마감 열 — `~ yyyy-MM-dd` 또는 상시 문구 */
+  deadlineLine: string;
+  isNew: boolean;
   duties: string[];
   requirements: string[];
 };
@@ -116,19 +130,83 @@ function expKeyFromDb(level: string): ExpFilterKey {
   return "experienced";
 }
 
-/** 입사지원·공장견학과 동일한 메일 도메인 프리셋(직접입력은 i18n) */
-const JOB_APPLY_EMAIL_DOMAINS = [
-  "gmail.com",
-  "naver.com",
-  "kakao.com",
-  "hanmail.net",
-  "nate.com",
-] as const;
+function statusKeyFromDeadline(deadline: Date | null): JobStatusStyleKey {
+  if (!deadline) return "always";
+  const days = (deadline.getTime() - Date.now()) / 86400000;
+  if (days <= 7) return "closing";
+  return "open";
+}
 
 /**
  * 모바일 채용 필터(body 포털) 세로 위치: 트리거 `getBoundingClientRect().bottom` 기준 추가 오프셋(px).
  * 더 내리려면 값을 키우고, 트리거 상단에 맞추려면 `useLayoutEffect` 안 `measure`에서 `top: r.top + …` 로 바꾸면 됩니다.
  */
+type ApplicationLookupFetcherData =
+  | { ok: true; rows: JobApplicationLookupRow[] }
+  | { ok: false; error: string };
+
+const APPLY_NS = "pages.careers.apply";
+
+function applicationLookupStatusBadgeKey(
+  status: JobApplicationLookupRow["status"],
+):
+  | "badgeStatusSubmitted"
+  | "badgeStatusReviewing"
+  | "badgeStatusAccepted"
+  | "badgeStatusRejected" {
+  switch (status) {
+    case "submitted":
+      return "badgeStatusSubmitted";
+    case "reviewing":
+      return "badgeStatusReviewing";
+    case "accepted":
+      return "badgeStatusAccepted";
+    case "rejected":
+      return "badgeStatusRejected";
+    default:
+      return "badgeStatusSubmitted";
+  }
+}
+
+function lookupFormatEducation(t: (key: string) => string, v: string | null) {
+  if (!v) return "—";
+  const map: Record<string, string> = {
+    "high-school": "eduHigh",
+    college: "eduCollege",
+    university: "eduUniv",
+    master: "eduMaster",
+    phd: "eduPhd",
+  };
+  const k = map[v];
+  return k ? t(`${APPLY_NS}.${k}`) : v.trim() || "—";
+}
+
+function lookupFormatCareer(t: (key: string) => string, v: string | null) {
+  if (!v) return "—";
+  if (v === "fresh") return t(`${APPLY_NS}.summaryFresh`);
+  if (v === "experienced") return t(`${APPLY_NS}.summaryExp`);
+  return v;
+}
+
+function lookupFormatMilitary(t: (key: string) => string, v: string | null) {
+  if (!v) return "—";
+  if (v === "completed") return t(`${APPLY_NS}.milDone`);
+  if (v === "exempted") return t(`${APPLY_NS}.milExempt`);
+  if (v === "not-applicable") return t(`${APPLY_NS}.milNa`);
+  return v;
+}
+
+function attachmentNameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const last = parts[parts.length - 1];
+    return last ? decodeURIComponent(last) : url;
+  } catch {
+    return url;
+  }
+}
+
 const MOBILE_CAREERS_FILTER_FLOAT_OFFSET_Y = 6;
 /** 모바일 채용 필터 플로팅 패널 가로 너비(px) */
 const MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX = 100;
@@ -137,58 +215,9 @@ const MOBILE_CAREERS_FILTER_PANEL_WIDTH_PX = 100;
 const careersFilterDropdownFont =
   "[font-family:Pretendard,system-ui,sans-serif] max-lg:text-[12px] max-lg:font-medium max-lg:leading-none lg:[font-size:clamp(14px,calc(16*100vw/1920),16px)] lg:[line-height:clamp(20px,calc(24*100vw/1920),24px)]";
 
-const jobApplyButtonFont =
-  "[font-family:Pretendard,system-ui,sans-serif] text-[13px] font-bold leading-[19.5px] lg:[font-size:clamp(13px,calc(14*100vw/1920),14px)] lg:[line-height:clamp(19px,calc(21*100vw/1920),21px)]";
-
-/** 공고 카드 요약 행 — 시안(1920) 메타 태그 pill */
-const jobCardMetaTagClass =
-  "rounded-full bg-[#F0EEDD] px-[clamp(8px,calc(12*100vw/1920),12px)] py-[clamp(6px,calc(8*100vw/1920),8px)] text-center font-normal uppercase text-[#1F2121] [font-size:clamp(11px,calc(12*100vw/1920),12px)] [line-height:clamp(14px,calc(16.8*100vw/1920),16.8px)]";
-
-const jobCardDeptBadgeClass =
-  "rounded-full bg-[#F0EEDD] text-center font-medium text-[#1F2121] [font-family:Pretendard,system-ui,sans-serif] max-lg:px-3 max-lg:py-1.5 max-lg:text-xs max-lg:leading-3 px-[clamp(8px,calc(12*100vw/1920),12px)] py-[clamp(6px,calc(8*100vw/1920),8px)] [font-size:clamp(11px,calc(12*100vw/1920),12px)] [line-height:clamp(11px,calc(12*100vw/1920),12px)]";
-
-/** 모바일 시안: 일자·펼침 메타 — 12px Nanum uppercase lh 16.8, 왼쪽 정렬 */
-const jobCardMetaPlainMobile =
-  "text-left font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121]";
-
-/** 모바일 시안: 경력·지역·유형 한 줄 — 14px Nanum uppercase lh 19.6 */
-const jobCardMetaRowMobile =
-  "text-left font-[family-name:var(--font-nanum)] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]";
-
-/** 아코디언 펼침 — 모바일: Nanum 16/24 · 14/19.6 세로 나열 / PC: clamp */
-const jobCardDetailHeadingClass =
-  "font-[family-name:var(--font-nanum)] text-base font-extrabold leading-6 text-[#1F2121] lg:font-sans lg:[font-size:clamp(15px,calc(18*100vw/1920),18px)] lg:[line-height:clamp(22px,calc(27*100vw/1920),27px)]";
-
-const jobCardDetailLineClass =
-  "block w-full text-left font-[family-name:var(--font-nanum)] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121] lg:inline lg:font-sans lg:[font-size:clamp(13px,calc(14*100vw/1920),14px)] lg:[line-height:clamp(17px,calc(19.6*100vw/1920),19.6px)]";
-
-/** 입사지원 폼 입력 — PC 시안: 60높이·10r·16px 패딩·Nanum 18·#1F2121 / 모바일: 기존 */
-const jobApplyInputClass = cn(
-  "w-full border border-[#E5E0D4] bg-white outline-none transition-colors",
-  "rounded-lg px-4 py-3 text-sm focus:border-[#02633E] focus:ring-1 focus:ring-[#02633E]",
-  "max-lg:h-[60px] max-lg:rounded-[10px] max-lg:border-0 max-lg:px-4 max-lg:py-[18px]",
-  "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-normal max-lg:leading-5 max-lg:text-[#003F2B]",
-  "max-lg:placeholder:text-[#003F2B]/55 max-lg:focus:ring-2 max-lg:focus:ring-[#02633E]",
-  "lg:h-[60px] lg:rounded-[10px] lg:border-0 lg:px-4 lg:py-[18px]",
-  "lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:font-normal lg:leading-5 lg:text-[#1F2121]",
-  "lg:placeholder:text-[#1F2121]/60 lg:focus:ring-2 lg:focus:ring-[#02633E]",
-);
-
-const jobApplyLabelDesktop = "mb-1.5 block text-xs font-semibold text-gray-600";
-const jobApplyLabelTextMobile =
-  "font-[family-name:var(--font-nanum)] text-base font-bold text-black";
-const jobApplyStarClass =
-  "font-[Pretendard,system-ui,sans-serif] text-base font-medium text-[#F3372C] lg:text-xl lg:font-medium";
-/** PC 섹션 소제목(기본정보·학력…) — 상단 구분선·60/10 패딩 */
-const jobApplyPcSectionHeading =
-  "lg:mb-0 lg:border-t lg:border-black/60 lg:pt-[60px] lg:pb-2.5 lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black";
-const jobApplySectionBlockMobile =
-  "max-lg:flex max-lg:flex-col max-lg:gap-5 max-lg:border-t max-lg:border-black/60 max-lg:pt-10 lg:flex lg:flex-col lg:gap-[30px] lg:border-t-0 lg:pt-0";
-const jobApplySubfieldMobile =
-  "max-lg:flex max-lg:flex-col max-lg:gap-5 lg:flex lg:flex-col lg:gap-5";
-/** PC 라벨 한 줄 — Nanum 20 bold black */
-const jobApplyLabelPc =
-  "lg:mb-0 lg:inline lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black";
+/** 지원서 조회 목록: 라운드 60px, Pretendard 14/500 — 모바일은 한 줄(동일 너비 flex-1), PC 우측 열은 lg에서 전체 너비 */
+const applicationLookupListActionBtn =
+  "inline-flex min-w-0 flex-1 items-center justify-center break-words rounded-[60px] bg-[#EAE3C9] px-[20px] py-[8px] text-center text-sm font-medium text-black [font-family:Pretendard,system-ui,sans-serif] leading-normal transition-colors hover:bg-[#dfd6b8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#02633E]/30 max-lg:max-w-none max-lg:px-3 max-lg:py-2 max-lg:text-xs lg:box-border lg:max-w-none";
 
 const filterChevronClass =
   "size-[clamp(16px,calc(20*100vw/1920),20px)] shrink-0 max-lg:size-3.5";
@@ -377,6 +406,8 @@ const MOCK_JOBS_KO: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "모집중",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: true,
     duties: [
       "생산 라인 관리 및 공정 개선",
       "생산 계획 수립 및 실적 관리",
@@ -402,6 +433,8 @@ const MOCK_JOBS_KO: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "모집중",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: false,
     duties: [
       "원자재·완제품 품질 검사",
       "불량 원인 분석 및 개선",
@@ -427,6 +460,8 @@ const MOCK_JOBS_KO: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "상시채용",
     statusKey: "always",
+    deadlineLine: "상시 모집",
+    isNew: false,
     duties: [
       "인사·총무 업무 전반",
       "임직원 복리후생 운영",
@@ -452,6 +487,8 @@ const MOCK_JOBS_KO: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "마감임박",
     statusKey: "closing",
+    deadlineLine: "~ 2026-02-18",
+    isNew: true,
     duties: ["B2B 고객사 관리", "신규 거래처 개발", "영업 실적 분석·보고"],
     requirements: [
       "영업 경력 3년 이상",
@@ -473,6 +510,8 @@ const MOCK_JOBS_KO: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "모집중",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: false,
     duties: [
       "브랜드 마케팅 전략 수립",
       "디지털 캠페인 운영",
@@ -501,6 +540,8 @@ const MOCK_JOBS_EN: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "Open",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: true,
     duties: [
       "Line operations and process improvement",
       "Production planning and KPI tracking",
@@ -526,6 +567,8 @@ const MOCK_JOBS_EN: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "Open",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: false,
     duties: [
       "Raw/finished goods inspection",
       "Root-cause analysis for defects",
@@ -551,6 +594,8 @@ const MOCK_JOBS_EN: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "Always hiring",
     statusKey: "always",
+    deadlineLine: "Open until filled",
+    isNew: false,
     duties: [
       "HR and general affairs",
       "Employee benefits programs",
@@ -576,6 +621,8 @@ const MOCK_JOBS_EN: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "Closing soon",
     statusKey: "closing",
+    deadlineLine: "~ 2026-02-18",
+    isNew: true,
     duties: [
       "B2B account management",
       "New business development",
@@ -601,6 +648,8 @@ const MOCK_JOBS_EN: DisplayJob[] = [
     createdAt: "2026-02-18",
     status: "Open",
     statusKey: "open",
+    deadlineLine: "~ 2026-02-18",
+    isNew: false,
     duties: [
       "Brand marketing strategy",
       "Digital campaign operations",
@@ -629,6 +678,43 @@ export async function loader({ request }: Route.LoaderArgs) {
     pageBanner,
     metaTitle: t("pages.careers.positions.metaTitle"),
   };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const t = await i18next.getFixedT(request);
+  const fd = await request.formData();
+  if (fd.get("intent") !== "applicationLookup") {
+    return data(
+      {
+        ok: false as const,
+        error: t("pages.careers.positions.applicationLookup.lookupError"),
+      },
+      { status: 400 },
+    );
+  }
+  const name = String(fd.get("name") ?? "").trim();
+  const phone = String(fd.get("phone") ?? "").trim();
+  const password = String(fd.get("password") ?? "").trim();
+  if (!name || !phone || !password) {
+    return data({
+      ok: false as const,
+      error: t("pages.careers.positions.applicationLookup.lookupInvalid"),
+    });
+  }
+  try {
+    const raw = await lookupJobApplicationsByCredentials({
+      applicantName: name,
+      phone,
+      lookupPassword: password,
+    });
+    const rows = toJobApplicationLookupRows(raw);
+    return data({ ok: true as const, rows });
+  } catch {
+    return data({
+      ok: false as const,
+      error: t("pages.careers.positions.applicationLookup.lookupError"),
+    });
+  }
 }
 
 export default function CareersPositionsScreen({
@@ -742,9 +828,72 @@ export default function CareersPositionsScreen({
     [t],
   );
 
-  const [mainTab, setMainTab] = useState<MainTab>("all");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const jobsSectionRef = useRef<HTMLElement>(null);
+  const [applicationLookupOpen, setApplicationLookupOpen] = useState(false);
+  const [applicationLookupStep, setApplicationLookupStep] = useState<
+    "form" | "list" | "detail"
+  >("form");
+  const [applicationLookupDetailRowId, setApplicationLookupDetailRowId] =
+    useState<string | null>(null);
+  const [lookupName, setLookupName] = useState("");
+  const [lookupPhone, setLookupPhone] = useState("");
+  const [lookupPassword, setLookupPassword] = useState("");
+  const [applicationLookupRows, setApplicationLookupRows] = useState<
+    JobApplicationLookupRow[] | null
+  >(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const lookupFetcher = useFetcher<ApplicationLookupFetcherData>();
+  const applicationLookupTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const applicationLookupAl = "pages.careers.positions.applicationLookup";
+  const applicationLookupDv = `${applicationLookupAl}.detailView`;
+
+  const applicationLookupSelectedRow = useMemo(
+    () =>
+      applicationLookupDetailRowId && applicationLookupRows
+        ? applicationLookupRows.find(
+            (r) => r.id === applicationLookupDetailRowId,
+          ) ?? null
+        : null,
+    [applicationLookupDetailRowId, applicationLookupRows],
+  );
+
+  useEffect(() => {
+    if (!applicationLookupOpen) {
+      setApplicationLookupStep("form");
+      setApplicationLookupDetailRowId(null);
+      setLookupName("");
+      setLookupPhone("");
+      setLookupPassword("");
+      setApplicationLookupRows(null);
+      setLookupError(null);
+    }
+  }, [applicationLookupOpen]);
+
+  useEffect(() => {
+    if (lookupFetcher.state !== "idle" || !lookupFetcher.data) return;
+    const d = lookupFetcher.data;
+    if (d.ok) {
+      setApplicationLookupRows(d.rows);
+      setApplicationLookupStep("list");
+      setLookupError(null);
+    } else {
+      setLookupError(d.error);
+    }
+  }, [lookupFetcher.state, lookupFetcher.data]);
+
+  useEffect(() => {
+    if (
+      applicationLookupOpen &&
+      applicationLookupStep === "detail" &&
+      !applicationLookupSelectedRow
+    ) {
+      setApplicationLookupStep("list");
+    }
+  }, [
+    applicationLookupOpen,
+    applicationLookupStep,
+    applicationLookupSelectedRow,
+  ]);
 
   /* ── 4개 드롭다운 필터 ── */
   const [jobFilter, setJobFilter] = useState<JobFilterKey>("all");
@@ -842,8 +991,16 @@ export default function CareersPositionsScreen({
       const typeUi = t(`pages.careers.shared.jobType.${typeKey}`);
       const expKey = expKeyFromDb(j.experience_level);
       const expLabel = t(`pages.careers.shared.expLevel.${j.experience_level}`);
-      const statusKey: JobStatusStyleKey = j.status === "open" ? "open" : "closing";
+      const deadlineDate = j.deadline ? new Date(j.deadline) : null;
+      const statusKey = statusKeyFromDeadline(deadlineDate);
       const statusUi = t(`pages.careers.positions.jobStatus.${statusKey}`);
+      const deadlineLine = deadlineDate
+        ? `~ ${format(deadlineDate, "yyyy-MM-dd")}`
+        : t("pages.careers.detail.deadlineOpen");
+      const createdAt = j.created_at ? new Date(j.created_at) : null;
+      const isNew =
+        !!createdAt &&
+        (Date.now() - createdAt.getTime()) / 86400000 <= 14;
       const lines = (j.description ?? "").split(/\n+/).filter(Boolean);
       return {
         id: j.job_id,
@@ -854,13 +1011,15 @@ export default function CareersPositionsScreen({
         typeKey,
         exp: expLabel,
         expKey,
-        region: j.location,
+        region: j.location ?? "",
         regionKey: inferRegionKey(j.location ?? ""),
         createdAt: j.created_at
           ? new Date(j.created_at).toISOString().slice(0, 10)
           : "",
         status: statusUi,
         statusKey,
+        deadlineLine,
+        isNew,
         duties: lines.slice(0, 6).length ? lines.slice(0, 6) : [j.description ?? ""],
         requirements: (j.requirements ?? "")
           .split(/\n+/)
@@ -871,7 +1030,6 @@ export default function CareersPositionsScreen({
   }, [loaderData.dbJobs, t, i18n.language]);
 
   const filteredJobs = jobs.filter((j) => {
-    if (mainTab === "apply") return false;
     const jobOk = jobFilter === "all" || j.deptKey === jobFilter;
     const expOk = expFilter === "all" || j.expKey === expFilter;
     const regionOk = regionFilter === "all" || j.regionKey === regionFilter;
@@ -879,102 +1037,28 @@ export default function CareersPositionsScreen({
     return jobOk && expOk && regionOk && statusOk;
   });
 
-  const toggleExpand = (id: number) =>
-    setExpandedId((prev) => (prev === id ? null : id));
-
-  /* 지원하기: 입사지원 탭으로 전환 + 해당 공고 직무 자동 세팅 */
-  const handleApply = (jobTitle: string) => {
-    setFormData((p) => ({ ...p, position: jobTitle }));
-    setMainTab("apply");
-    setTimeout(() => {
-      jobsSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
-  };
-
   const toggleDropdown = (key: "job" | "exp" | "region" | "status") =>
     setOpenDropdown((prev) => (prev === key ? null : key));
 
-  /* ── 입사지원 폼 상태 ── */
-  const [formData, setFormData] = useState({
-    position: "",
-    /* 기본정보 */
-    name: "",
-    gender: "",
-    phone: "",
-    emailLocal: "",
-    emailDomain: "",
-    emailDomainCustom: "",
-    /* 학력 */
-    schoolName: "",
-    major: "",
-    graduationYear: "",
-    /* 자격이력 */
-    qualifications: "",
-    /* 어학실력 */
-    languageSkills: "",
-    /* 자기소개서 */
-    coverLetter: "",
-    privacyAgreed: false,
-  });
-
-  type CareerEntry = {
-    id: number;
-    company: string;
-    position: string;
-    startDate: string;
-    endDate: string;
-    isCurrent: boolean;
-  };
-  const [careers, setCareers] = useState<CareerEntry[]>([]);
-  const addCareer = () =>
-    setCareers((p) =>
-      p.length >= 5
-        ? p
-        : [
-            ...p,
-            {
-              id: Date.now(),
-              company: "",
-              position: "",
-              startDate: "",
-              endDate: "",
-              isCurrent: false,
-            },
-          ],
-    );
-  const removeCareer = (id: number) =>
-    setCareers((p) => p.filter((c) => c.id !== id));
-  const updateCareer = (
-    id: number,
-    field: keyof CareerEntry,
-    value: string | boolean,
-  ) =>
-    setCareers((p) =>
-      p.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
-    );
-
-  const handleJobApplyEmailDomainChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const v = e.target.value;
-      setFormData((p) => ({
-        ...p,
-        emailDomain: v,
-        ...(v !== "" ? { emailDomainCustom: "" } : {}),
-      }));
-    },
-    [],
-  );
-
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleApplicationLookupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+    const name = lookupName.trim();
+    const phone = lookupPhone.trim();
+    const password = lookupPassword.trim();
+    if (!name || !phone || !password) {
+      setLookupError(t(`${applicationLookupAl}.lookupInvalid`));
+      return;
+    }
+    setLookupError(null);
+    const fd = new FormData();
+    fd.append("intent", "applicationLookup");
+    fd.append("name", name);
+    fd.append("phone", phone);
+    fd.append("password", password);
+    lookupFetcher.submit(fd, { method: "post" });
   };
+
+  const lookupSubmitting = lookupFetcher.state !== "idle";
 
   return (
     <div
@@ -1231,607 +1315,665 @@ export default function CareersPositionsScreen({
         </PageContentMax>
       </section>
 
-      {/* ── 채용공고 섹션 (시안: gap·탭바·목록 / 섹션 타이틀은 SectionPageTitle·스파클 PNG) ── */}
-      <section ref={jobsSectionRef}>
+      {/* ── 채용공고: 시안 — 스파클 마크·제목·지원서 조회/수정 · 아이보리 필터 · 행 링크(/careers/:id) ── */}
+      <section>
         <PageContentMax className="pb-10 max-lg:px-0 md:pt-[clamp(40px,calc(100*100vw/1920),100px)] md:pb-[clamp(40px,calc(100*100vw/1920),100px)]">
-          <div className="flex w-full flex-col max-lg:gap-0 lg:gap-3">
-            <div className="flex w-full flex-col max-lg:gap-3 lg:gap-[clamp(16px,calc(30*100vw/1920),30px)]">
-              <div className="flex w-full flex-col max-lg:gap-0 lg:gap-10">
-                <SectionPageTitle
-                  as="h2"
-                  preset="responsiveLg"
-                  className="mb-0 max-lg:px-4 max-lg:pt-5"
-                >
+          <div className="flex w-full flex-col gap-[30px] max-lg:gap-0 lg:gap-[clamp(12px,calc(30*100vw/1920),30px)]">
+            {/* 모바일 시안: pt20 px16 gap11 — 제목 18/30 + 우측 pill(12px) 한 줄 / PC는 기존 */}
+            <div className="flex w-full items-center gap-[11px] max-lg:pt-5 max-lg:px-4 lg:gap-5 lg:pt-0 lg:px-0">
+              <div className="flex shrink-0 items-center lg:h-[42px]">
+                <SectionTitleStar
+                  variant="brandIntro"
+                  className="size-[21px] shrink-0"
+                />
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-3">
+                <h2 className="min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[30px] text-[#1F2121] lg:text-[36px] lg:leading-[54px]">
                   {t("pages.careers.positions.sectionPostings")}
-                </SectionPageTitle>
+                </h2>
+                <button
+                  ref={applicationLookupTriggerRef}
+                  type="button"
+                  onClick={() => {
+                    setOpenDropdown(null);
+                    setApplicationLookupOpen(true);
+                  }}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[30.19px] bg-white px-[14px] py-2.5 font-[family-name:var(--font-nanum)] text-xs font-extrabold leading-[15.6px] text-[#1F2121] shadow-sm ring-1 ring-black/[0.06] transition-colors hover:bg-white/90 lg:gap-2.5 lg:rounded-[40px] lg:px-6 lg:py-4 lg:text-base lg:leading-normal"
+                >
+                  {t("pages.careers.positions.applicationLookup.button")}
+                  <FileText
+                    className="size-[15px] shrink-0 text-[#1F2121] lg:size-5"
+                    aria-hidden
+                  />
+                </button>
+              </div>
+            </div>
 
-                {/* 모바일: 탭 + 필터(채용공고 탭 시 가로 한 줄·넘치면 가로 스크롤) / lg: 한 줄 — 탭 | 구분선 | 필터 */}
+            <div
+              ref={dropdownRef}
+              className={cn(
+                "flex w-full flex-col overflow-visible",
+                openDropdown !== null && "relative z-40",
+              )}
+            >
+              <div
+                ref={filterRowScrollRef}
+                className={cn(
+                  "flex min-h-0 min-w-0 flex-wrap items-center gap-2",
+                  "max-lg:w-full max-lg:flex-nowrap max-lg:items-center max-lg:gap-5 max-lg:overflow-x-auto max-lg:px-4 max-lg:py-5 max-lg:[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                )}
+              >
                 <div
-                  ref={dropdownRef}
                   className={cn(
-                    "flex w-full flex-col gap-0 overflow-visible",
-                    "max-lg:rounded-2xl max-lg:bg-[var(--site-chrome-header-bg,#FDFDF5)] max-lg:px-0 max-lg:py-2",
-                    "lg:flex-row lg:flex-nowrap lg:items-center lg:gap-x-[clamp(16px,calc(60*100vw/1920),60px)] lg:rounded-[clamp(20px,calc(40*100vw/1920),40px)] lg:bg-[#02633E] lg:px-[clamp(16px,calc(60*100vw/1920),60px)] lg:py-[clamp(12px,calc(20*100vw/1920),20px)]",
-                    openDropdown !== null && "relative z-40",
+                    "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
+                    openDropdown === "job" ? "z-[60]" : "z-30",
                   )}
                 >
-                  {/* 모바일: 탭 줄 배경=페이지색(흰 카드 제거) · 활성=흰 pill · 비활성=녹색 pill · lg+: 녹색 바 */}
-                  <div className="flex w-full shrink-0 flex-col gap-1 py-[14px] max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 lg:w-auto lg:flex-row lg:flex-nowrap lg:items-center lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:px-0 lg:py-0">
-                    <div className="flex flex-wrap items-center gap-[10px]">
-                      {(["all", "list", "apply"] as MainTab[]).map((tab) => {
-                          const label =
-                            tab === "all"
-                              ? t("pages.careers.positions.tabAll", {
-                                  count: jobs.length,
-                                })
-                              : tab === "list"
-                                ? t("pages.careers.positions.tabList")
-                                : t("pages.careers.positions.tabApply");
-                          const active = mainTab === tab;
-                          return (
-                            <button
-                              key={tab}
-                              type="button"
-                              onClick={() => {
-                                setMainTab(tab);
-                                setOpenDropdown(null);
-                              }}
-                              className={cn(
-                                "shrink-0 px-3 py-1.5 font-[family-name:var(--font-nanum)] text-xs leading-[18px] transition-colors",
-                                "lg:rounded-[clamp(20px,calc(40*100vw/1920),40px)] lg:px-[clamp(12px,calc(20*100vw/1920),20px)] lg:py-[clamp(6px,calc(10*100vw/1920),10px)] lg:font-sans lg:[font-size:clamp(15px,calc(18*100vw/1920),18px)] lg:[line-height:clamp(22px,calc(27*100vw/1920),27px)]",
-                                active
-                                  ? "rounded-[40px] bg-white font-extrabold text-[#154725] lg:rounded-[clamp(20px,calc(40*100vw/1920),40px)]"
-                                  : "rounded-[40px] bg-[#02633E] font-bold text-white max-lg:ring-0 lg:bg-transparent lg:font-bold lg:text-white",
-                              )}
-                            >
-                              {label}
-                            </button>
-                          );
-                      })}
-                    </div>
-                  </div>
-
-                  {mainTab === "list" && (
-                    <>
-                      <div
-                        className="hidden h-5 w-px shrink-0 self-center bg-white/35 lg:block"
+                  <button
+                    ref={jobFilterBtnRef}
+                    type="button"
+                    onClick={() => toggleDropdown("job")}
+                    aria-expanded={openDropdown === "job"}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-4 py-2 font-bold text-[#1F2121] transition-colors",
+                      careersFilterDropdownFont,
+                      "max-lg:gap-0.5 max-lg:rounded-none max-lg:bg-transparent max-lg:p-0 max-lg:shadow-none max-lg:ring-0 max-lg:hover:bg-transparent",
+                      "max-lg:[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-none max-lg:text-black",
+                      openDropdown === "job" && "max-lg:text-[#32AF32]",
+                    )}
+                  >
+                    {labelJobFilter(jobFilter)}
+                    {openDropdown === "job" ? (
+                      <ChevronUp
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
                         aria-hidden
                       />
-                      <div
-                        ref={filterRowScrollRef}
+                    ) : (
+                      <ChevronDown
                         className={cn(
-                          "flex min-h-0 min-w-0 flex-wrap items-center justify-start overflow-visible",
-                          "max-lg:w-full max-lg:flex-nowrap max-lg:gap-3 max-lg:overflow-x-auto max-lg:border-t max-lg:border-black/20 max-lg:px-4 max-lg:py-5 max-lg:[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-                          "lg:shrink-0 lg:flex-nowrap lg:items-center lg:justify-start lg:gap-[clamp(8px,calc(10*100vw/1920),10px)] lg:border-t-0 lg:px-0 lg:py-0",
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
                         )}
-                      >
-                        {/* 전체 직무 — 열림 시 패널은 트리거 너비에 맞춰 바로 아래에 고정(absolute) */}
-                        <div
-                          className={cn(
-                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
-                            openDropdown === "job" ? "z-[60]" : "z-30",
-                          )}
-                        >
-                          <button
-                            ref={jobFilterBtnRef}
-                            type="button"
-                            onClick={() => toggleDropdown("job")}
-                            aria-expanded={openDropdown === "job"}
-                            className={cn(
-                              "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-bold text-white transition-colors",
-                              "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
-                              careersFilterDropdownFont,
-                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
-                              openDropdown === "job" &&
-                                "max-lg:font-semibold max-lg:text-[#32AF32]",
-                            )}
-                          >
-                            {labelJobFilter(jobFilter)}
-                            {openDropdown === "job" ? (
-                              <ChevronUp
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-[#32AF32]",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            ) : (
-                              <ChevronDown
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-black",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            )}
-                          </button>
-                          {openDropdown === "job" && !isMaxLg && (
-                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
-                              <CareersFilterDropdownFloating
-                                currentValue={jobFilter}
-                                options={JOB_FILTER_KEYS}
-                                formatLabel={(v) => labelJobFilter(v as JobFilterKey)}
-                                listboxAriaLabel={t(
-                                  "pages.careers.positions.filterOptionsAria",
-                                )}
-                                onPick={(opt) => {
-                                  setJobFilter(opt);
-                                  setOpenDropdown(null);
-                                }}
-                                onClose={() => setOpenDropdown(null)}
-                              />
-                            </div>
-                          )}
-                        </div>
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                  {openDropdown === "job" && !isMaxLg && (
+                    <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                      <CareersFilterDropdownFloating
+                        currentValue={jobFilter}
+                        options={JOB_FILTER_KEYS}
+                        formatLabel={(v) => labelJobFilter(v as JobFilterKey)}
+                        listboxAriaLabel={t(
+                          "pages.careers.positions.filterOptionsAria",
+                        )}
+                        onPick={(opt) => {
+                          setJobFilter(opt);
+                          setOpenDropdown(null);
+                        }}
+                        onClose={() => setOpenDropdown(null)}
+                      />
+                    </div>
+                  )}
+                </div>
 
-                        {/* 전체 경력 — 500 */}
-                        <div
-                          className={cn(
-                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
-                            openDropdown === "exp" ? "z-[60]" : "z-30",
-                          )}
-                        >
-                          <button
-                            ref={expFilterBtnRef}
-                            type="button"
-                            onClick={() => toggleDropdown("exp")}
-                            aria-expanded={openDropdown === "exp"}
-                            className={cn(
-                              "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
-                              "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
-                              careersFilterDropdownFont,
-                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
-                              openDropdown === "exp" &&
-                                "max-lg:font-semibold max-lg:text-[#32AF32]",
-                            )}
-                          >
-                            {labelExpFilter(expFilter)}
-                            {openDropdown === "exp" ? (
-                              <ChevronUp
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-[#32AF32]",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            ) : (
-                              <ChevronDown
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-black",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            )}
-                          </button>
-                          {openDropdown === "exp" && !isMaxLg && (
-                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
-                              <CareersFilterDropdownFloating
-                                currentValue={expFilter}
-                                options={EXP_FILTER_KEYS}
-                                formatLabel={(v) => labelExpFilter(v as ExpFilterKey)}
-                                listboxAriaLabel={t(
-                                  "pages.careers.positions.filterOptionsAria",
-                                )}
-                                onPick={(opt) => {
-                                  setExpFilter(opt);
-                                  setOpenDropdown(null);
-                                }}
-                                onClose={() => setOpenDropdown(null)}
-                              />
-                            </div>
-                          )}
-                        </div>
+                <div
+                  className={cn(
+                    "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
+                    openDropdown === "exp" ? "z-[60]" : "z-30",
+                  )}
+                >
+                  <button
+                    ref={expFilterBtnRef}
+                    type="button"
+                    onClick={() => toggleDropdown("exp")}
+                    aria-expanded={openDropdown === "exp"}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-4 py-2 font-bold text-[#1F2121] transition-colors",
+                      careersFilterDropdownFont,
+                      "max-lg:gap-0.5 max-lg:rounded-none max-lg:bg-transparent max-lg:p-0 max-lg:shadow-none max-lg:ring-0 max-lg:hover:bg-transparent",
+                      "max-lg:[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-none max-lg:text-black",
+                      openDropdown === "exp" && "max-lg:text-[#32AF32]",
+                    )}
+                  >
+                    {labelExpFilter(expFilter)}
+                    {openDropdown === "exp" ? (
+                      <ChevronUp
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    ) : (
+                      <ChevronDown
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                  {openDropdown === "exp" && !isMaxLg && (
+                    <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                      <CareersFilterDropdownFloating
+                        currentValue={expFilter}
+                        options={EXP_FILTER_KEYS}
+                        formatLabel={(v) => labelExpFilter(v as ExpFilterKey)}
+                        listboxAriaLabel={t(
+                          "pages.careers.positions.filterOptionsAria",
+                        )}
+                        onPick={(opt) => {
+                          setExpFilter(opt);
+                          setOpenDropdown(null);
+                        }}
+                        onClose={() => setOpenDropdown(null)}
+                      />
+                    </div>
+                  )}
+                </div>
 
-                        {/* 전체 지역 — 500 */}
-                        <div
-                          className={cn(
-                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
-                            openDropdown === "region" ? "z-[60]" : "z-30",
-                          )}
-                        >
-                          <button
-                            ref={regionFilterBtnRef}
-                            type="button"
-                            onClick={() => toggleDropdown("region")}
-                            aria-expanded={openDropdown === "region"}
-                            className={cn(
-                              "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
-                              "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
-                              careersFilterDropdownFont,
-                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
-                              openDropdown === "region" &&
-                                "max-lg:font-semibold max-lg:text-[#32AF32]",
-                            )}
-                          >
-                            {labelRegionFilter(regionFilter)}
-                            {openDropdown === "region" ? (
-                              <ChevronUp
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-[#32AF32]",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            ) : (
-                              <ChevronDown
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-black",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            )}
-                          </button>
-                          {openDropdown === "region" && !isMaxLg && (
-                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
-                              <CareersFilterDropdownFloating
-                                currentValue={regionFilter}
-                                options={REGION_FILTER_KEYS}
-                                formatLabel={(v) =>
-                                  labelRegionFilter(v as RegionFilterKey)
-                                }
-                                listboxAriaLabel={t(
-                                  "pages.careers.positions.filterOptionsAria",
-                                )}
-                                onPick={(opt) => {
-                                  setRegionFilter(opt);
-                                  setOpenDropdown(null);
-                                }}
-                                onClose={() => setOpenDropdown(null)}
-                              />
-                            </div>
-                          )}
-                        </div>
+                <div
+                  className={cn(
+                    "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
+                    openDropdown === "region" ? "z-[60]" : "z-30",
+                  )}
+                >
+                  <button
+                    ref={regionFilterBtnRef}
+                    type="button"
+                    onClick={() => toggleDropdown("region")}
+                    aria-expanded={openDropdown === "region"}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-4 py-2 font-bold text-[#1F2121] transition-colors",
+                      careersFilterDropdownFont,
+                      "max-lg:gap-0.5 max-lg:rounded-none max-lg:bg-transparent max-lg:p-0 max-lg:shadow-none max-lg:ring-0 max-lg:hover:bg-transparent",
+                      "max-lg:[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-none max-lg:text-black",
+                      openDropdown === "region" && "max-lg:text-[#32AF32]",
+                    )}
+                  >
+                    {labelRegionFilter(regionFilter)}
+                    {openDropdown === "region" ? (
+                      <ChevronUp
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    ) : (
+                      <ChevronDown
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                  {openDropdown === "region" && !isMaxLg && (
+                    <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                      <CareersFilterDropdownFloating
+                        currentValue={regionFilter}
+                        options={REGION_FILTER_KEYS}
+                        formatLabel={(v) =>
+                          labelRegionFilter(v as RegionFilterKey)
+                        }
+                        listboxAriaLabel={t(
+                          "pages.careers.positions.filterOptionsAria",
+                        )}
+                        onPick={(opt) => {
+                          setRegionFilter(opt);
+                          setOpenDropdown(null);
+                        }}
+                        onClose={() => setOpenDropdown(null)}
+                      />
+                    </div>
+                  )}
+                </div>
 
-                        {/* 전체 상태 — 플로팅 패널 */}
-                        <div
-                          className={cn(
-                            "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
-                            openDropdown === "status" ? "z-[60]" : "z-30",
-                          )}
-                        >
-                          <button
-                            ref={statusFilterBtnRef}
-                            type="button"
-                            onClick={() => toggleDropdown("status")}
-                            aria-expanded={openDropdown === "status"}
-                            className={cn(
-                              "flex items-center rounded-[clamp(20px,calc(40*100vw/1920),40px)] bg-[#02633E] px-[clamp(12px,calc(16*100vw/1920),16px)] py-[clamp(6px,calc(8*100vw/1920),8px)] font-medium text-white transition-colors",
-                              "gap-0.5 lg:gap-[clamp(4px,calc(6*100vw/1920),6px)]",
-                              careersFilterDropdownFont,
-                              "max-lg:w-auto max-lg:justify-start max-lg:gap-1 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 max-lg:font-medium max-lg:whitespace-nowrap max-lg:text-black",
-                              openDropdown === "status" &&
-                                "max-lg:font-semibold max-lg:text-[#32AF32]",
-                            )}
-                          >
-                            {labelStatusFilter(statusFilter)}
-                            {openDropdown === "status" ? (
-                              <ChevronUp
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-[#32AF32]",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            ) : (
-                              <ChevronDown
-                                className={cn(
-                                  filterChevronClass,
-                                  "max-lg:text-black",
-                                )}
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            )}
-                          </button>
-                          {openDropdown === "status" && !isMaxLg && (
-                            <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
-                              <CareersFilterDropdownFloating
-                                currentValue={statusFilter}
-                                options={STATUS_FILTER_KEYS}
-                                formatLabel={(v) =>
-                                  labelStatusFilter(v as StatusFilterKey)
-                                }
-                                listboxAriaLabel={t(
-                                  "pages.careers.positions.filterOptionsAria",
-                                )}
-                                onPick={(opt) => {
-                                  setStatusFilter(opt);
-                                  setOpenDropdown(null);
-                                }}
-                                onClose={() => setOpenDropdown(null)}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
+                <div
+                  className={cn(
+                    "relative w-fit shrink-0 self-start max-lg:w-auto max-lg:shrink-0 lg:self-center",
+                    openDropdown === "status" ? "z-[60]" : "z-30",
+                  )}
+                >
+                  <button
+                    ref={statusFilterBtnRef}
+                    type="button"
+                    onClick={() => toggleDropdown("status")}
+                    aria-expanded={openDropdown === "status"}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-[40px] bg-[#EAE3C9] px-4 py-2 font-bold text-[#1F2121] transition-colors",
+                      careersFilterDropdownFont,
+                      "max-lg:gap-0.5 max-lg:rounded-none max-lg:bg-transparent max-lg:p-0 max-lg:shadow-none max-lg:ring-0 max-lg:hover:bg-transparent",
+                      "max-lg:[font-family:Pretendard,system-ui,sans-serif] max-lg:text-xs max-lg:font-medium max-lg:leading-none max-lg:text-black",
+                      openDropdown === "status" && "max-lg:text-[#32AF32]",
+                    )}
+                  >
+                    {labelStatusFilter(statusFilter)}
+                    {openDropdown === "status" ? (
+                      <ChevronUp
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    ) : (
+                      <ChevronDown
+                        className={cn(
+                          filterChevronClass,
+                          "text-[#1F2121] max-lg:size-3.5 lg:inline",
+                        )}
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                  {openDropdown === "status" && !isMaxLg && (
+                    <div className="absolute top-0 left-0 z-[80] w-max min-w-full max-lg:w-full">
+                      <CareersFilterDropdownFloating
+                        currentValue={statusFilter}
+                        options={STATUS_FILTER_KEYS}
+                        formatLabel={(v) =>
+                          labelStatusFilter(v as StatusFilterKey)
+                        }
+                        listboxAriaLabel={t(
+                          "pages.careers.positions.filterOptionsAria",
+                        )}
+                        onPick={(opt) => {
+                          setStatusFilter(opt);
+                          setOpenDropdown(null);
+                        }}
+                        onClose={() => setOpenDropdown(null)}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* ── 공고 목록 (전체공고 / 채용공고 탭) — 행 간 gap 12px ── */}
-              {mainTab !== "apply" && (
-                <div className="flex flex-col gap-3 max-lg:px-4">
-                  {filteredJobs.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400">
-                      {t("pages.careers.positions.emptyFiltered")}
-                    </div>
-                  ) : (
-                    filteredJobs.map((job, index) => {
-                      const isExpanded = expandedId === job.id;
-                      const isLast = index === filteredJobs.length - 1;
-                      const applyBtnClass = cn(
-                        "inline-flex shrink-0 items-center justify-center gap-2.5 text-white transition-colors",
-                        jobApplyButtonFont,
-                        "max-lg:rounded max-lg:px-4 max-lg:py-2",
-                        "rounded-[clamp(20px,calc(40*100vw/1920),40px)] px-[clamp(12px,calc(20*100vw/1920),20px)] py-[clamp(6px,calc(8*100vw/1920),8px)] lg:gap-[clamp(10px,calc(20*100vw/1920),20px)]",
-                        "bg-[#32AF32] hover:brightness-105",
-                        isExpanded && "lg:bg-[#02633E] lg:hover:brightness-105",
-                      );
-
-                      const leftSummary = (
-                        <div
-                          className={cn(
-                            "flex min-w-0 flex-1 flex-col gap-2.5",
-                            "lg:flex-row lg:flex-wrap lg:items-center",
-                            "lg:gap-x-[clamp(16px,calc(64*100vw/1920),64px)] lg:gap-y-3",
-                          )}
-                        >
-                          <div className="flex shrink-0 flex-wrap items-start gap-1.5 lg:gap-3">
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-full px-3 py-1.5 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs leading-3 font-medium",
-                                "lg:px-[clamp(8px,calc(12*100vw/1920),12px)] lg:py-[clamp(6px,calc(8*100vw/1920),8px)] lg:[font-size:clamp(11px,calc(12*100vw/1920),12px)] lg:[line-height:clamp(11px,calc(12*100vw/1920),12px)]",
-                                job.statusKey === "open" &&
-                                  "bg-[#32AF32] text-white",
-                                job.statusKey === "closing" &&
-                                  "bg-[#FFD55D] text-[#1F2121]",
-                                job.statusKey === "always" &&
-                                  "bg-[#003F2B] text-white",
-                              )}
-                            >
-                              {job.status}
-                            </span>
-                            <span className={jobCardDeptBadgeClass}>
-                              {job.dept}
-                            </span>
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-col gap-1 lg:gap-3">
-                            <p
-                              className={cn(
-                                "font-[family-name:var(--font-nanum)] font-extrabold text-[#1F2121] max-lg:text-lg max-lg:leading-[27px] max-lg:tracking-normal",
-                                "font-sans tracking-[-0.02em] lg:[font-size:clamp(1rem,calc(24*100vw/1920),1.5rem)] lg:[line-height:clamp(1.5rem,calc(36*100vw/1920),2.25rem)]",
-                              )}
-                            >
-                              {job.title}
-                            </p>
-                            <div className="flex w-full min-w-0 flex-col gap-2.5 lg:hidden">
-                              <div className="flex w-full flex-wrap items-center justify-start gap-1.5">
-                                {[job.exp, job.region, job.type].map((t) => (
-                                  <span
-                                    key={t}
-                                    className={jobCardMetaRowMobile}
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                              <span className="block w-full text-left">
-                                <span className={jobCardMetaPlainMobile}>
-                                  {job.createdAt}
-                                </span>
-                              </span>
-                            </div>
-                            <div className="hidden flex-wrap items-center gap-3 lg:flex">
-                              {[
-                                job.exp,
-                                job.region,
-                                job.type,
-                                job.createdAt,
-                              ].map((tag) => (
-                                <span
-                                  key={tag}
-                                  className={cn(
-                                    jobCardMetaTagClass,
-                                    "font-sans",
-                                  )}
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-
-                      return (
-                        <div
-                          key={job.id}
-                          className={cn(
-                            /* 모바일 접힘: 페이지 배경과 동일 · 펼침 시 안쪽 래퍼가 #EAE3C9 유지 */
-                            "max-lg:border-b max-lg:border-black/20 max-lg:bg-[var(--site-chrome-header-bg,#FDFDF5)]",
-                            "lg:bg-[var(--site-chrome-header-bg,#FDFDF5)]",
-                            !isLast && "lg:border-b lg:border-black/20",
-                            isExpanded && "lg:border-b-0",
-                          )}
-                        >
-                          <div
+            <div className="flex flex-col max-lg:px-4 lg:border-t lg:border-black/20">
+              {filteredJobs.length === 0 ? (
+                <div className="py-12 text-center text-sm text-gray-400">
+                  {t("pages.careers.positions.emptyFiltered")}
+                </div>
+              ) : (
+                filteredJobs.map((job) => {
+                  const deadlineMobile = job.deadlineLine.replace(/^~\s*/, "");
+                  return (
+                    <Link
+                      key={job.id}
+                      to={`/careers/${job.id}`}
+                      className={cn(
+                        "group flex w-full bg-transparent transition-colors",
+                        "max-lg:hover:bg-[#F4F2E5] lg:hover:bg-[#F0EEDD]",
+                        "border-b border-black/20 lg:last:border-b-0",
+                        "max-lg:items-center max-lg:justify-between max-lg:gap-3 max-lg:py-3",
+                        "lg:flex-row lg:items-center lg:gap-10 lg:p-[30px]",
+                      )}
+                    >
+                      {/* 모바일 시안: 뱃지 행 → 제목·부서 → 메타 한 줄 → 날짜 · 우측 쉐브론 */}
+                      <div className="flex min-w-0 flex-1 flex-col gap-2.5 lg:hidden">
+                        <div className="flex flex-wrap items-start gap-1.5">
+                          <span
                             className={cn(
-                              "overflow-hidden transition-all",
-                              isExpanded &&
-                                "max-lg:rounded-none max-lg:bg-[#EAE3C9] lg:rounded-[10px] lg:border-[3px] lg:border-[#02633E] lg:bg-[#EAE3C9]",
+                              "shrink-0 rounded-full px-3 py-1.5 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium leading-3",
+                              job.statusKey === "open" &&
+                                "bg-[#32AF32] text-white",
+                              job.statusKey === "closing" &&
+                                "bg-[#F3BC1E] text-[#1F2121]",
+                              job.statusKey === "always" &&
+                                "bg-[#003F2B] text-white",
                             )}
                           >
-                            <div
+                            {job.status}
+                          </span>
+                          {job.isNew && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-[#FF5D5D] px-3 py-1.5 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium leading-3 text-white">
+                              {t("pages.careers.positions.newBadge")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-2.5">
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <div className="flex min-w-0 flex-wrap items-center gap-1">
+                              <span className="font-[family-name:var(--font-nanum)] text-[18px] font-extrabold leading-[27px] text-[#1F2121]">
+                                {job.title}
+                              </span>
+                              <span className="font-[family-name:var(--font-nanum)] text-base font-bold leading-6 text-[#1F2121]">
+                                {job.dept}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5 font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121]">
+                              <span>{job.exp}</span>
+                              <span>{job.region}</span>
+                              <span>{job.type}</span>
+                            </div>
+                          </div>
+                          <p className="font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] text-[#1F2121]">
+                            {deadlineMobile}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight
+                        className="size-[18px] shrink-0 self-center text-[#02633E] lg:hidden"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+
+                      {/* PC 행 — 시안: padding 30px·gap 40px는 Link(lg:p) + 본 행 gap-10 */}
+                      <div className="hidden min-w-0 flex-1 flex-row items-center gap-10 lg:flex">
+                        <div className="flex w-[80px] shrink-0 flex-col items-center justify-center gap-2.5">
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-3 py-2 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium leading-[12px]",
+                              job.statusKey === "open" &&
+                                "bg-[#32AF32] text-white",
+                              job.statusKey === "closing" &&
+                                "bg-[#FFD55D] text-[#1F2121]",
+                              job.statusKey === "always" &&
+                                "bg-[#003F2B] text-white",
+                            )}
+                          >
+                            {job.status}
+                          </span>
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-row flex-wrap items-center gap-3 self-stretch">
+                          <p className="font-[family-name:var(--font-nanum)] text-2xl font-extrabold leading-9 text-[#1F2121]">
+                            {job.title}
+                          </p>
+                          <p className="font-[family-name:var(--font-nanum)] text-lg font-bold leading-[27px] text-[#1F2121]">
+                            {job.dept}
+                          </p>
+                          {job.isNew ? (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-[#FF5D5D] px-1.5 py-1 text-center [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium leading-3 text-white">
+                              {t("pages.careers.positions.newBadge")}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-5">
+                          {[job.exp, job.region, job.type, job.deadlineLine].map(
+                            (cell, mi) => (
+                              <p
+                                key={`${job.id}-meta-${mi}`}
+                                className="w-[100px] shrink-0 text-center font-[family-name:var(--font-nanum)] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]"
+                              >
+                                {cell}
+                              </p>
+                            ),
+                          )}
+                        </div>
+                        <span
+                          className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[40px] bg-[var(--site-chrome-header-bg,#FDFDF5)] text-[#02633E] transition-colors group-hover:bg-[#EAE3C9]"
+                          aria-hidden
+                        >
+                          <ChevronRight
+                            className="size-[18px]"
+                            strokeWidth={2}
+                          />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </PageContentMax>
+
+        {applicationLookupOpen &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <button
+              type="button"
+              className="fixed inset-0 z-[200] cursor-default border-0 bg-black/50 p-0"
+              aria-label={t(
+                "pages.careers.positions.applicationLookup.backdropCloseAria",
+              )}
+              onClick={() => setApplicationLookupOpen(false)}
+            />,
+            document.body,
+          )}
+
+        {/*
+          modal={false}: Radix 기본 오버레이의 RemoveScroll이 html/body h-full 레이아웃과 맞물릴 때
+          스크롤이 맨 위로 튀는 Chrome 이슈를 피함. 딤은 위 포털 버튼으로 동일하게 처리.
+        */}
+        <Dialog
+          modal={false}
+          open={applicationLookupOpen}
+          onOpenChange={setApplicationLookupOpen}
+        >
+          <DialogContent
+            className={cn(
+              "z-[210] max-w-[calc(100vw-2rem)] gap-6 rounded-[24px] border-0 bg-white p-6",
+              applicationLookupStep === "detail" &&
+                "flex max-h-[min(90vh,900px)] flex-col overflow-hidden",
+              applicationLookupStep === "form" && "sm:max-w-md",
+              (applicationLookupStep === "list" ||
+                applicationLookupStep === "detail") &&
+                "sm:max-w-lg",
+            )}
+            onOpenAutoFocus={(e) => {
+              if (applicationLookupStep !== "form") {
+                e.preventDefault();
+                return;
+              }
+              e.preventDefault();
+              requestAnimationFrame(() => {
+                document
+                  .getElementById("career-lookup-name")
+                  ?.focus({ preventScroll: true });
+              });
+            }}
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              applicationLookupTriggerRef.current?.focus({
+                preventScroll: true,
+              });
+            }}
+          >
+            <DialogHeader
+              className={cn(
+                "gap-2 text-left",
+                applicationLookupStep === "detail" && "shrink-0",
+              )}
+            >
+              <DialogTitle className="font-[family-name:var(--font-nanum)] text-xl font-extrabold text-[#1F2121]">
+                {applicationLookupStep === "detail"
+                  ? t(`${applicationLookupDv}.title`)
+                  : t(`${applicationLookupAl}.title`)}
+              </DialogTitle>
+              {applicationLookupStep === "form" ? (
+                <DialogDescription className="font-[family-name:var(--font-nanum)] text-sm text-[#1F2121]/70">
+                  {t(`${applicationLookupAl}.subtitle`)}
+                </DialogDescription>
+              ) : applicationLookupStep === "list" ? (
+                <div
+                  className="space-y-1 font-[family-name:var(--font-nanum)] text-sm text-[#1F2121]/70"
+                  role="status"
+                >
+                  <p>
+                    {t(`${applicationLookupAl}.listIntro`, {
+                      count: applicationLookupRows?.length ?? 0,
+                    })}
+                  </p>
+                  <p className="text-xs leading-relaxed text-[#1F2121]/60">
+                    {t(`${applicationLookupAl}.listPrivacyNote`)}
+                  </p>
+                </div>
+              ) : null}
+            </DialogHeader>
+            {applicationLookupStep === "form" ? (
+              <form
+                onSubmit={handleApplicationLookupSubmit}
+                className="flex flex-col gap-4"
+              >
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="career-lookup-name"
+                    className="font-[family-name:var(--font-nanum)] text-sm font-bold text-[#1F2121]"
+                  >
+                    {t(`${applicationLookupAl}.name`)}
+                  </label>
+                  <input
+                    id="career-lookup-name"
+                    autoComplete="name"
+                    value={lookupName}
+                    onChange={(e) => setLookupName(e.target.value)}
+                    placeholder={t("pages.careers.apply.phName")}
+                    className="rounded-[10px] border border-[#E5E0D4] bg-white px-4 py-3 font-[family-name:var(--font-nanum)] text-base text-[#1F2121] outline-none focus:border-[#02633E] focus:ring-2 focus:ring-[#02633E]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="career-lookup-phone"
+                    className="font-[family-name:var(--font-nanum)] text-sm font-bold text-[#1F2121]"
+                  >
+                    {t(`${applicationLookupAl}.phone`)}
+                  </label>
+                  <input
+                    id="career-lookup-phone"
+                    autoComplete="tel"
+                    value={lookupPhone}
+                    onChange={(e) => setLookupPhone(e.target.value)}
+                    placeholder={t(
+                      "pages.careers.positions.form.contactPlaceholder",
+                    )}
+                    className="rounded-[10px] border border-[#E5E0D4] bg-white px-4 py-3 font-[family-name:var(--font-nanum)] text-base text-[#1F2121] outline-none focus:border-[#02633E] focus:ring-2 focus:ring-[#02633E]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="career-lookup-password"
+                    className="font-[family-name:var(--font-nanum)] text-sm font-bold text-[#1F2121]"
+                  >
+                    {t(`${applicationLookupAl}.password`)}
+                  </label>
+                  <input
+                    id="career-lookup-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={lookupPassword}
+                    onChange={(e) => setLookupPassword(e.target.value)}
+                    placeholder={t(`${applicationLookupAl}.passwordHint`)}
+                    className="rounded-[10px] border border-[#E5E0D4] bg-white px-4 py-3 font-[family-name:var(--font-nanum)] text-base text-[#1F2121] outline-none focus:border-[#02633E] focus:ring-2 focus:ring-[#02633E]"
+                  />
+                </div>
+                {lookupError ? (
+                  <p
+                    className="font-[family-name:var(--font-nanum)] text-sm font-medium text-[#E03E3E]"
+                    role="alert"
+                  >
+                    {lookupError}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={lookupSubmitting}
+                  className="mt-2 w-full rounded-[40px] py-4 font-[family-name:var(--font-nanum)] text-base font-extrabold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ backgroundColor: "#02633E" }}
+                >
+                  {lookupSubmitting
+                    ? t(`${applicationLookupAl}.lookupSubmitting`)
+                    : t(`${applicationLookupAl}.submit`)}
+                </button>
+              </form>
+            ) : applicationLookupStep === "list" ? (
+              <div className="flex flex-col gap-4">
+                <div className="max-h-[min(420px,60vh)] space-y-3 overflow-y-auto pr-1">
+                  {applicationLookupRows?.length === 0 ? (
+                    <p className="rounded-[14px] border border-[#E5E0D4] bg-white p-6 text-center font-[family-name:var(--font-nanum)] text-sm text-[#1F2121]/80">
+                      {t(`${applicationLookupAl}.lookupNoResults`)}
+                    </p>
+                  ) : (
+                    (applicationLookupRows ?? []).map((row) => {
+                      const badgeKey = applicationLookupStatusBadgeKey(
+                        row.status,
+                      );
+                      return (
+                        <div
+                          key={row.id}
+                          className="rounded-[14px] border border-[#E5E0D4] bg-white p-4 shadow-sm lg:flex lg:items-center lg:gap-6 lg:py-5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 gap-x-2">
+                              <span className="inline-flex shrink-0 rounded-full bg-[#E8E8E8] px-2.5 py-1 [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium text-[#1F2121]">
+                                {t(`${applicationLookupAl}.${badgeKey}`)}
+                              </span>
+                              <span className="[font-family:Pretendard,system-ui,sans-serif] text-xs font-medium text-[#1F2121]/80">
+                                {row.dept}
+                              </span>
+                            </div>
+                            <p className="mt-3 font-[family-name:var(--font-nanum)] text-base font-extrabold text-[#1F2121]">
+                              {row.title}
+                            </p>
+                            <p className="mt-1 font-[family-name:var(--font-nanum)] text-xs text-[#1F2121]/70">
+                              {t(`${applicationLookupAl}.appliedOn`, {
+                                date: row.appliedAt,
+                              })}
+                            </p>
+                            {row.showCannotEditHint ? (
+                              <p className="mt-2 font-[family-name:var(--font-nanum)] text-xs font-medium text-[#E03E3E]">
+                                {t(`${applicationLookupAl}.cannotEditHint`)}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div
+                            className={cn(
+                              "mt-3 flex w-full min-w-0 shrink-0 gap-2 max-lg:flex-row max-lg:flex-nowrap",
+                              "lg:mt-0 lg:w-[min(200px,32%)] lg:min-w-[148px] lg:flex-col lg:items-stretch",
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setApplicationLookupDetailRowId(row.id);
+                                setApplicationLookupStep("detail");
+                              }}
                               className={cn(
-                                "hidden w-full flex-wrap items-center gap-x-[clamp(16px,calc(40*100vw/1920),40px)] gap-y-4 lg:flex",
-                                "p-[clamp(16px,calc(30*100vw/1920),30px)]",
+                                applicationLookupListActionBtn,
+                                "lg:w-full",
                               )}
                             >
-                              {leftSummary}
+                              {t(`${applicationLookupAl}.detail`)}
+                            </button>
+                            {row.canEdit ? (
+                              <Link
+                                to={`/careers/${row.detailJobId}/apply`}
+                                viewTransition
+                                onClick={() => setApplicationLookupOpen(false)}
+                                className={cn(
+                                  applicationLookupListActionBtn,
+                                  "lg:w-full",
+                                )}
+                              >
+                                {t(`${applicationLookupAl}.edit`)}
+                              </Link>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => toggleExpand(job.id)}
+                                disabled
                                 className={cn(
-                                  "flex size-[clamp(36px,calc(48*100vw/1920),48px)] shrink-0 items-center justify-center overflow-hidden rounded-[clamp(20px,calc(40*100vw/1920),40px)] transition-colors hover:bg-black/[0.04]",
-                                  "lg:bg-[#F0EEDD]",
+                                  applicationLookupListActionBtn,
+                                  "lg:w-full cursor-not-allowed opacity-60 hover:bg-[#EAE3C9]",
                                 )}
-                                aria-label={
-                                  isExpanded
-                                    ? t("pages.careers.positions.collapse")
-                                    : t("pages.careers.positions.expand")
-                                }
                               >
-                                {isExpanded ? (
-                                  <ChevronUp
-                                    className="h-[clamp(28px,calc(20*100vw/1920),40px)] w-[clamp(28px,calc(20*100vw/1920),40px)] text-[#02633E]"
-                                    strokeWidth={2.25}
-                                    aria-hidden
-                                  />
-                                ) : (
-                                  <ChevronDown
-                                    className="h-[clamp(28px,calc(20*100vw/1920),40px)] w-[clamp(28px,calc(20*100vw/1920),40px)] text-[#02633E]"
-                                    strokeWidth={2.25}
-                                    aria-hidden
-                                  />
-                                )}
+                                {t(`${applicationLookupAl}.cannotEdit`)}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleApply(job.title)}
-                                className={applyBtnClass}
-                              >
-                                {t("pages.careers.positions.applyButton")}
-                                <ArrowUpRight
-                                  className="h-[1.5em] w-[1.5em] shrink-0 text-white"
-                                  strokeWidth={2}
-                                  aria-hidden
-                                />
-                              </button>
-                            </div>
-
-                            {/* 모바일: 접힘 pt·pb·border 시안 / 펼침 Ivory 헤더 → 본문 → 화살표 */}
-                            <div className="flex w-full flex-col lg:hidden">
-                              {isExpanded ? (
-                                <div className="border-b border-[#1F2121]/20 bg-[#EAE3C9] py-5">
-                                  <div className="flex w-full items-center justify-between gap-3">
-                                    {leftSummary}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleApply(job.title)}
-                                      className={applyBtnClass}
-                                    >
-                                      {t("pages.careers.positions.applyButton")}
-                                      <ArrowUpRight
-                                        className="size-[1em] shrink-0 text-white"
-                                        strokeWidth={2}
-                                        aria-hidden
-                                      />
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex w-full flex-col items-center gap-2.5 pt-5 pb-2.5">
-                                  <div className="flex w-full items-center justify-between gap-3 self-stretch">
-                                    {leftSummary}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleApply(job.title)}
-                                      className={applyBtnClass}
-                                    >
-                                      {t("pages.careers.positions.applyButton")}
-                                      <ArrowUpRight
-                                        className="size-[1em] shrink-0 text-white"
-                                        strokeWidth={2}
-                                        aria-hidden
-                                      />
-                                    </button>
-                                  </div>
-                                  <div className="flex justify-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleExpand(job.id)}
-                                      className="flex size-[18px] items-center justify-center bg-transparent p-0"
-                                      aria-label={t("pages.careers.positions.expand")}
-                                    >
-                                      <ChevronDown
-                                        className="size-[18px] text-[#02633E]"
-                                        strokeWidth={2}
-                                        aria-hidden
-                                      />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* ── 아코디언 상세 영역 (시안: py30 pl222 pr30, 2열 gap40, 텍스트만 pill 없음) ── */}
-                            {isExpanded && (
-                              <div
-                                className={cn(
-                                  "flex w-full flex-col",
-                                  "gap-5 max-lg:gap-5 lg:gap-y-[clamp(24px,calc(40*100vw/1920),40px)]",
-                                  "border-t border-[#D8D0BB] max-lg:border-t-0 max-lg:bg-[#EAE3C9] max-lg:px-4 max-lg:py-5",
-                                  "py-[clamp(16px,calc(30*100vw/1920),30px)] pr-[clamp(16px,calc(30*100vw/1920),30px)] pl-4",
-                                  "lg:flex-row lg:gap-x-[clamp(20px,calc(40*100vw/1920),40px)] lg:gap-y-0 lg:pl-[clamp(24px,calc(222*100vw/1920),222px)]",
-                                )}
-                              >
-                                <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-3">
-                                  <p className={jobCardDetailHeadingClass}>
-                                    {t("pages.careers.positions.detailsDuties")}
-                                  </p>
-                                  <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
-                                    {job.duties.map((d) => (
-                                      <span
-                                        key={d}
-                                        className={jobCardDetailLineClass}
-                                      >
-                                        {d}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-3">
-                                  <p className={jobCardDetailHeadingClass}>
-                                    {t("pages.careers.positions.detailsRequirements")}
-                                  </p>
-                                  <div className="flex flex-col gap-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-[clamp(8px,calc(12*100vw/1920),12px)]">
-                                    {job.requirements.map((r) => (
-                                      <span
-                                        key={r}
-                                        className={jobCardDetailLineClass}
-                                      >
-                                        {r}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            {isExpanded && (
-                              <div className="flex justify-center pb-2.5 lg:hidden">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleExpand(job.id)}
-                                  className="flex size-[18px] items-center justify-center bg-transparent p-0"
-                                  aria-label={t("pages.careers.positions.collapse")}
-                                >
-                                  <ChevronUp
-                                    className="size-[18px] text-[#02633E]"
-                                    strokeWidth={2}
-                                    aria-hidden
-                                  />
-                                </button>
-                              </div>
                             )}
                           </div>
                         </div>
@@ -1839,906 +1981,238 @@ export default function CareersPositionsScreen({
                     })
                   )}
                 </div>
-              )}
-
-              {/* ── 입사지원 탭 콘텐츠 ── */}
-              {mainTab === "apply" && (
-                <div className="rounded-2xl bg-[#EAE3C9] px-5 py-8 max-lg:rounded-none max-lg:bg-transparent max-lg:px-4 max-lg:py-0 md:px-8 md:py-10 lg:bg-[#FDFDF5] lg:p-0">
-                  {/* PC 시안: 상하 60px·gap 10px·750×90 타이틀 / 모바일: 기존 */}
-                  <div
-                    className={cn(
-                      "mx-auto mb-6 w-full max-w-[750px] max-lg:mb-0",
-                      "lg:mb-0 lg:flex lg:w-full lg:max-w-[750px] lg:flex-col lg:items-start lg:gap-[10px] lg:py-[60px]",
-                    )}
-                  >
-                    <h3
-                      className={cn(
-                        "text-2xl font-bold tracking-[-0.04em]",
-                        "max-lg:py-5 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-2xl max-lg:leading-9 max-lg:font-extrabold max-lg:tracking-normal",
-                        "lg:h-[90px] lg:min-h-[90px] lg:w-full lg:max-w-[750px] lg:py-0 lg:font-[family-name:var(--font-nanum)] lg:text-[60px] lg:leading-[90px] lg:font-extrabold lg:tracking-normal",
+                <button
+                  type="button"
+                  onClick={() => setApplicationLookupStep("form")}
+                  className="w-full rounded-[40px] border border-[#E5E0D4] bg-white py-3 font-[family-name:var(--font-nanum)] text-sm font-extrabold text-[#1F2121] transition-colors hover:bg-black/[0.02]"
+                >
+                  {t(`${applicationLookupAl}.backToForm`)}
+                </button>
+              </div>
+            ) : applicationLookupSelectedRow ? (
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+                <div className="shrink-0 rounded-2xl border border-[#E5E0D4] bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-1.5 gap-x-2">
+                    <span className="inline-flex shrink-0 rounded-full bg-[#E8E8E8] px-2.5 py-1 [font-family:Pretendard,system-ui,sans-serif] text-xs font-medium text-[#1F2121]">
+                      {t(
+                        `${applicationLookupAl}.${applicationLookupStatusBadgeKey(
+                          applicationLookupSelectedRow.status,
+                        )}`,
                       )}
-                      style={{ color: "#1F2121" }}
-                    >
-                      {t("pages.careers.positions.form.title")}
-                    </h3>
+                    </span>
+                    <span className="[font-family:Pretendard,system-ui,sans-serif] text-xs font-medium text-[#1F2121]/80">
+                      {applicationLookupSelectedRow.dept}
+                    </span>
                   </div>
-
-                  {submitted ? (
-                    <div className="rounded-2xl bg-white py-16 text-center">
-                      <div
-                        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-                        style={{ backgroundColor: "#02633E" }}
-                      >
-                        <Check className="h-7 w-7 text-white" />
-                      </div>
-                      <p className="text-base font-semibold text-gray-900">
-                        {t("pages.careers.positions.form.submittedTitle")}
+                  <p className="mt-3 font-[family-name:var(--font-nanum)] text-lg font-extrabold text-[#1F2121] max-sm:text-base">
+                    {applicationLookupSelectedRow.title}
+                  </p>
+                  <p className="mt-1 font-[family-name:var(--font-nanum)] text-xs text-[#1F2121]/70">
+                    {t(`${applicationLookupAl}.appliedOn`, {
+                      date: applicationLookupSelectedRow.appliedAt,
+                    })}
+                  </p>
+                </div>
+                <div className="min-h-0 min-w-0 flex-1 overflow-y-auto rounded-2xl border border-[#E5E0D4] bg-white p-4 pr-3">
+                  <div className="space-y-6 pr-1">
+                    <section className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-nanum)] text-base font-bold text-[#02633E]">
+                        {t(`${applicationLookupDv}.sectionBasic`)}
+                      </h3>
+                      <ul className="space-y-2">
+                        {(
+                          [
+                            `${t(`${APPLY_NS}.reviewName`)} : ${applicationLookupSelectedRow.detail.applicant_name || "—"}`,
+                            `${t(`${APPLY_NS}.reviewEmail`)} : ${applicationLookupSelectedRow.detail.email || "—"}`,
+                            `${t(`${APPLY_NS}.reviewBirth`)} : ${applicationLookupSelectedRow.detail.birth_date?.trim() || "—"}`,
+                            `${t(`${APPLY_NS}.reviewPhone`)} : ${applicationLookupSelectedRow.detail.phone || "—"}`,
+                            `${t(`${APPLY_NS}.reviewAddress`)} : ${applicationLookupSelectedRow.detail.address?.trim() || "—"}`,
+                          ] as const
+                        ).map((line, i) => (
+                          <li
+                            key={i}
+                            className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121] whitespace-pre-line"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                    <hr className="border-[#E5E0D4]" />
+                    <section className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-nanum)] text-base font-bold text-[#02633E]">
+                        {t(`${applicationLookupDv}.sectionEducation`)}
+                      </h3>
+                      <ul className="space-y-2">
+                        {(
+                          [
+                            `${t(`${APPLY_NS}.labelEduLevelPlain`)} : ${lookupFormatEducation(t, applicationLookupSelectedRow.detail.education_level)}`,
+                            `${t(`${APPLY_NS}.labelSchool`)} : ${applicationLookupSelectedRow.detail.school_name?.trim() || "—"}`,
+                            `${t(`${APPLY_NS}.labelMajor`)} : ${applicationLookupSelectedRow.detail.major?.trim() || "—"}`,
+                            `${t(`${APPLY_NS}.labelGradMonth`)} : ${applicationLookupSelectedRow.detail.graduation_month?.trim() || "—"}`,
+                          ] as const
+                        ).map((line, i) => (
+                          <li
+                            key={i}
+                            className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121] whitespace-pre-line"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                    <hr className="border-[#E5E0D4]" />
+                    <section className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-nanum)] text-base font-bold text-[#02633E]">
+                        {t(`${applicationLookupDv}.sectionCareer`)}
+                      </h3>
+                      <ul className="space-y-2">
+                        {(
+                          [
+                            `${t(`${APPLY_NS}.labelCareerTypePlain`)} : ${lookupFormatCareer(t, applicationLookupSelectedRow.detail.experience_kind)}`,
+                            `${t(`${APPLY_NS}.military`)} : ${lookupFormatMilitary(t, applicationLookupSelectedRow.detail.military_service)}`,
+                            `${t(`${APPLY_NS}.labelCurrentCompany`)} : ${applicationLookupSelectedRow.detail.current_company?.trim() || "—"}`,
+                            `${t(`${APPLY_NS}.labelCurrentRole`)} : ${applicationLookupSelectedRow.detail.current_position?.trim() || "—"}`,
+                          ] as const
+                        ).map((line, i) => (
+                          <li
+                            key={i}
+                            className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121] whitespace-pre-line"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                    <hr className="border-[#E5E0D4]" />
+                    <section className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-nanum)] text-base font-bold text-[#02633E]">
+                        {t(`${applicationLookupDv}.sectionMotivation`)}
+                      </h3>
+                      <p className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121] whitespace-pre-line">
+                        {applicationLookupSelectedRow.detail.cover_letter?.trim() ||
+                          "—"}
                       </p>
-                      <p className="mt-2 text-sm text-gray-500">
-                        {t("pages.careers.positions.form.submittedBody")}
-                      </p>
-                    </div>
-                  ) : (
-                    <form
-                      onSubmit={handleFormSubmit}
-                      className="space-y-4 max-lg:space-y-10 lg:space-y-0"
+                    </section>
+                    <hr className="border-[#E5E0D4]" />
+                    <section className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-nanum)] text-base font-bold text-[#02633E]">
+                        {t(`${applicationLookupDv}.sectionAttachments`)}
+                      </h3>
+                      {applicationLookupSelectedRow.detail.resume_url ||
+                      applicationLookupSelectedRow.detail.self_intro_file_url ||
+                      applicationLookupSelectedRow.detail.portfolio_url ? (
+                        <ul className="space-y-2">
+                          {applicationLookupSelectedRow.detail.resume_url ? (
+                            <li className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121]">
+                              <span className="font-bold text-[#1F2121]">
+                                {t(`${APPLY_NS}.labelResumePlain`)} :{" "}
+                              </span>
+                              <a
+                                href={
+                                  applicationLookupSelectedRow.detail
+                                    .resume_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                                className="break-all text-[#02633E] underline underline-offset-2"
+                              >
+                                {attachmentNameFromUrl(
+                                  applicationLookupSelectedRow.detail
+                                    .resume_url,
+                                )}{" "}
+                                ({t(`${applicationLookupDv}.attachmentOpen`)})
+                              </a>
+                            </li>
+                          ) : null}
+                          {applicationLookupSelectedRow.detail
+                            .self_intro_file_url ? (
+                            <li className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121]">
+                              <span className="font-bold text-[#1F2121]">
+                                {t(`${APPLY_NS}.labelClPlain`)} :{" "}
+                              </span>
+                              <a
+                                href={
+                                  applicationLookupSelectedRow.detail
+                                    .self_intro_file_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                                className="break-all text-[#02633E] underline underline-offset-2"
+                              >
+                                {attachmentNameFromUrl(
+                                  applicationLookupSelectedRow.detail
+                                    .self_intro_file_url,
+                                )}{" "}
+                                ({t(`${applicationLookupDv}.attachmentOpen`)})
+                              </a>
+                            </li>
+                          ) : null}
+                          {applicationLookupSelectedRow.detail.portfolio_url ? (
+                            <li className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121]">
+                              <span className="font-bold text-[#1F2121]">
+                                {t(`${APPLY_NS}.labelPortfolioPlain`)} :{" "}
+                              </span>
+                              <a
+                                href={
+                                  applicationLookupSelectedRow.detail
+                                    .portfolio_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                                className="break-all text-[#02633E] underline underline-offset-2"
+                              >
+                                {attachmentNameFromUrl(
+                                  applicationLookupSelectedRow.detail
+                                    .portfolio_url,
+                                )}{" "}
+                                ({t(`${applicationLookupDv}.attachmentOpen`)})
+                              </a>
+                            </li>
+                          ) : null}
+                        </ul>
+                      ) : (
+                        <p className="font-[family-name:var(--font-nanum)] text-sm leading-relaxed text-[#1F2121]/80">
+                          {t(`${applicationLookupDv}.attachmentNone`)}
+                        </p>
+                      )}
+                    </section>
+                  </div>
+                </div>
+                <div className="flex w-full shrink-0 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplicationLookupStep("list");
+                      setApplicationLookupDetailRowId(null);
+                    }}
+                    className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-[#EAE3C9] px-4 py-3 font-[family-name:var(--font-nanum)] text-sm font-extrabold text-[#1F2121] max-lg:text-xs"
+                  >
+                    {t(`${applicationLookupDv}.backToList`)}
+                  </button>
+                  {applicationLookupSelectedRow.canEdit ? (
+                    <Link
+                      to={`/careers/${applicationLookupSelectedRow.detailJobId}/apply`}
+                      viewTransition
+                      onClick={() => setApplicationLookupOpen(false)}
+                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-[#02633E] px-4 py-3 font-[family-name:var(--font-nanum)] text-sm font-extrabold text-white max-lg:text-xs"
                     >
-                      {/* 폼 카드 — PC: 컬럼 너비 750px(패딩 없음 — 예전 lg:px-[60px] 시 내부 630px). 블록 간 60px */}
-                      <div className="mx-auto w-full max-w-[750px] space-y-8 rounded-2xl bg-[#EAE3C9] px-6 py-8 max-lg:max-w-none max-lg:space-y-10 max-lg:rounded-none max-lg:bg-transparent max-lg:px-0 max-lg:py-0 md:px-8 lg:max-w-[750px] lg:space-y-[60px] lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0">
-                        {/* ── 기본정보 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <p
-                            className={cn(
-                              "mb-5 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:mb-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                              jobApplyPcSectionHeading,
-                            )}
-                          >
-                            {t("pages.careers.positions.form.basicInfo")}
-                          </p>
-                          <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
-                            {/* 성함 */}
-                            <div>
-                              <div className="mb-1.5 flex items-center justify-between max-lg:mb-0">
-                                <div className="flex items-center gap-0.5">
-                                  <span
-                                    className={cn(
-                                      jobApplyLabelDesktop,
-                                      jobApplyLabelPc,
-                                      "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                    )}
-                                  >
-                                    {t("pages.careers.positions.form.name")}
-                                  </span>
-                                  <span className={jobApplyStarClass}>*</span>
-                                </div>
-                                <span className="shrink-0 text-right font-[family-name:var(--font-nanum)] text-[13px] font-normal text-black max-lg:text-xs">
-                                  <span className="text-[#F3372C]">* </span>
-                                  {t("pages.careers.positions.form.requiredHint")}
-                                </span>
-                              </div>
-                              <input
-                                required
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    name: e.target.value,
-                                  }))
-                                }
-                                placeholder={t("pages.careers.apply.phName")}
-                                className={jobApplyInputClass}
-                              />
-                            </div>
-
-                            {/* 연락처 */}
-                            <div className={jobApplySubfieldMobile}>
-                              <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                <label
-                                  className={cn(
-                                    jobApplyLabelDesktop,
-                                    jobApplyLabelPc,
-                                    "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  )}
-                                >
-                                  {t("pages.careers.positions.form.phone")}
-                                </label>
-                                <span className={jobApplyStarClass}>*</span>
-                              </div>
-                              <input
-                                required
-                                type="tel"
-                                value={formData.phone}
-                                onChange={(e) =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    phone: e.target.value,
-                                  }))
-                                }
-                                placeholder={t(
-                                  "pages.careers.positions.form.contactPlaceholder",
-                                )}
-                                className={jobApplyInputClass}
-                              />
-                            </div>
-
-                            {/* 이메일 — 모바일: 아이디·도메인 입력·셀렉트(@ 없음) / PC: 견학신청과 동일 */}
-                            <div className={jobApplySubfieldMobile}>
-                              <label
-                                className={cn(
-                                  jobApplyLabelDesktop,
-                                  jobApplyLabelPc,
-                                  "max-lg:mb-0 max-lg:block max-lg:w-full max-lg:max-w-[200px] max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  "lg:block",
-                                )}
-                              >
-                                {t("pages.careers.positions.form.email")}
-                              </label>
-                              {/* 모바일 */}
-                              <div className="flex w-full flex-col gap-5 lg:hidden">
-                                <input
-                                  type="text"
-                                  value={formData.emailLocal}
-                                  onChange={(e) =>
-                                    setFormData((p) => ({
-                                      ...p,
-                                      emailLocal: e.target.value,
-                                    }))
-                                  }
-                                  placeholder={t(
-                                    "pages.careers.positions.form.emailLocalPh",
-                                  )}
-                                  autoComplete="email"
-                                  className={jobApplyInputClass}
-                                />
-                                <input
-                                  type="text"
-                                  value={formData.emailDomainCustom}
-                                  onChange={(e) =>
-                                    setFormData((p) => ({
-                                      ...p,
-                                      emailDomainCustom: e.target.value,
-                                    }))
-                                  }
-                                  placeholder={t(
-                                    "pages.careers.positions.form.emailDomainPh",
-                                  )}
-                                  disabled={formData.emailDomain !== ""}
-                                  className={cn(
-                                    jobApplyInputClass,
-                                    "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 disabled:cursor-not-allowed disabled:opacity-60",
-                                  )}
-                                />
-                                <select
-                                  value={formData.emailDomain}
-                                  onChange={handleJobApplyEmailDomainChange}
-                                  className={jobApplyInputClass}
-                                >
-                                  <option value="">
-                                    {t("pages.careers.positions.emailDirectInput")}
-                                  </option>
-                                  {JOB_APPLY_EMAIL_DOMAINS.map((d) => (
-                                    <option key={d} value={d}>
-                                      {d}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              {/* PC — 견학신청서와 동일 */}
-                              <div className="hidden w-full min-w-0 flex-col gap-5 lg:flex lg:flex-row lg:flex-wrap lg:items-center lg:gap-2.5">
-                                <input
-                                  type="text"
-                                  value={formData.emailLocal}
-                                  onChange={(e) =>
-                                    setFormData((p) => ({
-                                      ...p,
-                                      emailLocal: e.target.value,
-                                    }))
-                                  }
-                                  placeholder={t(
-                                    "pages.careers.positions.form.emailLocalPh",
-                                  )}
-                                  autoComplete="email"
-                                  className={cn(
-                                    jobApplyInputClass,
-                                    "lg:min-w-0 lg:flex-1",
-                                  )}
-                                />
-                                <span className="shrink-0 font-[family-name:var(--font-nanum)] text-xl font-bold text-black">
-                                  @
-                                </span>
-                                {formData.emailDomain === "" && (
-                                  <input
-                                    type="text"
-                                    value={formData.emailDomainCustom}
-                                    onChange={(e) =>
-                                      setFormData((p) => ({
-                                        ...p,
-                                        emailDomainCustom: e.target.value,
-                                      }))
-                                    }
-                                    placeholder={t(
-                                      "pages.careers.positions.form.emailDomainPh",
-                                    )}
-                                    className={cn(
-                                      jobApplyInputClass,
-                                      "font-[Pretendard,system-ui,sans-serif] text-lg font-light text-[#7B7B7B] placeholder:text-[#7B7B7B]/40 lg:min-w-0 lg:flex-1 lg:text-[18px] lg:font-light lg:text-[#7B7B7B]",
-                                    )}
-                                  />
-                                )}
-                                <select
-                                  value={formData.emailDomain}
-                                  onChange={handleJobApplyEmailDomainChange}
-                                  className={cn(
-                                    jobApplyInputClass,
-                                    "lg:min-w-0 lg:flex-1",
-                                  )}
-                                >
-                                  <option value="">
-                                    {t("pages.careers.positions.emailDirectInput")}
-                                  </option>
-                                  {JOB_APPLY_EMAIL_DOMAINS.map((d) => (
-                                    <option key={d} value={d}>
-                                      {d}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-
-                            {/* 성별 */}
-                            <div className={jobApplySubfieldMobile}>
-                              <div className="mb-1.5 flex max-lg:mb-0 max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                <label
-                                  className={cn(
-                                    jobApplyLabelDesktop,
-                                    jobApplyLabelPc,
-                                    "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  )}
-                                >
-                                  {t("pages.careers.positions.form.gender")}
-                                </label>
-                                <span className={jobApplyStarClass}>*</span>
-                              </div>
-                              <div className="flex gap-2">
-                                {(
-                                  [
-                                    {
-                                      k: "male",
-                                      label: t(
-                                        "pages.careers.positions.form.genderMale",
-                                      ),
-                                    },
-                                    {
-                                      k: "female",
-                                      label: t(
-                                        "pages.careers.positions.form.genderFemale",
-                                      ),
-                                    },
-                                  ] as const
-                                ).map(({ k, label }) => (
-                                  <button
-                                    key={k}
-                                    type="button"
-                                    onClick={() =>
-                                      setFormData((p) => ({ ...p, gender: k }))
-                                    }
-                                    className="rounded-lg border px-5 py-2.5 text-sm font-medium transition-all max-lg:min-h-[48px] max-lg:flex-1 max-lg:rounded-[10px] max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base"
-                                    style={
-                                      formData.gender === k
-                                        ? {
-                                            backgroundColor: "#02633E",
-                                            color: "#fff",
-                                            borderColor: "#02633E",
-                                          }
-                                        : {
-                                            backgroundColor: "#fff",
-                                            color: "#555",
-                                            borderColor: "#E5E0D4",
-                                          }
-                                    }
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── 학력 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <p
-                            className={cn(
-                              "mb-5 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:mb-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                              jobApplyPcSectionHeading,
-                            )}
-                          >
-                            {t("pages.careers.positions.form.education")}
-                          </p>
-                          <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
-                            <div>
-                              <div className="mb-1.5 flex items-center justify-between max-lg:mb-0">
-                                <div className="flex items-center gap-0.5">
-                                  <label
-                                    className={cn(
-                                      jobApplyLabelDesktop,
-                                      jobApplyLabelPc,
-                                      "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                    )}
-                                  >
-                                    {t("pages.careers.positions.form.schoolName")}
-                                  </label>
-                                  <span className={jobApplyStarClass}>*</span>
-                                </div>
-                                <span className="hidden text-right max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-xs max-lg:font-normal max-lg:text-black lg:hidden">
-                                  <span className="text-[#F3372C]">* </span>
-                                  {t("pages.careers.positions.form.requiredHint")}
-                                </span>
-                              </div>
-                              <input
-                                required
-                                type="text"
-                                value={formData.schoolName}
-                                onChange={(e) =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    schoolName: e.target.value,
-                                  }))
-                                }
-                                placeholder={t(
-                                  "pages.careers.positions.form.schoolPlaceholder",
-                                )}
-                                className={jobApplyInputClass}
-                              />
-                            </div>
-                            <div className="grid gap-4 max-lg:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 lg:gap-5">
-                              <div className={jobApplySubfieldMobile}>
-                                <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                  <label
-                                    className={cn(
-                                      jobApplyLabelDesktop,
-                                      jobApplyLabelPc,
-                                      "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                    )}
-                                  >
-                                    {t("pages.careers.positions.form.major")}
-                                  </label>
-                                  <span className={jobApplyStarClass}>*</span>
-                                </div>
-                                <input
-                                  required
-                                  type="text"
-                                  value={formData.major}
-                                  onChange={(e) =>
-                                    setFormData((p) => ({
-                                      ...p,
-                                      major: e.target.value,
-                                    }))
-                                  }
-                                  placeholder={t(
-                                    "pages.careers.positions.form.majorPlaceholder",
-                                  )}
-                                  className={cn(
-                                    jobApplyInputClass,
-                                    "max-lg:leading-4",
-                                  )}
-                                />
-                              </div>
-                              <div className={jobApplySubfieldMobile}>
-                                <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                  <label
-                                    className={cn(
-                                      jobApplyLabelDesktop,
-                                      jobApplyLabelPc,
-                                      "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                    )}
-                                  >
-                                    {t("pages.careers.positions.form.gradYear")}
-                                  </label>
-                                  <span className={jobApplyStarClass}>*</span>
-                                </div>
-                                <input
-                                  required
-                                  type="text"
-                                  value={formData.graduationYear}
-                                  onChange={(e) =>
-                                    setFormData((p) => ({
-                                      ...p,
-                                      graduationYear: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="2020"
-                                  className={cn(
-                                    jobApplyInputClass,
-                                    "max-lg:leading-4",
-                                  )}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── 경력 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <div
-                            className={cn(
-                              "mb-5 flex w-full flex-wrap items-center gap-3 max-lg:mb-0",
-                              "lg:mb-0 lg:flex-nowrap lg:items-center lg:gap-3 lg:border-t lg:border-black/60 lg:pt-[60px]",
-                            )}
-                          >
-                            <p
-                              className={cn(
-                                "shrink-0 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                                "lg:mb-0 lg:font-[family-name:var(--font-nanum)] lg:text-xl lg:font-bold lg:text-black",
-                              )}
-                            >
-                              {t("pages.careers.positions.form.careersSection")}
-                            </p>
-                            {/* 시안: flex 1 1 0 — 남는 가로를 채워 「추가」를 오른쪽으로 밀음 */}
-                            <span
-                              className={cn(
-                                "min-w-0 flex-1 font-[family-name:var(--font-nanum)] text-xs font-normal text-[#1F2121] max-lg:inline",
-                                "lg:text-lg lg:leading-none lg:font-normal",
-                              )}
-                            >
-                              {t("pages.careers.positions.form.careersMaxHint")}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={addCareer}
-                              disabled={careers.length >= 5}
-                              className={cn(
-                                "flex shrink-0 items-center gap-2.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50",
-                                "max-lg:rounded-[40px] max-lg:px-4 max-lg:py-2",
-                                "bg-[#32AF32] lg:rounded-[40px] lg:px-5 lg:py-2 lg:text-white",
-                              )}
-                            >
-                              <span className="font-[Pretendard,system-ui,sans-serif] text-lg leading-[18px] font-light">
-                                +
-                              </span>
-                              <span className="font-[Pretendard,system-ui,sans-serif] text-sm leading-[21px] font-bold">
-                                {t("pages.careers.positions.form.add")}
-                              </span>
-                            </button>
-                          </div>
-                          {careers.length === 0 && (
-                            <p className="text-sm text-gray-400 max-lg:hidden">
-                              {t("pages.careers.positions.form.careersEmptyHint")}
-                            </p>
-                          )}
-                          <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
-                            {careers.map((c) => (
-                              <div
-                                key={c.id}
-                                className={cn(
-                                  "relative rounded-xl bg-[#EAE3C9] p-4 max-lg:flex max-lg:flex-col max-lg:gap-[30px] max-lg:rounded-[10px] max-lg:bg-[#EAE7D2] max-lg:p-5",
-                                  "space-y-3 lg:flex lg:flex-col lg:gap-[30px] lg:space-y-0 lg:rounded-[20px] lg:bg-[#EAE7D2] lg:p-[30px]",
-                                )}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => removeCareer(c.id)}
-                                  className="absolute top-3 right-3 text-lg leading-none text-gray-400 hover:text-gray-600"
-                                >
-                                  ×
-                                </button>
-                                {/* 회사명 */}
-                                <div className={jobApplySubfieldMobile}>
-                                  <div className="flex max-lg:items-center max-lg:gap-0.5">
-                                    <label
-                                      className={cn(
-                                        jobApplyLabelDesktop,
-                                        jobApplyLabelPc,
-                                        "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                      )}
-                                    >
-                                      {t("pages.careers.positions.form.company")}
-                                    </label>
-                                    <span className={jobApplyStarClass}>*</span>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    required
-                                    value={c.company}
-                                    onChange={(e) =>
-                                      updateCareer(
-                                        c.id,
-                                        "company",
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder={t(
-                                      "pages.careers.positions.form.companyPlaceholder",
-                                    )}
-                                    className={jobApplyInputClass}
-                                  />
-                                </div>
-                                {/* 직무 */}
-                                <div className={jobApplySubfieldMobile}>
-                                  <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                    <label
-                                      className={cn(
-                                        jobApplyLabelDesktop,
-                                        jobApplyLabelPc,
-                                        "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                      )}
-                                    >
-                                      {t("pages.careers.positions.form.duty")}
-                                    </label>
-                                    <span className={jobApplyStarClass}>*</span>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    required
-                                    value={c.position}
-                                    onChange={(e) =>
-                                      updateCareer(
-                                        c.id,
-                                        "position",
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder={t(
-                                      "pages.careers.positions.form.dutyPlaceholder",
-                                    )}
-                                    className={cn(
-                                      jobApplyInputClass,
-                                      "max-lg:leading-4",
-                                    )}
-                                  />
-                                </div>
-                                {/* 기간 */}
-                                <div className={jobApplySubfieldMobile}>
-                                  <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                    <label
-                                      className={cn(
-                                        jobApplyLabelDesktop,
-                                        jobApplyLabelPc,
-                                        "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                      )}
-                                    >
-                                      {t("pages.careers.positions.form.period")}
-                                    </label>
-                                    <span className={jobApplyStarClass}>*</span>
-                                  </div>
-                                  <div
-                                    className={cn(
-                                      jobApplyInputClass,
-                                      "flex items-center gap-2.5 !py-0 max-lg:h-[60px] lg:!px-4",
-                                    )}
-                                  >
-                                    <DatePicker
-                                      triggerVariant="ghost"
-                                      value={
-                                        c.startDate
-                                          ? new Date(`${c.startDate}T12:00:00`)
-                                          : undefined
-                                      }
-                                      onChange={(d) =>
-                                        updateCareer(
-                                          c.id,
-                                          "startDate",
-                                          d ? format(d, "yyyy-MM-dd") : "",
-                                        )
-                                      }
-                                      disabled={c.isCurrent}
-                                      placeholder="시작일"
-                                      className={cn(
-                                        "min-h-0 min-w-0 flex-1 justify-start border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:ring-0",
-                                        "font-[family-name:var(--font-nanum)] text-sm font-normal max-lg:text-base max-lg:text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]",
-                                        "h-auto disabled:opacity-50 [&_svg]:max-lg:size-4 [&_svg]:lg:size-4",
-                                      )}
-                                    />
-                                    <span className="shrink-0 font-[family-name:var(--font-nanum)] text-base font-normal text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]">
-                                      ~
-                                    </span>
-                                    <DatePicker
-                                      triggerVariant="ghost"
-                                      value={
-                                        c.endDate
-                                          ? new Date(`${c.endDate}T12:00:00`)
-                                          : undefined
-                                      }
-                                      onChange={(d) =>
-                                        updateCareer(
-                                          c.id,
-                                          "endDate",
-                                          d ? format(d, "yyyy-MM-dd") : "",
-                                        )
-                                      }
-                                      disabled={c.isCurrent}
-                                      placeholder="종료일"
-                                      className={cn(
-                                        "min-h-0 min-w-0 flex-1 justify-start border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:ring-0",
-                                        "font-[family-name:var(--font-nanum)] text-sm font-normal max-lg:text-base max-lg:text-[#003F2B] lg:text-[18px] lg:leading-[18px] lg:text-[#1F2121]",
-                                        "h-auto disabled:opacity-50 [&_svg]:max-lg:size-4 [&_svg]:lg:size-4",
-                                      )}
-                                    />
-                                  </div>
-                                  <label
-                                    className={cn(
-                                      "mt-2 flex cursor-pointer items-center gap-2.5 text-xs text-gray-600",
-                                      "max-lg:mt-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-sm max-lg:font-bold max-lg:text-black",
-                                      "lg:mt-0 lg:gap-3 lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:font-bold lg:text-black",
-                                    )}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={c.isCurrent}
-                                      onChange={(e) =>
-                                        updateCareer(
-                                          c.id,
-                                          "isCurrent",
-                                          e.target.checked,
-                                        )
-                                      }
-                                      className="size-[18px] shrink-0 rounded-full border border-[#DDDDDD] accent-[#02633E] max-lg:rounded-full"
-                                    />
-                                    {t(
-                                      "pages.careers.positions.form.currentlyEmployed",
-                                    )}
-                                  </label>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* ── 자격·어학 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <p
-                            className={cn(
-                              "mb-5 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:mb-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                              jobApplyPcSectionHeading,
-                            )}
-                          >
-                            {t("pages.careers.positions.form.qualificationsSection")}
-                          </p>
-                          <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
-                            <div>
-                              <div className="mb-1.5 flex items-center justify-between max-lg:mb-0">
-                                <div className="flex items-center gap-0.5">
-                                  <label
-                                    className={cn(
-                                      jobApplyLabelDesktop,
-                                      jobApplyLabelPc,
-                                      "max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                    )}
-                                  >
-                                    {t("pages.careers.positions.form.certifications")}
-                                  </label>
-                                  <span className={jobApplyStarClass}>*</span>
-                                </div>
-                              </div>
-                              <input
-                                type="text"
-                                value={formData.qualifications}
-                                onChange={(e) =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    qualifications: e.target.value,
-                                  }))
-                                }
-                                placeholder={t(
-                                  "pages.careers.positions.form.certificationsPh",
-                                )}
-                                className={cn(
-                                  jobApplyInputClass,
-                                  "lg:leading-[18px] lg:placeholder:leading-[18px]",
-                                )}
-                              />
-                            </div>
-                            <div className={jobApplySubfieldMobile}>
-                              <div className="flex max-lg:w-full max-lg:max-w-[200px] max-lg:items-center max-lg:gap-0.5">
-                                <label
-                                  className={cn(
-                                    jobApplyLabelDesktop,
-                                    jobApplyLabelPc,
-                                    "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  )}
-                                >
-                                  {t("pages.careers.positions.form.languageScores")}
-                                </label>
-                                <span className={jobApplyStarClass}>*</span>
-                              </div>
-                              <input
-                                type="text"
-                                value={formData.languageSkills}
-                                onChange={(e) =>
-                                  setFormData((p) => ({
-                                    ...p,
-                                    languageSkills: e.target.value,
-                                  }))
-                                }
-                                placeholder={t(
-                                  "pages.careers.positions.form.languageScoresPh",
-                                )}
-                                className={cn(
-                                  jobApplyInputClass,
-                                  "max-lg:leading-4",
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── 파일 첨부 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <p
-                            className={cn(
-                              "mb-5 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:mb-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                              jobApplyPcSectionHeading,
-                            )}
-                          >
-                            {t("pages.careers.positions.form.attachments")}
-                          </p>
-                          <div className="space-y-4 max-lg:space-y-5 lg:space-y-5">
-                            <div className={jobApplySubfieldMobile}>
-                              <div className="flex max-lg:items-center max-lg:gap-0.5">
-                                <label
-                                  className={cn(
-                                    jobApplyLabelDesktop,
-                                    jobApplyLabelPc,
-                                    "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  )}
-                                >
-                                  {t("pages.careers.positions.form.resume")}
-                                </label>
-                                <span className={jobApplyStarClass}>*</span>
-                              </div>
-                              <label
-                                className={cn(
-                                  jobApplyInputClass,
-                                  "flex min-h-[60px] cursor-pointer items-start gap-2.5 transition-colors hover:bg-gray-50/80 max-lg:h-auto max-lg:min-h-[60px] max-lg:items-start max-lg:py-[18px]",
-                                )}
-                              >
-                                <Paperclip
-                                  className="mt-0.5 size-4 shrink-0 text-[#003F2B] lg:text-[#1F2121]/60"
-                                  aria-hidden
-                                />
-                                <span className="flex-1 font-[family-name:var(--font-nanum)] text-sm text-gray-400 max-lg:text-base max-lg:leading-5 max-lg:text-[#003F2B] lg:text-[18px] lg:leading-5 lg:text-[#1F2121]/60">
-                                  <span className="max-lg:hidden">
-                                    {t("pages.careers.positions.form.resumeHintPc")}
-                                  </span>
-                                  <span className="hidden max-lg:inline">
-                                    {t(
-                                      "pages.careers.positions.form.resumeHintMobileLine1",
-                                    )}
-                                    <br />
-                                    {t(
-                                      "pages.careers.positions.form.resumeHintMobileLine2",
-                                    )}
-                                  </span>
-                                </span>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                            <div className={jobApplySubfieldMobile}>
-                              <label
-                                className={cn(
-                                  jobApplyLabelDesktop,
-                                  jobApplyLabelPc,
-                                  "max-lg:mb-0 max-lg:block max-lg:w-full max-lg:max-w-[200px] max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                  "lg:block",
-                                )}
-                              >
-                                {t("pages.careers.positions.form.portfolio")}
-                              </label>
-                              <label
-                                className={cn(
-                                  jobApplyInputClass,
-                                  "flex min-h-[60px] cursor-pointer items-start gap-2.5 transition-colors hover:bg-gray-50/80 max-lg:h-auto max-lg:min-h-[60px] max-lg:items-start max-lg:py-[18px]",
-                                )}
-                              >
-                                <Paperclip
-                                  className="mt-0.5 size-4 shrink-0 text-[#003F2B] lg:text-[#1F2121]/60"
-                                  aria-hidden
-                                />
-                                <span className="flex-1 font-[family-name:var(--font-nanum)] text-sm text-gray-400 max-lg:text-base max-lg:leading-5 max-lg:text-[#003F2B] lg:text-[18px] lg:leading-5 lg:text-[#1F2121]/60">
-                                  <span className="max-lg:hidden">
-                                    {t(
-                                      "pages.careers.positions.form.portfolioHintPc",
-                                    )}
-                                  </span>
-                                  <span className="hidden max-lg:inline">
-                                    {t(
-                                      "pages.careers.positions.form.portfolioHintMobileLine1",
-                                    )}
-                                    <br />
-                                    {t(
-                                      "pages.careers.positions.form.portfolioHintMobileLine2",
-                                    )}
-                                  </span>
-                                </span>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.zip,application/pdf,application/zip"
-                                  multiple
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── 자기소개서 ── */}
-                        <div className={jobApplySectionBlockMobile}>
-                          <p
-                            className={cn(
-                              "mb-5 text-base font-bold tracking-[-0.03em] text-gray-900 max-lg:mb-0 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:text-black",
-                              jobApplyPcSectionHeading,
-                            )}
-                          >
-                            {t("pages.careers.positions.form.coverLetterSection")}
-                          </p>
-                          <div className="space-y-2.5 max-lg:space-y-2.5 lg:space-y-5">
-                            <div className="flex max-lg:items-center max-lg:gap-0.5">
-                              <label
-                                className={cn(
-                                  jobApplyLabelDesktop,
-                                  jobApplyLabelPc,
-                                  "max-lg:mb-0 max-lg:inline max-lg:font-[family-name:var(--font-nanum)] max-lg:text-base max-lg:font-bold max-lg:text-black",
-                                )}
-                              >
-                                {t("pages.careers.positions.form.coverLetterLabel")}
-                              </label>
-                              <span className={jobApplyStarClass}>*</span>
-                            </div>
-                            <textarea
-                              required
-                              rows={6}
-                              maxLength={1000}
-                              value={formData.coverLetter}
-                              onChange={(e) =>
-                                setFormData((p) => ({
-                                  ...p,
-                                  coverLetter: e.target.value,
-                                }))
-                              }
-                              placeholder={t(
-                                "pages.careers.positions.form.coverLetterPh",
-                              )}
-                              className={cn(
-                                jobApplyInputClass,
-                                "h-auto min-h-[150px] resize-none py-3 max-lg:h-auto max-lg:min-h-[200px] max-lg:py-[18px] max-lg:leading-5 lg:min-h-[200px] lg:py-[18px]",
-                              )}
-                            />
-                            <p className="font-[family-name:var(--font-nanum)] text-sm leading-4 text-[#1F2121] max-lg:text-sm lg:text-lg lg:leading-normal">
-                              {t("pages.careers.positions.form.coverLetterLegal")}
-                            </p>
-                            <div className="mt-1 text-right text-xs text-gray-400 lg:hidden">
-                              {formData.coverLetter.length}/1000
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 제출 버튼 */}
-                      <div className="mx-auto flex w-full max-w-[750px] justify-center pt-2 max-lg:pt-0 lg:max-w-[750px] lg:px-0 lg:pt-[30px]">
-                        <button
-                          type="submit"
-                          className={cn(
-                            "rounded-full px-12 py-3.5 text-sm font-semibold text-white transition-colors hover:brightness-110",
-                            "w-full max-lg:rounded-[60px] max-lg:px-10 max-lg:py-5 max-lg:font-[family-name:var(--font-nanum)] max-lg:text-lg max-lg:leading-[23.4px] max-lg:font-extrabold",
-                            "lg:w-auto lg:rounded-[60px] lg:px-10 lg:py-5 lg:font-[family-name:var(--font-nanum)] lg:text-[18px] lg:leading-[23.4px] lg:font-extrabold",
-                          )}
-                          style={{ backgroundColor: "#02633E" }}
-                        >
-                          {t("pages.careers.positions.form.submitButton")}
-                        </button>
-                      </div>
-                    </form>
+                      {t(`${applicationLookupAl}.edit`)}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex min-h-[44px] flex-1 cursor-not-allowed items-center justify-center rounded-full bg-[#02633E]/40 px-4 py-3 font-[family-name:var(--font-nanum)] text-sm font-extrabold text-white/90 max-lg:text-xs"
+                    >
+                      {t(`${applicationLookupAl}.edit`)}
+                    </button>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-        </PageContentMax>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </section>
 
       {/* ── 복리후생: 시안/HTML — 흰 배경은 max-w(1920) 밖까지 뷰포트 전폭(줌아웃·초와이드에서 크롬색 안 비치게) */}
@@ -2812,7 +2286,6 @@ export default function CareersPositionsScreen({
       {/* 모바일: 필터 행 `overflow-x-auto` + 형제 공고 목록 때문에 absolute 패널이 잘리거나 가려짐 → body 고정 레이어 */}
       {typeof document !== "undefined" &&
         isMaxLg &&
-        mainTab === "list" &&
         openDropdown &&
         filterFloatingPos &&
         createPortal(
