@@ -53,14 +53,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "create") {
     await db.insert(jobPostings).values({
-      title: fd.get("title") as string,
-      department: (fd.get("position") as string) || "미정",
+      title: ((fd.get("position") as string) || "").trim() || "미정",
+      department: ((fd.get("title") as string) || "").trim() || "미정",
       location: (fd.get("location") as string) || "미정",
       job_type: JOB_TYPE_MAP[fd.get("employmentType") as string] ?? "full_time",
       experience_level: EXP_MAP[fd.get("experience") as string] ?? "all",
       description: fd.get("description") as string,
       requirements: (fd.get("qualifications") as string) || null,
       benefits: (fd.get("benefits") as string) || null,
+      hiring_process: ((fd.get("hiringProcess") as string) || "").trim() || null,
       status: formToJobStatus(String(fd.get("status") ?? "")),
       deadline: fd.get("deadline") ? new Date(fd.get("deadline") as string) : null,
       is_active: true,
@@ -74,14 +75,15 @@ export async function action({ request }: Route.ActionArgs) {
     await db
       .update(jobPostings)
       .set({
-        title: fd.get("title") as string,
-        department: (fd.get("position") as string) || "미정",
+        title: ((fd.get("position") as string) || "").trim() || "미정",
+        department: ((fd.get("title") as string) || "").trim() || "미정",
         location: (fd.get("location") as string) || "미정",
         job_type: JOB_TYPE_MAP[fd.get("employmentType") as string] ?? "full_time",
         experience_level: EXP_MAP[fd.get("experience") as string] ?? "all",
         description: fd.get("description") as string,
         requirements: (fd.get("qualifications") as string) || null,
         benefits: (fd.get("benefits") as string) || null,
+        hiring_process: ((fd.get("hiringProcess") as string) || "").trim() || null,
         status: formToJobStatus(String(fd.get("status") ?? "")),
         deadline: fd.get("deadline") ? new Date(fd.get("deadline") as string) : null,
       })
@@ -137,8 +139,8 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
     const j = editingJob;
     return {
       jobId: j.job_id,
-      position: j.department,
-      title: j.title,
+      position: j.title,
+      title: j.department,
       employmentType: JOB_TYPE_INV[j.job_type] ?? "정규직",
       location: j.location,
       experience: EXP_INV[j.experience_level] ?? "신입/경력",
@@ -147,6 +149,7 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
       description: j.description,
       qualifications: j.requirements ?? "",
       benefits: j.benefits ?? "",
+      hiringProcess: j.hiring_process ?? "",
     };
   }, [editingJob]);
 

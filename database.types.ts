@@ -524,11 +524,22 @@ export type Database = {
           birth_date: string | null
           cover_letter: string | null
           created_at: string
+          current_company: string | null
+          current_position: string | null
+          education_level: string | null
           email: string
+          experience_kind: string | null
+          graduation_month: string | null
           job_id: number
+          lookup_password: string | null
+          major: string | null
+          marketing_opt_in: boolean
+          military_service: string | null
           phone: string
           portfolio_url: string | null
           resume_url: string | null
+          school_name: string | null
+          self_intro_file_url: string | null
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
         }
@@ -540,11 +551,22 @@ export type Database = {
           birth_date?: string | null
           cover_letter?: string | null
           created_at?: string
+          current_company?: string | null
+          current_position?: string | null
+          education_level?: string | null
           email: string
+          experience_kind?: string | null
+          graduation_month?: string | null
           job_id: number
+          lookup_password?: string | null
+          major?: string | null
+          marketing_opt_in?: boolean
+          military_service?: string | null
           phone: string
           portfolio_url?: string | null
           resume_url?: string | null
+          school_name?: string | null
+          self_intro_file_url?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -556,11 +578,22 @@ export type Database = {
           birth_date?: string | null
           cover_letter?: string | null
           created_at?: string
+          current_company?: string | null
+          current_position?: string | null
+          education_level?: string | null
           email?: string
+          experience_kind?: string | null
+          graduation_month?: string | null
           job_id?: number
+          lookup_password?: string | null
+          major?: string | null
+          marketing_opt_in?: boolean
+          military_service?: string | null
           phone?: string
           portfolio_url?: string | null
           resume_url?: string | null
+          school_name?: string | null
+          self_intro_file_url?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -583,6 +616,7 @@ export type Database = {
           description: string
           experience_level: Database["public"]["Enums"]["experience_level"]
           headcount: number | null
+          hiring_process: string | null
           is_active: boolean
           job_id: number
           job_type: Database["public"]["Enums"]["job_type"]
@@ -600,6 +634,7 @@ export type Database = {
           description: string
           experience_level: Database["public"]["Enums"]["experience_level"]
           headcount?: number | null
+          hiring_process?: string | null
           is_active?: boolean
           job_id?: never
           job_type: Database["public"]["Enums"]["job_type"]
@@ -617,6 +652,7 @@ export type Database = {
           description?: string
           experience_level?: Database["public"]["Enums"]["experience_level"]
           headcount?: number | null
+          hiring_process?: string | null
           is_active?: boolean
           job_id?: never
           job_type?: Database["public"]["Enums"]["job_type"]

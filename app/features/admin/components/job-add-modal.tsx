@@ -45,6 +45,8 @@ export interface JobFormData {
   description: string;
   qualifications: string;
   benefits: string;
+  /** 상세 페이지 채용 절차(줄당 한 단계). 비우면 사이트 기본 문구 사용 */
+  hiringProcess: string;
 }
 
 const EMPLOYMENT_TYPE_OPTIONS = [
@@ -72,6 +74,7 @@ function emptyJobForm(): JobFormData {
     description: "",
     qualifications: "",
     benefits: "",
+    hiringProcess: "",
   };
 }
 
@@ -96,6 +99,7 @@ export function JobAddModal({
         deadline: initial.deadline ?? "",
         qualifications: initial.qualifications ?? "",
         benefits: initial.benefits ?? "",
+        hiringProcess: initial.hiringProcess ?? "",
       });
       return;
     }
@@ -295,6 +299,19 @@ export function JobAddModal({
                 placeholder="각 항목을 줄바꿈으로 구분하여 입력하세요"
                 rows={4}
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hiringProcess">채용 절차 (상세 페이지)</Label>
+              <Textarea
+                id="hiringProcess"
+                value={formData.hiringProcess}
+                onChange={(e) =>
+                  setFormData({ ...formData, hiringProcess: e.target.value })
+                }
+                placeholder="한 줄에 단계 하나씩 입력하세요. 비우면 기본 4단계 문구가 표시됩니다."
+                rows={4}
               />
             </div>
           </div>

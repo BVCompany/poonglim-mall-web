@@ -28,6 +28,8 @@ export const timestamps = {
  * which is ideal for primary keys that don't need to be UUIDs.
  */
 export function makeIdentityColumn<const T extends string>(name: T) {
-  const col = bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity();
+  const col = bigint(name, { mode: "number" })
+    .primaryKey()
+    .generatedAlwaysAsIdentity();
   return { [name]: col } as { [K in T]: typeof col };
 }

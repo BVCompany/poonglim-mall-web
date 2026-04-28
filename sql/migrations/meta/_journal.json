@@ -190,6 +190,20 @@
       "when": 1776969600000,
       "tag": "0026_library_resources_archive_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1777056000000,
+      "tag": "0027_careers_hiring_process_application_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1777142400000,
+      "tag": "0028_job_applications_lookup_password",
+      "breakpoints": true
     }
   ]
 }
