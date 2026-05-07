@@ -416,10 +416,10 @@ const en: Translation = {
         hq: {
           transportTitle: "Directions to HQ & factory",
           carLine1: "About 40 minutes from Cheongju IC. In your navigation, search for ",
-          carHighlight: "51-21, Gongdong-gil, Iwol-myeon, Jincheon-gun, Chungbuk",
+          carHighlight: "51-21, Gungdong-gil, Iwol-myeon, Jincheon-gun, Chungbuk",
           carLine2: ".",
           publicTransit:
-            "Jincheon bus terminal → bus to Iwol-myeon → get off at Gongdong-gil",
+            "Jincheon bus terminal → bus to Iwol-myeon → get off at Gungdong-gil",
         },
       },
       certifications: {
@@ -455,7 +455,7 @@ const en: Translation = {
         tourInfo: {
           factory: {
             title: "Facility",
-            line1Bold: "51-21 Gongdong-gil, Iwol-myeon, Jincheon-gun, Chungbuk ",
+            line1Bold: "51-21 Gungdong-gil, Iwol-myeon, Jincheon-gun, Chungbuk ",
             line2: "(Head office / plant)",
           },
           period: {
