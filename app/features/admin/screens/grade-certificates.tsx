@@ -186,66 +186,8 @@ function isNewCert(createdAt: Date | string) {
 }
 
 /* ── 더미 데이터 (DB 비어 있을 때만) ── */
-const MOCK_CERTS = [
-  {
-    cert_id: -1,
-    tab: "current" as const,
-    cert_type: "액란" as const,
-    title: "02/25 등급판정서 (액란용)",
-    file_url: null as string | null,
-    file_name: "6004-02250002.pdf",
-    view_count: 88,
-    is_active: true,
-    author: "풍림푸드",
-    content: "",
-    created_at: new Date("2026-04-10"),
-    updated_at: new Date("2026-04-10"),
-  },
-  {
-    cert_id: -2,
-    tab: "current" as const,
-    cert_type: "포장란" as const,
-    title: "02/24 등급판정서 (포장란용)",
-    file_url: null as string | null,
-    file_name: "6004-02250001.pdf",
-    view_count: 55,
-    is_active: true,
-    author: "풍림푸드",
-    content: "",
-    created_at: new Date("2026-04-08"),
-    updated_at: new Date("2026-04-08"),
-  },
-  {
-    cert_id: -3,
-    tab: "archive" as const,
-    cert_type: "액란" as const,
-    title: "11/22 등급판정서 (액란용)",
-    file_url: null as string | null,
-    file_name: "grade-202211.pdf",
-    view_count: 120,
-    is_active: true,
-    author: "풍림푸드",
-    content: "",
-    created_at: new Date("2022-11-15"),
-    updated_at: new Date("2022-11-15"),
-  },
-  {
-    cert_id: -4,
-    tab: "archive" as const,
-    cert_type: "포장란" as const,
-    title: "10/22 안전검사 결과 (포장란)",
-    file_url: null as string | null,
-    file_name: "safety-202210.pdf",
-    view_count: 42,
-    is_active: true,
-    author: "풍림푸드",
-    content: "",
-    created_at: new Date("2022-10-20"),
-    updated_at: new Date("2022-10-20"),
-  },
-];
 
-type CertRow = GradeCertificate | (typeof MOCK_CERTS)[number];
+type CertRow = GradeCertificate;
 
 export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbCerts, dbGradeCertCategories } = loaderData;
@@ -259,7 +201,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
   const [editingData, setEditingData] = useState<GradeCertFormData | undefined>();
 
   const sourceCerts = useMemo(
-    () => (dbCerts.length > 0 ? dbCerts : MOCK_CERTS) as CertRow[],
+    () => dbCerts as CertRow[],
     [dbCerts],
   );
 

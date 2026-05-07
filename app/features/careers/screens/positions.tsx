@@ -391,278 +391,6 @@ type CareerStep = {
   titleRowFluid?: boolean;
 };
 
-const MOCK_JOBS_KO: DisplayJob[] = [
-  {
-    id: 1,
-    dept: "생산직",
-    deptKey: "production",
-    title: "생산관리 담당자",
-    type: "정규직",
-    typeKey: "full_time",
-    exp: "경력 3년 이상",
-    expKey: "experienced",
-    region: "충북 진천",
-    regionKey: "chungbuk",
-    createdAt: "2026-02-18",
-    status: "모집중",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: true,
-    duties: [
-      "생산 라인 관리 및 공정 개선",
-      "생산 계획 수립 및 실적 관리",
-      "품질 관리 및 안전 관리",
-    ],
-    requirements: [
-      "관련 분야 경력 3년 이상",
-      "식품 제조업 경험 우대",
-      "HACCP 관련 자격증 보유자 우대",
-    ],
-  },
-  {
-    id: 2,
-    dept: "생산직",
-    deptKey: "production",
-    title: "품질관리 담당자",
-    type: "정규직",
-    typeKey: "full_time",
-    exp: "신입/경력",
-    expKey: "both",
-    region: "충북 진천",
-    regionKey: "chungbuk",
-    createdAt: "2026-02-18",
-    status: "모집중",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: false,
-    duties: [
-      "원자재·완제품 품질 검사",
-      "불량 원인 분석 및 개선",
-      "품질 문서 관리",
-    ],
-    requirements: [
-      "식품공학 관련 전공 우대",
-      "HACCP 자격증 보유자 우대",
-      "엑셀 기본 능력",
-    ],
-  },
-  {
-    id: 3,
-    dept: "사무직",
-    deptKey: "office",
-    title: "경영지원 담당자",
-    type: "정규직",
-    typeKey: "full_time",
-    exp: "경력 1-3년",
-    expKey: "experienced",
-    region: "서울",
-    regionKey: "seoul",
-    createdAt: "2026-02-18",
-    status: "상시채용",
-    statusKey: "always",
-    deadlineLine: "상시 모집",
-    isNew: false,
-    duties: [
-      "인사·총무 업무 전반",
-      "임직원 복리후생 운영",
-      "계약서 및 문서 관리",
-    ],
-    requirements: [
-      "관련 경력 1년 이상",
-      "MS Office 능숙자",
-      "꼼꼼하고 책임감 있는 분",
-    ],
-  },
-  {
-    id: 4,
-    dept: "영업직",
-    deptKey: "sales",
-    title: "영업관리 담당자",
-    type: "정규직",
-    typeKey: "full_time",
-    exp: "경력 3년 이상",
-    expKey: "experienced",
-    region: "서울",
-    regionKey: "seoul",
-    createdAt: "2026-02-18",
-    status: "마감임박",
-    statusKey: "closing",
-    deadlineLine: "~ 2026-02-18",
-    isNew: true,
-    duties: ["B2B 고객사 관리", "신규 거래처 개발", "영업 실적 분석·보고"],
-    requirements: [
-      "영업 경력 3년 이상",
-      "식품·유통 업계 경험 우대",
-      "운전면허 소지자",
-    ],
-  },
-  {
-    id: 5,
-    dept: "마케팅",
-    deptKey: "marketing",
-    title: "마케팅 전문가",
-    type: "정규직",
-    typeKey: "full_time",
-    exp: "경력 3-5년",
-    expKey: "experienced",
-    region: "충남",
-    regionKey: "chungnam",
-    createdAt: "2026-02-18",
-    status: "모집중",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: false,
-    duties: [
-      "브랜드 마케팅 전략 수립",
-      "디지털 캠페인 운영",
-      "SNS·콘텐츠 제작 관리",
-    ],
-    requirements: [
-      "마케팅 경력 3년 이상",
-      "디지털 마케팅 경험자",
-      "포토샵·일러스트 가능자 우대",
-    ],
-  },
-];
-
-const MOCK_JOBS_EN: DisplayJob[] = [
-  {
-    id: 1,
-    dept: "Production",
-    deptKey: "production",
-    title: "Production supervisor",
-    type: "Full-time",
-    typeKey: "full_time",
-    exp: "3+ years",
-    expKey: "experienced",
-    region: "Jincheon, Chungbuk",
-    regionKey: "chungbuk",
-    createdAt: "2026-02-18",
-    status: "Open",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: true,
-    duties: [
-      "Line operations and process improvement",
-      "Production planning and KPI tracking",
-      "Quality and safety management",
-    ],
-    requirements: [
-      "3+ years in a related field",
-      "Food manufacturing experience preferred",
-      "HACCP-related certification preferred",
-    ],
-  },
-  {
-    id: 2,
-    dept: "Production",
-    deptKey: "production",
-    title: "Quality control specialist",
-    type: "Full-time",
-    typeKey: "full_time",
-    exp: "Entry / experienced",
-    expKey: "both",
-    region: "Jincheon, Chungbuk",
-    regionKey: "chungbuk",
-    createdAt: "2026-02-18",
-    status: "Open",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: false,
-    duties: [
-      "Raw/finished goods inspection",
-      "Root-cause analysis for defects",
-      "Quality documentation",
-    ],
-    requirements: [
-      "Food engineering major preferred",
-      "HACCP certification preferred",
-      "Basic Excel skills",
-    ],
-  },
-  {
-    id: 3,
-    dept: "Office",
-    deptKey: "office",
-    title: "Corporate support specialist",
-    type: "Full-time",
-    typeKey: "full_time",
-    exp: "1–3 years",
-    expKey: "experienced",
-    region: "Seoul",
-    regionKey: "seoul",
-    createdAt: "2026-02-18",
-    status: "Always hiring",
-    statusKey: "always",
-    deadlineLine: "Open until filled",
-    isNew: false,
-    duties: [
-      "HR and general affairs",
-      "Employee benefits programs",
-      "Contracts and documentation",
-    ],
-    requirements: [
-      "1+ years of related experience",
-      "Proficient in Microsoft Office",
-      "Detail-oriented and responsible",
-    ],
-  },
-  {
-    id: 4,
-    dept: "Sales",
-    deptKey: "sales",
-    title: "Sales operations specialist",
-    type: "Full-time",
-    typeKey: "full_time",
-    exp: "3+ years",
-    expKey: "experienced",
-    region: "Seoul",
-    regionKey: "seoul",
-    createdAt: "2026-02-18",
-    status: "Closing soon",
-    statusKey: "closing",
-    deadlineLine: "~ 2026-02-18",
-    isNew: true,
-    duties: [
-      "B2B account management",
-      "New business development",
-      "Sales reporting and analysis",
-    ],
-    requirements: [
-      "3+ years in sales",
-      "Food or distribution experience preferred",
-      "Valid driver’s license",
-    ],
-  },
-  {
-    id: 5,
-    dept: "Marketing",
-    deptKey: "marketing",
-    title: "Marketing specialist",
-    type: "Full-time",
-    typeKey: "full_time",
-    exp: "3–5 years",
-    expKey: "experienced",
-    region: "Chungnam",
-    regionKey: "chungnam",
-    createdAt: "2026-02-18",
-    status: "Open",
-    statusKey: "open",
-    deadlineLine: "~ 2026-02-18",
-    isNew: false,
-    duties: [
-      "Brand marketing strategy",
-      "Digital campaign operations",
-      "SNS and content production",
-    ],
-    requirements: [
-      "3+ years in marketing",
-      "Digital marketing experience",
-      "Photoshop / Illustrator skills preferred",
-    ],
-  },
-];
-
 export const meta: Route.MetaFunction = ({ data }) => [
   { title: data?.metaTitle ?? "" },
 ];
@@ -721,7 +449,7 @@ export default function CareersPositionsScreen({
   loaderData,
 }: Route.ComponentProps) {
   const { dbJobs, pageBanner } = loaderData;
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const labelJobFilter = useCallback(
     (k: JobFilterKey) => t(`pages.careers.positions.filters.job.${k}`),
@@ -983,9 +711,6 @@ export default function CareersPositionsScreen({
   }, []);
 
   const jobs = useMemo((): DisplayJob[] => {
-    if (loaderData.dbJobs.length === 0) {
-      return i18n.language?.startsWith("en") ? MOCK_JOBS_EN : MOCK_JOBS_KO;
-    }
     return loaderData.dbJobs.map((j) => {
       const typeKey = (j.job_type ?? "full_time") as DisplayJob["typeKey"];
       const typeUi = t(`pages.careers.shared.jobType.${typeKey}`);
@@ -1027,7 +752,7 @@ export default function CareersPositionsScreen({
           .slice(0, 6),
       };
     });
-  }, [loaderData.dbJobs, t, i18n.language]);
+  }, [loaderData.dbJobs, t]);
 
   const filteredJobs = jobs.filter((j) => {
     const jobOk = jobFilter === "all" || j.deptKey === jobFilter;
@@ -1606,7 +1331,13 @@ export default function CareersPositionsScreen({
             </div>
 
             <div className="flex flex-col max-lg:px-4 lg:border-t lg:border-black/20">
-              {filteredJobs.length === 0 ? (
+              {jobs.length === 0 ? (
+                <div className="py-16 text-center">
+                  <p className="whitespace-pre-line text-base text-gray-500">
+                    {t("empty.careers")}
+                  </p>
+                </div>
+              ) : filteredJobs.length === 0 ? (
                 <div className="py-12 text-center text-sm text-gray-400">
                   {t("pages.careers.positions.emptyFiltered")}
                 </div>

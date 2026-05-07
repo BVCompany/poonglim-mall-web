@@ -35,26 +35,7 @@ function ChangeChip({ value }: { value: number }) {
   );
 }
 
-// ─── 목 데이터 ────────────────────────────────────────────────────────────────
-const MOCK_ACTIVITIES = [
-  { title: "신규 채용 지원서 접수",    desc: "생산직 - 김민수 지원서",          time: "30분 전" },
-  { title: "제품 정보 업데이트",        desc: "짜먹는 에그샐러드 1kg - 가격 수정", time: "2시간 전" },
-  { title: "이벤트 등록",              desc: "설 맞이 특별 프로모션",            time: "5시간 전" },
-  { title: "레시피 추가",              desc: "액란을 활용한 스크램블 에그",       time: "1일 전" },
-];
 
-const MOCK_INQUIRIES = [
-  { title: "대량 구매 문의 - 에그샐러드 500개", cat: "B2B 문의",  time: "10분 전",  status: "미답변" },
-  { title: "제품 유통기한 관련 질문",            cat: "제품 문의", time: "1시간 전", status: "미답변" },
-  { title: "공장 견학 신청 - 서울 A초등학교",    cat: "견학 신청", time: "2시간 전", status: "처리중" },
-  { title: "액란 제품 납품 가능 여부",           cat: "구매 문의", time: "5시간 전", status: "답변완료" },
-];
-
-const STATUS_STYLE: Record<string, string> = {
-  미답변: "bg-red-100 text-red-600",
-  처리중: "bg-amber-100 text-amber-600",
-  답변완료: "bg-emerald-100 text-emerald-600",
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
@@ -205,17 +186,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
               <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h3 className="mb-0.5 font-bold text-gray-900">최근 활동</h3>
                 <p className="mb-5 text-xs text-gray-400">최근 업데이트된 콘텐츠</p>
-                <div className="divide-y divide-gray-50">
-                  {MOCK_ACTIVITIES.map((a, i) => (
-                    <div key={i} className="flex items-start justify-between py-3 first:pt-0 last:pb-0">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-gray-900">{a.title}</p>
-                        <p className="truncate text-xs text-gray-400">{a.desc}</p>
-                      </div>
-                      <span className="ml-4 shrink-0 text-xs text-gray-400">{a.time}</span>
-                    </div>
-                  ))}
-                </div>
+                <p className="py-4 text-center text-sm text-gray-400">최근 활동 내역이 없습니다.</p>
               </div>
 
               {/* 최근 고객 문의 */}
@@ -231,26 +202,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </div>
                 <p className="mb-5 text-xs text-gray-400">최신순 문의 현황</p>
-                <div className="space-y-1">
-                  {MOCK_INQUIRIES.map((q, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-gray-900">{q.title}</p>
-                        <p className="text-xs text-gray-400">
-                          {q.cat} · {q.time}
-                        </p>
-                      </div>
-                      <span
-                        className={`ml-3 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[q.status] ?? "bg-gray-100 text-gray-500"}`}
-                      >
-                        {q.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="py-4 text-center text-sm text-gray-400">문의 내역이 없습니다.</p>
               </div>
 
             </div>

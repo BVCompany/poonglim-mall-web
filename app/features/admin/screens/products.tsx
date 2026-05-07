@@ -24,7 +24,6 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { MOCK_PRODUCTS } from "../data/products";
 import type { AdminProduct } from "../types/product.types";
 import { getAllProductsForAdmin } from "~/features/products/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
@@ -324,7 +323,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
         created_at: p.created_at.toISOString(),
         updated_at: p.updated_at.toISOString(),
       }))
-    : MOCK_PRODUCTS;
+    : [];
 
   const filteredProducts = sourceProducts.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())

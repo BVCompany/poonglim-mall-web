@@ -80,188 +80,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 /* ── 더미 데이터 (is_new: 모바일 N 뱃지 — DB 연동 시 필드 추가 가능) ── */
-const MOCK_CERTS = [
-  {
-    cert_id: 12,
-    tab: "current",
-    cert_type: "포장란",
-    title: "2026년 2월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02260002.pdf",
-    view_count: 246,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2026-02-18",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 11,
-    tab: "current",
-    cert_type: "액란",
-    title: "2026년 1월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02260001.pdf",
-    view_count: 312,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2026-01-18",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 10,
-    tab: "current",
-    cert_type: "포장란",
-    title: "2025년 12월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02251202.pdf",
-    view_count: 180,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-12-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 9,
-    tab: "current",
-    cert_type: "액란",
-    title: "2025년 11월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02251101.pdf",
-    view_count: 215,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-11-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 8,
-    tab: "current",
-    cert_type: "포장란",
-    title: "2026년 10월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02251002.pdf",
-    view_count: 423,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-10-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 7,
-    tab: "current",
-    cert_type: "액란",
-    title: "2025년 9월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02250901.pdf",
-    view_count: 199,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-09-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 6,
-    tab: "current",
-    cert_type: "포장란",
-    title: "2025년 8월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02250802.pdf",
-    view_count: 215,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-08-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 5,
-    tab: "current",
-    cert_type: "액란",
-    title: "2025년 7월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02250701.pdf",
-    view_count: 234,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-07-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 4,
-    tab: "current",
-    cert_type: "포장란",
-    title: "2025년 6월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02250602.pdf",
-    view_count: 142,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-06-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 3,
-    tab: "current",
-    cert_type: "액란",
-    title: "2025년 5월 계란 안전성 검사결과",
-    file_url: "#",
-    file_name: "6004-02250501.pdf",
-    view_count: 125,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2025-05-15",
-    is_pinned: false,
-    is_new: true,
-  },
-  {
-    cert_id: 2,
-    tab: "archive",
-    cert_type: "포장란",
-    title: "2022년 11월 등급판정서 (포장란)",
-    file_url: "#",
-    file_name: "6004-old-0001.pdf",
-    view_count: 88,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2022-11-01",
-    is_pinned: false,
-    is_new: false,
-  },
-  {
-    cert_id: 1,
-    tab: "archive",
-    cert_type: "액란",
-    title: "2022년 10월 등급판정서 (액란)",
-    file_url: "#",
-    file_name: "6004-old-0002.pdf",
-    view_count: 55,
-    is_active: true,
-    content: "",
-    author: "풍림푸드",
-    created_at: "2022-10-01",
-    is_pinned: false,
-    is_new: false,
-  },
-];
 
 const ITEMS_PER_PAGE = 10;
 
@@ -275,9 +93,7 @@ export default function GradeCertificateScreen({
   const [inputValue, setInputValue] = useState("");
   const [page, setPage] = useState(1);
 
-  const allCerts = (
-    dbCerts.length > 0 ? dbCerts : MOCK_CERTS
-  ) as typeof MOCK_CERTS;
+  const allCerts = dbCerts;
   const dbTypeForKey = CERT_TYPE_KEY_TO_DB[activeTypeKey];
   const sourceCerts = allCerts
     .filter((c) => c.tab === activeTab)
@@ -537,7 +353,11 @@ export default function GradeCertificateScreen({
           </div>
 
           <div className="flex flex-col gap-10">
-            {paginated.length === 0 ? (
+            {allCerts.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-base text-gray-500">{t("empty.gradeCertificates")}</p>
+              </div>
+            ) : paginated.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">
                 {t("pages.gradeCertificateList.emptySearch")}
               </div>

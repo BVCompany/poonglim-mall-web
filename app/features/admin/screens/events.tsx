@@ -166,65 +166,6 @@ function isDemoEventRow(id: number) {
 }
 
 /** DB에 행이 없을 때만 노출 (음수 ID — 수정·삭제 불가) */
-const MOCK_EVENTS: Event[] = [
-  {
-    event_id: -1,
-    translation_group_id: "00000000-0000-4000-8000-0000000000e1",
-    locale: "ko",
-    type: "event",
-    title: "설 맞이 특별 프로모션",
-    content: "<p>설 명절을 맞이한 특별 프로모션 상세 안내입니다.</p>",
-    summary: "설 명절을 맞이하여 전 제품 70% 할인 이벤트를 진행합니다",
-    thumbnail_url: "/intro/img01.png",
-    badge: null,
-    is_active: true,
-    started_at: new Date("2025-01-20T00:00:00"),
-    ended_at: new Date("2025-02-10T00:00:00"),
-    location: null,
-    contact: null,
-    view_count: "128",
-    created_at: new Date("2025-01-18T10:00:00"),
-    updated_at: new Date("2025-01-18T10:00:00"),
-  },
-  {
-    event_id: -2,
-    translation_group_id: "00000000-0000-4000-8000-0000000000e2",
-    locale: "ko",
-    type: "notice",
-    title: "신제품 출시 안내",
-    content: "<p>짜먹는 에그샐러드 신제품 출시 안내입니다.</p>",
-    summary: "짜먹는 에그샐러드 신제품이 출시되었습니다",
-    thumbnail_url: null,
-    badge: null,
-    is_active: true,
-    started_at: new Date("2023-01-15T00:00:00"),
-    ended_at: null,
-    location: null,
-    contact: null,
-    view_count: "256",
-    created_at: new Date("2023-01-14T09:00:00"),
-    updated_at: new Date("2023-01-14T09:00:00"),
-  },
-  {
-    event_id: -3,
-    translation_group_id: "00000000-0000-4000-8000-0000000000e3",
-    locale: "ko",
-    type: "event",
-    title: "봄맞이 샘플링 행사",
-    content: "<p>매장 샘플링 행사 상세 일정입니다.</p>",
-    summary: "전국 주요 매장에서 신제품 무료 시식 이벤트를 진행합니다",
-    thumbnail_url: "/home/product-squeeze-egg-salad.png",
-    badge: null,
-    is_active: false,
-    started_at: new Date("2024-03-01T00:00:00"),
-    ended_at: new Date("2024-03-31T00:00:00"),
-    location: null,
-    contact: null,
-    view_count: "89",
-    created_at: new Date("2024-02-25T11:00:00"),
-    updated_at: new Date("2024-03-31T18:00:00"),
-  },
-];
 
 export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbEvents } = loaderData;
@@ -244,7 +185,7 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   };
 
   const sourceEvents = useMemo(
-    () => (dbEvents.length > 0 ? dbEvents : MOCK_EVENTS),
+    () => dbEvents,
     [dbEvents],
   );
 

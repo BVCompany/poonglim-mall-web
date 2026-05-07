@@ -109,162 +109,11 @@ function featuredScrollStepPx() {
     : CARD_W + CARD_GAP;
 }
 
-/* ── 목업 데이터 (DB 비어있을 때 fallback) ── */
-const MOCK_ITEMS: NewsItem[] = [
-  {
-    news_id: 1,
-    type: "press",
-    title: "[중부매일] 직원 경영 이상 주부…새심한 배려로 '가족친화 기업' 탄생",
-    content: "",
-    summary: "풍림푸드는 지난 1년 간 77개의 중 어려운 사원 76가정에게, 회사 후생복리 차원에서 직원들 아이들을 위해 직원들과 아이들이 행복한 회사를 만들어 가기 위한 노력을 아끼지 않는 기업들 중 하나입니다.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "중부매일",
-    is_active: true,
-    is_featured: true,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 2,
-    type: "press",
-    title: "신제품 '프리미엄 에그' 출시 — 고품질 액란 국내 시장 본격 공략",
-    content: "",
-    summary: "풍림푸드가 프리미엄 액란 시장에 새로운 강자로 등장했습니다.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "식품음료신문",
-    is_active: true,
-    is_featured: true,
-    published_at: "2024-02-14",
-    created_at: new Date("2024-02-14"),
-  },
-  {
-    news_id: 3,
-    type: "news",
-    title: "앤 한수산의 고고미미를? 이모파나리아에서 만나는 독별한 방법",
-    content: "",
-    summary: "최근 각광받고 있는 트로트 요리유튜버와 협업한 레시피 시리즈를 이모파나리아에서 소개합니다.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "매일경제",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 4,
-    type: "news",
-    title: "풍림푸드, 간단하게 맞는 집은 신규 신개 '업집 없는 한수관' 출시",
-    content: "",
-    summary: "풍림푸드는 지난 1년 간 1개 이상의 도입 제품사 전류 고객에 대한 공급 가격 정책을 미래의 다양한 고객 기호에 맞춰 선보입니다.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "한국경제",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 5,
-    type: "press",
-    title: "풍림사이즈 수출 대비, 배터날 진출",
-    content: "",
-    summary: "풍림푸드는 지난 1년 간 아시아 전역으로 수출 시장을 확대하며 글로벌 기업으로 도약하고 있습니다.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "코리아타임스",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-01-19",
-    created_at: new Date("2024-01-19"),
-  },
-];
-
-const MOCK_ITEMS_EN: NewsItem[] = [
-  {
-    news_id: 1,
-    type: "press",
-    title:
-      "[Joongbu Daily] Staff-first management… A ‘family-friendly company’ built on care",
-    content: "",
-    summary:
-      "Over the past year Poonglim Food has supported many employees’ families through welfare programs, working to build a workplace where staff and their children can thrive.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "Joongbu Daily",
-    is_active: true,
-    is_featured: true,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 2,
-    type: "press",
-    title:
-      "New ‘Premium Egg’ launch — Poonglim Food targets the domestic liquid egg market",
-    content: "",
-    summary:
-      "Poonglim Food enters the premium liquid egg segment as a strong new player.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "Food & Beverage News",
-    is_active: true,
-    is_featured: true,
-    published_at: "2024-02-14",
-    created_at: new Date("2024-02-14"),
-  },
-  {
-    news_id: 3,
-    type: "news",
-    title:
-      "Meet creator collaborations and unique recipes on our official channels",
-    content: "",
-    summary:
-      "A recipe series with a popular cooking creator is now featured on our platforms.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "Maeil Business",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 4,
-    type: "news",
-    title:
-      "Poonglim Food unveils a new product line tailored to changing customer needs",
-    content: "",
-    summary:
-      "Pricing and supply policies are being refined to serve a wider range of preferences.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "Hankyung",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-02-19",
-    created_at: new Date("2024-02-19"),
-  },
-  {
-    news_id: 5,
-    type: "press",
-    title: "Poonglim Food expands exports across Asia",
-    content: "",
-    summary:
-      "Over the past year the company has grown its export footprint and global presence.",
-    thumbnail_url: "/home/poonglim-logo-eng.png",
-    source: "Korea Times",
-    is_active: true,
-    is_featured: false,
-    published_at: "2024-01-19",
-    created_at: new Date("2024-01-19"),
-  },
-];
 
 export default function NewsScreen({ loaderData }: Route.ComponentProps) {
   const { t, i18n } = useTranslation();
   const { pageBanner } = loaderData;
-  const rawItems = loaderData.items as NewsItem[];
-  const items: NewsItem[] =
-    rawItems.length > 0
-      ? rawItems
-      : i18n.language.startsWith("en")
-        ? MOCK_ITEMS_EN
-        : MOCK_ITEMS;
+  const items = loaderData.items as NewsItem[];
 
   /* ── 주요 보도 슬라이더 (CSS 스크롤 기반) — is_featured 우선, 없으면 최신순 6건 ── */
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -331,6 +180,11 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
       />
 
       <PageContentMax className="pb-12 pt-0 md:pt-12 lg:pt-[100px]">
+        {items.length === 0 ? (
+          <div className="py-24 text-center">
+            <p className="text-base text-gray-500">{t("empty.news")}</p>
+          </div>
+        ) : null}
         <div className="flex flex-col max-md:gap-[50px] lg:gap-0">
           {/* ── 주요 보도 — 모바일: 타이틀 행 ↔ 캐러셀 gap 10px (시안) ── */}
           <div className="flex flex-col max-md:gap-2.5 lg:gap-[30px]">

@@ -76,20 +76,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 /* ── 더미 데이터 ── */
-const MOCK_NOTICES = [
-  { notice_id: 12, category: "안내",   title: "2026년 설 연휴 배송 안내",                 tags: ["중요"],              created_at: "2026-02-18", view_count: 245, is_pinned: true,  is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 11, category: "안내",   title: "풍림푸드 홈페이지 리뉴얼 안내",           tags: ["회사소개"],           created_at: "2026-02-16", view_count: 312, is_pinned: true,  is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 10, category: "안내",   title: "2026년 1월 가격 변동 안내",               tags: ["안내"],               created_at: "2026-02-14", view_count: 189, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 9,  category: "안내",   title: "겨울철 배송 지연 안내",                   tags: ["안내"],               created_at: "2026-02-10", view_count: 215, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 8,  category: "이벤트", title: "2025년 연말 이벤트 당첨자 발표",         tags: ["이벤트"],             created_at: "2026-02-09", view_count: 423, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 7,  category: "안내",   title: "신제품 출시 안내 – 프리미엄 구운란",     tags: ["안내"],               created_at: "2026-02-18", view_count: 198, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 6,  category: "안내",   title: "2025년 추석 연휴 배송 안내",             tags: ["안내"],               created_at: "2026-02-18", view_count: 215, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 5,  category: "안내",   title: "여름철 신선 배송 강화 안내",             tags: ["안내"],               created_at: "2026-02-18", view_count: 234, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 4,  category: "공지",   title: "HACCP 인증 갱신 완료 안내",             tags: ["공지"],               created_at: "2026-02-18", view_count: 142, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 3,  category: "안내",   title: "고객센터 운영시간 변경 안내",           tags: ["안내"],               created_at: "2026-02-18", view_count: 125, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 2,  category: "이벤트", title: "2025 여름 특별 이벤트 안내",           tags: ["이벤트"],             created_at: "2026-01-20", view_count: 302, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-  { notice_id: 1,  category: "공지",   title: "풍림푸드 B2B 신규 서비스 런칭 안내", tags: ["B2B"],                created_at: "2026-01-10", view_count: 176, is_pinned: false, is_active: true, content: "", author: "풍림푸드" },
-];
 
 const ITEMS_PER_PAGE = 9;
 
@@ -101,7 +87,7 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
   const [inputValue, setInputValue] = useState("");
   const [page, setPage] = useState(1);
 
-  const sourceNotices = (dbNotices.length > 0 ? dbNotices : MOCK_NOTICES) as typeof MOCK_NOTICES;
+  const sourceNotices = dbNotices as typeof dbNotices;
 
   // DB/더미 필드 차이로 런타임 에러가 나지 않도록 안전 정규화
   const normalizedNotices = sourceNotices.map((n, i) => ({
@@ -246,7 +232,11 @@ export default function NoticeScreen({ loaderData }: Route.ComponentProps) {
         </div>
 
         {/* ── 목록 ── */}
-        {paginated.length === 0 ? (
+        {normalizedNotices.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-base text-gray-500">{t("empty.notices")}</p>
+          </div>
+        ) : paginated.length === 0 ? (
           <div className="py-16 text-center text-sm text-gray-400">
             {t("pages.noticeList.emptySearch")}
           </div>

@@ -55,44 +55,6 @@ interface TourApplication {
   status: "승인대기" | "승인완료" | "거절";
 }
 
-const MOCK_APPLICATIONS: TourApplication[] = [
-  {
-    id: "1",
-    applicantName: "김선생",
-    organization: "○○초등학교",
-    phone: "010-1234-5678",
-    participants: 30,
-    purpose: "공장: 충북 진천공장 / 방문시간: 오전 10:00 / 방문목적: 견학",
-    message: null,
-    requestedDate: "2025-02-15 10:00",
-    appliedDate: "2025-01-05 14:30",
-    status: "승인대기",
-  },
-  {
-    id: "2",
-    applicantName: "이교수",
-    organization: "△△대학교",
-    phone: "010-2345-6789",
-    participants: 25,
-    purpose: "공장: 충북 진천공장 / 방문시간: 오후 14:00 / 방문목적: 업무방문",
-    message: "사전 미팅 요청드립니다.",
-    requestedDate: "2025-02-20 14:00",
-    appliedDate: "2025-01-03 10:15",
-    status: "승인완료",
-  },
-  {
-    id: "3",
-    applicantName: "박대리",
-    organization: null,
-    phone: "010-3456-7890",
-    participants: 20,
-    purpose: "공장: 전북 완주공장 / 방문시간: 오전 10:00 / 방문목적: 기타",
-    message: null,
-    requestedDate: "2025-03-05 15:00",
-    appliedDate: "2025-01-01 09:00",
-    status: "거절",
-  },
-];
 
 export default function AdminFactoryToursPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbTours } = loaderData;
@@ -112,7 +74,7 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
         appliedDate: t.created_at.toLocaleString("ko-KR"),
         status: (t.status === "approved" ? "승인완료" : t.status === "rejected" ? "거절" : "승인대기") as TourApplication["status"],
       }))
-    : MOCK_APPLICATIONS;
+    : [];
 
   const filteredApplications = applications.filter((app) =>
     app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||

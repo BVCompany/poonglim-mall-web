@@ -1973,6 +1973,22 @@ const ko: Translation = {
       },
     },
   },
+  empty: {
+    careers: "현재 모집 중인 채용공고가 없습니다.\n새로운 채용 소식이 있으면 곧 공개됩니다.",
+    events: "현재 진행 중인 이벤트 및 공지가 없습니다.",
+    news: "등록된 보도자료가 없습니다.",
+    faq: "등록된 FAQ가 없습니다.",
+    notices: "등록된 공지사항이 없습니다.",
+    gradeCertificates: "등록된 등급판정서가 없습니다.",
+    resources: "등록된 자료가 없습니다.",
+    products: "등록된 제품이 없습니다.",
+    recipes: "등록된 레시피가 없습니다.",
+    heroBanners: "배너가 준비 중입니다.",
+    adminGeneric: "데이터가 없습니다.",
+    adminActivities: "최근 활동 내역이 없습니다.",
+    adminInquiries: "문의 내역이 없습니다.",
+    adminTours: "공장 견학 신청 내역이 없습니다.",
+  },
 };
 
 export default ko;

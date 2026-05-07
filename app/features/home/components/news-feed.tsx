@@ -42,61 +42,6 @@ interface NewsFeedProps {
   dbNews?: News[];
 }
 
-const MOCK_NEWS_ITEMS = [
-  {
-    id: 1,
-    categoryKey: "event" as const,
-    title: "[중부매일] '가족친화 기업' 탄생",
-    excerpt:
-      "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
-    date: "2026-02-18",
-    image: "/home/news_1.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
-  },
-  {
-    id: 2,
-    categoryKey: "press" as const,
-    title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
-    excerpt:
-      "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다. 여성직원들을 배려하다 보니 회사 주차장의 가장 노른자 위치에 임산부 주차장이 차지하고 있고...",
-    date: "2026-02-18",
-    image: "",
-    fallback: "",
-  },
-  {
-    id: 3,
-    categoryKey: "announcement" as const,
-    title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
-    excerpt:
-      "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다. 여성직원들을 비롯하여 보는 회사 주차장의 가장 노른자 위치에 임산부 주차장이 지정되고 있고...",
-    date: "2026-02-18",
-    image: "/home/news_3.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
-  },
-  {
-    id: 4,
-    categoryKey: "event" as const,
-    title: "냉동 전략액 해동 방법",
-    excerpt:
-      "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
-    date: "2026-02-18",
-    image: "",
-    fallback: "",
-  },
-  {
-    id: 5,
-    categoryKey: "event" as const,
-    title: "[중부매일] 직원 절반 이상 주부…세심한 배려로 '가족친화 기업' 탄생",
-    excerpt:
-      "풍림푸드는 전 직원 270명 중 여성이 147명이다. 특히 주부 사원이 절반을 넘는다.",
-    date: "2026-02-18",
-    image: "/home/news_4.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1585996675264-0c10a19e9ba0?w=600&h=400&fit=crop",
-  },
-];
 
 /** 카드 너비 + 트랙 gap — PC 시안 408px 카드 + gap 20 */
 function newsScrollStepPx() {
@@ -108,7 +53,8 @@ function newsScrollStepPx() {
 
 export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
   const { t } = useTranslation();
-  const newsItems = dbNews.length > 0 ? dbNews.map(dbNewsToItem) : MOCK_NEWS_ITEMS;
+  const newsItems = dbNews.map(dbNewsToItem);
+  if (newsItems.length === 0) return null;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);

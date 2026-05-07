@@ -16,13 +16,8 @@ import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
   getAdjacentLibraryResources,
   getLibraryResourceById,
-  hasAnyActiveLibraryResources,
   incrementLibraryResourceViewCount,
 } from "~/features/support/lib/queries.server";
-import {
-  getLibraryDemoDetailMap,
-  type LibraryDemoDetail,
-} from "~/features/support/lib/library-resources-demo";
 import { linkifyPlainTextToHtml } from "~/features/support/lib/linkify-plain-text";
 import i18next from "~/core/lib/i18next.server";
 
@@ -39,50 +34,11 @@ type ResourceDetail = {
   cover_image_url: string | null;
 };
 
-const MOCK_MAP = getLibraryDemoDetailMap();
-
-function demoToResourceDetail(d: LibraryDemoDetail): ResourceDetail {
-  return {
-    id: d.id,
-    category: d.category,
-    title: d.title,
-    content: d.content,
-    author: d.author,
-    view_count: d.view_count,
-    publishedAt: d.created_at,
-    file_name: d.file_name,
-    file_url: d.file_url,
-    cover_image_url: d.cover_image_url ?? null,
-  };
-}
-
-function adjacentFor(id: number): {
-  prev: { href: string; title: string } | null;
-  next: { href: string; title: string } | null;
-} {
-  const prevRow = MOCK_MAP[id - 1];
-  const nextRow = MOCK_MAP[id + 1];
-  return {
-    prev: prevRow
-      ? { href: `/support/resources/${prevRow.id}`, title: prevRow.title }
-      : null,
-    next: nextRow
-      ? { href: `/support/resources/${nextRow.id}`, title: nextRow.title }
-      : null,
-  };
-}
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const id = Number(params.id);
   const pageBanner = await getPageBanner("resources").catch(() => null);
   const t = await i18next.getFixedT(request);
-
-  let hasReal = false;
-  try {
-    hasReal = await hasAnyActiveLibraryResources();
-  } catch {
-    hasReal = false;
-  }
 
   type PrevNext = { href: string; title: string } | null;
   let resource: ResourceDetail | null = null;
@@ -118,22 +74,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
           : null;
       }
     } catch {
-      /* DB 오류 시 목업 분기 */
+      /* no-op */
     }
   }
 
   if (!resource) {
-    if (hasReal) {
-      throw new Response("Not Found", { status: 404 });
-    }
-    const mock = Number.isFinite(id) ? MOCK_MAP[id] : undefined;
-    if (!mock) {
-      throw new Response("Not Found", { status: 404 });
-    }
-    resource = demoToResourceDetail(mock);
-    const a = adjacentFor(id);
-    prev = a.prev;
-    next = a.next;
+    throw new Response("Not Found", { status: 404 });
   }
 
   const metaTitle = `${resource.title} | ${t("common.metaTitleSuffix")}`;

@@ -1,5 +1,5 @@
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
@@ -27,80 +27,6 @@ function dbProductToItem(p: Product) {
 
 type ProductCard = ReturnType<typeof dbProductToItem>;
 
-const MOCK_PRODUCT_BASE: Array<
-  Pick<ProductCard, "id" | "image" | "fallback" | "badges">
-> = [
-  {
-    id: 1,
-    image: "/home/product-squeeze-egg-salad.png",
-    fallback:
-      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=700&fit=crop",
-    badges: ["BEST", "NEW"],
-  },
-  {
-    id: 2,
-    image: "/home/product-buljangran.png",
-    fallback:
-      "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=700&fit=crop",
-    badges: ["BEST"],
-  },
-  {
-    id: 3,
-    image: "/home/product-egg-white-grilled.png",
-    fallback:
-      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
-    badges: ["BEST", "NEW", "B2B"],
-  },
-  {
-    id: 4,
-    image: "/home/b2b.png",
-    fallback:
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=700&fit=crop",
-    badges: ["B2B"],
-  },
-  {
-    id: 5,
-    image: "/home/product-squeeze-egg-salad.png",
-    fallback:
-      "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&h=700&fit=crop",
-    badges: ["B2B"],
-  },
-  {
-    id: 6,
-    image: "/home/product-egg-white-grilled.png",
-    fallback:
-      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
-    badges: ["BEST"],
-  },
-  {
-    id: 7,
-    image: "/home/product-squeeze-egg-salad.png",
-    fallback:
-      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&h=700&fit=crop",
-    badges: ["BEST", "NEW"],
-  },
-  {
-    id: 8,
-    image: "/home/product-caramel-pudding.png",
-    fallback:
-      "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=700&fit=crop",
-    badges: ["NEW"],
-  },
-  {
-    id: 9,
-    image: "/home/b2b.png",
-    fallback:
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=700&fit=crop",
-    badges: ["B2B"],
-  },
-  {
-    id: 10,
-    image: "/home/product-egg-white-grilled.png",
-    fallback:
-      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=600&h=700&fit=crop",
-    badges: ["BEST", "NEW", "B2B"],
-  },
-];
 
 interface FeaturedProductsProps {
   dbProducts?: Product[];
@@ -117,23 +43,11 @@ const CARD_WIDTH = 408;
 const CARD_GAP = 16;
 
 export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
-  const mockProducts = useMemo(() => {
-    const raw = t("home.featuredProducts.mocks", { returnObjects: true });
-    const copy = Array.isArray(raw)
-      ? (raw as { name: string; category: string; description: string }[])
-      : [];
-    return MOCK_PRODUCT_BASE.map((base, i) => ({
-      ...base,
-      name: copy[i]?.name ?? "",
-      category: copy[i]?.category ?? "",
-      description: copy[i]?.description ?? "",
-    }));
-  }, [t, i18n.language]);
+  const products = dbProducts.map(dbProductToItem);
 
-  const products =
-    dbProducts.length > 0 ? dbProducts.map(dbProductToItem) : mockProducts;
+  if (products.length === 0) return null;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

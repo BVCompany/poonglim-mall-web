@@ -81,16 +81,6 @@ interface AdminUser {
   createdAt: string;
 }
 
-const MOCK_ADMINS: AdminUser[] = [
-  {
-    id: "1",
-    name: "메인 관리자",
-    email: "admin@poonglim.com",
-    role: "super",
-    permissions: ["products", "recipes", "events", "careers", "banners", "admins"],
-    createdAt: "2024-01-01",
-  },
-];
 
 export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbAdmins } = loaderData;
@@ -108,7 +98,7 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
         permissions: (a.permissions ?? []) as AdminPermission[],
         createdAt: a.created_at.toISOString().slice(0, 10),
       }))
-    : MOCK_ADMINS;
+    : [];
 
   const handleAddAdmin = (adminData: AdminUserFormData) => {
     const fd = new FormData();

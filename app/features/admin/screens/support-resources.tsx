@@ -46,10 +46,6 @@ import type { LibraryResource } from "~/features/support/lib/queries.server";
 import { getArchiveCategoriesOrdered } from "~/features/support/lib/queries.server";
 import { ArchiveCategoryManageModal } from "../components/archive-category-manage-modal";
 import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
-import {
-  getLibraryDemoAdminRows,
-  isLibraryDemoAdminRow,
-} from "~/features/support/lib/library-resources-demo";
 import { cn } from "~/core/lib/utils";
 import {
   parseDatetimeLocalToDate,
@@ -525,10 +521,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   const resourceFetcher = useFetcher<typeof action>({ key: "admin-support-resources-item" });
   const categoryFetcher = useFetcher<typeof action>({ key: "admin-support-resources-archive" });
 
-  const baseRows = useMemo(
-    () => (rows.length > 0 ? rows : getLibraryDemoAdminRows()),
-    [rows],
-  );
+  const baseRows = rows;
 
   const categoryNamesFromRows = useMemo(() => {
     const set = new Set<string>();
@@ -641,12 +634,6 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   };
 
   const openEdit = (r: LibraryResource) => {
-    if (isLibraryDemoAdminRow(r.resource_id)) {
-      window.alert(
-        "더미 데이터는 수정할 수 없습니다. 실제 자료를 한 건 이상 등록하면 더미 목록은 표시되지 않습니다.",
-      );
-      return;
-    }
     setEditing(r);
     setDialogOpen(true);
   };
@@ -672,7 +659,6 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   };
 
   const handleDelete = (id: number) => {
-    if (isLibraryDemoAdminRow(id)) return;
     if (!confirm("정말 삭제하시겠습니까?")) return;
     const fd = new FormData();
     fd.append("intent", "delete");
@@ -798,7 +784,6 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                       {pageRows.map((r, idx) => {
                         const no = (safePage - 1) * PAGE_SIZE + idx + 1;
                         const dateStr = r.created_at.toISOString().slice(0, 10);
-                        const isDemo = isLibraryDemoAdminRow(r.resource_id);
                         return (
                           <tr
                             key={r.resource_id}
@@ -807,11 +792,6 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                             <td className="px-4 py-3 text-gray-500 tabular-nums">{no}</td>
                             <td className="min-w-0 px-4 py-3">
                               <span className="block break-words font-medium text-gray-900">{r.title}</span>
-                              {isDemo && (
-                                <Badge variant="outline" className="ml-2 text-[10px] text-gray-500">
-                                  더미
-                                </Badge>
-                              )}
                               {!r.is_active && (
                                 <span className="ml-2 text-xs text-amber-600">(비노출)</span>
                               )}
@@ -831,7 +811,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                               {r.view_count.toLocaleString("ko-KR")}
                             </td>
                             <td className="px-4 py-3 text-center">
-                              {isDemo || r.file_url === "#" ? (
+                              {r.file_url === "#" ? (
                                 <span
                                   className="inline-flex rounded-lg border border-dashed border-gray-200 bg-gray-50 p-2 text-gray-300"
                                   title="더미 데이터"
@@ -856,9 +836,8 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  disabled={isDemo}
                                   className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:border-[#02633E]/45 hover:bg-[#FDFDF5] hover:shadow-md text-gray-500 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-                                  title={isDemo ? "더미 데이터는 수정할 수 없습니다" : "수정"}
+                                  title="수정"
                                   onClick={() => openEdit(r)}
                                 >
                                   <Pencil className="h-4 w-4" strokeWidth={2} />
@@ -867,9 +846,8 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  disabled={isDemo}
                                   className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:border-red-300 hover:bg-red-50/60 hover:shadow-md text-gray-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  title={isDemo ? "더미 데이터는 삭제할 수 없습니다" : "삭제"}
+                                  title="삭제"
                                   onClick={() => handleDelete(r.resource_id)}
                                 >
                                   <Trash2 className="h-4 w-4" strokeWidth={2} />

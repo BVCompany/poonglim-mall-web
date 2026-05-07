@@ -68,68 +68,6 @@ interface FAQCategory {
   questions: FAQ[];
 }
 
-const MOCK_FAQS: FAQCategory[] = [
-  {
-    category: "delivery",
-    questions: [
-      {
-        question: "주문은 어떻게 하나요?",
-        answer:
-          "온라인 쇼핑몰에서 직접 주문하시거나, 전화(1588-1234) 또는 이메일(sales@pungrimfood.co.kr)로 주문하실 수 있습니다. B2B 고객의 경우 전담 영업팀을 통해 주문 가능합니다.",
-      },
-      {
-        question: "배송은 얼마나 걸리나요?",
-        answer:
-          "일반 주문의 경우 주문 후 1-2일 내 배송됩니다. 대용량 주문이나 맞춤 제품의 경우 3-5일 정도 소요될 수 있습니다. 모든 제품은 콜드체인 시스템으로 신선하게 배송됩니다.",
-      },
-      {
-        question: "배송비는 얼마인가요?",
-        answer:
-          "5만원 이상 주문 시 무료배송이며, 그 이하는 3,000원의 배송비가 부과됩니다. 제주도 및 도서산간 지역은 추가 배송비가 발생할 수 있습니다.",
-      },
-    ],
-  },
-  {
-    category: "product",
-    questions: [
-      {
-        question: "제품의 유통기한은 어떻게 되나요?",
-        answer:
-          "액상계란 제품은 냉장보관 시 제조일로부터 14일, 푸딩 제품은 21일입니다. 모든 제품에는 제조일과 유통기한이 명확히 표시되어 있습니다.",
-      },
-      {
-        question: "알레르기 정보를 확인할 수 있나요?",
-        answer:
-          "모든 제품 포장지에 알레르기 유발 요소가 명시되어 있습니다. 계란, 우유, 대두 등의 알레르기 정보는 제품 상세 페이지에서도 확인하실 수 있습니다.",
-      },
-      {
-        question: "보관 방법은 어떻게 되나요?",
-        answer:
-          "모든 제품은 냉장보관(0-4°C)이 필요합니다. 개봉 후에는 밀폐용기에 보관하시고 가능한 빨리 사용하시기 바랍니다.",
-      },
-    ],
-  },
-  {
-    category: "b2b",
-    questions: [
-      {
-        question: "B2B 할인 혜택은 무엇인가요?",
-        answer:
-          "수량에 따라 5-15%의 차등 할인을 제공합니다. 정기 주문 고객에게는 추가 할인 혜택이 있으며, 전담 영업팀을 통해 맞춤형 가격을 제안받으실 수 있습니다.",
-      },
-      {
-        question: "맞춤형 제품 개발이 가능한가요?",
-        answer:
-          "네, 가능합니다. 최소 주문량과 개발 기간에 대해서는 별도 상담이 필요합니다. 전담 R&D팀이 고객의 요구사항에 맞는 제품을 개발해드립니다.",
-      },
-      {
-        question: "정기 배송 서비스는 어떻게 이용하나요?",
-        answer:
-          "B2B 고객 대상으로 주 1-3회 정기 배송 서비스를 제공합니다. 배송 주기와 수량은 사업장 특성에 맞게 조정 가능하며, 긴급 주문도 대응 가능합니다.",
-      },
-    ],
-  },
-];
 
 export default function SupportScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
@@ -140,21 +78,18 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
   const formSubmitted = actionData?.success === true;
 
   const faqs: FAQCategory[] = useMemo(() => {
-    if (dbFaqs.length > 0) {
-      const grouped = dbFaqs.reduce<Record<string, FAQ[]>>((acc, f) => {
-        const cat = f.category;
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push({ question: f.question, answer: f.answer });
-        return acc;
-      }, {});
-      const entries = Object.entries(grouped).sort((a, b) => {
-        const ia = FAQ_CAT_ORDER.indexOf(a[0] as (typeof FAQ_CAT_ORDER)[number]);
-        const ib = FAQ_CAT_ORDER.indexOf(b[0] as (typeof FAQ_CAT_ORDER)[number]);
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      });
-      return entries.map(([category, questions]) => ({ category, questions }));
-    }
-    return MOCK_FAQS;
+    const grouped = dbFaqs.reduce<Record<string, FAQ[]>>((acc, f) => {
+      const cat = f.category;
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push({ question: f.question, answer: f.answer });
+      return acc;
+    }, {});
+    const entries = Object.entries(grouped).sort((a, b) => {
+      const ia = FAQ_CAT_ORDER.indexOf(a[0] as (typeof FAQ_CAT_ORDER)[number]);
+      const ib = FAQ_CAT_ORDER.indexOf(b[0] as (typeof FAQ_CAT_ORDER)[number]);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+    return entries.map(([category, questions]) => ({ category, questions }));
   }, [dbFaqs]);
 
   const faqCategoryTitle = (cat: string) => {
@@ -293,6 +228,11 @@ export default function SupportScreen({ loaderData }: Route.ComponentProps) {
 
             {/* FAQ Categories */}
             <div className="space-y-8">
+              {faqs.length === 0 ? (
+                <p className="py-8 text-center text-base text-muted-foreground">
+                  {t("empty.faq")}
+                </p>
+              ) : null}
               {faqs.map((category, categoryIndex) => (
                 <div key={categoryIndex}>
                   <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">

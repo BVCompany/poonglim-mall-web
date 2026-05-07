@@ -77,129 +77,6 @@ type MockEventRow = {
   location?: string | null;
 };
 
-/* ── 더미 데이터 ── */
-const MOCK_EVENTS: MockEventRow[] = [
-  {
-    event_id: 4,
-    type: "event",
-    badge: "hot",
-    title: "신제품 출시 기념 할인 이벤트",
-    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-02-18"),
-    ended_at: new Date("2026-02-24"),
-    is_active: true,
-    created_at: new Date("2026-02-10"),
-    view_count: "1250",
-    content: "",
-    location: "온라인",
-  },
-  {
-    event_id: 5,
-    type: "event",
-    badge: null,
-    title: "신제품 출시 기념 할인 이벤트",
-    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-02-18"),
-    ended_at: new Date("2026-02-24"),
-    is_active: true,
-    created_at: new Date("2026-02-11"),
-    view_count: "800",
-    content: "",
-    location: "서울 코엑스",
-  },
-  {
-    event_id: 3,
-    type: "event",
-    badge: null,
-    title: "강남 팝업스토어 오픈",
-    summary: "풍림푸드 제품을 직접 체험하고 구매할 수 있는 팝업스토어가 강남에 오픈합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-06-01"),
-    ended_at: new Date("2026-06-15"),
-    is_active: true,
-    created_at: new Date("2026-05-20"),
-    view_count: "890",
-    content: "",
-    location: "서울 강남구 가로수길",
-  },
-  {
-    event_id: 2,
-    type: "event",
-    badge: "new",
-    title: "월간 레시피 콘테스트",
-    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-02-18"),
-    ended_at: new Date("2026-02-24"),
-    is_active: true,
-    created_at: new Date("2026-02-12"),
-    view_count: "342",
-    content: "",
-    location: "온라인",
-  },
-  {
-    event_id: 6,
-    type: "event",
-    badge: null,
-    title: "월간 레시피 콘테스트",
-    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-02-18"),
-    ended_at: new Date("2026-02-24"),
-    is_active: true,
-    created_at: new Date("2026-02-13"),
-    view_count: "200",
-    content: "",
-    location: "온라인",
-  },
-  {
-    event_id: 1,
-    type: "event",
-    badge: null,
-    title: "신제품 출시 기념 할인 이벤트",
-    summary: "프리미엄 액란 신제품 출시를 기념하여 최대 30% 할인 혜택을 제공합니다.",
-    thumbnail_url: null,
-    started_at: new Date("2025-01-01"),
-    ended_at: new Date("2025-01-20"),
-    is_active: true,
-    created_at: new Date("2024-12-01"),
-    view_count: "150",
-    content: "",
-    location: "온라인",
-  },
-  {
-    event_id: 101,
-    type: "notice",
-    badge: null,
-    title: "시스템 점검 공지",
-    summary: "원활한 서비스를 위한 시스템 점검 일정을 안내드립니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-03-01"),
-    ended_at: new Date("2026-03-01"),
-    is_active: true,
-    created_at: new Date("2026-02-20"),
-    view_count: "50",
-    content: "",
-    location: "온라인",
-  },
-  {
-    event_id: 102,
-    type: "notice",
-    badge: null,
-    title: "배송 일정 변경 안내",
-    summary: "명절 배송 마감 및 출고 일정을 안내드립니다.",
-    thumbnail_url: null,
-    started_at: new Date("2026-02-01"),
-    ended_at: new Date("2026-02-28"),
-    is_active: true,
-    created_at: new Date("2026-01-28"),
-    view_count: "120",
-    content: "",
-    location: "온라인",
-  },
-];
 
 const ITEMS_PER_PAGE = 9;
 
@@ -411,7 +288,7 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
   const [inputValue, setInputValue] = useState("");
   const [page, setPage] = useState(1);
 
-  const source = (dbEvents.length > 0 ? dbEvents : MOCK_EVENTS) as MockEventRow[];
+  const source = dbEvents as MockEventRow[];
 
   const normalized = source.map((e, i) => {
     const started = e.started_at ? new Date(e.started_at) : null;
@@ -549,7 +426,11 @@ export default function EventScreen({ loaderData }: Route.ComponentProps) {
       {/* 레시피 목록과 동일 가로 패딩·그리드: 모바일 2열 / PC 3열, 페이지당 9개 */}
       <div className="px-4 pb-16 md:mt-[30px] md:px-[max(1rem,calc((100vw-var(--content-max-width))/2))]">
         <div className="mx-auto min-w-0 w-full max-w-[var(--content-max-width)]">
-          {paginated.length === 0 ? (
+          {normalized.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-base text-gray-500">{t("empty.events")}</p>
+            </div>
+          ) : paginated.length === 0 ? (
             <div className="py-16 text-center text-sm text-gray-400">
               {t("pages.events.list.empty")}
             </div>

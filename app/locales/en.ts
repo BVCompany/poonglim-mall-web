@@ -1974,6 +1974,22 @@ const en: Translation = {
       },
     },
   },
+  empty: {
+    careers: "No open positions at the moment.\nWe'll announce new opportunities soon.",
+    events: "No events or notices at the moment.",
+    news: "No press releases have been published yet.",
+    faq: "No FAQs have been added yet.",
+    notices: "No notices have been posted yet.",
+    gradeCertificates: "No grade certificates are available.",
+    resources: "No resources are available.",
+    products: "No products have been added yet.",
+    recipes: "No recipes have been added yet.",
+    heroBanners: "Banner content is being prepared.",
+    adminGeneric: "No data available.",
+    adminActivities: "No recent activity.",
+    adminInquiries: "No inquiries yet.",
+    adminTours: "No factory tour applications.",
+  },
 };
 
 export default en;
