@@ -114,7 +114,7 @@ const ko: Translation = {
       emailLine1: "24시간 접수",
       emailLine2: "1영업일 내 답변",
       visitTitle: "방문 상담",
-      visitAddress: "충청북도 진천군 이월면 사석리",
+      visitAddress: "충청북도 진천군 이월면 궁동길 51-21",
       visitNote: "사전 예약 필수",
       visitCta: "예약하기",
       formHeading: "상담 신청",
@@ -413,9 +413,9 @@ const ko: Translation = {
         hq: {
           transportTitle: "본사/공장 교통 안내",
           carLine1: "청주 IC에서 약 40분 소요. 네비게이션에 ",
-          carHighlight: "진천군 이월면 공동길 51-21",
+          carHighlight: "진천군 이월면 궁동길 51-21",
           carLine2: " 검색",
-          publicTransit: "진천 시외버스터미널 → 이월면행 버스 탑승 → 공동길 하차",
+          publicTransit: "진천 시외버스터미널 → 이월면행 버스 탑승 → 궁동길 하차",
         },
       },
       certifications: {
@@ -451,7 +451,7 @@ const ko: Translation = {
         tourInfo: {
           factory: {
             title: "견학공장",
-            line1Bold: "충청북도 진천군 이월면 공동길 51-21 ",
+            line1Bold: "충청북도 진천군 이월면 궁동길 51-21 ",
             line2: "(본사/공장)",
           },
           period: {

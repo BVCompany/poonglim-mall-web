@@ -41,6 +41,15 @@ interface LocationInfo {
   publicDesc: ReactNode;
 }
 
+/**
+ * Google iframe 임베드 — 구형 maps.google.com + output=embed 는
+ * 종종 지오코딩·줌이 무시되고 세계지도만 보입니다. www.google.com/maps 로 고정합니다.
+ */
+function googleMapEmbedSrc(queryForGeocode: string, zoom = 17) {
+  const q = encodeURIComponent(queryForGeocode.trim());
+  return `https://www.google.com/maps?q=${q}&z=${zoom}&hl=ko&output=embed`;
+}
+
 /** 지하철 노선 뱃지 — PC 시안: min 27px · #BDB193 · 18/27 extrabold */
 const SubwayBadge = ({ line }: { line: string }) => (
   <span className="mr-1 inline-flex min-h-[27px] min-w-[27px] shrink-0 items-center justify-center rounded-full bg-[#BDB193] px-1 font-[family-name:var(--font-nanum)] text-lg font-extrabold leading-[27px] text-white">
@@ -61,8 +70,7 @@ function buildLocations(t: TFunction): Record<TabId, LocationInfo> {
       hours: t("pages.brand.location.hoursWeekday"),
       email: "poonglim@freshegg.co.kr",
       kakaoUrl: "https://map.kakao.com/link/search/서울특별시 강남구 봉은사로 64길 5",
-      mapSrc:
-        "https://maps.google.com/maps?q=서울특별시+강남구+봉은사로+64길+5&hl=ko&z=16&output=embed",
+      mapSrc: googleMapEmbedSrc("서울특별시 강남구 봉은사로 64길 5", 16),
       transportLabel: t("pages.brand.location.seoul.transportTitle"),
       carDesc: (
         <>
@@ -92,14 +100,18 @@ function buildLocations(t: TFunction): Record<TabId, LocationInfo> {
     },
     hq: {
       title: t("pages.brand.location.tabs.hq"),
-      address: "충북 진천군 이월면 공동길 51-21",
+      /** 푸터·hqAddressShort와 동일 (궁동길) — 카카오/구글 지오코딩 및 안내 통일 */
+      address: "충청북도 진천군 이월면 궁동길 51-21",
       tel: "043-533-2285",
       fax: "043-533-2988",
       hours: t("pages.brand.location.hoursWeekday"),
       email: "poonglim@freshegg.co.kr",
-      kakaoUrl: "https://map.kakao.com/link/search/충북 진천군 이월면 공동길 51-21",
-      mapSrc:
-        "https://maps.google.com/maps?q=충북+진천군+이월면+공동길+51-21&hl=ko&z=16&output=embed",
+      kakaoUrl:
+        "https://map.kakao.com/link/search/충청북도 진천군 이월면 궁동길 51-21",
+      mapSrc: googleMapEmbedSrc(
+        "충청북도 진천군 이월면 궁동길 51-21",
+        15,
+      ),
       transportLabel: t("pages.brand.location.hq.transportTitle"),
       carDesc: (
         <>
