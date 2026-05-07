@@ -17,23 +17,6 @@ interface Recipe {
   tags: string[];
 }
 
-const MOCK_RECIPES: Recipe[] = [
-  { id: 1,  title: "프리미엄 티라미수",        category: "dessert",    cookTime: "45분", servings: "4인분",   image: "/recipe/recipe01.png", description: "카페 수준의 고급 티라미수 만들기",            tags: ["디저트", "카페메뉴", "고급"] },
-  { id: 2,  title: "부드러운 계란찜",           category: "easy",       cookTime: "15분", servings: "2~3인분", image: "/recipe/recipe02.png", description: "풍림 액란으로 만드는 부드럽고 맛있는 계란찜", tags: ["간단요리", "아이반찬", "단백질"] },
-  { id: 3,  title: "부드러운 계란말이",         category: "easy",       cookTime: "10분", servings: "2인분",   image: "/recipe/recipe03.png", description: "촉촉하고 부드러운 프리미엄 계란말이",          tags: ["간단요리", "도시락", "단백질"] },
-  { id: 4,  title: "베리 스트로베리 푸딩",      category: "dessert",    cookTime: "30분", servings: "2인분",   image: "/recipe/recipe04.png", description: "상큼한 딸기와 부드러운 푸딩의 조화",           tags: ["디저트", "딸기", "프리미엄"] },
-  { id: 5,  title: "불장닭 떡볶이",             category: "easy",       cookTime: "20분", servings: "2~3인분", image: "/recipe/recipe05.png", description: "진한 불맛과 쫄깃한 떡의 환상 조합",            tags: ["매운맛", "떡볶이", "간편식"] },
-  { id: 6,  title: "에그샐러드 김밥",           category: "easy",       cookTime: "25분", servings: "2인분",   image: "/recipe/recipe06.png", description: "에그샐러드를 가득 넣은 든든한 한 줄 김밥",     tags: ["도시락", "간편식", "한끼"] },
-  { id: 7,  title: "홈메이드 푸딩",             category: "dessert",    cookTime: "20분", servings: "4인분",   image: "/recipe/recipe07.png", description: "집에서 쉽게 만드는 커스터드 푸딩",              tags: ["디저트", "간단", "아이간식"] },
-  { id: 8,  title: "부서지는 에그샐러드",       category: "easy",       cookTime: "15분", servings: "2인분",   image: "/recipe/recipe08.png", description: "부드럽게 퍼지는 에그샐러드로 만드는 샌드위치",  tags: ["샌드위치", "브런치", "간편"] },
-  { id: 9,  title: "부드러운 에그샐러드",       category: "easy",       cookTime: "10분", servings: "2인분",   image: "/recipe/recipe09.png", description: "풍림 에그샐러드 활용 레시피",                   tags: ["샌드위치", "간편", "아침"] },
-  { id: 10, title: "대용량 스크램블에그",       category: "restaurant", cookTime: "10분", servings: "10인분",  image: "/recipe/recipe01.png", description: "외식업체를 위한 대용량 스크램블에그 조리법",    tags: ["업소용", "대용량", "간편"] },
-  { id: 11, title: "베이커리 크림빵",           category: "dessert",    cookTime: "120분", servings: "8개",    image: "/recipe/recipe02.png", description: "전문 베이커리 수준의 크림빵 만들기",            tags: ["베이킹", "전문", "크림빵"] },
-  { id: 12, title: "업소용 오믈렛",             category: "restaurant", cookTime: "8분",  servings: "1인분",   image: "/recipe/recipe03.png", description: "레스토랑 수준의 완벽한 오믈렛",                 tags: ["레스토랑", "오믈렛", "전문"] },
-  { id: 13, title: "에그 수프",                 category: "restaurant", cookTime: "20분", servings: "4인분",   image: "/recipe/recipe04.png", description: "진한 육수에 풍림 액란을 풀어 넣은 고급 수프",   tags: ["수프", "레스토랑", "고급"] },
-  { id: 14, title: "카스텔라 케이크",           category: "dessert",    cookTime: "60분", servings: "8인분",   image: "/recipe/recipe05.png", description: "촉촉하고 부드러운 수제 카스텔라",               tags: ["베이킹", "케이크", "카페"] },
-  { id: 15, title: "에그 토스트",               category: "easy",       cookTime: "8분",  servings: "1인분",   image: "/recipe/recipe06.png", description: "바쁜 아침을 위한 간편 에그 토스트",             tags: ["아침", "토스트", "간편"] },
-];
 
 // ─── 인터페이스 ──────────────────────────────────────────────────────────────
 interface DbRecipe {
@@ -172,18 +155,16 @@ export function RecipeGrid({
   const [animKey, setAnimKey] = useState(0);
   const prevFilter = useRef("");
 
-  const source: Recipe[] = dbRecipes.length > 0
-    ? dbRecipes.map((r) => ({
-        id: r.recipe_id,
-        title: r.title,
-        category: r.category,
-        cookTime: r.cooking_time ?? "-",
-        servings: r.servings ?? "-",
-        image: r.thumbnail_url ?? "/home/premium_egg.png",
-        description: r.description ?? "",
-        tags: r.tags ?? [],
-      }))
-    : MOCK_RECIPES;
+  const source: Recipe[] = dbRecipes.map((r) => ({
+    id: r.recipe_id,
+    title: r.title,
+    category: r.category,
+    cookTime: r.cooking_time ?? "-",
+    servings: r.servings ?? "-",
+    image: r.thumbnail_url ?? "/home/premium_egg.png",
+    description: r.description ?? "",
+    tags: r.tags ?? [],
+  }));
 
   const filtered = source.filter((r) => {
     const matchCat = selectedCategory === "all" || r.category === selectedCategory;
@@ -220,6 +201,14 @@ export function RecipeGrid({
     setCurrentPage(page);
     setAnimKey((k) => k + 1);
   };
+
+  if (source.length === 0) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-base text-gray-500">{t("empty.recipes")}</p>
+      </div>
+    );
+  }
 
   if (filtered.length === 0) {
     return (

@@ -122,11 +122,6 @@ const CATEGORY_STYLE: Record<string, string> = {
 };
 
 /* ── 더미 데이터 ── */
-const MOCK_NOTICES = [
-  { notice_id: 9, category: "공지",   title: "2026년 설 연휴 배송 안내",       tags: ["공지"],           view_count: 245, is_pinned: true,  is_active: true, author: "풍림푸드", content: "", created_at: new Date("2026-02-18"), updated_at: new Date() },
-  { notice_id: 8, category: "안내",   title: "풍림푸드 홈페이지 리뉴얼 안내", tags: ["안내","회사소개"], view_count: 312, is_pinned: true,  is_active: true, author: "풍림푸드", content: "", created_at: new Date("2026-02-16"), updated_at: new Date() },
-  { notice_id: 5, category: "이벤트", title: "2025년 연말 이벤트 당첨자 발표", tags: ["이벤트","B2B"],  view_count: 423, is_pinned: false, is_active: true, author: "풍림푸드", content: "", created_at: new Date("2026-02-09"), updated_at: new Date() },
-];
 
 export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbNotices } = loaderData;
@@ -136,7 +131,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
   const [editingId, setEditingId] = useState<number | undefined>();
   const [editingData, setEditingData] = useState<NoticeFormData | undefined>();
 
-  const sourceNotices = dbNotices.length > 0 ? dbNotices : MOCK_NOTICES;
+  const sourceNotices = dbNotices;
 
   const filtered = sourceNotices.filter((n) =>
     n.title.toLowerCase().includes(searchQuery.toLowerCase()),

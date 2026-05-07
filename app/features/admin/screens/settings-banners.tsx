@@ -106,19 +106,6 @@ interface Banner {
   createdAt: string;
 }
 
-const MOCK_BANNERS: Banner[] = [
-  {
-    id: "1",
-    order: 1,
-    imageUrl: "/home/hero_1.jpg",
-    title: "건강하고 풍요로운 일상",
-    subtitle: "신뢰할 수 있는 품질과 혁신적인 기술로 만드는 풍림푸드 제품을 만나보세요",
-    linkUrl: "/products",
-    buttonText: "제품 둘러보기",
-    isActive: true,
-    createdAt: "2024-01-01",
-  },
-];
 
 /** 썸네일 셀 — 이미지 로드 실패 시 아이콘으로 대체 */
 function BannerThumbnail({ src, alt }: { src: string; alt: string }) {
@@ -248,7 +235,7 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
         isActive: b.is_active,
         createdAt: b.created_at.toISOString().slice(0, 10),
       }))
-    : MOCK_BANNERS;
+    : [];
 
   const handleAddBanner = (bannerData: BannerFormData) => {
     const fd = new FormData();

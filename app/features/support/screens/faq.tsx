@@ -63,234 +63,13 @@ function isFaqCategoryKey(s: string): s is FaqCategoryKey {
   return (CATEGORY_KEYS as readonly string[]).includes(s);
 }
 
-/* ── 더미 FAQ 데이터 ── */
-const MOCK_FAQS = [
-  {
-    faq_id: 13,
-    category: "product",
-    question: "액란 제품은 어떻게 보관해야 하나요?",
-    answer:
-      "액란 제품은 반드시 냉장보관(0~10°C)해야 합니다. 개봉 후에는 가능한 빨리 사용하시고, 미개봉 제품은 제조일로부터 14일 이내에 사용해 주세요. 직사광선을 피하고 냄새가 강한 식품과 함께 보관하지 않는 것이 좋습니다.",
-    sort_order: 0,
-    is_active: true,
-  },
-  {
-    faq_id: 12,
-    category: "product",
-    question: "액란 제품은 어떻게 보관해야 하나요?",
-    answer: "액란 제품은 반드시 냉장(0~10°C)에서 보관해야 합니다.",
-    sort_order: 1,
-    is_active: true,
-  },
-  {
-    faq_id: 11,
-    category: "product",
-    question: "백란이 일반 계란과 다른점은 무엇인가요?",
-    answer:
-      "백란은 껍데기 색이 흰색인 계란으로, 영양 성분은 일반 계란과 동일합니다.",
-    sort_order: 2,
-    is_active: true,
-  },
-  {
-    faq_id: 10,
-    category: "delivery",
-    question: "풍림 제품의 유통기한은 얼마나 되나요?",
-    answer: "제품마다 유통기한이 다릅니다. 포장재 표기를 참고해 주세요.",
-    sort_order: 3,
-    is_active: true,
-  },
-  {
-    faq_id: 9,
-    category: "delivery",
-    question: "풍림몰에서 주문하면 배송은 얼마나 걸리나요?",
-    answer: "주문 확인 후 영업일 기준 2~3일 내 배송됩니다.",
-    sort_order: 4,
-    is_active: true,
-  },
-  {
-    faq_id: 8,
-    category: "delivery",
-    question: "풍림몰에서 주문하면 배송은 얼마나 걸리나요?",
-    answer: "주문 확인 후 영업일 기준 2~3일 내 배송됩니다.",
-    sort_order: 5,
-    is_active: true,
-  },
-  {
-    faq_id: 7,
-    category: "quality",
-    question: "인터 대량 주문은 어떻게 하나요?",
-    answer: "B2B 문의 페이지를 통해 연락주시면 담당자가 안내드립니다.",
-    sort_order: 6,
-    is_active: true,
-  },
-  {
-    faq_id: 6,
-    category: "general",
-    question: "반품 및 교환은 어떻게 하나요?",
-    answer: "상품 수령 후 7일 이내 미개봉 상태에서 교환/반품 가능합니다.",
-    sort_order: 7,
-    is_active: true,
-  },
-  {
-    faq_id: 5,
-    category: "product",
-    question: "풍림푸드 제품은 어떤 인증을 받나요?",
-    answer: "HACCP, ISO 22000 등 다양한 품질 인증을 보유하고 있습니다.",
-    sort_order: 8,
-    is_active: true,
-  },
-  {
-    faq_id: 4,
-    category: "quality",
-    question: "계란 안전성 검사는 얼마나 자주 하나요?",
-    answer: "매월 정기적으로 계란 안전성 검사를 실시하고 있습니다.",
-    sort_order: 9,
-    is_active: true,
-  },
-  {
-    faq_id: 3,
-    category: "product",
-    question: "계란의 등급은 어떻게 나누어지나요?",
-    answer: "1+, 1, 2, 3등급으로 구분되며, 1+등급이 가장 신선합니다.",
-    sort_order: 10,
-    is_active: true,
-  },
-  {
-    faq_id: 2,
-    category: "b2b",
-    question: "공장 견학이 가능한가요?",
-    answer:
-      "사전 예약을 통해 공장 견학이 가능합니다. 견학 신청 메뉴를 이용해 주세요.",
-    sort_order: 11,
-    is_active: true,
-  },
-  {
-    faq_id: 1,
-    category: "general",
-    question: "자료 관련 문의는 어디로 하나요?",
-    answer: "고객지원 > 문의하기 메뉴를 통해 문의해 주세요.",
-    sort_order: 12,
-    is_active: true,
-  },
-];
-
-const MOCK_FAQS_EN: typeof MOCK_FAQS = [
-  {
-    faq_id: 13,
-    category: "product",
-    question: "How should I store liquid egg products?",
-    answer:
-      "Keep liquid egg products refrigerated at 0–10°C. After opening, use as soon as possible. Unopened products should be used within 14 days of the production date. Avoid direct sunlight and storing next to strong-smelling foods.",
-    sort_order: 0,
-    is_active: true,
-  },
-  {
-    faq_id: 12,
-    category: "product",
-    question: "How should I store liquid egg products?",
-    answer: "Store liquid egg products in the refrigerator at 0–10°C.",
-    sort_order: 1,
-    is_active: true,
-  },
-  {
-    faq_id: 11,
-    category: "product",
-    question: "How are white eggs different from regular eggs?",
-    answer:
-      "White eggs have a white shell; their nutritional value is the same as other eggs.",
-    sort_order: 2,
-    is_active: true,
-  },
-  {
-    faq_id: 10,
-    category: "delivery",
-    question: "How long is the shelf life of Poonglim products?",
-    answer: "It varies by product. Please check the date on the packaging.",
-    sort_order: 3,
-    is_active: true,
-  },
-  {
-    faq_id: 9,
-    category: "delivery",
-    question: "How long does delivery take for Poonglim Mall orders?",
-    answer: "Orders are typically delivered within 2–3 business days after confirmation.",
-    sort_order: 4,
-    is_active: true,
-  },
-  {
-    faq_id: 8,
-    category: "delivery",
-    question: "How long does delivery take for Poonglim Mall orders?",
-    answer: "Orders are typically delivered within 2–3 business days after confirmation.",
-    sort_order: 5,
-    is_active: true,
-  },
-  {
-    faq_id: 7,
-    category: "quality",
-    question: "How can I place a bulk order?",
-    answer: "Please contact us through the B2B inquiry page and our team will assist you.",
-    sort_order: 6,
-    is_active: true,
-  },
-  {
-    faq_id: 6,
-    category: "general",
-    question: "What is your return and exchange policy?",
-    answer: "Unopened products may be returned or exchanged within 7 days of receipt.",
-    sort_order: 7,
-    is_active: true,
-  },
-  {
-    faq_id: 5,
-    category: "product",
-    question: "What certifications do Poonglim Food products have?",
-    answer: "We hold various quality certifications including HACCP and ISO 22000.",
-    sort_order: 8,
-    is_active: true,
-  },
-  {
-    faq_id: 4,
-    category: "quality",
-    question: "How often are egg safety inspections conducted?",
-    answer: "We conduct regular egg safety inspections every month.",
-    sort_order: 9,
-    is_active: true,
-  },
-  {
-    faq_id: 3,
-    category: "product",
-    question: "How are egg grades classified?",
-    answer: "Eggs are graded 1+, 1, 2, and 3; 1+ is the freshest.",
-    sort_order: 10,
-    is_active: true,
-  },
-  {
-    faq_id: 2,
-    category: "b2b",
-    question: "Can I tour the factory?",
-    answer:
-      "Factory tours are available by reservation. Please use the factory tour request menu.",
-    sort_order: 11,
-    is_active: true,
-  },
-  {
-    faq_id: 1,
-    category: "general",
-    question: "Where can I ask about materials or documents?",
-    answer: "Please contact us through Customer Support > Contact Us.",
-    sort_order: 12,
-    is_active: true,
-  },
-];
-
 const ITEMS_PER_PAGE = 10;
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 const pretendard = "font-[Pretendard,system-ui,sans-serif]";
 
 export default function FAQScreen({ loaderData }: Route.ComponentProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { dbFaqs, pageBanner, activeCategory: rawCategory } = loaderData;
   const activeCategory = isFaqCategoryKey(rawCategory) ? rawCategory : "all";
   const [, setSearchParams] = useSearchParams();
@@ -299,8 +78,8 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
   const [inputValue, setInputValue] = useState("");
   const [page, setPage] = useState(1);
 
-  const mockFaqs = i18n.language === "en" ? MOCK_FAQS_EN : MOCK_FAQS;
-  const allFaqs = (dbFaqs.length > 0 ? dbFaqs : mockFaqs) as typeof MOCK_FAQS;
+  type DbFaqItem = (typeof dbFaqs)[number];
+  const allFaqs = dbFaqs as DbFaqItem[];
 
   useEffect(() => {
     setPage(1);
@@ -438,7 +217,11 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
 
           <div className="flex flex-col md:gap-10">
             {/* FAQ 아코디언 */}
-            {paginated.length === 0 ? (
+            {allFaqs.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-base text-gray-500">{t("empty.faq")}</p>
+              </div>
+            ) : paginated.length === 0 ? (
               <div className="py-16 text-center text-sm text-gray-400">
                 {t("pages.faq.emptySearch")}
               </div>

@@ -107,10 +107,6 @@ const CAT_STYLE: Record<string, string> = {
 };
 
 /* ── 더미 데이터 ── */
-const MOCK_FAQS = [
-  { faq_id: 2, category: "product",  question: "액란 제품은 어떻게 냉장보관 하나요?",       answer: "액란 제품은 반드시 냉장(0~10°C)에서 보관해야 합니다.", sort_order: 0, is_active: true, created_at: new Date("2026-02-01"), updated_at: new Date() },
-  { faq_id: 1, category: "delivery", question: "풍림 제품의 유통기한은 얼마나 되나요?",     answer: "제품마다 유통기한이 다릅니다. 포장재 표기를 참고해 주세요.", sort_order: 1, is_active: true, created_at: new Date("2026-01-15"), updated_at: new Date() },
-];
 
 export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbFaqs } = loaderData;
@@ -120,7 +116,7 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
   const [editingId, setEditingId] = useState<number | undefined>();
   const [editingData, setEditingData] = useState<FaqFormData | undefined>();
 
-  const sourceFaqs = (dbFaqs.length > 0 ? dbFaqs : MOCK_FAQS) as typeof MOCK_FAQS;
+  const sourceFaqs = dbFaqs;
 
   const filtered = sourceFaqs.filter((f) =>
     f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||

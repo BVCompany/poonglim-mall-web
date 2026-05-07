@@ -21,7 +21,6 @@ import {
   getActiveLibraryResources,
   getSiteVisibleArchiveCategoryNames,
 } from "~/features/support/lib/queries.server";
-import { getLibraryDemoPublicList } from "~/features/support/lib/library-resources-demo";
 import {
   RESOURCES_ALL_TAB,
   resourceCategoryTabLabel,
@@ -82,34 +81,23 @@ function buildResourceCategoryTabs(
   return ordered;
 }
 
-const LIBRARY_DEMO_PUBLIC = getLibraryDemoPublicList();
-
 const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
   const { pageBanner, dbResources, siteCategoryTabNames } = loaderData;
-  const sourceFiles =
-    dbResources.length > 0
-      ? dbResources.map((r) => ({
-          id: r.resource_id,
-          category: r.category,
-          title: r.title,
-          size: r.file_size_label ?? "—",
-          date: r.published_at.toISOString().slice(0, 10),
-          ext: r.file_ext ?? "PDF",
-          url: r.file_url,
-          coverImageUrl: r.cover_image_url ?? null,
-        }))
-      : LIBRARY_DEMO_PUBLIC;
+  const sourceFiles = dbResources.map((r) => ({
+    id: r.resource_id,
+    category: r.category,
+    title: r.title,
+    size: r.file_size_label ?? "—",
+    date: r.published_at.toISOString().slice(0, 10),
+    ext: r.file_ext ?? "PDF",
+    url: r.file_url,
+    coverImageUrl: r.cover_image_url ?? null,
+  }));
   const categoryTabItems = useMemo(() => {
-    const values =
-      dbResources.length > 0
-        ? siteCategoryTabNames
-        : buildResourceCategoryTabs(
-            [],
-            LIBRARY_DEMO_PUBLIC.map((f) => f.category),
-          );
+    const values = siteCategoryTabNames;
     return [
       { value: RESOURCES_ALL_TAB, label: t("pages.resources.allTab") },
       ...values.map((v) => ({
@@ -117,7 +105,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
         label: resourceCategoryTabLabel(v, t),
       })),
     ];
-  }, [siteCategoryTabNames, dbResources, t]);
+  }, [siteCategoryTabNames, t]);
   const [activeCategory, setActiveCategory] = useState<string>(RESOURCES_ALL_TAB);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -237,7 +225,11 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {paginated.length === 0 ? (
+        {sourceFiles.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-base text-gray-500">{t("empty.resources")}</p>
+          </div>
+        ) : paginated.length === 0 ? (
           <div className="py-16 text-center text-sm text-gray-400">
             {query
               ? t("pages.resources.emptySearch")

@@ -31,11 +31,9 @@ import {
   Settings,
   ImageIcon,
 } from "lucide-react";
-import { MOCK_RECIPES } from "../data/recipes";
 import type { AdminRecipe } from "../types/recipe.types";
 import { getAllRecipesForAdmin } from "~/features/recipe/lib/queries.server";
 import { getAllRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
-import { getRecipeCategoriesAdminDemo } from "~/features/recipe-categories/lib/recipe-categories-demo";
 import { toRecipeCategorySlug } from "~/features/recipe-categories/lib/slug";
 import { recipeCategories } from "~/features/recipe-categories/schema";
 import db from "~/core/db/drizzle-client.server";
@@ -56,11 +54,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllRecipesForAdmin().catch(() => []),
     getAllRecipeCategories().catch(() => []),
   ]);
-  const usingDemoCategories = dbCategoriesRaw.length === 0;
-  const dbCategories = usingDemoCategories
-    ? getRecipeCategoriesAdminDemo()
-    : dbCategoriesRaw;
-  return { adminUser, dbRecipes, dbCategories, usingDemoCategories };
+  return { adminUser, dbRecipes, dbCategories: dbCategoriesRaw, usingDemoCategories: false };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -412,7 +406,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
             created_at: r.created_at.toISOString(),
             updated_at: r.updated_at.toISOString(),
           }))
-        : MOCK_RECIPES,
+        : [],
     [dbRecipes],
   );
 

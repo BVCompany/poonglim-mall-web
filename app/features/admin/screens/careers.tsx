@@ -17,7 +17,6 @@ import { Search, Plus, Edit, Trash2, Briefcase, MapPin, Calendar, Users } from "
 import { Input } from "~/core/components/ui/input";
 import { Button } from "~/core/components/ui/button";
 import { Badge } from "~/core/components/ui/badge";
-import { MOCK_JOB_POSTINGS } from "../data/careers";
 import type { AdminJobPosting } from "../types/career.types";
 import { getAllJobPostingsForAdmin } from "~/features/careers/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
@@ -181,7 +180,7 @@ export default function AdminCareersPage({ loaderData }: Route.ComponentProps) {
         created_at: j.created_at.toISOString(),
         updated_at: j.updated_at.toISOString(),
       }))
-    : MOCK_JOB_POSTINGS;
+    : [];
 
   const filteredJobPostings = useMemo(() => {
     if (!searchQuery.trim()) return sourceJobs;

@@ -1677,4 +1677,20 @@ export type Translation = {
       };
     };
   };
+  empty: {
+    careers: string;
+    events: string;
+    news: string;
+    faq: string;
+    notices: string;
+    gradeCertificates: string;
+    resources: string;
+    products: string;
+    recipes: string;
+    heroBanners: string;
+    adminGeneric: string;
+    adminActivities: string;
+    adminInquiries: string;
+    adminTours: string;
+  };
 };

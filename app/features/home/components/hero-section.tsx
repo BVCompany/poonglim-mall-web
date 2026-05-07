@@ -21,52 +21,12 @@ interface HeroSectionProps {
   banners?: Banner[];
 }
 
-const HERO_MOCK_IMAGES = [
-  {
-    image: "/home/hero_1.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
-  },
-  {
-    image: "/home/hero_2.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=1920&h=1080&fit=crop",
-  },
-  {
-    image: "/home/hero_3.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=1920&h=1080&fit=crop",
-  },
-  {
-    image: "/home/hero_4.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1920&h=1080&fit=crop",
-  },
-  {
-    image: "/home/hero_5.jpg",
-    fallback:
-      "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1920&h=1080&fit=crop",
-  },
-] as const;
-
 export function HeroSection({ banners = [] }: HeroSectionProps) {
-  const { t, i18n } = useTranslation();
-
-  const mockSlides = useMemo(
-    () =>
-      HERO_MOCK_IMAGES.map((meta, i) => ({
-        ...meta,
-        category: t(`home.hero.mockSlide${i}.category`),
-        title1: t(`home.hero.mockSlide${i}.title1`),
-        title2: t(`home.hero.mockSlide${i}.title2`),
-        link: undefined as string | undefined,
-      })),
-    [t, i18n.language],
-  );
+  const { t } = useTranslation();
 
   const slides = useMemo(
-    () => (banners.length > 0 ? banners.map(dbBannerToSlide) : mockSlides),
-    [banners, mockSlides],
+    () => banners.map(dbBannerToSlide),
+    [banners],
   );
   const slideCount = slides.length;
 
@@ -102,6 +62,14 @@ export function HeroSection({ banners = [] }: HeroSectionProps) {
 
   const prev = () => goTo((current - 1 + slides.length) % slides.length);
   const next = () => goTo((current + 1) % slides.length);
+
+  if (slides.length === 0) {
+    return (
+      <section className="flex min-h-[calc(100vw*460/343)] w-full items-center justify-center bg-[var(--brand-cream)] md:min-h-[400px]">
+        <p className="text-base text-gray-400">{t("empty.heroBanners")}</p>
+      </section>
+    );
+  }
 
   return (
     /* 모바일: 343×460 비율 / PC: 1840×800 비율로 가로·세로 함께 스케일 */

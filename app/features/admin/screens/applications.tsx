@@ -22,7 +22,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "~/core/components/ui/select";
-import { MOCK_JOB_APPLICATIONS } from "../data/careers";
 import type { AdminJobApplication } from "../types/career.types";
 
 /**

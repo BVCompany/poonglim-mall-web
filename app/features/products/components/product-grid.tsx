@@ -43,26 +43,6 @@ interface DbProduct {
   shop_url?: string | null;
 }
 
-const MOCK_PRODUCTS: Product[] = [
-  { id: 1,  name: "짜먹는 에그샐러드 1kg",        category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "BEST", description: "간편하게 즐기는 프리미엄 에그샐러드",       tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 2,  name: "짜먹는 콘버터 에그샐러드 1kg", category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "NEW",  isB2b: true, description: "고소한 콘버터가 들어간 에그샐러드",        tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 3,  name: "짜먹는 단호박 에그샐러드 1kg", category: ["liquid_egg"],  image: "/home/premium_egg.png", description: "영양 가득한 단호박 에그샐러드",                tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 4,  name: "짜먹는 김치 에그샐러드 1kg",   category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "BEST", description: "한국적인 맛의 김치 에그샐러드",              tags: ["#간편", "#간편식사", "#직장인", "#한끼해결"] },
-  { id: 5,  name: "커스터드 푸딩",                category: ["pudding"],     image: "/home/puding.png",      badge: "BEST", description: "부드럽고 진한 커스터드 푸딩",               tags: ["#디저트", "#프리미엄", "#커스터드"] },
-  { id: 6,  name: "카라멜 푸딩",                  category: ["pudding"],     image: "/home/puding.png",      badge: "NEW",  description: "달콤한 카라멜 소스와 함께",              tags: ["#디저트", "#카라멜"] },
-  { id: 7,  name: "계란찜",                       category: ["convenience"], image: "/home/solution.png",    badge: "BEST", description: "부드러운 계란찜",                       tags: ["#간편식", "#업소용"] },
-  { id: 8,  name: "계란말이",                     category: ["convenience"], image: "/home/solution.png",    description: "폭신한 계란말이",                              tags: ["#간편식", "#업소용"] },
-  { id: 9,  name: "스크램블 에그 파우더",          category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "NEW",  description: "빠르게 만드는 부드러운 스크램블 에그", tags: ["#간편", "#파우더", "#아침식사"] },
-  { id: 10, name: "프리미엄 구운 계란 12구",       category: ["convenience"], image: "/home/premium_egg.png", badge: "BEST", description: "전통 방식으로 구운 프리미엄 구운 계란",  tags: ["#구운계란", "#간식", "#건강"] },
-  { id: 11, name: "훈제 계란 10구",               category: ["convenience"], image: "/home/premium_egg.png", description: "향긋하게 훈제한 계란",                          tags: ["#훈제", "#간식", "#건강식"] },
-  { id: 12, name: "녹차 계란 10구",               category: ["convenience"], image: "/home/premium_egg.png", description: "녹차 성분을 먹여 키운 닭의 계란",                tags: ["#녹차", "#건강", "#프리미엄"] },
-  { id: 13, name: "짜먹는 마요 에그샐러드 1kg",   category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "NEW",  description: "고소한 마요네즈 베이스 에그샐러드",     tags: ["#마요", "#간편", "#샌드위치"] },
-  { id: 14, name: "바닐라 푸딩",                  category: ["pudding"],     image: "/home/puding.png",      description: "진한 바닐라 향의 부드러운 푸딩",                tags: ["#바닐라", "#디저트", "#프리미엄"] },
-  { id: 15, name: "딸기 푸딩",                    category: ["pudding"],     image: "/home/puding.png",      badge: "NEW",  description: "상큼한 딸기가 듬뿍 들어간 푸딩",       tags: ["#딸기", "#디저트"] },
-  { id: 16, name: "업소용 액란 5L",               category: ["liquid_egg"],  image: "/home/premium_egg.png", isB2b: true,   description: "업소 전용 대용량 액란",                 tags: ["#B2B", "#업소용", "#대용량"] },
-  { id: 17, name: "계란 샌드위치 필링 2kg",       category: ["liquid_egg"],  image: "/home/premium_egg.png", badge: "BEST", description: "샌드위치 가게를 위한 전문 필링",         tags: ["#샌드위치", "#필링", "#B2B"] },
-  { id: 18, name: "토마토 에그 솔루션",            category: ["convenience"], image: "/home/solution.png",    badge: "NEW",  description: "토마토와 계란의 완벽한 조화",           tags: ["#토마토", "#간편식", "#건강"] },
-];
 
 /** 사용자 지정 배지 색상 */
 const BADGE_STYLE: Record<string, string> = {
@@ -91,19 +71,17 @@ export function ProductGrid({
   const [animKey, setAnimKey] = useState(0);
   const prevFiltered = useRef<string>("");
 
-  const source: Product[] = dbProducts.length > 0
-    ? dbProducts.map((p) => ({
-        id: p.product_id,
-        name: p.name,
-        category: Array.isArray(p.category) ? p.category : (p.category ? [p.category] : []),
-        image: p.image_url ?? "/home/premium_egg.png",
-        badge: p.badge?.toUpperCase(),
-        isB2b: p.is_b2b,
-        description: p.description,
-        tags: p.tags ?? [],
-        shopUrl: p.shop_url ?? undefined,
-      }))
-    : MOCK_PRODUCTS;
+  const source: Product[] = dbProducts.map((p) => ({
+    id: p.product_id,
+    name: p.name,
+    category: Array.isArray(p.category) ? p.category : (p.category ? [p.category] : []),
+    image: p.image_url ?? "/home/premium_egg.png",
+    badge: p.badge?.toUpperCase(),
+    isB2b: p.is_b2b,
+    description: p.description,
+    tags: p.tags ?? [],
+    shopUrl: p.shop_url ?? undefined,
+  }));
 
   const categorySlug = resolveCategoryFilter(selectedCategory);
 
@@ -143,6 +121,14 @@ export function ProductGrid({
     setCurrentPage(page);
     setAnimKey((k) => k + 1);
   };
+
+  if (source.length === 0) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-base text-gray-500">{t("empty.products")}</p>
+      </div>
+    );
+  }
 
   if (filtered.length === 0) {
     return (

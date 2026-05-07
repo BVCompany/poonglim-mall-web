@@ -154,20 +154,6 @@ interface Popup {
   createdAt: string;
 }
 
-const MOCK_POPUPS: Popup[] = [
-  {
-    id: "1",
-    title: "신제품 출시 안내",
-    content: "새로운 제품이 출시되었습니다. 지금 확인하세요!",
-    sortOrder: 0,
-    startDate: "2024-01-01",
-    endDate: "2024-12-31",
-    imageUrl: "",
-    linkUrl: "/products",
-    isActive: true,
-    createdAt: "2024-01-01",
-  },
-];
 
 export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbPopups } = loaderData;
@@ -194,7 +180,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
         isActive: p.is_active,
         createdAt: p.created_at.toISOString().slice(0, 10),
       }))
-    : MOCK_POPUPS;
+    : [];
 
   const filteredPopups = popups.filter((popup) =>
     popup.title.toLowerCase().includes(searchQuery.toLowerCase())

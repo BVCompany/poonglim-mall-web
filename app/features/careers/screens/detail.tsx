@@ -9,7 +9,6 @@ import { Breadcrumb } from "~/core/components/breadcrumb";
 import { PageContentMax } from "~/core/components/page-content-max";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
-import { getDemoJobPostingById } from "../lib/demo-job-postings.server";
 import { getJobPostingById, type JobPosting } from "../lib/queries.server";
 import i18next from "~/core/lib/i18next.server";
 
@@ -126,19 +125,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const id = Number(params.id);
   if (!id) throw data("Not Found", { status: 404 });
 
-  const locale = await i18next.getLocale(request);
   const fromDb = await getJobPostingById(id).catch(() => null);
-  let job: JobPosting | null = null;
-  if (fromDb) {
-    if (fromDb.status !== "open" || !fromDb.is_active) {
-      throw data("Not Found", { status: 404 });
-    }
-    job = fromDb;
-  } else {
-    job = getDemoJobPostingById(id, locale);
+  if (!fromDb || fromDb.status !== "open" || !fromDb.is_active) {
+    throw data("Not Found", { status: 404 });
   }
-
-  if (!job) throw data("Not Found", { status: 404 });
+  const job: JobPosting = fromDb;
 
   return {
     job,
