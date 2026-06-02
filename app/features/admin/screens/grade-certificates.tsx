@@ -19,6 +19,12 @@ import type { GradeCertificate } from "~/features/support/lib/queries.server";
 import { GradeCertAddModal } from "../components/grade-cert-add-modal";
 import type { GradeCertFormData } from "../components/grade-cert-add-modal";
 import { GradeCertCategoryManageModal } from "../components/grade-cert-category-manage-modal";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 import { cn } from "~/core/lib/utils";
 
@@ -193,6 +199,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
   const { adminUser, dbCerts, dbGradeCertCategories } = loaderData;
   const fetcher = useFetcher<typeof action>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [listTab, setListTab] = useState<"current" | "archive">("current");
   const [categoryChip, setCategoryChip] = useState<string>("");
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
@@ -275,7 +282,7 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return sourceCerts.filter((c) => {
+    const rows = sourceCerts.filter((c) => {
       if (c.tab !== listTab) return false;
       if (categoryChip && c.cert_type !== categoryChip) return false;
       if (!q) return true;
@@ -285,7 +292,14 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
         (c.file_name ?? "").toLowerCase().includes(q)
       );
     });
-  }, [sourceCerts, listTab, categoryChip, searchQuery]);
+    return sortByCreatedDesc(
+      rows,
+      sortOrder,
+      (c) => c.cert_id,
+      (c) => toTimestamp(c.created_at),
+      (c) => c.cert_id,
+    );
+  }, [sourceCerts, listTab, categoryChip, searchQuery, sortOrder]);
 
   const formatDate = (d: Date | string) => {
     const date = new Date(d);
@@ -454,14 +468,17 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="relative min-w-0 w-full lg:max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  className="border-[#02633E]/25 pl-9"
-                  placeholder="검색어를 입력해주세요"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex w-full items-center gap-2 lg:max-w-md">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    className="border-[#02633E]/25 pl-9"
+                    placeholder="검색어를 입력해주세요"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <ListSortSelect value={sortOrder} onChange={setSortOrder} />
               </div>
             </div>
 

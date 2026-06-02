@@ -46,6 +46,36 @@ export const banners = pgTable(
   ],
 );
 
+/**
+ * 인스타그램 섹션 직접 등록 이미지
+ *
+ * 메타(인스타) API 연동을 대비한 섹션이지만, 연동 전에는 관리자가 직접 올린
+ * 이미지를 노출하기 위한 테이블. (연동은 그대로 유지하고 직접 등록을 보조 수단으로 사용)
+ */
+export const instagramPosts = pgTable(
+  "instagram_posts",
+  {
+    ...makeIdentityColumn("instagram_post_id"),
+    image_url: text().notNull(),
+    /** 클릭 시 이동 링크 (비우면 공식 인스타 계정으로 이동) */
+    link_url: text(),
+    /** 관리용 메모/대체텍스트 */
+    caption: text(),
+    is_active: boolean().notNull().default(true),
+    sort_order: integer().notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    // anon: 활성 이미지만 읽기 허용
+    pgPolicy("instagram-posts-anon-select", {
+      for: "select",
+      to: anonRole,
+      as: "permissive",
+      using: sql`${table.is_active} = true`,
+    }),
+  ],
+);
+
 /** 팝업 */
 export const popups = pgTable(
   "popups",

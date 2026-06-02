@@ -25,6 +25,7 @@ import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 
 import { createFactoryTourApplication } from "../lib/queries.server";
+import { getFactoryTourSettings } from "~/features/site-settings/lib/queries.server";
 
 function buildTourInfo(t: (key: string) => string): {
   num: string;
@@ -330,11 +331,34 @@ export const meta: Route.MetaFunction = ({ data }) => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
-  return { metaTitle: t("pages.brand.factoryTour.metaTitle") };
+  const tourSettings = await getFactoryTourSettings().catch(() => ({
+    enabled: true,
+    disabledMessage: "",
+  }));
+  return {
+    metaTitle: t("pages.brand.factoryTour.metaTitle"),
+    tourEnabled: tourSettings.enabled,
+    disabledMessage: tourSettings.disabledMessage,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const t = await i18next.getFixedT(request);
+
+  // 신청 접수가 중지된 경우 서버에서도 제출을 차단
+  const tourSettings = await getFactoryTourSettings().catch(() => ({
+    enabled: true,
+    disabledMessage: "",
+  }));
+  if (!tourSettings.enabled) {
+    return {
+      success: false,
+      error:
+        tourSettings.disabledMessage ||
+        t("pages.brand.factoryTour.disabled.title"),
+    };
+  }
+
   const fd = await request.formData();
   const factory = (fd.get("factory") as string) || "충북 진천공장";
   const visitTime = fd.get("visit_time") as string;
@@ -383,8 +407,10 @@ export async function action({ request }: Route.ActionArgs) {
   }
 }
 
-export default function FactoryTourScreen(_props: Route.ComponentProps) {
+export default function FactoryTourScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
+  const tourEnabled = loaderData?.tourEnabled !== false;
+  const disabledMessage = loaderData?.disabledMessage || "";
   const tourInfo = useMemo(() => buildTourInfo(t), [t]);
   const scenePhotos = useMemo(
     () => [
@@ -718,7 +744,7 @@ export default function FactoryTourScreen(_props: Route.ComponentProps) {
       </section>
 
       {/* ── 섹션 3: 견학 신청 ── */}
-      <section>
+      <section className="relative">
         <PageContentMax className="py-10 md:py-16 lg:py-[100px]">
           <div
             className={cn(
@@ -727,7 +753,11 @@ export default function FactoryTourScreen(_props: Route.ComponentProps) {
               "lg:items-start lg:gap-8 xl:gap-12 2xl:gap-[100px]",
               /* 1920+ : 좌·우 열 고정 + 총폭 1430으로 묶어 가운데 정렬 */
               "min-[1920px]:mx-auto min-[1920px]:max-w-[1430px] min-[1920px]:grid-cols-[580px_minmax(0,750px)] min-[1920px]:gap-[100px]",
+              /* 신청 접수 중지 시: 섹션 dimmed 처리 + 상호작용 차단 */
+              !tourEnabled &&
+                "pointer-events-none select-none opacity-40 blur-[1.5px]",
             )}
+            aria-hidden={!tourEnabled}
           >
             {/* 데스크톱: 왼쪽 안내 카드 (시안: 최대 580·rounded 40·p 반응형) */}
             <div className="hidden w-full max-w-[580px] min-w-0 rounded-[40px] bg-white lg:block lg:justify-self-start lg:p-8 xl:p-10 2xl:p-[60px]">
@@ -1339,6 +1369,23 @@ export default function FactoryTourScreen(_props: Route.ComponentProps) {
             </div>
           </div>
         </PageContentMax>
+
+        {/* 신청 접수 중지 안내 오버레이 */}
+        {!tourEnabled && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center px-4 py-10">
+            <div className="w-full max-w-[560px] rounded-[20px] border border-[#E5E0D4] bg-white px-6 py-10 text-center shadow-xl lg:px-12 lg:py-14">
+              <span className="inline-flex items-center rounded-full bg-[#003F2B]/10 px-3 py-1 font-[family-name:var(--font-nanum)] text-sm font-bold text-[#003F2B]">
+                {t("pages.brand.factoryTour.disabled.badge")}
+              </span>
+              <h3 className="mt-4 font-[family-name:var(--font-nanum)] text-xl font-extrabold leading-[30px] text-[#1F2121] lg:text-[26px] lg:leading-[39px]">
+                {t("pages.brand.factoryTour.disabled.title")}
+              </h3>
+              <p className="mt-4 whitespace-pre-line font-[family-name:var(--font-nanum)] text-base leading-7 text-[#1F2121]/80">
+                {disabledMessage || t("pages.brand.factoryTour.disabled.message")}
+              </p>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

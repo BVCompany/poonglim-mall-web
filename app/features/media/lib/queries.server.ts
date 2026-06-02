@@ -41,7 +41,7 @@ export async function getNewsByType(
   return sortNewsRows(pickBestLocaleRows(rows, locale));
 }
 
-/** 홈 뉴스피드용 최근 N개 */
+/** 홈 뉴스피드용 최근 N개 (기사 작성일 published_at 최신순 — /media 목록과 동일) */
 export async function getRecentNews(limit = 5, locale: ContentLocale = "ko") {
   const rows = await getNews(locale);
   return rows.slice(0, limit);

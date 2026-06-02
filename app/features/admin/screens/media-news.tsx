@@ -42,6 +42,12 @@ import db from "~/core/db/drizzle-client.server";
 import { news, newsCategories } from "~/features/media/schema";
 import { and, asc, count, desc, eq, ne, sql } from "drizzle-orm";
 import { cn } from "~/core/lib/utils";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { NewsCategoryManageModal } from "../components/news-category-manage-modal";
 import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 
@@ -318,6 +324,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
   const { adminUser, dbNews, dbNewsCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -373,14 +380,20 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
   };
 
   const q = searchQuery.trim().toLowerCase();
-  const filtered = dbNews.filter((n) => {
-    if (categoryFilter && n.type !== categoryFilter) return false;
-    if (!q) return true;
-    const inTitle = n.title.toLowerCase().includes(q);
-    const inSummary = (n.summary ?? "").toLowerCase().includes(q);
-    const inContent = (n.content ?? "").toLowerCase().includes(q);
-    return inTitle || inSummary || inContent;
-  });
+  const filtered = sortByCreatedDesc(
+    dbNews.filter((n) => {
+      if (categoryFilter && n.type !== categoryFilter) return false;
+      if (!q) return true;
+      const inTitle = n.title.toLowerCase().includes(q);
+      const inSummary = (n.summary ?? "").toLowerCase().includes(q);
+      const inContent = (n.content ?? "").toLowerCase().includes(q);
+      return inTitle || inSummary || inContent;
+    }),
+    sortOrder,
+    (n) => n.translation_group_id ?? n.news_id,
+    (n) => toTimestamp(n.published_at ?? n.created_at),
+    (n) => n.news_id,
+  );
 
   const resetForm = useCallback(
     () =>
@@ -590,6 +603,7 @@ export default function AdminMediaNewsPage({ loaderData }: Route.ComponentProps)
               />
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <ListSortSelect value={sortOrder} onChange={setSortOrder} />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}

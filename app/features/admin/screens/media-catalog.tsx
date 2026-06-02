@@ -19,6 +19,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "~/core/components/ui/dialog";
 import { Plus, Search, Trash2, FileDown, BookOpen, Pencil } from "lucide-react";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import db from "~/core/db/drizzle-client.server";
 import { catalogs } from "~/features/media/schema";
 import type { Catalog } from "~/features/media/lib/queries.server";
@@ -82,6 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbCatalogs } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Catalog | null>(null);
   const [form, setForm] = useState({
@@ -116,8 +123,14 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
     }
   }, [isAddModalOpen, editingItem]);
 
-  const filtered = dbCatalogs.filter((c) =>
-    c.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = sortByCreatedDesc(
+    dbCatalogs.filter((c) =>
+      c.title.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    sortOrder,
+    (c) => c.catalog_id,
+    (c) => toTimestamp(c.created_at),
+    (c) => c.catalog_id,
   );
 
   const handleSaveCatalog = (e: React.FormEvent) => {
@@ -180,14 +193,17 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
           </div>
 
           {/* Search */}
-          <div className="mb-5 relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="제목 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="제목 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <ListSortSelect value={sortOrder} onChange={setSortOrder} />
           </div>
 
           {/* Grid */}

@@ -15,6 +15,12 @@ import { EventAddModal, type EventFormData } from "../components/event-add-modal
 import type { EventCategory } from "../types/event.types";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { Plus, Search, Pencil, Trash2, CalendarDays, ImageIcon } from "lucide-react";
 import { cn } from "~/core/lib/utils";
 import {
@@ -170,6 +176,7 @@ function isDemoEventRow(id: number) {
 export default function AdminEvents({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbEvents } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const fetcher = useFetcher();
@@ -189,8 +196,14 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     [dbEvents],
   );
 
-  const filtered = sourceEvents.filter((e) =>
-    e.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  const filtered = sortByCreatedDesc(
+    sourceEvents.filter((e) =>
+      e.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+    ),
+    sortOrder,
+    (e) => e.translation_group_id ?? e.event_id,
+    (e) => toTimestamp(e.created_at),
+    (e) => e.event_id,
   );
 
   const handleSubmitEvent = (eventData: EventFormData) => {
@@ -276,15 +289,18 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
 
-          <div className="relative mb-6 w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="제목으로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-[#02633E]/25 pl-9"
-            />
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="제목으로 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="border-[#02633E]/25 pl-9"
+              />
+            </div>
+            <ListSortSelect value={sortOrder} onChange={setSortOrder} />
           </div>
 
           <div className="flex flex-col gap-4">

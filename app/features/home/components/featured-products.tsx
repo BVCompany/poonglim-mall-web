@@ -156,18 +156,17 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
                       </span>
                     ))}
                   </div>
-                  {/* 모바일: 310×310 이미지 존 + 시안 좌표(168×183) · PC: 기존 중앙 정렬 */}
-                  <div className="relative flex h-[310px] w-full shrink-0 items-center justify-center overflow-hidden md:h-[298px]">
-                    <div className="flex h-full w-full items-center justify-center px-2 py-2 max-md:p-0 md:px-6 md:py-4">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="max-h-full max-w-full object-contain transition-all duration-300 group-hover:brightness-105 max-md:absolute max-md:left-[71px] max-md:top-16 max-md:h-[183px] max-md:w-[168px] max-md:max-w-[168px]"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = product.fallback;
-                        }}
-                      />
-                    </div>
+                  {/* 제품 이미지 — 카드 크기는 유지하고, 배경 유무·비율과 무관하게 이미지가
+                      동일한 영역을 꽉 채우도록(object-cover) 처리해 통일감 있게 노출 */}
+                  <div className="relative h-[310px] w-full shrink-0 overflow-hidden rounded-t-[30px] bg-white md:h-[298px] md:rounded-2xl">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = product.fallback;
+                      }}
+                    />
                   </div>
                   {/* 모바일: px-20 pb-20(20px) · 타이포 시안 */}
                   <div className="flex min-h-0 flex-shrink-0 flex-col max-md:gap-[9px] max-md:px-5 max-md:pb-5 max-md:pt-0 md:mt-4 md:min-h-[120px]">

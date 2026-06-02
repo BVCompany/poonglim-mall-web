@@ -18,6 +18,12 @@ import {
   textToIngredientRows,
   textToStepRows,
 } from "../components/recipe-add-modal";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { Badge } from "~/core/components/ui/badge";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
@@ -334,6 +340,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbRecipes, dbCategories, usingDemoCategories } = loaderData;
   const getCategoryLabel = makeCategoryLabel(dbCategories);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
@@ -410,8 +417,14 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
     [dbRecipes],
   );
 
-  const filteredRecipes = sourceRecipes.filter((r) =>
-    r.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  const filteredRecipes = sortByCreatedDesc(
+    sourceRecipes.filter((r) =>
+      r.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+    ),
+    sortOrder,
+    (r) => r.translation_group_id ?? r.id,
+    (r) => toTimestamp(r.created_at),
+    (r) => r.recipe_id ?? Number(r.id),
   );
 
   const submitEnTranslation = (recipeId: number) => {
@@ -547,6 +560,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                 className="border-[#02633E]/25 pl-9"
               />
             </div>
+            <ListSortSelect value={sortOrder} onChange={setSortOrder} />
             <Button
               type="button"
               variant="outline"

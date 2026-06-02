@@ -37,3 +37,13 @@ export async function getCompanyIntroSettings() {
     link:   settings[SETTING_KEYS.COMPANY_INTRO_LINK]   ?? null,
   };
 }
+
+/** 공장 견학 신청 on/off 설정 (값이 없으면 활성으로 간주) */
+export async function getFactoryTourSettings() {
+  const enabledRaw = await getSetting(SETTING_KEYS.FACTORY_TOUR_ENABLED);
+  const message = await getSetting(SETTING_KEYS.FACTORY_TOUR_DISABLED_MESSAGE);
+  return {
+    enabled: enabledRaw !== "false",
+    disabledMessage: message ?? "",
+  };
+}

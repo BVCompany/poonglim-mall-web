@@ -14,7 +14,13 @@ import { Input } from "~/core/components/ui/input";
 import { Button } from "~/core/components/ui/button";
 import { Badge } from "~/core/components/ui/badge";
 import { Card } from "~/core/components/ui/card";
+import { Textarea } from "~/core/components/ui/textarea";
 import { Search, Eye, CheckCircle, XCircle } from "lucide-react";
+import {
+  getFactoryTourSettings,
+  upsertSetting,
+} from "~/features/site-settings/lib/queries.server";
+import { SETTING_KEYS } from "~/features/site-settings/schema";
 
 /**
  * Loader: Require admin authentication
@@ -25,7 +31,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { factoryTourApplications } = await import("~/features/brand/schema");
   const { desc } = await import("drizzle-orm");
   const dbTours = await db.select().from(factoryTourApplications).orderBy(desc(factoryTourApplications.created_at)).catch(() => []);
-  return { adminUser, dbTours };
+  const tourSettings = await getFactoryTourSettings().catch(() => ({
+    enabled: true,
+    disabledMessage: "",
+  }));
+  return { adminUser, dbTours, tourSettings };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -35,6 +45,15 @@ export async function action({ request }: Route.ActionArgs) {
   const { eq } = await import("drizzle-orm");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
+
+  if (intent === "saveTourSettings") {
+    const enabled = fd.get("enabled") === "true";
+    const disabledMessage = (fd.get("disabledMessage") as string) ?? "";
+    await upsertSetting(SETTING_KEYS.FACTORY_TOUR_ENABLED, enabled ? "true" : "false");
+    await upsertSetting(SETTING_KEYS.FACTORY_TOUR_DISABLED_MESSAGE, disabledMessage);
+    return { success: true };
+  }
+
   const id = Number(fd.get("id"));
   if (intent === "approve" && id) await db.update(factoryTourApplications).set({ status: "approved" }).where(eq(factoryTourApplications.tour_id, id));
   if (intent === "reject" && id) await db.update(factoryTourApplications).set({ status: "rejected" }).where(eq(factoryTourApplications.tour_id, id));
@@ -57,9 +76,24 @@ interface TourApplication {
 
 
 export default function AdminFactoryToursPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser, dbTours } = loaderData;
+  const { adminUser, dbTours, tourSettings } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
+  const [tourEnabled, setTourEnabled] = useState(tourSettings.enabled);
+  const [disabledMessage, setDisabledMessage] = useState(
+    tourSettings.disabledMessage ?? "",
+  );
   const fetcher = useFetcher();
+  const settingsFetcher = useFetcher<{ success?: boolean }>();
+  const savingSettings = settingsFetcher.state !== "idle";
+
+  const handleSaveSettings = (nextEnabled?: boolean) => {
+    const enabled = nextEnabled ?? tourEnabled;
+    const fd = new FormData();
+    fd.append("intent", "saveTourSettings");
+    fd.append("enabled", String(enabled));
+    fd.append("disabledMessage", disabledMessage);
+    settingsFetcher.submit(fd, { method: "POST" });
+  };
 
   const applications: TourApplication[] = dbTours.length > 0
     ? dbTours.map((t) => ({
@@ -131,6 +165,86 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
                 공장 견학 신청을 확인하고 승인하세요
               </p>
             </div>
+
+            {/* 견학 신청 접수 on/off 설정 */}
+            <Card className="mb-6 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    견학 신청서 접수
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">
+                    공장 견학 운영 시기에 맞춰 신청서 작성을 켜고 끌 수 있습니다.
+                    꺼두면 견학 페이지의 신청 섹션이 흐리게 처리되고 안내 문구가
+                    표시됩니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={tourEnabled}
+                  onClick={() => {
+                    const next = !tourEnabled;
+                    setTourEnabled(next);
+                    handleSaveSettings(next);
+                  }}
+                  disabled={savingSettings}
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+                    tourEnabled ? "bg-[#204E3A]" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                      tourEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <span className="text-gray-600">현재 상태:</span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    tourEnabled
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {tourEnabled ? "신청 접수 중" : "신청 중지 (안내 문구 노출)"}
+                </span>
+              </div>
+
+              {/* 비활성 시 안내 문구 */}
+              <div className="mt-5">
+                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                  신청 중지 시 안내 문구
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">
+                    (비우면 기본 문구가 표시됩니다)
+                  </span>
+                </label>
+                <Textarea
+                  value={disabledMessage}
+                  onChange={(e) => setDisabledMessage(e.target.value)}
+                  rows={3}
+                  placeholder={
+                    "예: 현재 공장 견학 신청을 받지 않습니다.\n다음 견학 일정은 추후 공지 예정입니다. 문의: 043-533-2285"
+                  }
+                />
+                <div className="mt-3 flex items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => handleSaveSettings()}
+                    disabled={savingSettings}
+                    className="bg-[#204E3A] hover:bg-[#1a3f2e]"
+                  >
+                    {savingSettings ? "저장 중..." : "안내 문구 저장"}
+                  </Button>
+                  {settingsFetcher.data?.success && !savingSettings && (
+                    <span className="text-sm text-green-600">저장되었습니다.</span>
+                  )}
+                </div>
+              </div>
+            </Card>
 
             {/* Search Bar */}
             <div className="mb-6">
