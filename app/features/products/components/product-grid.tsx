@@ -214,20 +214,19 @@ function ProductCard({ product }: { product: Product }) {
   return (
     /* 카드 루트 — 클릭 시 상세 페이지로 바로 이동 */
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-[40px] md:shadow-none"
+      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-[40px] md:p-6 md:shadow-none"
       onClick={() => navigate(`/products/${product.id}`, { viewTransition: true })}
     >
 
-      {/* ① 이미지 영역 — PC 시안: 카드 폭 대비 세로 비율 약 360/392 */}
-      <div className="relative aspect-square overflow-hidden bg-[#EAE3C9] md:aspect-[392/360]">
-        <div className="absolute inset-0 flex items-center justify-center p-3 md:p-6">
-          <img
-            src={imgError ? "/home/premium_egg.png" : product.image}
-            alt={product.name}
-            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImgError(true)}
-          />
-        </div>
+      {/* ① 이미지 영역 — 메인 제품 섹션과 동일하게 크림 카드 안 흰색 라운드 박스(inset) +
+          object-cover로 배경 유무·비율과 무관하게 동일 영역을 꽉 채워 통일감 있게 노출 */}
+      <div className="relative aspect-square overflow-hidden rounded-t-[10px] bg-white md:aspect-[392/360] md:rounded-2xl">
+        <img
+          src={imgError ? "/home/premium_egg.png" : product.image}
+          alt={product.name}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={() => setImgError(true)}
+        />
 
         {/* 배지 — 좌상단 */}
         {badges.length > 0 && (
@@ -244,9 +243,9 @@ function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        {/* 풍림몰 badge — 모바일 우상단 상시 표시 */}
-        <div className="absolute right-2 top-2 z-10 md:hidden">
-          {product.shopUrl ? (
+        {/* 풍림몰 badge — 모바일 우상단, 링크가 있을 때만 표시 */}
+        {product.shopUrl && (
+          <div className="absolute right-2 top-2 z-10 md:hidden">
             <a
               href={product.shopUrl}
               target="_blank"
@@ -258,20 +257,12 @@ function ProductCard({ product }: { product: Product }) {
               {t("pages.products.shared.mall")}
               <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
             </a>
-          ) : (
-            <div
-              className="flex h-[18px] items-center gap-0.5 rounded-full bg-[#32AF32]/60 px-2 text-[9px] font-bold text-white/80"
-              style={{ fontFamily: "NanumSquareRound" }}
-            >
-              {t("pages.products.shared.mall")}
-              <ArrowUpRight className="h-2.5 w-2.5" strokeWidth={3} />
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* ② 텍스트 영역 */}
-      <div className="px-2.5 pb-2.5 pt-2.5 md:px-10 md:pb-10 md:pt-0">
+      {/* ② 텍스트 영역 (PC는 카드 루트 md:p-6 패딩 사용) */}
+      <div className="px-2.5 pb-2.5 pt-2.5 md:px-0 md:pb-0 md:pt-4">
         <h3
           className="mb-1 line-clamp-2 leading-[1.3] tracking-[-0.02em] text-gray-900 md:leading-[26px] md:tracking-[-0.015em]"
           style={{ fontSize: "15px", fontFamily: "NanumSquareRound", fontWeight: 800 }}
@@ -321,7 +312,8 @@ function ProductCard({ product }: { product: Product }) {
           {t("pages.products.shared.viewDetail")}
         </Link>
 
-        {product.shopUrl ? (
+        {/* 풍림몰 링크가 있을 때만 노출 — 없으면 상세보기 버튼만 가운데 표시 */}
+        {product.shopUrl && (
           <a
             href={product.shopUrl}
             target="_blank"
@@ -340,22 +332,6 @@ function ProductCard({ product }: { product: Product }) {
             {t("pages.products.shared.mall")}
             <ArrowUpRight className="shrink-0" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
           </a>
-        ) : (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex shrink-0 items-center justify-center gap-0.5 rounded-full px-2 text-center font-bold uppercase leading-tight text-white/50"
-            style={{
-              backgroundColor: "rgba(50, 175, 50, 0.35)",
-              width: pcMin(140),
-              height: pcMin(140),
-              fontSize: pcMin(16),
-              fontFamily: "NanumSquareRound, sans-serif",
-              fontWeight: 700,
-            }}
-          >
-            {t("pages.products.shared.mall")}
-            <ArrowUpRight className="shrink-0 opacity-50" style={{ width: pcMin(10), height: pcMin(10) }} strokeWidth={2.5} />
-          </div>
         )}
       </div>
 

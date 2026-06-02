@@ -357,7 +357,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
   const slides = useMemo(
     () => [
       {
-        num: "30",
+        num: "32",
         unit: t("pages.brand.intro.slide30"),
         sparkles: HERO_SPARKLES_30,
       },

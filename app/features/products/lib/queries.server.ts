@@ -22,14 +22,16 @@ export async function getAllProductsForAdmin() {
     );
 }
 
-/** 활성 제품 전체 조회 (요청 locale 우선, 그룹당 1행) */
+/** 활성 제품 전체 조회 (요청 locale 우선, 그룹당 1행, 등록일 최신순) */
 export async function getProducts(locale: ContentLocale) {
   const rows = await db
     .select()
     .from(products)
     .where(eq(products.is_active, true));
   return pickBestLocaleRows(rows, locale).sort(
-    (a, b) => a.sort_order - b.sort_order || a.product_id - b.product_id,
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
+      b.product_id - a.product_id,
   );
 }
 
@@ -45,7 +47,9 @@ export async function getProductsByCategory(category: string, locale: ContentLoc
       ),
     );
   return pickBestLocaleRows(rows, locale).sort(
-    (a, b) => a.sort_order - b.sort_order || a.product_id - b.product_id,
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
+      b.product_id - a.product_id,
   );
 }
 
