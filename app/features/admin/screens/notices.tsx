@@ -12,6 +12,12 @@ import { AdminSidebar } from "../components/admin-sidebar";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
 import { Badge } from "~/core/components/ui/badge";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { Plus, Search, Edit, Trash2, Pin, PinOff } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
 import { notices } from "~/features/support/schema";
@@ -127,15 +133,23 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
   const { adminUser, dbNotices } = loaderData;
   const fetcher = useFetcher();
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>();
   const [editingData, setEditingData] = useState<NoticeFormData | undefined>();
 
   const sourceNotices = dbNotices;
 
-  const filtered = sourceNotices.filter((n) =>
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filtered = sortByCreatedDesc(
+    sourceNotices.filter((n) =>
+      n.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    ),
+    sortOrder,
+    (n) => n.translation_group_id ?? n.notice_id,
+    (n) => toTimestamp(n.created_at),
+    (n) => n.notice_id,
+    // 고정(상단 고정) 공지는 정렬과 무관하게 항상 위로 노출
+  ).sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned));
 
   const formatDate = (d: Date | string) => {
     const date = new Date(d);
@@ -235,6 +249,7 @@ export default function AdminNoticesScreen({ loaderData }: Route.ComponentProps)
                   className="pl-9"
                 />
               </div>
+              <ListSortSelect value={sortOrder} onChange={setSortOrder} />
             </div>
 
             {/* 테이블 */}

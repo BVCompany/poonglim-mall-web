@@ -543,6 +543,12 @@ const en: Translation = {
             message: "Other questions or requests",
           },
         },
+        disabled: {
+          badge: "Applications paused",
+          title: "Factory tour applications are currently closed",
+          message:
+            "Factory tours are open for applications only during certain periods.\nWe will announce here when applications reopen.\nInquiries: +82-43-533-2285",
+        },
       },
     },
     careers: {

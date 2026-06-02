@@ -49,10 +49,19 @@ export async function getProductsByCategory(category: string, locale: ContentLoc
   );
 }
 
-/** 홈 제품 슬라이드용 (locale 반영, 상위 정렬 N개) */
+/** 홈 제품 슬라이드용 (locale 반영, 등록일 최신순 N개) */
 export async function getFeaturedProducts(limit = 10, locale: ContentLocale = "ko") {
-  const rows = await getProducts(locale);
-  return rows.slice(0, limit);
+  const rows = await db
+    .select()
+    .from(products)
+    .where(eq(products.is_active, true));
+  const picked = pickBestLocaleRows(rows, locale);
+  const sorted = [...picked].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
+      b.product_id - a.product_id,
+  );
+  return sorted.slice(0, limit);
 }
 
 /** 활성 제품이 1건이라도 있는지 */

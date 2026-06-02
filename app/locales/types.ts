@@ -837,6 +837,11 @@ export type Translation = {
             message: string;
           };
         };
+        disabled: {
+          badge: string;
+          title: string;
+          message: string;
+        };
       };
     };
     careers: {

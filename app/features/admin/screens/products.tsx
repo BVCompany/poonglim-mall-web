@@ -13,6 +13,12 @@ import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { ProductAddModal, type ProductFormData } from "../components/product-add-modal";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { getAllCategories } from "~/features/product-categories/lib/queries.server";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
@@ -292,6 +298,7 @@ function getBadgeLabel(badge?: AdminProduct["badge"]) {
 export default function AdminProducts({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbProducts, dbCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
   const [editingData, setEditingData] = useState<ProductFormData | undefined>(undefined);
@@ -325,8 +332,14 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
       }))
     : [];
 
-  const filteredProducts = sourceProducts.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = sortByCreatedDesc(
+    sourceProducts.filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    sortOrder,
+    (product) => product.translation_group_id ?? product.id,
+    (product) => toTimestamp(product.created_at),
+    (product) => product.product_id,
   );
 
   const submitEnTranslation = (productId: number) => {
@@ -462,8 +475,8 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
           </div>
 
           {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 type="text"
@@ -473,6 +486,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                 className="pl-10"
               />
             </div>
+            <ListSortSelect value={sortOrder} onChange={setSortOrder} />
           </div>
 
           {/* Products List */}

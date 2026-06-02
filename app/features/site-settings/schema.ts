@@ -73,6 +73,12 @@ export const SETTING_KEYS = {
 
   // 파비콘
   FAVICON:              "favicon",
+
+  // 공장 견학 신청 — 운영 시기에 따라 신청 폼 on/off
+  /** "true" | "false" — 비우면 활성(true)으로 간주 */
+  FACTORY_TOUR_ENABLED:          "factory_tour_enabled",
+  /** 비활성 시 노출할 안내 문구 (비우면 i18n 기본 문구 사용) */
+  FACTORY_TOUR_DISABLED_MESSAGE: "factory_tour_disabled_message",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

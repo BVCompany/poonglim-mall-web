@@ -45,6 +45,12 @@ import { count, eq, desc, sql } from "drizzle-orm";
 import type { LibraryResource } from "~/features/support/lib/queries.server";
 import { getArchiveCategoriesOrdered } from "~/features/support/lib/queries.server";
 import { ArchiveCategoryManageModal } from "../components/archive-category-manage-modal";
+import {
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+  type ListSortOrder,
+} from "../components/list-sort-control";
 import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
 import { cn } from "~/core/lib/utils";
 import {
@@ -513,6 +519,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   const { adminUser, rows, dbArchiveCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
@@ -559,7 +566,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, categoryFilter]);
+  }, [searchQuery, categoryFilter, sortOrder]);
 
   useEffect(() => {
     if (resourceFetcher.state !== "idle" || !resourceFetcher.data) return;
@@ -608,7 +615,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return baseRows.filter((r) => {
+    const rows = baseRows.filter((r) => {
       if (categoryFilter && r.category !== categoryFilter) return false;
       if (!q) return true;
       return (
@@ -618,7 +625,14 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
         r.file_name.toLowerCase().includes(q)
       );
     });
-  }, [baseRows, searchQuery, categoryFilter]);
+    return sortByCreatedDesc(
+      rows,
+      sortOrder,
+      (r) => r.resource_id,
+      (r) => toTimestamp(r.created_at),
+      (r) => r.resource_id,
+    );
+  }, [baseRows, searchQuery, categoryFilter, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -746,14 +760,17 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
               </Button>
             </div>
 
-            <div className="relative min-w-0 w-full lg:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                className="border-[#02633E]/25 pl-9"
-                placeholder="검색어를 입력하세요"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex w-full items-center gap-2 lg:max-w-md">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  className="border-[#02633E]/25 pl-9"
+                  placeholder="검색어를 입력하세요"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <ListSortSelect value={sortOrder} onChange={setSortOrder} />
             </div>
           </div>
 

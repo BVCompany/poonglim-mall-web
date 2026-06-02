@@ -96,6 +96,7 @@ const menuItems: MenuItem[] = [
       { title: "메인 배너", href: "/admin/settings/banners" },
       { title: "페이지 배너", href: "/admin/settings/page-banners" },
       { title: "홈 섹션 관리", href: "/admin/settings/site" },
+      { title: "인스타그램 섹션", href: "/admin/settings/instagram" },
     ],
   },
   {

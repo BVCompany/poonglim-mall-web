@@ -1,13 +1,14 @@
 /**
  * Home DB Queries (Server-side)
  */
-import { and, asc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 
 import db from "~/core/db/drizzle-client.server";
-import { banners, popups } from "../schema";
+import { banners, instagramPosts, popups } from "../schema";
 
 export type Banner = typeof banners.$inferSelect;
 export type Popup = typeof popups.$inferSelect;
+export type InstagramPost = typeof instagramPosts.$inferSelect;
 
 /** db.execute(sql\`...\`) 결과를 행 배열로 정규화 (postgres.js RowList 등) */
 function rowsFromExecute(result: unknown): Record<string, unknown>[] {
@@ -60,7 +61,7 @@ export async function getAllBanners() {
     .orderBy(asc(banners.sort_order));
 }
 
-/** 현재 노출 중인 배너 목록 */
+/** 현재 노출 중인 배너 목록 (등록일 최신순) */
 export async function getActiveBanners() {
   const now = new Date();
   return db
@@ -73,7 +74,7 @@ export async function getActiveBanners() {
         or(sql`${banners.ended_at} IS NULL`, gte(banners.ended_at, now)),
       ),
     )
-    .orderBy(asc(banners.sort_order));
+    .orderBy(desc(banners.created_at), desc(banners.banner_id));
 }
 
 /**
@@ -95,6 +96,23 @@ export async function getActivePopups() {
     ORDER BY sort_order ASC, popup_id ASC
   `);
   return rowsFromExecute(result).map(toPopupRow);
+}
+
+/** 현재 노출 중인 인스타 직접 등록 이미지 (활성, 노출 순서 → 등록 최신순) */
+export async function getActiveInstagramPosts() {
+  return db
+    .select()
+    .from(instagramPosts)
+    .where(eq(instagramPosts.is_active, true))
+    .orderBy(asc(instagramPosts.sort_order), desc(instagramPosts.created_at));
+}
+
+/** 관리자용: 활성 무관 전체 인스타 등록 이미지 */
+export async function getAllInstagramPosts() {
+  return db
+    .select()
+    .from(instagramPosts)
+    .orderBy(asc(instagramPosts.sort_order), desc(instagramPosts.instagram_post_id));
 }
 
 /** 관리자용: 기간·활성 무관 전체 */

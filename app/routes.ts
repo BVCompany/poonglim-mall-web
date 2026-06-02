@@ -227,6 +227,7 @@ export default [
         "features/admin/screens/settings-page-banners.tsx",
       ),
       route("/popups", "features/admin/screens/settings-popups.tsx"),
+      route("/instagram", "features/admin/screens/settings-instagram.tsx"),
       route("/admins", "features/admin/screens/settings-admins.tsx"),
       route("/site", "features/admin/screens/settings-site.tsx"),
       route("/seo", "features/admin/screens/settings-seo.tsx"),

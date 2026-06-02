@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { SectionPageTitle } from "~/core/components/section-title-star";
+import { MediaThumbFallback } from "~/core/components/media-thumb-fallback";
 import { cn } from "~/core/lib/utils";
 import type { News } from "~/features/media/lib/queries.server";
 
@@ -34,7 +35,6 @@ function dbNewsToItem(n: News) {
       ? new Date(n.published_at).toISOString().slice(0, 10)
       : new Date(n.created_at).toISOString().slice(0, 10),
     image: n.thumbnail_url ?? "",
-    fallback: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
   };
 }
 
@@ -144,7 +144,6 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
             onScroll={checkScroll}
           >
             {newsItems.map((item) => {
-              const hasImage = !!(item.image || item.fallback);
               const categoryLabel = newsTypeLabel(t, item.categoryKey);
 
               return (
@@ -155,39 +154,29 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
                   style={{ scrollSnapAlign: "start" }}
                 >
                   <div className="flex h-full w-full flex-col overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] md:rounded-[40px]">
-                    {/* 이미지: PC 시안 — 상하좌 10px inset, 244×라운드 30, 배지 30/30 */}
-                    {hasImage ? (
-                      <div className="relative p-3 md:p-0 md:pt-[10px] md:pr-[10px] md:pl-[10px]">
-                        <div className="relative aspect-square w-full overflow-hidden rounded-[25px] md:rounded-[30px]">
+                    {/* 이미지: PC 시안 — 상하좌 10px inset, 244×라운드 30, 배지 30/30
+                        썸네일이 없으면 보도자료 페이지처럼 풍림 로고 임시 이미지를 노출 */}
+                    <div className="relative p-3 md:p-0 md:pt-[10px] md:pr-[10px] md:pl-[10px]">
+                      <div className="relative aspect-square w-full overflow-hidden rounded-[25px] md:rounded-[30px]">
+                        {item.image ? (
                           <img
-                            src={item.image || item.fallback}
+                            src={item.image}
                             alt={item.title}
                             className="h-full w-full object-cover object-center transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
-                            onError={(e) => {
-                              if (item.fallback) {
-                                (e.target as HTMLImageElement).src =
-                                  item.fallback;
-                              }
-                            }}
                           />
-                          <span
-                            className={`absolute top-4 left-4 z-10 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:left-[30px] md:top-[30px] md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle}`}
-                          >
-                            {categoryLabel}
-                          </span>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {/* 본문: PC — 패딩 30, 제목·요약 gap 12, 블록 간 gap 24 / 시안 타이포 */}
-                    <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:gap-6 md:p-[30px]">
-                      {!hasImage && (
+                        ) : (
+                          <MediaThumbFallback className="absolute inset-0" />
+                        )}
                         <span
-                          className={`mb-3 self-start rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:mb-0 md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle}`}
+                          className={`absolute top-4 left-4 z-10 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors duration-300 group-hover:bg-[#EAE3C9] group-hover:text-brand-green md:left-[30px] md:top-[30px] md:px-[12.58px] md:py-[7.19px] md:text-[12px] md:leading-[12px] md:font-medium md:[font-family:Pretendard,system-ui,sans-serif] ${tagStyle}`}
                         >
                           {categoryLabel}
                         </span>
-                      )}
+                      </div>
+                    </div>
+
+                    {/* 본문: PC — 패딩 30, 제목·요약 gap 12, 블록 간 gap 24 / 시안 타이포 */}
+                    <div className="flex flex-1 flex-col px-4 pb-5 pt-3 md:gap-6 md:p-[30px]">
                       <div className="flex min-h-0 flex-1 flex-col gap-2 md:gap-3">
                         <h3 className="line-clamp-2 text-sm font-bold leading-snug text-[#2D2D2D] transition-colors group-hover:text-white md:font-[family-name:var(--font-nanum)] md:text-[20px] md:leading-[30px] md:font-bold md:text-[#1F2121] md:group-hover:text-white">
                           {item.title}

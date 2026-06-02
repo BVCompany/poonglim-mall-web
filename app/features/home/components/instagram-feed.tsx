@@ -1,17 +1,34 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Instagram } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const posts = [
-  { id: 1, image: "/home/instar-img-01.png" },
-  { id: 2, image: "/home/instar-img-02.png" },
-  { id: 3, image: "/home/instar-img-03.png" },
-  { id: 4, image: "/home/instar-img-01.png" },
-  { id: 5, image: "/home/instar-img-02.png" },
-  { id: 6, image: "/home/instar-img-03.png" },
+import type { InstagramPost } from "~/features/home/lib/queries.server";
+
+const OFFICIAL_INSTAGRAM_URL = "https://www.instagram.com/poonglim_official";
+
+/** 직접 등록 이미지가 없을 때 노출되는 기본(시안) 이미지 */
+const DEFAULT_POSTS: FeedPost[] = [
+  { id: "default-1", image: "/home/instar-img-01.png", link: OFFICIAL_INSTAGRAM_URL },
+  { id: "default-2", image: "/home/instar-img-02.png", link: OFFICIAL_INSTAGRAM_URL },
+  { id: "default-3", image: "/home/instar-img-03.png", link: OFFICIAL_INSTAGRAM_URL },
+  { id: "default-4", image: "/home/instar-img-01.png", link: OFFICIAL_INSTAGRAM_URL },
+  { id: "default-5", image: "/home/instar-img-02.png", link: OFFICIAL_INSTAGRAM_URL },
+  { id: "default-6", image: "/home/instar-img-03.png", link: OFFICIAL_INSTAGRAM_URL },
 ];
+
+interface FeedPost {
+  id: string;
+  image: string;
+  link: string;
+  caption?: string;
+}
+
+interface InstagramFeedProps {
+  /** 관리자가 직접 등록한 이미지 (있으면 우선 노출) */
+  posts?: InstagramPost[];
+}
 
 const SLIDE_GROUP_SIZE = 3;
 const IMAGE_GAP = 16;
@@ -20,8 +37,18 @@ const PC_ITEM_WIDTH = 360;
 const MOBILE_ITEM_WIDTH = 208;
 const PC_FEED_MAX_WIDTH = PC_ITEM_WIDTH * SLIDE_GROUP_SIZE + IMAGE_GAP * (SLIDE_GROUP_SIZE - 1); // 1112px
 
-export function InstagramFeed() {
+export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
   const { t } = useTranslation();
+  // 직접 등록 이미지가 있으면 우선 사용, 없으면 기본(시안) 이미지로 폴백
+  const posts: FeedPost[] = useMemo(() => {
+    if (dbPosts.length === 0) return DEFAULT_POSTS;
+    return dbPosts.map((p) => ({
+      id: String(p.instagram_post_id),
+      image: p.image_url,
+      link: p.link_url || OFFICIAL_INSTAGRAM_URL,
+      caption: p.caption ?? undefined,
+    }));
+  }, [dbPosts]);
   const [current, setCurrent] = useState(0);
   const [imageWidth, setImageWidth] = useState(PC_ITEM_WIDTH);
   const [inView, setInView] = useState(false);
@@ -140,10 +167,10 @@ export function InstagramFeed() {
           }}
         >
           <div className="flex gap-3">
-            {posts.map((post) => (
+            {posts.map((post, idx) => (
               <a
                 key={post.id}
-                href="https://www.instagram.com/poonglim_official"
+                href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-gray-100"
@@ -155,7 +182,7 @@ export function InstagramFeed() {
               >
                 <img
                   src={post.image}
-                  alt={t("home.instagram.postAlt", { id: post.id })}
+                  alt={post.caption || t("home.instagram.postAlt", { id: idx + 1 })}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
@@ -233,10 +260,10 @@ export function InstagramFeed() {
               transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            {posts.map((post) => (
+            {posts.map((post, idx) => (
               <a
                 key={post.id}
-                href="https://www.instagram.com/poonglim_official"
+                href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
@@ -247,7 +274,7 @@ export function InstagramFeed() {
               >
                 <img
                   src={post.image}
-                  alt={t("home.instagram.postAlt", { id: post.id })}
+                  alt={post.caption || t("home.instagram.postAlt", { id: idx + 1 })}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
