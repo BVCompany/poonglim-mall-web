@@ -142,6 +142,20 @@ const PHILOSOPHY_META = [
   },
 ] as const;
 
+/** 경영이념 카드 — 일러스트는 회사소개 라인아트 세트 재사용(교체 가능) */
+const IDEAL_META = [
+  { image: "/intro/intro_img_02.png", bg: "#F0EEDD" },
+  { image: "/intro/intro_img_06.png", bg: "#FBE28A" },
+  { image: "/intro/intro_img_01.png", bg: "#F0EEDD" },
+] as const;
+
+/** 사훈 카드 */
+const MOTTO_META = [
+  { image: "/intro/intro_img_05.png", bg: "#F0EEDD" },
+  { image: "/intro/intro_img_04.png", bg: "#FBE28A" },
+  { image: "/intro/intro_img_03.png", bg: "#F0EEDD" },
+] as const;
+
 const CHARACTER_META = [
   {
     id: "edi" as const,
@@ -1103,6 +1117,452 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
         </div>
       </section>
 
+      {/* ══ 섹션 2-1: 경영이념 (PC) — 좌 타이틀 / 우 카드 ══ */}
+      <section className="hidden md:block" style={{ padding: `${pc1920(40, 90)} 0` }}>
+        <PageContentMax>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: pc1920(32, 80),
+            }}
+          >
+            {/* 좌측: 레이블 + 헤드라인 */}
+            <div style={{ flex: 1, minWidth: 0, paddingTop: 8 }}>
+              <SectionPageTitle
+                as="div"
+                preset="brandIntro"
+                starVariant="brandIntro"
+                className="mb-5"
+                rootStyle={{ gap: 8 }}
+                titleStyle={{
+                  fontSize: pc1920(14, 28),
+                  fontWeight: 700,
+                  letterSpacing: "-0.04em",
+                  color: "#1F2121",
+                }}
+              >
+                {t("pages.brand.intro.philTitle")}
+              </SectionPageTitle>
+              <h2
+                style={{
+                  fontSize: pc1920(22, 56),
+                  fontWeight: 800,
+                  letterSpacing: "-0.04em",
+                  lineHeight: pc1920(30, 72.8),
+                  color: "#003F2B",
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {t("pages.brand.intro.philHeadline")}
+              </h2>
+            </div>
+
+            {/* 우측: 3카드 (텍스트 + 이미지) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, minmax(0, min(280px, calc(280 * 100vw / 1920))))",
+                gap: pc1920(4, 8),
+                flexShrink: 0,
+              }}
+            >
+              {[
+                {
+                  num: "01",
+                  text: t("pages.brand.intro.philItem1"),
+                  image: IDEAL_META[0].image,
+                  bg: IDEAL_META[0].bg,
+                },
+                {
+                  num: "02",
+                  text: t("pages.brand.intro.philItem2"),
+                  image: IDEAL_META[1].image,
+                  bg: IDEAL_META[1].bg,
+                },
+                {
+                  num: "03",
+                  text: t("pages.brand.intro.philItem3"),
+                  image: IDEAL_META[2].image,
+                  bg: IDEAL_META[2].bg,
+                },
+              ].map(({ num, text, image, bg }) => (
+                <div
+                  key={num}
+                  style={{
+                    backgroundColor: bg,
+                    width: "100%",
+                    height: pc1920(210, 380),
+                    borderRadius: pc1920(24, 40),
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: pc1920(20, 36),
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: pc1920(8, 14),
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: pc1920(12, 18),
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        color: "#1F7A57",
+                      }}
+                    >
+                      {num}
+                    </span>
+                    <p
+                      style={{
+                        fontSize: pc1920(15, 26),
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        lineHeight: pc1920(21, 36),
+                        color: "#1F2121",
+                      }}
+                    >
+                      {text}
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "auto",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <img
+                      src={image}
+                      alt=""
+                      style={{
+                        width: pc1920(90, 160),
+                        height: pc1920(90, 160),
+                        objectFit: "contain",
+                        mixBlendMode: "darken",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </PageContentMax>
+      </section>
+
+      {/* ══ 섹션 2-2: 사훈 (PC) — 좌 카드 / 우 타이틀 ══ */}
+      <section className="hidden md:block" style={{ padding: `${pc1920(40, 90)} 0` }}>
+        <PageContentMax>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: pc1920(32, 80),
+            }}
+          >
+            {/* 좌측: 3카드 (텍스트 + 이미지) */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, minmax(0, min(280px, calc(280 * 100vw / 1920))))",
+                gap: pc1920(4, 8),
+                flexShrink: 0,
+              }}
+            >
+              {[
+                {
+                  num: "01",
+                  text: t("pages.brand.intro.mottoItem1"),
+                  image: MOTTO_META[0].image,
+                  bg: MOTTO_META[0].bg,
+                },
+                {
+                  num: "02",
+                  text: t("pages.brand.intro.mottoItem2"),
+                  image: MOTTO_META[1].image,
+                  bg: MOTTO_META[1].bg,
+                },
+                {
+                  num: "03",
+                  text: t("pages.brand.intro.mottoItem3"),
+                  image: MOTTO_META[2].image,
+                  bg: MOTTO_META[2].bg,
+                },
+              ].map(({ num, text, image, bg }) => (
+                <div
+                  key={num}
+                  style={{
+                    backgroundColor: bg,
+                    width: "100%",
+                    height: pc1920(210, 380),
+                    borderRadius: pc1920(24, 40),
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: pc1920(20, 36),
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: pc1920(8, 14),
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: pc1920(12, 18),
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        color: "#1F7A57",
+                      }}
+                    >
+                      {num}
+                    </span>
+                    <p
+                      style={{
+                        fontSize: pc1920(15, 26),
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        lineHeight: pc1920(21, 36),
+                        color: "#1F2121",
+                      }}
+                    >
+                      {text}
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "auto",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <img
+                      src={image}
+                      alt=""
+                      style={{
+                        width: pc1920(90, 160),
+                        height: pc1920(90, 160),
+                        objectFit: "contain",
+                        mixBlendMode: "darken",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 우측: 레이블 + 헤드라인 (우측 정렬) */}
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                paddingTop: 8,
+                textAlign: "right",
+              }}
+            >
+              <SectionPageTitle
+                as="div"
+                preset="brandIntro"
+                starVariant="brandIntro"
+                className="mb-5"
+                rootStyle={{ gap: 8, justifyContent: "flex-end" }}
+                titleStyle={{
+                  fontSize: pc1920(14, 28),
+                  fontWeight: 700,
+                  letterSpacing: "-0.04em",
+                  color: "#1F2121",
+                }}
+              >
+                {t("pages.brand.intro.mottoTitle")}
+              </SectionPageTitle>
+              <h2
+                style={{
+                  fontSize: pc1920(22, 56),
+                  fontWeight: 800,
+                  letterSpacing: "-0.04em",
+                  lineHeight: pc1920(30, 72.8),
+                  color: "#003F2B",
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {t("pages.brand.intro.mottoHeadline")}
+              </h2>
+            </div>
+          </div>
+        </PageContentMax>
+      </section>
+
+      {/* ══ 섹션 2-1·2-2: 경영이념 · 사훈 (모바일) ══ */}
+      <section className="px-3 py-7 md:hidden">
+        <div className="flex flex-col gap-8">
+          {/* 경영이념 */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col items-start gap-2">
+              <SectionPageTitle
+                as="div"
+                preset="none"
+                starVariant="brandIntro"
+                className="inline-flex w-full items-center gap-[14px]"
+                markClassName="h-[21px] w-[21px]"
+                titleClassName={cn(
+                  nanum,
+                  "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+                )}
+              >
+                {t("pages.brand.intro.philTitle")}
+              </SectionPageTitle>
+              <h2
+                className={cn(
+                  nanum,
+                  "text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold whitespace-pre-line text-[#003F2B]",
+                )}
+              >
+                {t("pages.brand.intro.philHeadline")}
+              </h2>
+            </div>
+            <div className="flex flex-col gap-2">
+              {[
+                {
+                  num: "01",
+                  text: t("pages.brand.intro.philItem1"),
+                  image: IDEAL_META[0].image,
+                  bg: IDEAL_META[0].bg,
+                },
+                {
+                  num: "02",
+                  text: t("pages.brand.intro.philItem2"),
+                  image: IDEAL_META[1].image,
+                  bg: IDEAL_META[1].bg,
+                },
+                {
+                  num: "03",
+                  text: t("pages.brand.intro.philItem3"),
+                  image: IDEAL_META[2].image,
+                  bg: IDEAL_META[2].bg,
+                },
+              ].map(({ num, text, image, bg }) => (
+                <div
+                  key={num}
+                  className="flex items-center justify-between gap-3 overflow-hidden rounded-[20px] p-5"
+                  style={{ backgroundColor: bg }}
+                >
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <span
+                      className={cn(
+                        nanum,
+                        "text-[13px] font-extrabold tracking-[0.04em] text-[#1F7A57]",
+                      )}
+                    >
+                      {num}
+                    </span>
+                    <p
+                      className={cn(
+                        nanum,
+                        "text-[16px] leading-[24px] font-extrabold break-words text-[#1F2121]",
+                      )}
+                    >
+                      {text}
+                    </p>
+                  </div>
+                  <img
+                    src={image}
+                    alt=""
+                    className="h-[64px] w-[64px] shrink-0 object-contain mix-blend-darken"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 사훈 */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col items-start gap-2">
+              <SectionPageTitle
+                as="div"
+                preset="none"
+                starVariant="brandIntro"
+                className="inline-flex w-full items-center gap-[14px]"
+                markClassName="h-[21px] w-[21px]"
+                titleClassName={cn(
+                  nanum,
+                  "min-w-0 flex-1 text-[18px] leading-[30px] font-extrabold text-[#1F2121]",
+                )}
+              >
+                {t("pages.brand.intro.mottoTitle")}
+              </SectionPageTitle>
+              <h2
+                className={cn(
+                  nanum,
+                  "text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold whitespace-pre-line text-[#003F2B]",
+                )}
+              >
+                {t("pages.brand.intro.mottoHeadline")}
+              </h2>
+            </div>
+            <div className="flex flex-col gap-2">
+              {[
+                {
+                  num: "01",
+                  text: t("pages.brand.intro.mottoItem1"),
+                  image: MOTTO_META[0].image,
+                  bg: MOTTO_META[0].bg,
+                },
+                {
+                  num: "02",
+                  text: t("pages.brand.intro.mottoItem2"),
+                  image: MOTTO_META[1].image,
+                  bg: MOTTO_META[1].bg,
+                },
+                {
+                  num: "03",
+                  text: t("pages.brand.intro.mottoItem3"),
+                  image: MOTTO_META[2].image,
+                  bg: MOTTO_META[2].bg,
+                },
+              ].map(({ num, text, image, bg }) => (
+                <div
+                  key={num}
+                  className="flex items-center justify-between gap-3 overflow-hidden rounded-[20px] p-5"
+                  style={{ backgroundColor: bg }}
+                >
+                  <div className="flex min-w-0 flex-col gap-1.5">
+                    <span
+                      className={cn(
+                        nanum,
+                        "text-[13px] font-extrabold tracking-[0.04em] text-[#1F7A57]",
+                      )}
+                    >
+                      {num}
+                    </span>
+                    <p
+                      className={cn(
+                        nanum,
+                        "text-[16px] leading-[24px] font-extrabold break-words text-[#1F2121]",
+                      )}
+                    >
+                      {text}
+                    </p>
+                  </div>
+                  <img
+                    src={image}
+                    alt=""
+                    className="h-[64px] w-[64px] shrink-0 object-contain mix-blend-darken"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ══ 섹션 3: 경영 철학 ══
           1920px 기준:
             섹션 bg: #EAE3C9, 상단 border-radius 40px
@@ -1759,12 +2219,12 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
               {
                 label: t("pages.brand.intro.downloadKoLabel"),
                 size: t("pages.brand.intro.downloadSize"),
-                href: "#",
+                href: "/files/poonglim_catalog_kor.pdf",
               },
               {
                 label: t("pages.brand.intro.downloadEnLabel"),
                 size: t("pages.brand.intro.downloadSize"),
-                href: "#",
+                href: "/files/poonglim-catalog_eng.pdf",
               },
             ].map(({ label, size, href }) => (
               <a
@@ -1871,13 +2331,13 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
               {
                 label: t("pages.brand.intro.downloadKoLabel"),
                 size: t("pages.brand.intro.downloadSize"),
-                href: "#",
+                href: "/files/poonglim_catalog_kor.pdf",
                 upper: true,
               },
               {
                 label: t("pages.brand.intro.downloadEnLabel"),
                 size: t("pages.brand.intro.downloadSize"),
-                href: "#",
+                href: "/files/poonglim-catalog_eng.pdf",
                 upper: false,
               },
             ].map(({ label, size, href, upper }) => (

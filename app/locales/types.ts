@@ -677,6 +677,16 @@ export type Translation = {
         downloadKoLabel: string;
         downloadEnLabel: string;
         downloadSize: string;
+        philTitle: string;
+        philHeadline: string;
+        philItem1: string;
+        philItem2: string;
+        philItem3: string;
+        mottoTitle: string;
+        mottoHeadline: string;
+        mottoItem1: string;
+        mottoItem2: string;
+        mottoItem3: string;
       };
       history: {
         metaTitle: string;
