@@ -321,19 +321,21 @@ const en: Translation = {
         slide500: "partners",
         slide50: "product lines",
         ceoTitle: "Message from the CEO",
-        ceoQuote1: "Our customers’ health",
-        ceoQuote2: "is our mission",
+        ceoQuote1: "We create a healthy",
+        ceoQuote2: "and abundant everyday life.",
         ceoBody1:
-          "Poonglim Food began in 1994 as a small food manufacturer and has grown into a leading premium food company in Korea.",
+          "As a specialist in egg products, Poonglim Food has grown since 1994 into a company with industry-leading quality and technology.",
         ceoBody2:
-          "We aim to be more than a producer—we partner with customers to enrich their daily lives. With carefully selected ingredients, advanced technology, and 30 years of know-how, we deliver the highest quality products.",
+          "Aiming for “flawless, perfect-quality production,” we have built Korea’s largest state-of-the-art egg-breaking facility capable of processing over 2 million eggs a day through the proactive adoption of advanced technology, and we continue to invest in facilities for new product development.",
         ceoBody3:
-          "We will continue to pursue sustainable management, fulfill our social responsibilities, and grow together with our customers.",
+          "By swiftly analyzing and researching customer needs, we have developed and launched not only liquid eggs and grilled eggs but also a wide range of dessert products. We were the first in Korea to develop natural calcium from eggshells and to produce egg-white powder—previously fully reliant on imports—at an international standard, rising to the top of the egg products industry.",
+        ceoBody4:
+          "Beyond egg products, Poonglim Food is expanding into desserts such as jelly and pudding, growing ever closer to our customers. We will continue striving for 100% customer satisfaction through high-quality, diverse egg products and maintain our position as an industry leader. Thank you.",
         ceoPresidentAlt: "Poonglim Food CEO Jung Youn-hyun",
         ceoRole: "CEO, Poonglim Food",
         ceoName: "Jung Youn-hyun",
         ceoBodyMobile:
-          "Poonglim Food began in 1994 as a small food manufacturer and has grown into a leading premium food company in Korea.\n\nWe aim to be more than a producer—we partner with customers to enrich their daily lives. With carefully selected ingredients, advanced technology, and 30 years of know-how, we deliver the highest quality products.\n\nWe will continue to pursue sustainable management, fulfill our social responsibilities, and grow together with our customers.",
+          "As a specialist in egg products, Poonglim Food has grown since 1994 into a company with industry-leading quality and technology.\n\nAiming for “flawless, perfect-quality production,” we have built Korea’s largest state-of-the-art egg-breaking facility capable of processing over 2 million eggs a day through the proactive adoption of advanced technology, and we continue to invest in facilities for new product development.\n\nBy swiftly analyzing and researching customer needs, we have developed and launched not only liquid eggs and grilled eggs but also a wide range of dessert products. We were the first in Korea to develop natural calcium from eggshells and to produce egg-white powder—previously fully reliant on imports—at an international standard, rising to the top of the egg products industry.\n\nBeyond egg products, Poonglim Food is expanding into desserts such as jelly and pudding, growing ever closer to our customers. We will continue striving for 100% customer satisfaction through high-quality, diverse egg products and maintain our position as an industry leader. Thank you.",
         philosophyLabel: "Management philosophy",
         philosophyHeadline:
           "Six core values\nshaping\na better future.",

@@ -125,7 +125,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
             </span>
           </SectionPageTitle>
           <Link
-            to="/media"
+            to="/media/news"
             className="flex flex-shrink-0 items-center text-[#003F2B]"
             aria-label={t("home.newsFeed.viewAllAria")}
           >
@@ -149,7 +149,7 @@ export function NewsFeed({ dbNews = [] }: NewsFeedProps) {
               return (
                 <Link
                   key={item.id}
-                  to={`/media/${item.id}`}
+                  to={`/media/news/${item.id}`}
                   className="group flex h-full w-[300px] flex-shrink-0 md:w-[408px]"
                   style={{ scrollSnapAlign: "start" }}
                 >

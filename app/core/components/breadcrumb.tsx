@@ -49,7 +49,7 @@ function BreadcrumbNavRow({
 }) {
   const isCream = theme === "cream";
   const navClass = cn(
-    "flex flex-wrap items-center gap-2.5 text-base leading-6",
+    "flex flex-wrap items-center gap-2.5 text-xl leading-7",
     isCream ? "text-[#1F2121]" : "text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.35)]",
   );
   const linkClass = isCream
