@@ -636,6 +636,7 @@ export type Translation = {
         ceoBody1: string;
         ceoBody2: string;
         ceoBody3: string;
+        ceoBody4: string;
         ceoPresidentAlt: string;
         ceoRole: string;
         ceoName: string;

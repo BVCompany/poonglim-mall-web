@@ -142,7 +142,7 @@ function DesktopNavigation({
                       href={sub.path}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block px-4 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#02633E]"
+                      className="block px-4 py-2.5 text-lg text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#02633E]"
                     >
                       {sub.label}
                     </a>
@@ -151,7 +151,7 @@ function DesktopNavigation({
                       key={sub.path}
                       to={sub.path}
                       viewTransition
-                      className="block px-4 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#02633E]"
+                      className="block px-4 py-2.5 text-lg text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#02633E]"
                     >
                       {sub.label}
                     </Link>

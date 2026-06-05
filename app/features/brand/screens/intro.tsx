@@ -608,7 +608,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
               style={{
                 marginTop: 20,
                 fontSize: pc1920(14, 20),
-                fontWeight: 400,
+                fontWeight: 700,
                 letterSpacing: "-0.02em",
                 color: "#003F2B",
                 lineHeight: 1.65,
@@ -769,7 +769,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
               <p
                 className={cn(
                   nanum,
-                  "self-stretch whitespace-pre-line text-[clamp(13px,3.73vw,14px)] leading-[clamp(20px,5.97vw,22.4px)] font-normal text-[#003F2B]",
+                  "self-stretch text-[clamp(13px,3.73vw,14px)] leading-[clamp(20px,5.97vw,22.4px)] font-bold whitespace-pre-line text-[#003F2B]",
                 )}
               >
                 {t("pages.brand.intro.heroSub")}
@@ -972,54 +972,56 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   </blockquote>
                 </div>
 
-                {/* 우하 400×390 — 본문만(상단 섹션 타이틀과 중복되는 ‘CEO 인사말’ 라벨 제거, 검수 반영) */}
+                {/* 우측 본문 — 고정 높이/스크롤 제거, 내용 길이에 맞춰 상단 정렬로 표시 */}
                 <div
-                  className="absolute right-0 bottom-0 z-[6] flex min-h-0 flex-col overflow-hidden text-left"
+                  className="absolute top-0 right-0 z-[6] flex flex-col gap-3 overflow-visible text-left"
                   style={
                     ceoLayout
-                      ? {
-                          width: ceoLayout.bodyW,
-                          height: ceoLayout.bodyH,
-                        }
-                      : {
-                          width: `${(CEO_BODY_W / CEO_STAGE_W) * 100}%`,
-                          height: `${(CEO_BODY_H / CEO_STAGE_H) * 100}%`,
-                        }
+                      ? { width: ceoLayout.bodyW }
+                      : { width: `${(CEO_BODY_W / CEO_STAGE_W) * 100}%` }
                   }
                 >
                   <div
-                    className="min-h-0 flex-1 overflow-y-auto pt-0.5 pr-0.5"
+                    className="pt-0.5 pr-0.5"
                     style={{
-                      color: "#1F2121",
+                      color: "#555555",
                       fontSize: pc1920(11, 16),
-                      fontWeight: 700,
+                      fontWeight: 500,
                       letterSpacing: "-0.03em",
                       lineHeight: 1.5,
                     }}
                   >
-                    <p>{t("pages.brand.intro.ceoBody1")}</p>
-                    <p style={{ marginTop: 10 }}>
+                    <p style={{ fontWeight: 800, color: "#1F2121" }}>
+                      {t("pages.brand.intro.ceoBody1")}
+                    </p>
+                    <p style={{ marginTop: 16 }}>
                       {t("pages.brand.intro.ceoBody2")}
                     </p>
-                    <p style={{ marginTop: 10 }}>
+                    <p style={{ marginTop: 16 }}>
                       {t("pages.brand.intro.ceoBody3")}
                     </p>
+                    <p style={{ marginTop: 16 }}>
+                      {t("pages.brand.intro.ceoBody4")}
+                    </p>
                   </div>
-                  <p
-                    className="mt-2.5 shrink-0"
-                    style={{
-                      fontSize: pc1920(11, 18),
-                      fontWeight: 400,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1.5,
-                      color: "#003F2B",
-                    }}
-                  >
-                    {t("pages.brand.intro.ceoRole")}{" "}
-                    <span style={{ marginLeft: 10, fontWeight: 700 }}>
-                      {t("pages.brand.intro.ceoName")}
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span
+                      style={{
+                        fontSize: pc1920(11, 18),
+                        fontWeight: 400,
+                        letterSpacing: "-0.04em",
+                        lineHeight: 1.5,
+                        color: "#003F2B",
+                      }}
+                    >
+                      {t("pages.brand.intro.ceoRole")}
                     </span>
-                  </p>
+                    <img
+                      src="/intro/president_sign.png"
+                      alt={t("pages.brand.intro.ceoName")}
+                      style={{ height: pc1920(52, 80), width: "auto" }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1053,8 +1055,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   "absolute bottom-full left-1/2 z-30 w-[min(108%,calc(100%+24px))] max-w-none -translate-x-1/2 translate-y-[min(28%,2.25rem)] text-center text-[clamp(20px,6.4vw,28px)] leading-[1.28] font-extrabold text-[#003F2B]",
                 )}
               >
-                &quot;{t("pages.brand.intro.ceoQuote1")}{" "}
-                <br />
+                &quot;{t("pages.brand.intro.ceoQuote1")} <br />
                 {t("pages.brand.intro.ceoQuote2")}&quot;
               </blockquote>
 
@@ -1085,16 +1086,18 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
               "mt-[40px] flex w-full flex-col items-start gap-4 self-stretch",
             )}
           >
-            <p className="whitespace-pre-line text-[clamp(13px,3.73vw,14px)] leading-[1.5] font-bold text-[#1F2121]">
+            <p className="text-[clamp(13px,3.73vw,14px)] leading-[1.5] font-bold whitespace-pre-line text-[#1F2121]">
               {t("pages.brand.intro.ceoBodyMobile")}
             </p>
             <div className="inline-flex items-center gap-3 self-stretch">
               <span className="text-base leading-6 font-normal text-[#003F2B]">
                 {t("pages.brand.intro.ceoRole")}
               </span>
-              <span className="text-base leading-6 font-bold text-[#003F2B]">
-                {t("pages.brand.intro.ceoName")}
-              </span>
+              <img
+                src="/intro/president_sign.png"
+                alt={t("pages.brand.intro.ceoName")}
+                className="h-16 w-auto"
+              />
             </div>
           </div>
         </div>
@@ -1261,7 +1264,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
             <h2
               className={cn(
                 nanum,
-                "self-stretch whitespace-pre-line text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold text-[#003F2B]",
+                "self-stretch text-[clamp(18px,5.33vw,20px)] leading-[1.3] font-extrabold whitespace-pre-line text-[#003F2B]",
               )}
             >
               {t("pages.brand.intro.philosophyHeadlineMobile")}
@@ -1857,7 +1860,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
             <h2
               className={cn(
                 nanum,
-                "whitespace-pre-line text-[18px] leading-[23.4px] font-extrabold text-[#003F2B]",
+                "text-[18px] leading-[23.4px] font-extrabold whitespace-pre-line text-[#003F2B]",
               )}
             >
               {t("pages.brand.intro.downloadHeadline")}
