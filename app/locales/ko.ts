@@ -381,7 +381,7 @@ const ko: Translation = {
         philItem3: "고객과 시장의 니즈를 최우선으로 추구",
         mottoTitle: "사훈",
         mottoHeadline: "기본과 실천, 그리고\n끊임없는 배움을 추구합니다.",
-        mottoItem1: "기본에 충실한 조직인",
+        mottoItem1: "기본에 충실한\n조직인",
         mottoItem2: "신속하게 실천하는 행동인",
         mottoItem3: "끊임없이 공부하는 학습인",
       },
