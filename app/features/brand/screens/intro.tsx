@@ -142,18 +142,18 @@ const PHILOSOPHY_META = [
   },
 ] as const;
 
-/** 경영이념 카드 — 일러스트는 회사소개 라인아트 세트 재사용(교체 가능) */
+/** 경영이념 카드 — 전용 일러스트 */
 const IDEAL_META = [
-  { image: "/intro/intro_img_02.png", bg: "#F0EEDD" },
-  { image: "/intro/intro_img_06.png", bg: "#FBE28A" },
-  { image: "/intro/intro_img_01.png", bg: "#F0EEDD" },
+  { image: "/intro/intro01.png", bg: "#F0EEDD" },
+  { image: "/intro/intro02.png", bg: "#FBE28A" },
+  { image: "/intro/intro03.png", bg: "#F0EEDD" },
 ] as const;
 
-/** 사훈 카드 */
+/** 사훈 카드 — 전용 일러스트 */
 const MOTTO_META = [
-  { image: "/intro/intro_img_05.png", bg: "#F0EEDD" },
-  { image: "/intro/intro_img_04.png", bg: "#FBE28A" },
-  { image: "/intro/intro_img_03.png", bg: "#F0EEDD" },
+  { image: "/intro/intro04.png", bg: "#F0EEDD" },
+  { image: "/intro/intro05.png", bg: "#FBE28A" },
+  { image: "/intro/intro06.png", bg: "#F0EEDD" },
 ] as const;
 
 const CHARACTER_META = [
@@ -1193,7 +1193,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   style={{
                     backgroundColor: bg,
                     width: "100%",
-                    height: pc1920(210, 380),
+                    height: pc1920(230, 420),
                     borderRadius: pc1920(24, 40),
                     display: "flex",
                     flexDirection: "column",
@@ -1225,6 +1225,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                         letterSpacing: "-0.04em",
                         lineHeight: pc1920(21, 36),
                         color: "#1F2121",
+                        whiteSpace: "pre-line",
                       }}
                     >
                       {text}
@@ -1241,8 +1242,8 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                       src={image}
                       alt=""
                       style={{
-                        width: pc1920(90, 160),
-                        height: pc1920(90, 160),
+                        width: "100%",
+                        height: pc1920(118, 210),
                         objectFit: "contain",
                         mixBlendMode: "darken",
                       }}
@@ -1300,7 +1301,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   style={{
                     backgroundColor: bg,
                     width: "100%",
-                    height: pc1920(210, 380),
+                    height: pc1920(230, 420),
                     borderRadius: pc1920(24, 40),
                     display: "flex",
                     flexDirection: "column",
@@ -1332,6 +1333,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                         letterSpacing: "-0.04em",
                         lineHeight: pc1920(21, 36),
                         color: "#1F2121",
+                        whiteSpace: "pre-line",
                       }}
                     >
                       {text}
@@ -1348,8 +1350,8 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                       src={image}
                       alt=""
                       style={{
-                        width: pc1920(90, 160),
-                        height: pc1920(90, 160),
+                        width: "100%",
+                        height: pc1920(118, 210),
                         objectFit: "contain",
                         mixBlendMode: "darken",
                       }}
@@ -1466,7 +1468,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                     <p
                       className={cn(
                         nanum,
-                        "text-[16px] leading-[24px] font-extrabold break-words text-[#1F2121]",
+                        "text-[16px] leading-[24px] font-extrabold break-words whitespace-pre-line text-[#1F2121]",
                       )}
                     >
                       {text}
@@ -1475,7 +1477,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   <img
                     src={image}
                     alt=""
-                    className="h-[64px] w-[64px] shrink-0 object-contain mix-blend-darken"
+                    className="h-[84px] w-[84px] shrink-0 object-contain mix-blend-darken"
                   />
                 </div>
               ))}
@@ -1545,7 +1547,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                     <p
                       className={cn(
                         nanum,
-                        "text-[16px] leading-[24px] font-extrabold break-words text-[#1F2121]",
+                        "text-[16px] leading-[24px] font-extrabold break-words whitespace-pre-line text-[#1F2121]",
                       )}
                     >
                       {text}
@@ -1554,7 +1556,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
                   <img
                     src={image}
                     alt=""
-                    className="h-[64px] w-[64px] shrink-0 object-contain mix-blend-darken"
+                    className="h-[84px] w-[84px] shrink-0 object-contain mix-blend-darken"
                   />
                 </div>
               ))}
