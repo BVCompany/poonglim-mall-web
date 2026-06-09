@@ -214,13 +214,13 @@ function ProductCard({ product }: { product: Product }) {
   return (
     /* 카드 루트 — 클릭 시 상세 페이지로 바로 이동 */
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-[10px] bg-[#EAE3C9] shadow-sm transition-all duration-200 hover:shadow-md md:rounded-[40px] md:p-6 md:shadow-none"
+      className="group relative cursor-pointer overflow-hidden rounded-[20px] bg-[#EAE3C9] p-3 shadow-sm transition-all duration-200 hover:shadow-md md:rounded-[40px] md:p-6 md:shadow-none"
       onClick={() => navigate(`/products/${product.id}`, { viewTransition: true })}
     >
 
       {/* ① 이미지 영역 — 메인 제품 섹션과 동일하게 크림 카드 안 흰색 라운드 박스(inset) +
           object-cover로 배경 유무·비율과 무관하게 동일 영역을 꽉 채워 통일감 있게 노출 */}
-      <div className="relative aspect-square overflow-hidden rounded-t-[10px] bg-white md:aspect-[392/360] md:rounded-2xl">
+      <div className="relative aspect-square overflow-hidden rounded-[14px] bg-white md:aspect-[392/360] md:rounded-2xl">
         <img
           src={imgError ? "/home/premium_egg.png" : product.image}
           alt={product.name}
@@ -261,8 +261,8 @@ function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      {/* ② 텍스트 영역 (PC는 카드 루트 md:p-6 패딩 사용) */}
-      <div className="px-2.5 pb-2.5 pt-2.5 md:px-0 md:pb-0 md:pt-4">
+      {/* ② 텍스트 영역 (카드 루트 패딩(p-3/md:p-6)을 사용하므로 가로 패딩은 0) */}
+      <div className="px-0 pb-0 pt-2.5 md:pt-4">
         <h3
           className="mb-1 line-clamp-2 leading-[1.3] tracking-[-0.02em] text-gray-900 md:leading-[26px] md:tracking-[-0.015em]"
           style={{ fontSize: "15px", fontFamily: "NanumSquareRound", fontWeight: 800 }}

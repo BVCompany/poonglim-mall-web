@@ -140,7 +140,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
                 className="group flex w-[310px] flex-shrink-0 flex-col transition-colors duration-300 md:h-[530px] md:w-[408px]"
                 style={{ scrollSnapAlign: "start" }}
               >
-                <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] max-md:p-0 md:h-full md:rounded-3xl md:p-6">
+                <div className="relative flex min-h-0 flex-col overflow-hidden rounded-[30px] bg-[#EAE3C9] transition-colors duration-300 group-hover:bg-[var(--brand-green)] max-md:p-4 md:h-full md:rounded-3xl md:p-6">
                   {/* 모바일: 배지 이미지 영역 상단 절대 배치 · PC: 상단 플로우 */}
                   <div className="z-10 flex max-md:absolute max-md:left-5 max-md:top-5 max-md:mb-0 max-md:items-center max-md:gap-[5px] mb-3 flex-shrink-0 flex-wrap items-center gap-2 md:relative md:mb-4">
                     {product.badges.map((badge) => (
@@ -158,7 +158,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
                   </div>
                   {/* 제품 이미지 — 카드 크기는 유지하고, 배경 유무·비율과 무관하게 이미지가
                       동일한 영역을 꽉 채우도록(object-cover) 처리해 통일감 있게 노출 */}
-                  <div className="relative h-[310px] w-full shrink-0 overflow-hidden rounded-t-[30px] bg-white md:h-[298px] md:rounded-2xl">
+                  <div className="relative h-[278px] w-full shrink-0 overflow-hidden rounded-2xl bg-white md:h-[298px] md:rounded-2xl">
                     <img
                       src={product.image}
                       alt={product.name}
@@ -169,7 +169,7 @@ export function FeaturedProducts({ dbProducts = [] }: FeaturedProductsProps) {
                     />
                   </div>
                   {/* 모바일: px-20 pb-20(20px) · 타이포 시안 */}
-                  <div className="flex min-h-0 flex-shrink-0 flex-col max-md:gap-[9px] max-md:px-5 max-md:pb-5 max-md:pt-0 md:mt-4 md:min-h-[120px]">
+                  <div className="flex min-h-0 flex-shrink-0 flex-col max-md:gap-[9px] max-md:px-1 max-md:pb-1 max-md:pt-3 md:mt-4 md:min-h-[120px]">
                     <h3
                       className={cn(
                         "line-clamp-2 transition-colors group-hover:text-white",
