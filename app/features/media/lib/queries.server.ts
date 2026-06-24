@@ -6,10 +6,21 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { ContentLocale } from "~/core/db/content-locale.server";
 import { pickBestLocaleRows } from "~/core/db/content-locale.server";
 import db from "~/core/db/drizzle-client.server";
-import { catalogs, news } from "../schema";
+import { catalogs, news, newsCategories } from "../schema";
 
 export type News = typeof news.$inferSelect;
 export type Catalog = typeof catalogs.$inferSelect;
+
+/** 뉴스 카테고리(=news.type) 국문명 → 영문명 매핑 (영문 사이트 라벨용) */
+export async function getNewsCategoryNameEnMap() {
+  const rows = await db
+    .select({ name: newsCategories.name, name_en: newsCategories.name_en })
+    .from(newsCategories)
+    .catch(() => [] as { name: string; name_en: string | null }[]);
+  const map: Record<string, string> = {};
+  for (const r of rows) if (r.name_en) map[r.name] = r.name_en;
+  return map;
+}
 
 function sortNewsRows<T extends News>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {

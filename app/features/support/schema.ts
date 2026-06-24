@@ -72,6 +72,7 @@ export const gradeCertCategories = pgTable(
   {
     ...makeIdentityColumn("category_id"),
     name: text().notNull().unique(),
+    name_en: text(), // 표시명(영문, 선택) — 영문 사이트 노출용
     color: text().notNull().default("sky"),
     sort_order: integer().notNull().default(0),
     ...timestamps,
@@ -196,6 +197,7 @@ export const archiveCategories = pgTable(
   {
     ...makeIdentityColumn("category_id"),
     name: text().notNull().unique(),
+    name_en: text(), // 표시명(영문, 선택) — 영문 사이트 노출용
     color: text().notNull().default("sky"),
     sort_order: integer().notNull().default(0),
     /** false면 자료실 탭에 카테고리 미노출(자료가 있어도 숨김) */

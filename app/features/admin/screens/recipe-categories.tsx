@@ -40,6 +40,7 @@ export async function action({ request }: Route.ActionArgs) {
       : 0;
     await db.insert(recipeCategories).values({
       name: fd.get("name") as string,
+      name_en: ((fd.get("name_en") as string) || "").trim() || null,
       slug: fd.get("slug") as string,
       sort_order: nextOrder,
       is_active: fd.get("is_active") !== "false",
@@ -52,6 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (id) {
       await db.update(recipeCategories).set({
         name: fd.get("name") as string,
+        name_en: ((fd.get("name_en") as string) || "").trim() || null,
         slug: fd.get("slug") as string,
         is_active: fd.get("is_active") !== "false",
       }).where(eq(recipeCategories.category_id, id));
@@ -96,6 +98,7 @@ export async function action({ request }: Route.ActionArgs) {
 type Category = {
   category_id: number;
   name: string;
+  name_en: string | null;
   slug: string;
   sort_order: number | null;
   is_active: boolean;
@@ -120,6 +123,7 @@ function CategoryFormModal({
   const fetcher = useFetcher();
   const isEdit = !!initialData;
   const [name, setName] = useState(initialData?.name ?? "");
+  const [nameEn, setNameEn] = useState(initialData?.name_en ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
 
   const handleNameChange = (v: string) => {
@@ -142,7 +146,7 @@ function CategoryFormModal({
           {isEdit && <input type="hidden" name="id" value={initialData.category_id} />}
 
           <div className="space-y-1.5">
-            <Label>카테고리 이름 *</Label>
+            <Label>카테고리 이름 (국문) *</Label>
             <Input
               name="name"
               value={name}
@@ -150,6 +154,16 @@ function CategoryFormModal({
               placeholder="예: 가정용"
               required
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>카테고리 이름 (영문)</Label>
+            <Input
+              name="name_en"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              placeholder="예: Home Cooking"
+            />
+            <p className="text-xs text-gray-400">영문 사이트에서 표시됩니다. 비워두면 국문 이름이 그대로 표시됩니다.</p>
           </div>
           <div className="space-y-1.5">
             <Label>슬러그 (영문/숫자/언더스코어) *</Label>
@@ -229,6 +243,7 @@ export default function AdminRecipeCategoriesPage({ loaderData }: Route.Componen
                   <tr>
                     <th className="w-12 px-4 py-3 text-left">순서</th>
                     <th className="px-4 py-3 text-left">카테고리명</th>
+                    <th className="px-4 py-3 text-left">영문명</th>
                     <th className="px-4 py-3 text-left">슬러그</th>
                     <th className="w-20 px-4 py-3 text-left">상태</th>
                     <th className="w-28 px-4 py-3 text-left">관리</th>
@@ -257,6 +272,7 @@ export default function AdminRecipeCategoriesPage({ loaderData }: Route.Componen
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">{cat.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{cat.name_en || <span className="text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 font-mono text-sm text-gray-500">{cat.slug}</td>
                       <td className="px-4 py-3">
                         <button

@@ -19,7 +19,7 @@ import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { normalizeContentLocale } from "~/core/db/content-locale.server";
-import { getNews } from "~/features/media/lib/queries.server";
+import { getNews, getNewsCategoryNameEnMap } from "~/features/media/lib/queries.server";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 
 export const meta: Route.MetaFunction = ({ data }) => [
@@ -29,11 +29,12 @@ export const meta: Route.MetaFunction = ({ data }) => [
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
   const contentLocale = normalizeContentLocale(await i18next.getLocale(request));
-  const [items, pageBanner] = await Promise.all([
+  const [items, pageBanner, categoryNameEnMap] = await Promise.all([
     getNews(contentLocale).catch(() => []),
     getPageBanner("news").catch(() => null),
+    getNewsCategoryNameEnMap().catch(() => ({}) as Record<string, string>),
   ]);
-  return { items, pageBanner, metaTitle: t("pages.news.metaTitle") };
+  return { items, pageBanner, categoryNameEnMap, metaTitle: t("pages.news.metaTitle") };
 }
 
 type NewsItem = {
@@ -61,7 +62,13 @@ const CARD_GAP = 20;
 const MOBILE_FEATURED_W = 310;
 const MOBILE_FEATURED_GAP = 10;
 
-function getTypeLabel(type: string, t: TFunction) {
+function getTypeLabel(
+  type: string,
+  t: TFunction,
+  nameEnMap?: Record<string, string>,
+  isEn?: boolean,
+) {
+  if (isEn && nameEnMap?.[type]) return nameEnMap[type];
   const key = type.toLowerCase();
   if (key === "press") return t("pages.news.types.press");
   if (key === "news" || type === "뉴스") return t("pages.news.types.news");
@@ -112,7 +119,8 @@ function featuredScrollStepPx() {
 
 export default function NewsScreen({ loaderData }: Route.ComponentProps) {
   const { t, i18n } = useTranslation();
-  const { pageBanner } = loaderData;
+  const { pageBanner, categoryNameEnMap } = loaderData;
+  const isEn = i18n.language?.startsWith("en");
   const items = loaderData.items as NewsItem[];
 
   /* ── 주요 보도 슬라이더 (CSS 스크롤 기반) — is_featured 우선, 없으면 최신순 6건 ── */
@@ -283,7 +291,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                         </div>
                         <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 lg:left-[30px] lg:top-[30px]">
                           <span className="inline-flex whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-2 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif]">
-                            {getTypeLabel(item.type, t)}
+                            {getTypeLabel(item.type, t, categoryNameEnMap, isEn)}
                           </span>
                         </div>
                       </div>
@@ -486,7 +494,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                         )}
                       >
                         <span className="inline-flex min-h-[28px] w-fit min-w-[56px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#003F2B] px-3 py-1.5 text-xs font-medium leading-3 text-white [font-family:Pretendard,system-ui,sans-serif] md:hidden">
-                          {getTypeLabel(item.type, t)}
+                          {getTypeLabel(item.type, t, categoryNameEnMap, isEn)}
                         </span>
 
                         <span
@@ -496,7 +504,7 @@ export default function NewsScreen({ loaderData }: Route.ComponentProps) {
                             "lg:bg-[#003F2B] lg:text-white lg:group-hover:bg-white/15 lg:group-hover:text-white",
                           )}
                         >
-                          {getTypeLabel(item.type, t)}
+                          {getTypeLabel(item.type, t, categoryNameEnMap, isEn)}
                         </span>
 
                         <div className="flex flex-col max-md:gap-3 md:gap-0 lg:gap-6">

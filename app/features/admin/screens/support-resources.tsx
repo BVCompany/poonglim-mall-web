@@ -154,6 +154,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "category_create") {
     const name = ((fd.get("name") as string) ?? "").trim();
+    const nameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
     if (!name) return { success: false as const, error: "category_validation" as const };
     const [mx] = await db
@@ -161,7 +162,7 @@ export async function action({ request }: Route.ActionArgs) {
       .from(archiveCategories);
     const nextOrder = Number(mx?.v ?? -1) + 1;
     try {
-      await db.insert(archiveCategories).values({ name, color, sort_order: nextOrder });
+      await db.insert(archiveCategories).values({ name, name_en: nameEn, color, sort_order: nextOrder });
     } catch {
       return { success: false as const, error: "category_duplicate" as const };
     }
@@ -171,6 +172,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "category_update") {
     const id = Number(fd.get("id"));
     const newName = ((fd.get("name") as string) ?? "").trim();
+    const newNameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
     if (!id || !newName) return { success: false as const, error: "category_validation" as const };
     const [row] = await db
@@ -198,13 +200,13 @@ export async function action({ request }: Route.ActionArgs) {
           .where(eq(libraryResources.category, row.name));
         await tx
           .update(archiveCategories)
-          .set({ name: newName, color, updated_at: new Date() })
+          .set({ name: newName, name_en: newNameEn, color, updated_at: new Date() })
           .where(eq(archiveCategories.category_id, id));
       });
     } else {
       await db
         .update(archiveCategories)
-        .set({ color, updated_at: new Date() })
+        .set({ name_en: newNameEn, color, updated_at: new Date() })
         .where(eq(archiveCategories.category_id, id));
     }
     return { success: true as const, intent: "category" as const };
