@@ -1823,6 +1823,7 @@ const en: Translation = {
     previousScreen: "Go back",
     openSearch: "Search",
     brandAlt: "Poonglim Food",
+    language: "Language",
   },
   detailNav: {
     productList: "Products",

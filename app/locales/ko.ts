@@ -1822,6 +1822,7 @@ const ko: Translation = {
     previousScreen: "이전 화면으로",
     openSearch: "검색",
     brandAlt: "풍림푸드",
+    language: "언어",
   },
   detailNav: {
     productList: "제품보기",

@@ -1524,6 +1524,7 @@ export type Translation = {
     previousScreen: string;
     openSearch: string;
     brandAlt: string;
+    language: string;
   };
   detailNav: {
     productList: string;

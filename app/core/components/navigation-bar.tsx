@@ -18,7 +18,7 @@ import {
 } from "~/core/lib/public-mega-nav";
 import { cn } from "~/core/lib/utils";
 
-import LangSwitcher from "./lang-switcher";
+import LangSwitcher, { LangSwitcherMobile } from "./lang-switcher";
 import {
   Collapsible,
   CollapsibleContent,
@@ -277,6 +277,7 @@ function MobileNavigation({
           </SheetClose>
         ),
       )}
+        <LangSwitcherMobile />
       </div>
     </div>
   );
