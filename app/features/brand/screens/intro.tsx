@@ -381,7 +381,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
         sparkles: HERO_SPARKLES_500,
       },
       {
-        num: "50",
+        num: "200",
         unit: t("pages.brand.intro.slide50"),
         sparkles: HERO_SPARKLES_50,
       },
@@ -1118,7 +1118,10 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
       </section>
 
       {/* ══ 섹션 2-1: 경영이념 (PC) — 좌 타이틀 / 우 카드 ══ */}
-      <section className="hidden md:block" style={{ padding: `${pc1920(40, 90)} 0` }}>
+      <section
+        className="hidden md:block"
+        style={{ padding: `${pc1920(40, 90)} 0` }}
+      >
         <PageContentMax>
           <div
             style={{
@@ -1257,7 +1260,10 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
       </section>
 
       {/* ══ 섹션 2-2: 사훈 (PC) — 좌 카드 / 우 타이틀 ══ */}
-      <section className="hidden md:block" style={{ padding: `${pc1920(40, 90)} 0` }}>
+      <section
+        className="hidden md:block"
+        style={{ padding: `${pc1920(40, 90)} 0` }}
+      >
         <PageContentMax>
           <div
             style={{

@@ -20,9 +20,12 @@ export const pageBanners = pgTable(
     page_key:   text().notNull(),       // "products", "brand", etc.
     title:      text().notNull(),
     subtitle:   text(),
+    title_en:   text(),
+    subtitle_en: text(),
     image_url:  text(),
     link_url:   text(),
     link_text:  text(),                 // CTA 버튼 텍스트
+    link_text_en: text(),
     is_active:  boolean().notNull().default(true),
     ...timestamps,
   },

@@ -28,14 +28,25 @@ interface BannerAddModalProps {
 export interface BannerFormData {
   title: string;
   subtitle: string;
+  titleEn: string;
+  subtitleEn: string;
   imageUrl: string;
   linkUrl: string;
   buttonText: string;
+  buttonTextEn: string;
   isActive: boolean;
 }
 
 const DEFAULT_FORM: BannerFormData = {
-  title: "", subtitle: "", imageUrl: "", linkUrl: "", buttonText: "", isActive: true,
+  title: "",
+  subtitle: "",
+  titleEn: "",
+  subtitleEn: "",
+  imageUrl: "",
+  linkUrl: "",
+  buttonText: "",
+  buttonTextEn: "",
+  isActive: true,
 };
 
 export function BannerAddModal({
@@ -112,6 +123,44 @@ export function BannerAddModal({
               rows={3}
               required
             />
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/80 p-4">
+            <p className="text-xs font-medium text-gray-600">영문 (선택 — 비우면 국문 표시)</p>
+            <div className="space-y-2">
+              <Label htmlFor="titleEn">제목 (영문)</Label>
+              <Input
+                id="titleEn"
+                value={formData.titleEn}
+                onChange={(e) =>
+                  setFormData({ ...formData, titleEn: e.target.value })
+                }
+                placeholder="Healthy and abundant daily life"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subtitleEn">부제목 (영문)</Label>
+              <Textarea
+                id="subtitleEn"
+                value={formData.subtitleEn}
+                onChange={(e) =>
+                  setFormData({ ...formData, subtitleEn: e.target.value })
+                }
+                placeholder="Premium food solutions with trusted quality and innovative technology"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="buttonTextEn">보조 텍스트 (영문)</Label>
+              <Input
+                id="buttonTextEn"
+                value={formData.buttonTextEn}
+                onChange={(e) =>
+                  setFormData({ ...formData, buttonTextEn: e.target.value })
+                }
+                placeholder="Premium food solutions"
+              />
+            </div>
           </div>
 
           {/* Image Upload */}
