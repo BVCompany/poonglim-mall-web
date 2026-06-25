@@ -7,18 +7,12 @@
 
 import { randomUUID } from "node:crypto";
 import { useEffect, useState } from "react";
-import { useFetcher } from "react-router";
+import { useFetcher, useRevalidator } from "react-router";
 import type { Route } from "./+types/products";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import { ProductAddModal, type ProductFormData } from "../components/product-add-modal";
-import {
-  ListSortSelect,
-  sortByCreatedDesc,
-  toTimestamp,
-  type ListSortOrder,
-} from "../components/list-sort-control";
 import { getAllCategories } from "~/features/product-categories/lib/queries.server";
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
@@ -29,12 +23,14 @@ import {
   Search,
   Edit,
   Trash2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import type { AdminProduct } from "../types/product.types";
 import { getAllProductsForAdmin } from "~/features/products/lib/queries.server";
 import db from "~/core/db/drizzle-client.server";
 import { products } from "~/features/products/schema";
-import { and, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 
 const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
   best: "best",
@@ -46,6 +42,58 @@ const BADGE_MAP: Record<string, "best" | "new" | "b2b" | "sale"> = {
 
 const TG_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type AdminListProduct = {
+  id: string;
+  product_id: number;
+  translation_group_id: string;
+  locale: "ko" | "en";
+  name: string;
+  description: string;
+  category: AdminProduct["category"];
+  price: number | null;
+  originalPrice?: number;
+  image: string;
+  tags: string[];
+  badge: AdminProduct["badge"];
+  status: AdminProduct["status"];
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/** translation_group 단위 sort_order → 그룹 내 ko 우선 */
+function sortAdminProductsByDisplayOrder(rows: AdminListProduct[]): AdminListProduct[] {
+  const groupOrder = new Map<string, number>();
+  for (const row of rows) {
+    const group = row.translation_group_id;
+    const order = row.sort_order ?? 0;
+    const prev = groupOrder.get(group);
+    groupOrder.set(group, prev === undefined ? order : Math.min(prev, order));
+  }
+  return [...rows].sort((a, b) => {
+    if (a.translation_group_id === b.translation_group_id) {
+      if (a.locale === "ko" && b.locale === "en") return -1;
+      if (a.locale === "en" && b.locale === "ko") return 1;
+      return a.product_id - b.product_id;
+    }
+    const oa = groupOrder.get(a.translation_group_id) ?? 0;
+    const ob = groupOrder.get(b.translation_group_id) ?? 0;
+    if (oa !== ob) return oa - ob;
+    return a.product_id - b.product_id;
+  });
+}
+
+function buildOrderedTranslationGroups(rows: AdminListProduct[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const row of sortAdminProductsByDisplayOrder(rows)) {
+    if (seen.has(row.translation_group_id)) continue;
+    seen.add(row.translation_group_id);
+    ordered.push(row.translation_group_id);
+  }
+  return ordered;
+}
 
 /**
  * Loader: 관리자 인증 + DB 제품 목록
@@ -101,6 +149,13 @@ export async function action({ request }: Route.ActionArgs) {
     const translation_group_id =
       groupFromForm && TG_UUID_RE.test(groupFromForm) ? groupFromForm : randomUUID();
 
+    const maxRows = await db
+      .select({ sort_order: products.sort_order })
+      .from(products)
+      .orderBy(asc(products.sort_order));
+    const nextOrder =
+      maxRows.length > 0 ? (maxRows[maxRows.length - 1].sort_order ?? 0) + 1 : 0;
+
     await db.insert(products).values({
       translation_group_id,
       locale,
@@ -121,7 +176,7 @@ export async function action({ request }: Route.ActionArgs) {
       ingredients: ingredients || null,
       certifications: parsedCertifications,
       is_active: true,
-      sort_order: sortOrderRaw ? Number(sortOrderRaw) : 0,
+      sort_order: sortOrderRaw ? Number(sortOrderRaw) : nextOrder,
     });
 
     return { success: true };
@@ -246,6 +301,49 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "reorder") {
+    const translationGroupId = (formData.get("translation_group_id") as string)?.trim();
+    const direction = formData.get("direction") as "up" | "down";
+    if (!translationGroupId || (direction !== "up" && direction !== "down")) {
+      return { success: false };
+    }
+
+    const allRows = await db
+      .select()
+      .from(products)
+      .orderBy(asc(products.sort_order), asc(products.product_id));
+
+    const seen = new Set<string>();
+    const orderedGroupIds: string[] = [];
+    for (const row of allRows) {
+      if (seen.has(row.translation_group_id)) continue;
+      seen.add(row.translation_group_id);
+      orderedGroupIds.push(row.translation_group_id);
+    }
+
+    const idx = orderedGroupIds.indexOf(translationGroupId);
+    if (idx < 0) return { success: false };
+
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= orderedGroupIds.length) {
+      return { success: true };
+    }
+
+    const newOrder = [...orderedGroupIds];
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+
+    await Promise.all(
+      newOrder.map((groupId, order) =>
+        db
+          .update(products)
+          .set({ sort_order: order })
+          .where(eq(products.translation_group_id, groupId)),
+      ),
+    );
+
+    return { success: true };
+  }
+
   return { success: false };
 }
 
@@ -298,21 +396,24 @@ function getBadgeLabel(badge?: AdminProduct["badge"]) {
 export default function AdminProducts({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbProducts, dbCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
   const [editingData, setEditingData] = useState<ProductFormData | undefined>(undefined);
   const fetcher = useFetcher<typeof action>();
+  const revalidator = useRevalidator();
 
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
     if ("error" in fetcher.data && fetcher.data.error === "translation_exists") {
       window.alert("이미 같은 그룹에 EN 행이 있습니다.");
     }
-  }, [fetcher.state, fetcher.data]);
+    if ("success" in fetcher.data && fetcher.data.success) {
+      revalidator.revalidate();
+    }
+  }, [fetcher.state, fetcher.data, revalidator]);
 
   // DB 데이터가 있으면 사용, 없으면 더미
-  const sourceProducts = dbProducts.length > 0
+  const sourceProducts: AdminListProduct[] = dbProducts.length > 0
     ? dbProducts.map((p) => ({
         id: String(p.product_id),
         product_id: p.product_id,
@@ -327,19 +428,19 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
         tags: p.tags ?? [],
         badge: p.badge as AdminProduct["badge"],
         status: (p.is_active ? "active" : "inactive") as AdminProduct["status"],
+        sort_order: p.sort_order ?? 0,
         created_at: p.created_at.toISOString(),
         updated_at: p.updated_at.toISOString(),
       }))
     : [];
 
-  const filteredProducts = sortByCreatedDesc(
+  const orderedGroupIds = buildOrderedTranslationGroups(sourceProducts);
+  const groupIndexMap = new Map(orderedGroupIds.map((id, index) => [id, index]));
+
+  const filteredProducts = sortAdminProductsByDisplayOrder(
     sourceProducts.filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     ),
-    sortOrder,
-    (product) => product.translation_group_id ?? product.id,
-    (product) => toTimestamp(product.created_at),
-    (product) => product.product_id,
   );
 
   const submitEnTranslation = (productId: number) => {
@@ -443,6 +544,14 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
     fetcher.submit(fd, { method: "POST" });
   };
 
+  const handleReorder = (translationGroupId: string, direction: "up" | "down") => {
+    const fd = new FormData();
+    fd.append("intent", "reorder");
+    fd.append("translation_group_id", translationGroupId);
+    fd.append("direction", direction);
+    fetcher.submit(fd, { method: "POST" });
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -486,7 +595,7 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                 className="pl-10"
               />
             </div>
-            <ListSortSelect value={sortOrder} onChange={setSortOrder} />
+            <p className="text-sm text-gray-500">표시 순서대로 정렬 · KO 행에서 ↑↓ 로 순서 변경</p>
           </div>
 
           {/* Products List */}
@@ -496,9 +605,56 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                 <p className="text-gray-500">검색 결과가 없습니다.</p>
               </Card>
             ) : (
-              filteredProducts.map((product) => (
+              filteredProducts.map((product) => {
+                const groupIdx = groupIndexMap.get(product.translation_group_id);
+                const displayOrder = groupIdx !== undefined ? groupIdx + 1 : null;
+                const canMoveUp = product.locale === "ko" && groupIdx !== undefined && groupIdx > 0;
+                const canMoveDown =
+                  product.locale === "ko" &&
+                  groupIdx !== undefined &&
+                  groupIdx < orderedGroupIds.length - 1;
+
+                return (
                 <Card key={product.id} className="p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-6">
+                    {product.locale === "ko" ? (
+                      <div className="flex flex-col items-center gap-0.5 flex-shrink-0 w-10">
+                        <button
+                          type="button"
+                          disabled={!canMoveUp || fetcher.state !== "idle"}
+                          onClick={() =>
+                            handleReorder(product.translation_group_id, "up")
+                          }
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="위로 이동"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <span
+                          className="text-sm font-semibold text-[#204E3A] tabular-nums"
+                          aria-label={`표시 순서 ${displayOrder}`}
+                        >
+                          {displayOrder}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={!canMoveDown || fetcher.state !== "idle"}
+                          onClick={() =>
+                            handleReorder(product.translation_group_id, "down")
+                          }
+                          className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="아래로 이동"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center flex-shrink-0 w-10">
+                        <span className="text-sm font-medium text-gray-400 tabular-nums">
+                          {displayOrder}
+                        </span>
+                      </div>
+                    )}
                     {/* Product Image */}
                     <div className="flex-shrink-0">
                       <img
@@ -609,7 +765,8 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
                     </div>
                   </div>
                 </Card>
-              ))
+                );
+              })
             )}
           </div>
 

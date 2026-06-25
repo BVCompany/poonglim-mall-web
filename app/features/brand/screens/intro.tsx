@@ -376,7 +376,7 @@ export default function BrandIntroScreen(_props: Route.ComponentProps) {
         sparkles: HERO_SPARKLES_30,
       },
       {
-        num: "500",
+        num: "250",
         unit: t("pages.brand.intro.slide500"),
         sparkles: HERO_SPARKLES_500,
       },

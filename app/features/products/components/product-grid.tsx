@@ -27,6 +27,7 @@ interface Product {
   description: string;
   tags: string[];
   shopUrl?: string;
+  sortOrder: number;
 }
 
 interface DbProduct {
@@ -41,6 +42,7 @@ interface DbProduct {
   is_b2b: boolean;
   tags?: string[] | null;
   shop_url?: string | null;
+  sort_order?: number | null;
 }
 
 
@@ -81,6 +83,7 @@ export function ProductGrid({
     description: p.description,
     tags: p.tags ?? [],
     shopUrl: p.shop_url ?? undefined,
+    sortOrder: p.sort_order ?? 0,
   }));
 
   const categorySlug = resolveCategoryFilter(selectedCategory);
@@ -99,7 +102,8 @@ export function ProductGrid({
   const sorted = [...filtered].sort((a, b) => {
     if (sortOption === "latest") return b.id - a.id;
     if (sortOption === "name") return a.name.localeCompare(b.name, sortLocale);
-    return 0;
+    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+    return a.id - b.id;
   });
 
   // 카테고리/검색/정렬 변경 시 1페이지로 리셋

@@ -2,7 +2,7 @@
  * Admin Product Categories Management
  * 제품 카테고리를 추가/수정/삭제/순서변경하는 관리자 화면
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/product-categories";
 import { requireAdminAuth } from "../utils/auth.server";
@@ -125,6 +125,13 @@ function CategoryFormModal({
   const [name, setName] = useState(initialData?.name ?? "");
   const [nameEn, setNameEn] = useState(initialData?.name_en ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
+
+  useEffect(() => {
+    if (!open) return;
+    setName(initialData?.name ?? "");
+    setNameEn(initialData?.name_en ?? "");
+    setSlug(initialData?.slug ?? "");
+  }, [open, initialData]);
 
   const handleNameChange = (v: string) => {
     setName(v);

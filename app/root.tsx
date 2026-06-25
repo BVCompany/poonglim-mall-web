@@ -45,6 +45,7 @@ import { Sheet } from "./core/components/ui/sheet";
 import i18next from "./core/lib/i18next.server";
 import { themeSessionResolver } from "./core/lib/theme-session.server";
 import { cn } from "./core/lib/utils";
+import { resolveOgImageUrl } from "./core/lib/seo.server";
 import NotFound from "./core/screens/404";
 import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
@@ -117,7 +118,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     seo: {
       siteName:           seoSettings[SETTING_KEYS.SEO_SITE_NAME]           ?? "풍림푸드",
       description:        seoSettings[SETTING_KEYS.SEO_DESCRIPTION]         ?? "",
-      ogImage:            seoSettings[SETTING_KEYS.SEO_OG_IMAGE]            ?? "",
+      ogImage:            resolveOgImageUrl(
+        seoSettings[SETTING_KEYS.SEO_OG_IMAGE],
+        seoSettings[SETTING_KEYS.SEO_SITE_URL],
+        request,
+      ),
       siteUrl:            seoSettings[SETTING_KEYS.SEO_SITE_URL]            ?? "",
       robots:             seoSettings[SETTING_KEYS.SEO_ROBOTS]              ?? "index,follow",
       googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
@@ -243,7 +248,13 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         {/* SEO — OG 기본값 */}
         {seo?.siteName   && <meta property="og:site_name" content={seo.siteName} />}
         {seo?.siteUrl    && <meta property="og:url"       content={seo.siteUrl} />}
+        {seo?.ogImage    && <meta property="og:type"      content="website" />}
         {seo?.ogImage    && <meta property="og:image"     content={seo.ogImage} />}
+        {seo?.ogImage    && <meta property="og:image:width"  content="1200" />}
+        {seo?.ogImage    && <meta property="og:image:height" content="630" />}
+        {seo?.siteName   && seo?.ogImage && (
+          <meta property="og:image:alt" content={seo.siteName} />
+        )}
         {seo?.ogImage    && <meta name="twitter:card"     content="summary_large_image" />}
         {seo?.ogImage    && <meta name="twitter:image"    content={seo.ogImage} />}
 
