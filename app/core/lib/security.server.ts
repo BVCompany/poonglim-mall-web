@@ -57,9 +57,12 @@ const BLOCKED_BOT_REGEX = new RegExp(
   "i",
 );
 
-/** 차단 대상 악성/스크래퍼 봇인지 판별 */
+/**
+ * 차단 대상 악성/스크래퍼 봇인지 판별.
+ * UA가 없는 요청(빌드 시 정적 프리렌더 등 내부 요청)은 차단하지 않는다.
+ */
 export function isBlockedBot(userAgent: string | null): boolean {
-  if (!userAgent) return true; // UA 누락은 대부분 비정상 클라이언트
+  if (!userAgent) return false;
   return BLOCKED_BOT_REGEX.test(userAgent);
 }
 
@@ -90,6 +93,9 @@ export function checkRateLimit(ip: string): {
   limited: boolean;
   retryAfterSec: number;
 } {
+  // IP를 식별할 수 없는 요청(빌드 시 프리렌더 등)은 제한하지 않는다.
+  if (!ip || ip === "unknown") return { limited: false, retryAfterSec: 0 };
+
   const now = Date.now();
   const entry = rateBuckets.get(ip);
 
