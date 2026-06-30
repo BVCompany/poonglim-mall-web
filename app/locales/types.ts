@@ -1233,28 +1233,19 @@ export type Translation = {
             mobile2: string;
           };
           step2: { title: string; desc: string };
-          step3: {
-            title: string;
-            desc: string;
-            mobile1: string;
-            mobile2: string;
-          };
-          step4: {
-            title: string;
-            desc: string;
-            mobile1: string;
-            mobile2: string;
-          };
+          step3: { title: string; desc: string };
+          step4: { title: string; desc: string };
+          step5: { title: string; desc: string };
         };
         benefitsStrip: {
-          meal: string;
-          car: string;
-          insurance: string;
-          week5: string;
-          annual: string;
-          holiday: string;
-          family: string;
+          commuteBus: string;
+          vacation: string;
+          childbirth: string;
           growth: string;
+          cafeteria: string;
+          gift: string;
+          condo: string;
+          family: string;
         };
         form: {
           title: string;
