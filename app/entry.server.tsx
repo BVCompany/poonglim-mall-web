@@ -154,6 +154,28 @@ export default async function handleRequest(
           responseHeaders.set("X-Frame-Options", "DENY");
           responseHeaders.set("X-XSS-Protection", "1; mode=block");
 
+          // ── CDN 캐시 정책 ──
+          // 공개 페이지(GET·200)는 Vercel CDN에서 캐시해 함수 호출·전송량을 절감한다.
+          // 브라우저는 max-age=0으로 항상 재검증하되, CDN은 s-maxage 동안 캐시하고
+          // stale-while-revalidate로 갱신 중에도 캐시본을 제공한다.
+          // 관리자/API 및 비-GET·비-200 응답은 캐시하지 않는다(no-store).
+          // 로케일 쿠키에 따라 응답이 달라지므로 Vary: Cookie를 함께 둔다.
+          const pathname = new URL(request.url).pathname;
+          const cacheablePublic =
+            request.method === "GET" &&
+            responseStatusCode === 200 &&
+            !pathname.startsWith("/admin") &&
+            !pathname.startsWith("/api");
+          if (cacheablePublic) {
+            responseHeaders.set(
+              "Cache-Control",
+              "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
+            );
+            responseHeaders.append("Vary", "Cookie");
+          } else {
+            responseHeaders.set("Cache-Control", "no-store");
+          }
+
           resolve(
             new Response(stream, {
               headers: responseHeaders,

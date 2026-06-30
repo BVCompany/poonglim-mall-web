@@ -7,7 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { useEffect, useState } from "react";
-import { useFetcher, useRevalidator } from "react-router";
+import { useFetcher } from "react-router";
 import type { Route } from "./+types/products";
 import { requireAdminAuth } from "../utils/auth.server";
 import { AdminNavbar } from "../components/admin-navbar";
@@ -400,17 +400,15 @@ export default function AdminProducts({ loaderData }: Route.ComponentProps) {
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
   const [editingData, setEditingData] = useState<ProductFormData | undefined>(undefined);
   const fetcher = useFetcher<typeof action>();
-  const revalidator = useRevalidator();
 
+  // useFetcher 제출 완료 시 로더는 자동 재검증되므로 별도 revalidate 불필요.
+  // (수동 revalidate + revalidator 의존성은 무한 재검증 루프를 유발함)
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
     if ("error" in fetcher.data && fetcher.data.error === "translation_exists") {
       window.alert("이미 같은 그룹에 EN 행이 있습니다.");
     }
-    if ("success" in fetcher.data && fetcher.data.success) {
-      revalidator.revalidate();
-    }
-  }, [fetcher.state, fetcher.data, revalidator]);
+  }, [fetcher.state, fetcher.data]);
 
   // DB 데이터가 있으면 사용, 없으면 더미
   const sourceProducts: AdminListProduct[] = dbProducts.length > 0
