@@ -1550,7 +1550,7 @@ const ko: Translation = {
       tagHealthy: "건강한",
       tagConvenient: "간편한",
       tagTrustworthy: "믿을 수 있는",
-      subtitle: "건강하고 풍요한 일상을 만들다.",
+      subtitle: "건강하고 풍요한 일상을 만듭니다.",
     },
     values: {
       title: "풍림푸드의 가치",
