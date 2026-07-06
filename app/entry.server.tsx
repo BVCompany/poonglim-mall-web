@@ -31,11 +31,7 @@ import { ServerRouter } from "react-router";
 
 // Import i18n configuration and translation resources
 import i18next from "./core/lib/i18next.server"; // Server-side i18n instance
-import {
-  checkRateLimit,
-  getClientIp,
-  isBlockedBot,
-} from "./core/lib/security.server";
+import { isBlockedBot } from "./core/lib/security.server";
 import i18n from "./i18n"; // Shared i18n configuration
 import en from "./locales/en";
 import ko from "./locales/ko";
@@ -73,25 +69,16 @@ export default async function handleRequest(
   // If you have middleware enabled:
   // loadContext: unstable_RouterContextProvider
 ) {
-  // ── 1차 방어선: 악성 봇 차단 + 과도 요청 제한 ──
-  // robots.txt를 무시하는 스크래퍼/AI 크롤러는 즉시 차단하고,
-  // 단일 클라이언트의 비정상 폭주는 429로 완화한다.
-  // (정밀 차단은 Vercel WAF 규칙에서 처리)
+  // ── 1차 방어선: 악성 봇 차단 ──
+  // robots.txt를 무시하는 스크래퍼/AI 크롤러는 즉시 차단한다.
+  // 요청 빈도 제한(rate limit)은 Vercel WAF에서 처리한다.
+  // (인메모리 rate limit은 서버리스에서 부정확하고, NAT 공유 IP 환경의
+  //  정상 사용자를 오차단하므로 코드에서 제거함)
   const incomingUa = request.headers.get("user-agent");
   if (isBlockedBot(incomingUa)) {
     return new Response("Forbidden", {
       status: 403,
       headers: { "Cache-Control": "no-store" },
-    });
-  }
-  const rate = checkRateLimit(getClientIp(request));
-  if (rate.limited) {
-    return new Response("Too Many Requests", {
-      status: 429,
-      headers: {
-        "Cache-Control": "no-store",
-        "Retry-After": String(rate.retryAfterSec),
-      },
     });
   }
 
