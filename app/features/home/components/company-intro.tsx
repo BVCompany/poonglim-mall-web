@@ -12,7 +12,7 @@ interface CompanyIntroProps {
   link?: string | null;
 }
 
-const DEFAULT_IMAGE = "/home/company_intro.jpg";
+const DEFAULT_IMAGE = "/home/intro-img.png";
 /** 관리자 이미지 미설정 시 메인 회사소개 배경 영상 */
 const DEFAULT_VIDEO = "/home/poonglim_main.mp4";
 const DEFAULT_LINK = "/brand/intro";
