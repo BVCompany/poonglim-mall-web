@@ -45,7 +45,7 @@ import { Sheet } from "./core/components/ui/sheet";
 import i18next from "./core/lib/i18next.server";
 import { themeSessionResolver } from "./core/lib/theme-session.server";
 import { cn } from "./core/lib/utils";
-import { resolveOgImageUrl } from "./core/lib/seo.server";
+import { resolveOgImageUrl, resolveSiteOrigin } from "./core/lib/seo.server";
 import NotFound from "./core/screens/404";
 import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
@@ -124,6 +124,11 @@ export async function loader({ request }: Route.LoaderArgs) {
         request,
       ),
       siteUrl:            seoSettings[SETTING_KEYS.SEO_SITE_URL]            ?? "",
+      // og:url·canonical용: 설정이 비어 있으면 요청 origin으로 폴백(항상 값 존재)
+      ogUrl:              resolveSiteOrigin(
+        seoSettings[SETTING_KEYS.SEO_SITE_URL],
+        request,
+      ),
       robots:             seoSettings[SETTING_KEYS.SEO_ROBOTS]              ?? "index,follow",
       googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
       naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
@@ -245,10 +250,14 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         {/* SEO — 기본 description (각 페이지의 meta가 없을 때 폴백) */}
         {seo?.description && <meta name="description" content={seo.description} />}
 
-        {/* SEO — OG 기본값 */}
+        {/* SEO — OG 기본값 (카카오톡 등은 og:title이 없으면 미리보기를 안 띄움) */}
+        {seo?.siteName   && <meta property="og:type"      content="website" />}
         {seo?.siteName   && <meta property="og:site_name" content={seo.siteName} />}
-        {seo?.siteUrl    && <meta property="og:url"       content={seo.siteUrl} />}
-        {seo?.ogImage    && <meta property="og:type"      content="website" />}
+        {seo?.siteName   && <meta property="og:title"     content={seo.siteName} />}
+        {seo?.ogUrl      && <meta property="og:url"       content={seo.ogUrl} />}
+        {seo?.description && (
+          <meta property="og:description" content={seo.description} />
+        )}
         {seo?.ogImage    && <meta property="og:image"     content={seo.ogImage} />}
         {seo?.ogImage    && <meta property="og:image:width"  content="1200" />}
         {seo?.ogImage    && <meta property="og:image:height" content="630" />}
@@ -256,6 +265,10 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           <meta property="og:image:alt" content={seo.siteName} />
         )}
         {seo?.ogImage    && <meta name="twitter:card"     content="summary_large_image" />}
+        {seo?.siteName   && <meta name="twitter:title"    content={seo.siteName} />}
+        {seo?.description && (
+          <meta name="twitter:description" content={seo.description} />
+        )}
         {seo?.ogImage    && <meta name="twitter:image"    content={seo.ogImage} />}
 
         {/* 검색엔진 인증 */}
