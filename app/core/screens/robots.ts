@@ -1,4 +1,10 @@
-export async function loader() {
+import type { LoaderFunctionArgs } from "react-router";
+
+import { resolveSiteOrigin } from "~/core/lib/seo.server";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  // SITE_URL 미설정 시 요청 origin으로 폴백(운영에서 항상 유효한 Sitemap URL 보장)
+  const origin = resolveSiteOrigin(process.env.SITE_URL, request);
   return new Response(
     `# AI 학습/수집 크롤러 차단
 User-agent: GPTBot
@@ -34,7 +40,7 @@ Disallow: /api
 Allow: /
 Crawl-delay: 10
 
-Sitemap: ${process.env.SITE_URL}/sitemap.xml`,
+Sitemap: ${origin}/sitemap.xml`,
     {
       headers: {
         "Content-Type": "text/plain",
