@@ -133,9 +133,12 @@ export default async function handleRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set("Content-Type", "text/html");
+          // NOTE: includeSubDomains/preload 는 사용하지 않습니다.
+          // 서브도메인 wos.freshegg.co.kr(오뚜기 수발주)이 HTTP만 제공하므로,
+          // includeSubDomains 를 켜면 해당 서브도메인이 HTTPS 강제로 접속 불가가 됩니다.
           responseHeaders.set(
             "Strict-Transport-Security",
-            "max-age=31536000; includeSubDomains; preload",
+            "max-age=31536000",
           );
           if (process.env.NODE_ENV === "production") {
             // Extend and or override CSP for production depending on your needs
