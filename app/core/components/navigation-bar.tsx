@@ -287,7 +287,20 @@ function MobileNavigation({
           </SheetClose>
         ),
       )}
-        <LangSwitcherMobile />
+        <div className="mt-auto flex flex-col">
+          <SheetClose asChild>
+            <a
+              href="http://wos.freshegg.co.kr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 flex items-center justify-center gap-2 rounded-[8px] bg-[#003F2B] px-4 py-3 text-sm font-semibold text-white"
+            >
+              {t("navChrome.orderSystem")}
+              <ArrowUpRightIcon className="size-4" />
+            </a>
+          </SheetClose>
+          <LangSwitcherMobile />
+        </div>
       </div>
     </div>
   );
