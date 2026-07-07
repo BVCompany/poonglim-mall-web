@@ -131,7 +131,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       ),
       robots:             seoSettings[SETTING_KEYS.SEO_ROBOTS]              ?? "index,follow",
       googleVerification: seoSettings[SETTING_KEYS.SEO_GOOGLE_VERIFICATION] ?? "",
-      naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]  ?? "",
+      naverVerification:  seoSettings[SETTING_KEYS.SEO_NAVER_VERIFICATION]
+        || "986e2cf55c6fe82308e5996abc87428f68e6ef29",
       gaId:               seoSettings[SETTING_KEYS.SEO_GA_ID]               ?? "",
       favicon:            seoSettings[SETTING_KEYS.FAVICON]                 ?? "",
       viewportContent:
