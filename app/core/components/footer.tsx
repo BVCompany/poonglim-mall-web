@@ -4,7 +4,7 @@
  * 풍림푸드 푸터 — 피그마 시안(#003F2B, py60·px240, 연락처/네비/로고)
  */
 import type { TFunction } from "i18next";
-import { ChevronDown, Facebook, Instagram } from "lucide-react";
+import { ChevronDown, Instagram } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
@@ -48,41 +48,15 @@ const navLinkClass =
 function FooterSns({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-[clamp(8px,calc(12*100vw/1920),12px)]", className)}>
-      {/* Facebook */}
-      <a
-        href="https://www.facebook.com/poonglimfoods"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Facebook"
-        className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
-      >
-        <Facebook className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] fill-[#FDFDF5] text-[#FDFDF5]" />
-      </a>
       {/* Instagram */}
       <a
-        href="https://www.instagram.com/poonglim_official"
+        href="https://www.instagram.com/poonglim.official"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Instagram"
         className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
       >
         <Instagram className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] text-[#FDFDF5]" />
-      </a>
-      {/* YouTube */}
-      <a
-        href="https://www.youtube.com/@poonglimfoods"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="YouTube"
-        className="flex h-[clamp(32px,calc(40*100vw/1920),40px)] w-[clamp(32px,calc(40*100vw/1920),40px)] items-center justify-center rounded-full bg-[#003F2B] ring-1 ring-white/20 transition-opacity hover:opacity-70"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-[clamp(14px,calc(20*100vw/1920),20px)] w-[clamp(14px,calc(20*100vw/1920),20px)] fill-[#FDFDF5]"
-          aria-hidden
-        >
-          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-        </svg>
       </a>
     </div>
   );
