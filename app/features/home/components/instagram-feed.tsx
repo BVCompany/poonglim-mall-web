@@ -173,7 +173,7 @@ export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
                 href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-gray-100"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-transparent"
                 style={{
                   width: MOBILE_ITEM_WIDTH,
                   aspectRatio: ASPECT_RATIO,
@@ -266,7 +266,7 @@ export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
                 href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-transparent"
                 style={{
                   width: imageWidth,
                   aspectRatio: ASPECT_RATIO,
