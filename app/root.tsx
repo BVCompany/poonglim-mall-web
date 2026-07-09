@@ -209,7 +209,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   const ga4DirectActive = isGa4MeasurementId(googleTagId);
 
   // Set the i18next language based on the locale from the loader
-  useChangeLanguage(data?.locale ?? "en");
+  useChangeLanguage(data?.locale ?? "ko");
 
   // Detect if the current route is a pre-rendered page (blog or legal)
   // These pages require special theme handling
@@ -218,7 +218,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <html
-      lang={data?.locale ?? "en"}
+      lang={data?.locale ?? "ko"}
       className={cn(theme ?? "", "h-full")}
       dir={i18n.dir()}
     >
