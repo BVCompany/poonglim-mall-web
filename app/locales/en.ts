@@ -423,7 +423,7 @@ const en: Translation = {
           carHighlight: "5, Bongeunsa-ro 64-gil, Gangnam-gu",
           carLine2: ".",
           publicAfterBadge:
-            " Bongeunsa Station (Line 9), Exit 1 → 5 min walk",
+            " Seonjeongneung Station (Line 9), Exit 3 → 5 min walk",
         },
         hq: {
           transportTitle: "Directions to HQ & factory",

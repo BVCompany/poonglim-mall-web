@@ -420,7 +420,7 @@ const ko: Translation = {
           carLine1: "강남역에서 약 10분 소요. 네비게이션에 ",
           carHighlight: "봉은사로 64길 5",
           carLine2: " 검색",
-          publicAfterBadge: " 호선 봉은사역 1번 출구 → 도보 5분",
+          publicAfterBadge: " 호선 선정릉 역 3번 출구 → 도보 5분",
         },
         hq: {
           transportTitle: "본사/공장 교통 안내",
