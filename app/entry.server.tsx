@@ -31,6 +31,7 @@ import { ServerRouter } from "react-router";
 
 // Import i18n configuration and translation resources
 import i18next from "./core/lib/i18next.server"; // Server-side i18n instance
+import { isBlockedBot } from "./core/lib/security.server";
 import i18n from "./i18n"; // Shared i18n configuration
 import en from "./locales/en";
 import ko from "./locales/ko";
@@ -68,6 +69,19 @@ export default async function handleRequest(
   // If you have middleware enabled:
   // loadContext: unstable_RouterContextProvider
 ) {
+  // ── 1차 방어선: 악성 봇 차단 ──
+  // robots.txt를 무시하는 스크래퍼/AI 크롤러는 즉시 차단한다.
+  // 요청 빈도 제한(rate limit)은 Vercel WAF에서 처리한다.
+  // (인메모리 rate limit은 서버리스에서 부정확하고, NAT 공유 IP 환경의
+  //  정상 사용자를 오차단하므로 코드에서 제거함)
+  const incomingUa = request.headers.get("user-agent");
+  if (isBlockedBot(incomingUa)) {
+    return new Response("Forbidden", {
+      status: 403,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   return new Promise(async (resolve, reject) => {
     const i18nextInstance = createInstance();
 
@@ -119,9 +133,12 @@ export default async function handleRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set("Content-Type", "text/html");
+          // NOTE: includeSubDomains/preload 는 사용하지 않습니다.
+          // 서브도메인 wos.freshegg.co.kr(오뚜기 수발주)이 HTTP만 제공하므로,
+          // includeSubDomains 를 켜면 해당 서브도메인이 HTTPS 강제로 접속 불가가 됩니다.
           responseHeaders.set(
             "Strict-Transport-Security",
-            "max-age=31536000; includeSubDomains; preload",
+            "max-age=31536000",
           );
           if (process.env.NODE_ENV === "production") {
             // Extend and or override CSP for production depending on your needs
@@ -153,6 +170,28 @@ export default async function handleRequest(
           responseHeaders.set("Cross-Origin-Embedder-Policy", "unsafe-none");
           responseHeaders.set("X-Frame-Options", "DENY");
           responseHeaders.set("X-XSS-Protection", "1; mode=block");
+
+          // ── CDN 캐시 정책 ──
+          // 공개 페이지(GET·200)는 Vercel CDN에서 캐시해 함수 호출·전송량을 절감한다.
+          // 브라우저는 max-age=0으로 항상 재검증하되, CDN은 s-maxage 동안 캐시하고
+          // stale-while-revalidate로 갱신 중에도 캐시본을 제공한다.
+          // 관리자/API 및 비-GET·비-200 응답은 캐시하지 않는다(no-store).
+          // 로케일 쿠키에 따라 응답이 달라지므로 Vary: Cookie를 함께 둔다.
+          const pathname = new URL(request.url).pathname;
+          const cacheablePublic =
+            request.method === "GET" &&
+            responseStatusCode === 200 &&
+            !pathname.startsWith("/admin") &&
+            !pathname.startsWith("/api");
+          if (cacheablePublic) {
+            responseHeaders.set(
+              "Cache-Control",
+              "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
+            );
+            responseHeaders.append("Vary", "Cookie");
+          } else {
+            responseHeaders.set("Cache-Control", "no-store");
+          }
 
           resolve(
             new Response(stream, {

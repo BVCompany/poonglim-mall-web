@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { pickLocalizedText } from "~/core/lib/localized-text";
 import { cn } from "~/core/lib/utils";
 
 export interface BreadcrumbItem {
@@ -33,9 +34,12 @@ export interface PageBannerProps {
   dbBanner?: {
     title: string;
     subtitle?: string | null;
+    title_en?: string | null;
+    subtitle_en?: string | null;
     image_url?: string | null;
     link_url?: string | null;
     link_text?: string | null;
+    link_text_en?: string | null;
   } | null;
   mobileHeightClassName?: string;
   /**
@@ -67,15 +71,23 @@ export function PageBanner({
   frostedLinkOnMobile = false,
   mobileSubtitle,
 }: PageBannerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
   const resolvedImage = dbBanner?.image_url ?? imageUrl;
   const splitMobileBg = Boolean(mobileImageUrl);
   const mobileBoxByAspect = Boolean(mobileAspectRatio?.trim());
-  const resolvedTitle = dbBanner?.title ?? title;
-  const resolvedSubtitle = dbBanner?.subtitle ?? subtitle;
+  const resolvedTitle = dbBanner
+    ? pickLocalizedText(dbBanner.title, dbBanner.title_en, isEn)
+    : title;
+  const resolvedSubtitle = dbBanner
+    ? pickLocalizedText(dbBanner.subtitle, dbBanner.subtitle_en, isEn) || subtitle
+    : subtitle;
   const resolvedLinkUrl = dbBanner?.link_url ?? linkUrl;
-  const resolvedLinkText =
-    dbBanner?.link_text ?? linkTextProp ?? t("home.featuredProducts.learnMore");
+  const resolvedLinkText = dbBanner
+    ? pickLocalizedText(dbBanner.link_text, dbBanner.link_text_en, isEn) ||
+      linkTextProp ||
+      t("home.featuredProducts.learnMore")
+    : linkTextProp ?? t("home.featuredProducts.learnMore");
 
   return (
     <div className={`px-4 pt-2 md:px-10 md:pt-4 ${hideOnMobile ? "hidden md:block" : ""}`}>

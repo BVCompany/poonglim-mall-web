@@ -37,9 +37,12 @@ export async function action({ request }: Route.ActionArgs) {
     await db.insert(bannersTable).values({
       title: fd.get("title") as string,
       subtitle: (fd.get("subtitle") as string) || null,
+      title_en: ((fd.get("titleEn") as string) || "").trim() || null,
+      subtitle_en: ((fd.get("subtitleEn") as string) || "").trim() || null,
       image_url: fd.get("imageUrl") as string,
       link_url: (fd.get("linkUrl") as string) || null,
       button_text: (fd.get("buttonText") as string) || null,
+      button_text_en: ((fd.get("buttonTextEn") as string) || "").trim() || null,
       is_active: fd.get("isActive") !== "false",
       sort_order: 0,
     });
@@ -65,9 +68,12 @@ export async function action({ request }: Route.ActionArgs) {
       await db.update(bannersTable).set({
         title: fd.get("title") as string,
         subtitle: (fd.get("subtitle") as string) || null,
+        title_en: ((fd.get("titleEn") as string) || "").trim() || null,
+        subtitle_en: ((fd.get("subtitleEn") as string) || "").trim() || null,
         image_url: fd.get("imageUrl") as string,
         link_url: (fd.get("linkUrl") as string) || null,
         button_text: (fd.get("buttonText") as string) || null,
+        button_text_en: ((fd.get("buttonTextEn") as string) || "").trim() || null,
         is_active: fd.get("isActive") !== "false",
       }).where(eq(bannersTable.banner_id, id));
     }
@@ -100,8 +106,11 @@ interface Banner {
   imageUrl: string;
   title: string;
   subtitle: string;
+  titleEn: string;
+  subtitleEn: string;
   linkUrl: string;
   buttonText: string;
+  buttonTextEn: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -230,8 +239,11 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
         imageUrl: b.image_url,
         title: b.title,
         subtitle: b.subtitle ?? "",
+        titleEn: b.title_en ?? "",
+        subtitleEn: b.subtitle_en ?? "",
         linkUrl: b.link_url ?? "",
         buttonText: b.button_text ?? "",
+        buttonTextEn: b.button_text_en ?? "",
         isActive: b.is_active,
         createdAt: b.created_at.toISOString().slice(0, 10),
       }))
@@ -456,9 +468,12 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
         initialData={editTarget ? {
           title: editTarget.title,
           subtitle: editTarget.subtitle,
+          titleEn: editTarget.titleEn,
+          subtitleEn: editTarget.subtitleEn,
           imageUrl: editTarget.imageUrl,
           linkUrl: editTarget.linkUrl,
           buttonText: editTarget.buttonText,
+          buttonTextEn: editTarget.buttonTextEn,
           isActive: editTarget.isActive,
         } : undefined}
       />

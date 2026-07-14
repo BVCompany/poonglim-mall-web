@@ -318,6 +318,17 @@ export async function getSiteVisibleArchiveCategoryNames() {
   return [...ordered, ...orphans];
 }
 
+/** 자료실 카테고리 국문명 → 영문명 매핑 (영문 사이트 탭 라벨용) */
+export async function getArchiveCategoryNameEnMap() {
+  const rows = await db
+    .select({ name: archiveCategories.name, name_en: archiveCategories.name_en })
+    .from(archiveCategories)
+    .catch(() => [] as { name: string; name_en: string | null }[]);
+  const map: Record<string, string> = {};
+  for (const r of rows) if (r.name_en) map[r.name] = r.name_en;
+  return map;
+}
+
 export type LibraryResource = typeof libraryResources.$inferSelect;
 
 export async function getActiveLibraryResources() {

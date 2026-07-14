@@ -20,9 +20,12 @@ export const pageBanners = pgTable(
     page_key:   text().notNull(),       // "products", "brand", etc.
     title:      text().notNull(),
     subtitle:   text(),
+    title_en:   text(),
+    subtitle_en: text(),
     image_url:  text(),
     link_url:   text(),
     link_text:  text(),                 // CTA 버튼 텍스트
+    link_text_en: text(),
     is_active:  boolean().notNull().default(true),
     ...timestamps,
   },
@@ -48,7 +51,7 @@ export const PAGE_KEY_LABELS: Record<string, string> = {
   location:            "오시는 길",
   history:             "연혁",
   certifications:      "품질 & 인증",
-  careers:             "채용",
+  careers:             "인재채용",
   // 홍보센터
   news:                "보도자료",
   event:               "이벤트",

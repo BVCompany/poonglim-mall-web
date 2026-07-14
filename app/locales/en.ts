@@ -423,7 +423,7 @@ const en: Translation = {
           carHighlight: "5, Bongeunsa-ro 64-gil, Gangnam-gu",
           carLine2: ".",
           publicAfterBadge:
-            " Bongeunsa Station (Line 9), Exit 1 → 5 min walk",
+            " Seonjeongneung Station (Line 9), Exit 3 → 5 min walk",
         },
         hq: {
           transportTitle: "Directions to HQ & factory",
@@ -987,25 +987,25 @@ const en: Translation = {
         },
         keyJobs: {
           production: {
-            label: "Production & field",
-            desc: "Production, forklift, SCM field",
+            label: "Production",
+            desc: "Production management, EHS",
           },
           management: {
             label: "Corporate support",
-            desc: "HR, general affairs, planning, accounting",
+            desc: "HR & general affairs, planning, finance, purchasing",
           },
-          scm: { label: "SCM & logistics", desc: "Logistics, materials, purchasing" },
+          scm: { label: "SCM", desc: "Logistics, materials" },
           quality: {
-            label: "Quality & R&D",
-            desc: "QA, process, lab",
+            label: "Quality",
+            desc: "Quality management, QA, analysis",
           },
           marketing: {
-            label: "Marketing",
-            desc: "Brand, online, content",
+            label: "Sales & marketing",
+            desc: "Sales, marketing",
           },
           tech: {
-            label: "Engineering & facilities",
-            desc: "Mechanical, electrical, EHS",
+            label: "R&D",
+            desc: "Food research",
           },
         },
         keyJobTags: {
@@ -1017,33 +1017,24 @@ const en: Translation = {
         process: {
           step1: {
             title: "Application",
-            desc: "Submit resume and cover letter on the website",
-            mobile1: "Resume",
-            mobile2: "+ cover letter upload",
+            desc: "Resume, cover letter, career certificate, portfolio",
+            mobile1: "Resume, cover letter,",
+            mobile2: "career certificate, portfolio",
           },
-          step2: { title: "1st interview", desc: "Role interview with the team lead" },
-          step3: {
-            title: "2nd interview",
-            desc: "Executive interview (may vary by role)",
-            mobile1: "Executive interview",
-            mobile2: "(may be skipped by level)",
-          },
-          step4: {
-            title: "Offer & onboarding",
-            desc: "Align compensation and start date",
-            mobile1: "Align terms",
-            mobile2: "Confirm start date",
-          },
+          step2: { title: "1st interview", desc: "Working-level interview" },
+          step3: { title: "2nd interview", desc: "Executive interview" },
+          step4: { title: "Health check", desc: "" },
+          step5: { title: "Onboarding", desc: "" },
         },
         benefitsStrip: {
-          meal: "Meals",
-          car: "Commute support",
-          insurance: "Insurance",
-          week5: "5-day week",
-          annual: "Annual leave",
-          holiday: "Holiday bonus",
-          family: "Family events",
-          growth: "Learning support",
+          commuteBus: "Commuter bus",
+          vacation: "Vacation program",
+          childbirth: "Childbirth support",
+          growth: "Self-development support",
+          cafeteria: "On-site cafeteria",
+          gift: "Commemorative gifts",
+          condo: "Resort & condo access",
+          family: "Family event support",
         },
         form: {
           title: "Application form",
@@ -1823,6 +1814,7 @@ const en: Translation = {
     previousScreen: "Go back",
     openSearch: "Search",
     brandAlt: "Poonglim Food",
+    language: "Language",
   },
   detailNav: {
     productList: "Products",

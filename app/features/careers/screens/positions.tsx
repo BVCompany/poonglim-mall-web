@@ -15,10 +15,19 @@ import type { Route } from "./+types/positions";
 import { format } from "date-fns";
 import {
   ArrowRight,
+  BookOpen,
+  Building2,
+  Bus,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   FileText,
+  Flower2,
+  Gift,
+  Heart,
+  Palmtree,
+  Pizza,
+  type LucideIcon,
 } from "lucide-react";
 import {
   useCallback,
@@ -481,24 +490,24 @@ export default function CareersPositionsScreen({
         desc: t("pages.careers.positions.keyJobs.management.desc"),
       },
       {
-        icon: "/recruit/dis_icon.png",
-        label: t("pages.careers.positions.keyJobs.scm.label"),
-        desc: t("pages.careers.positions.keyJobs.scm.desc"),
-      },
-      {
         icon: "/recruit/research_icon.png",
         label: t("pages.careers.positions.keyJobs.quality.label"),
         desc: t("pages.careers.positions.keyJobs.quality.desc"),
       },
       {
-        icon: "/recruit/marketing_icon.png",
-        label: t("pages.careers.positions.keyJobs.marketing.label"),
-        desc: t("pages.careers.positions.keyJobs.marketing.desc"),
+        icon: "/recruit/dis_icon.png",
+        label: t("pages.careers.positions.keyJobs.scm.label"),
+        desc: t("pages.careers.positions.keyJobs.scm.desc"),
       },
       {
         icon: "/recruit/skill_icon.png",
         label: t("pages.careers.positions.keyJobs.tech.label"),
         desc: t("pages.careers.positions.keyJobs.tech.desc"),
+      },
+      {
+        icon: "/recruit/marketing_icon.png",
+        label: t("pages.careers.positions.keyJobs.marketing.label"),
+        desc: t("pages.careers.positions.keyJobs.marketing.desc"),
       },
     ],
     [t],
@@ -529,29 +538,30 @@ export default function CareersPositionsScreen({
       {
         title: t(`${p("step3")}.title`),
         desc: t(`${p("step3")}.desc`),
-        descMobileLines: [t(`${p("step3")}.mobile1`), t(`${p("step3")}.mobile2`)] as const,
-        descMobileLine2ClassName:
-          "font-[NanumSquareRound,sans-serif] text-sm font-bold leading-[21px] text-[#1F2121]/60 break-words",
       },
       {
         title: t(`${p("step4")}.title`),
         desc: t(`${p("step4")}.desc`),
-        descMobileLines: [t(`${p("step4")}.mobile1`), t(`${p("step4")}.mobile2`)] as const,
+        titleRowFluid: true,
+      },
+      {
+        title: t(`${p("step5")}.title`),
+        desc: t(`${p("step5")}.desc`),
         titleRowFluid: true,
       },
     ];
   }, [t]);
 
-  const benefitsStrip = useMemo(
+  const benefitsStrip = useMemo<{ Icon: LucideIcon; title: string }[]>(
     () => [
-      { icon: "/recruit/fi-rr-utensils.png", title: t("pages.careers.positions.benefitsStrip.meal") },
-      { icon: "/recruit/fi-rr-school-bus.png", title: t("pages.careers.positions.benefitsStrip.car") },
-      { icon: "/recruit/Vector.png", title: t("pages.careers.positions.benefitsStrip.insurance") },
-      { icon: "/recruit/Vector-1.png", title: t("pages.careers.positions.benefitsStrip.week5") },
-      { icon: "/recruit/Vector-2.png", title: t("pages.careers.positions.benefitsStrip.annual") },
-      { icon: "/recruit/Vector-3.png", title: t("pages.careers.positions.benefitsStrip.holiday") },
-      { icon: "/recruit/Vector-4.png", title: t("pages.careers.positions.benefitsStrip.family") },
-      { icon: "/recruit/Vector-5.png", title: t("pages.careers.positions.benefitsStrip.growth") },
+      { Icon: Bus, title: t("pages.careers.positions.benefitsStrip.commuteBus") },
+      { Icon: Palmtree, title: t("pages.careers.positions.benefitsStrip.vacation") },
+      { Icon: Heart, title: t("pages.careers.positions.benefitsStrip.childbirth") },
+      { Icon: BookOpen, title: t("pages.careers.positions.benefitsStrip.growth") },
+      { Icon: Pizza, title: t("pages.careers.positions.benefitsStrip.cafeteria") },
+      { Icon: Gift, title: t("pages.careers.positions.benefitsStrip.gift") },
+      { Icon: Building2, title: t("pages.careers.positions.benefitsStrip.condo") },
+      { Icon: Flower2, title: t("pages.careers.positions.benefitsStrip.family") },
     ],
     [t],
   );
@@ -799,8 +809,8 @@ export default function CareersPositionsScreen({
         subtitle={t("pages.careers.positions.bannerSubtitle")}
         breadcrumb={[
           { label: "Home", href: "/" },
-          { label: t("pages.careers.positions.breadcrumbCareers"), href: "/careers/positions" },
-          { label: t("pages.careers.positions.breadcrumbCurrent") },
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("pages.careers.positions.breadcrumbCareers") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile
@@ -900,7 +910,7 @@ export default function CareersPositionsScreen({
               {t("pages.careers.positions.sectionProcess")}
             </SectionPageTitle>
 
-            <div className="grid w-full grid-cols-1 items-stretch gap-y-0 lg:grid-cols-4 lg:gap-x-[min(4px,calc(4*100vw/1920))] lg:gap-y-0">
+            <div className="grid w-full grid-cols-1 items-stretch gap-y-0 lg:grid-cols-5 lg:gap-x-[min(4px,calc(4*100vw/1920))] lg:gap-y-0">
               {stepsUi.map((step, i) => {
                 const isLast = i === stepsUi.length - 1;
                 const desktopDesc = step.descSmall
@@ -1967,9 +1977,9 @@ export default function CareersPositionsScreen({
 
             {/* PC: SectionPageTitle responsiveLg — 마크 21px + lg:gap-5(1.25rem) = 제목 텍스트 시작선; 그만큼 들여 첫 카드 왼쪽 정렬 일치 */}
             <div className="grid w-full grid-cols-3 gap-x-2 gap-y-5 max-lg:gap-y-6 lg:grid-cols-4 lg:gap-x-[clamp(16px,calc(40*100vw/1920),48px)] lg:gap-y-[clamp(28px,calc(48*100vw/1920),56px)] lg:pl-[calc(21px+1.25rem)]">
-              {benefitsStrip.map((b) => (
+              {benefitsStrip.map(({ Icon, title }) => (
                 <div
-                  key={b.title}
+                  key={title}
                   className={cn(
                     "flex w-full min-w-0 flex-col items-center gap-1.5 max-lg:gap-1.5",
                     "lg:items-start lg:gap-3",
@@ -1983,14 +1993,14 @@ export default function CareersPositionsScreen({
                     )}
                     aria-hidden
                   >
-                    <img
-                      src={b.icon}
-                      alt=""
+                    <Icon
                       className={cn(
-                        "w-auto object-contain object-center",
-                        "h-[26px] max-lg:h-[26px]",
-                        "lg:h-[clamp(40px,calc(48*100vw/1920),52px)] lg:max-w-[min(100%,64px)] lg:object-left",
+                        "shrink-0",
+                        "h-[26px] w-[26px] max-lg:h-[26px] max-lg:w-[26px]",
+                        "lg:h-[clamp(40px,calc(48*100vw/1920),52px)] lg:w-[clamp(40px,calc(48*100vw/1920),52px)]",
                       )}
+                      style={{ color: "#F3BC1E" }}
+                      strokeWidth={1.75}
                       aria-hidden
                     />
                   </div>
@@ -2001,7 +2011,7 @@ export default function CareersPositionsScreen({
                       "lg:text-left lg:[font-size:clamp(16px,calc(20*100vw/1920),20px)] lg:[line-height:clamp(24px,calc(30*100vw/1920),30px)]",
                     )}
                   >
-                    {b.title}
+                    {title}
                   </p>
                 </div>
               ))}

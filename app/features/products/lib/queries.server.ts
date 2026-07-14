@@ -10,6 +10,14 @@ import { products } from "../schema";
 
 export type Product = typeof products.$inferSelect;
 
+/** sort_order ASC, 동일 시 product_id ASC */
+export function compareProductsBySortOrder(a: Product, b: Product): number {
+  const ao = a.sort_order ?? 0;
+  const bo = b.sort_order ?? 0;
+  if (ao !== bo) return ao - bo;
+  return a.product_id - b.product_id;
+}
+
 /** 관리자: locale 구분 없이 전체 행 */
 export async function getAllProductsForAdmin() {
   return db
@@ -22,17 +30,13 @@ export async function getAllProductsForAdmin() {
     );
 }
 
-/** 활성 제품 전체 조회 (요청 locale 우선, 그룹당 1행, 등록일 최신순) */
+/** 활성 제품 전체 조회 (요청 locale 우선, 그룹당 1행, sort_order 순) */
 export async function getProducts(locale: ContentLocale) {
   const rows = await db
     .select()
     .from(products)
     .where(eq(products.is_active, true));
-  return pickBestLocaleRows(rows, locale).sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
-      b.product_id - a.product_id,
-  );
+  return pickBestLocaleRows(rows, locale).sort(compareProductsBySortOrder);
 }
 
 /** 카테고리별 활성 제품 (category는 text[] — ArrayContains 사용) */
@@ -46,25 +50,17 @@ export async function getProductsByCategory(category: string, locale: ContentLoc
         sql`${products.category} @> ARRAY[${category}]::text[]`,
       ),
     );
-  return pickBestLocaleRows(rows, locale).sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
-      b.product_id - a.product_id,
-  );
+  return pickBestLocaleRows(rows, locale).sort(compareProductsBySortOrder);
 }
 
-/** 홈 제품 슬라이드용 (locale 반영, 등록일 최신순 N개) */
+/** 홈 제품 슬라이드용 (locale 반영, sort_order 순 N개) */
 export async function getFeaturedProducts(limit = 10, locale: ContentLocale = "ko") {
   const rows = await db
     .select()
     .from(products)
     .where(eq(products.is_active, true));
   const picked = pickBestLocaleRows(rows, locale);
-  const sorted = [...picked].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ||
-      b.product_id - a.product_id,
-  );
+  const sorted = [...picked].sort(compareProductsBySortOrder);
   return sorted.slice(0, limit);
 }
 

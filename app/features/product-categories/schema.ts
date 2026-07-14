@@ -17,7 +17,8 @@ export const productCategories = pgTable(
   "product_categories",
   {
     ...makeIdentityColumn("category_id"),
-    name:       text().notNull(),             // 표시명 (예: "액란가공품")
+    name:       text().notNull(),             // 표시명(국문) (예: "액란가공품")
+    name_en:    text(),                       // 표시명(영문, 선택) — 영문 사이트 노출용
     slug:       text().notNull(),             // 식별자 (예: "liquid_egg") — products.category 참조
     sort_order: integer().notNull().default(0),
     is_active:  boolean().notNull().default(true),

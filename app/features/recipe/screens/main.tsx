@@ -41,7 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
   const { dbRecipes, pageBanner, dbCategories } = loaderData;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -67,7 +68,7 @@ export default function RecipeMainScreen({ loaderData }: Route.ComponentProps) {
     ...(dbCategories.length > 0
       ? dbCategories.map((cat) => ({
           id: cat.slug,
-          name: cat.name,
+          name: isEn && cat.name_en ? cat.name_en : cat.name,
           count: dbRecipes.filter((r) => r.category === cat.slug).length,
         }))
       : Object.entries(

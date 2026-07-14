@@ -18,7 +18,7 @@ import {
 } from "~/core/lib/public-mega-nav";
 import { cn } from "~/core/lib/utils";
 
-import LangSwitcher from "./lang-switcher";
+import LangSwitcher, { LangSwitcherMobile } from "./lang-switcher";
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,6 +32,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "./ui/sheet";
+
+/* ─────────────────────────────────────────── */
+/* 헤더 로고 — 로케일별(ko/en) 소스                */
+/* ─────────────────────────────────────────── */
+function headerLogoSrc(language: string | undefined): string {
+  return language?.toLowerCase().startsWith("en")
+    ? "/home/logo-eng.png"
+    : "/home/logo-kor.png";
+}
 
 /* ─────────────────────────────────────────── */
 /* 타입                                         */
@@ -176,7 +185,8 @@ function MobileNavigation({
   productCategories: NavCategory[];
   recipeCategories: NavCategory[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const logoSrc = headerLogoSrc(i18n.language);
   const [openSections, setOpenSections] = useState<MegaSectionId[]>([]);
   const menuItems = buildMenuItems(t, productCategories, recipeCategories);
 
@@ -196,7 +206,7 @@ function MobileNavigation({
             aria-label={t("navChrome.goHome")}
           >
             <img
-              src="/home/poonglim-logo-eng.png"
+              src={logoSrc}
               alt=""
               className="h-8 w-auto max-w-full object-contain object-left"
             />
@@ -277,6 +287,20 @@ function MobileNavigation({
           </SheetClose>
         ),
       )}
+        <div className="mt-auto flex flex-col">
+          <SheetClose asChild>
+            <a
+              href="http://wos.freshegg.co.kr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 flex items-center justify-center gap-2 rounded-[8px] bg-[#003F2B] px-4 py-3 text-sm font-semibold text-white"
+            >
+              {t("navChrome.orderSystem")}
+              <ArrowUpRightIcon className="size-4" />
+            </a>
+          </SheetClose>
+          <LangSwitcherMobile />
+        </div>
       </div>
     </div>
   );
@@ -290,7 +314,8 @@ export function NavigationBar({
   productCategories = [],
   recipeCategories = [],
 }: NavProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const logoSrc = headerLogoSrc(i18n.language);
   const navigate = useNavigate();
   const location = useLocation();
   const isProductDetailRoute = /^\/products\/\d+$/.test(location.pathname);
@@ -452,9 +477,9 @@ export function NavigationBar({
                     className="flex shrink-0 items-center gap-[18px]"
                   >
                     <img
-                      src="/home/poonglim-logo-eng.png"
+                      src={logoSrc}
                       alt={t("navChrome.brandAlt")}
-                      className="h-14 w-[200px] object-contain object-left"
+                      className="h-14 w-auto object-contain object-left"
                     />
                   </Link>
 
@@ -573,9 +598,9 @@ export function NavigationBar({
                     className="flex min-w-0 shrink-0 items-center lg:pb-0"
                   >
                     <img
-                      src="/home/poonglim-logo-eng.png"
+                      src={logoSrc}
                       alt={t("navChrome.brandAlt")}
-                      className="h-[30px] w-auto object-contain object-left sm:h-9 sm:w-24 md:h-10 md:w-28 lg:h-[56px] lg:w-[200px]"
+                      className="h-[30px] w-auto object-contain object-left sm:h-9 md:h-10 lg:h-[56px]"
                     />
                   </Link>
 

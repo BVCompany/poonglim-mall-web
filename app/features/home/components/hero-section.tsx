@@ -4,15 +4,16 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import type { Banner } from "~/features/home/lib/queries.server";
+import { pickLocalizedText } from "~/core/lib/localized-text";
 
-function dbBannerToSlide(b: Banner) {
+function dbBannerToSlide(b: Banner, isEn: boolean) {
   return {
     image: b.image_url,
     fallback:
       "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=1920&h=1080&fit=crop",
-    category: b.title, // 제목 → 위 작은 글씨
-    title1: b.subtitle ?? "", // 부제목 → 큰 굵은 글씨 첫 줄
-    title2: b.button_text ?? "", // 보조 텍스트 → 큰 굵은 글씨 두 번째 줄
+    category: pickLocalizedText(b.title, b.title_en, isEn),
+    title1: pickLocalizedText(b.subtitle, b.subtitle_en, isEn),
+    title2: pickLocalizedText(b.button_text, b.button_text_en, isEn),
     link: b.link_url ?? undefined,
   };
 }
@@ -22,11 +23,12 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ banners = [] }: HeroSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
 
   const slides = useMemo(
-    () => banners.map(dbBannerToSlide),
-    [banners],
+    () => banners.map((b) => dbBannerToSlide(b, isEn)),
+    [banners, isEn],
   );
   const slideCount = slides.length;
 

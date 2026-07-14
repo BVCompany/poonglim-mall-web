@@ -36,18 +36,22 @@ export function RecipeCategoryManageModal({
   demoMode = false,
 }: Props) {
   const [newName, setNewName] = useState("");
+  const [newNameEn, setNewNameEn] = useState("");
   const [newColor, setNewColor] = useState("sky");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [editNameEn, setEditNameEn] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [editColor, setEditColor] = useState("sky");
 
   useEffect(() => {
     if (!open) {
       setNewName("");
+      setNewNameEn("");
       setNewColor("sky");
       setEditingId(null);
       setEditName("");
+      setEditNameEn("");
       setEditSlug("");
       setEditColor("sky");
     }
@@ -56,6 +60,7 @@ export function RecipeCategoryManageModal({
   const startEdit = (c: RecipeCategory) => {
     setEditingId(c.category_id);
     setEditName(c.name);
+    setEditNameEn(c.name_en ?? "");
     setEditSlug(c.slug);
     setEditColor(c.color || "sky");
   };
@@ -63,6 +68,7 @@ export function RecipeCategoryManageModal({
   const cancelEdit = () => {
     setEditingId(null);
     setEditName("");
+    setEditNameEn("");
     setEditSlug("");
     setEditColor("sky");
   };
@@ -70,8 +76,9 @@ export function RecipeCategoryManageModal({
   const handleAdd = () => {
     const name = newName.trim();
     if (!name) return;
-    onSubmitCategory("category_create", { name, color: newColor });
+    onSubmitCategory("category_create", { name, name_en: newNameEn.trim(), color: newColor });
     setNewName("");
+    setNewNameEn("");
     setNewColor("sky");
   };
 
@@ -83,6 +90,7 @@ export function RecipeCategoryManageModal({
     onSubmitCategory("category_update", {
       id: String(editingId),
       name,
+      name_en: editNameEn.trim(),
       slug,
       color: editColor,
     });
@@ -111,32 +119,40 @@ export function RecipeCategoryManageModal({
               아래 항목은 DB에 없는 예시입니다. 수정·삭제는 할 수 없고, 상단에서 새로 추가하면 실제로 저장됩니다.
             </p>
           ) : null}
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="새 카테고리 이름 (국문)"
+                className="border-gray-200"
+              />
+              <select
+                value={newColor}
+                onChange={(e) => setNewColor(e.target.value)}
+                className="h-10 w-[100px] shrink-0 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                aria-label="새 카테고리 색"
+              >
+                {NEWS_CATEGORY_COLOR_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                className="shrink-0 bg-[#02633E] hover:bg-[#014d30]"
+                onClick={handleAdd}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="새 카테고리 이름"
+              value={newNameEn}
+              onChange={(e) => setNewNameEn(e.target.value)}
+              placeholder="영문명 (선택) — 비우면 국문명 표시"
               className="border-gray-200"
             />
-            <select
-              value={newColor}
-              onChange={(e) => setNewColor(e.target.value)}
-              className="h-10 w-[100px] shrink-0 rounded-md border border-gray-200 bg-white px-2 text-sm"
-              aria-label="새 카테고리 색"
-            >
-              {NEWS_CATEGORY_COLOR_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="button"
-              className="shrink-0 bg-[#02633E] hover:bg-[#014d30]"
-              onClick={handleAdd}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
 
           <ul className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
@@ -175,6 +191,13 @@ export function RecipeCategoryManageModal({
                         />
                       </>
                     )}
+                    <Input
+                      value={editNameEn}
+                      onChange={(e) => setEditNameEn(e.target.value)}
+                      className="h-9 w-full border-gray-200 text-sm sm:w-[120px] sm:shrink-0"
+                      placeholder="영문명"
+                      title="영문 사이트 표시명 (선택)"
+                    />
                     <select
                       value={editColor}
                       onChange={(e) => setEditColor(e.target.value)}

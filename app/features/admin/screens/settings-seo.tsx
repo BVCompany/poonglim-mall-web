@@ -209,9 +209,13 @@ export default function AdminSeoSettingsPage({ loaderData }: Route.ComponentProp
                       folder="seo"
                       value={meta[SETTING_KEYS.SEO_OG_IMAGE]}
                       onChange={(url) => setMeta({ ...meta, [SETTING_KEYS.SEO_OG_IMAGE]: url })}
-                      aspectRatio="16/9"
-                      hint="1200×630px 권장 · JPG/PNG 최대 5MB"
+                      aspectRatio="1200/630"
+                      hint="1200×630px 권장 · 가로형 로고는 잘릴 수 있어 여백 있는 이미지 사용"
                     />
+                    <p className="text-xs text-gray-400">
+                      비워두면 기본 이미지(<code className="text-[11px]">/og/share.png</code>)가 사용됩니다.
+                      카카오·페이스북 등은 1.91:1 비율로 크롭하므로 로고 주변에 충분한 여백이 필요합니다.
+                    </p>
                     <Input
                       value={meta[SETTING_KEYS.SEO_OG_IMAGE]}
                       onChange={(e) => setMeta({ ...meta, [SETTING_KEYS.SEO_OG_IMAGE]: e.target.value })}

@@ -20,12 +20,13 @@ const urls = (
 export default {
   ssr: true,
   async prerender() {
+    // sitemap.xml·robots.txt는 프리렌더에서 제외한다.
+    // 빌드 시점엔 실제 도메인(origin)을 알 수 없어 URL이 깨지므로,
+    // 요청 시 동적 생성하여 요청 origin을 사용한다(캐시 헤더로 성능 보전).
     return [
       "/legal/terms-of-service",
       "/legal/privacy-policy",
       "/blog",
-      "/sitemap.xml",
-      "/robots.txt",
       ...urls,
     ];
   },

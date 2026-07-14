@@ -21,8 +21,8 @@ export default {
   supportedLngs,
   
   // Fallback language when user's preferred language is not supported
-  // English is used as the default fallback
-  fallbackLng: "en",
+  // 한국 사이트이므로 신호(쿠키·Accept-Language)가 없을 때는 한국어로 표시한다.
+  fallbackLng: "ko",
   
   // The default namespace for translations
   // All general translations are stored in the 'common' namespace

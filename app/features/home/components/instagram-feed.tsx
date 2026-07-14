@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import type { InstagramPost } from "~/features/home/lib/queries.server";
 
-const OFFICIAL_INSTAGRAM_URL = "https://www.instagram.com/poonglim_official";
+const OFFICIAL_INSTAGRAM_URL = "https://www.instagram.com/poonglim.official";
 
 /** 직접 등록 이미지가 없을 때 노출되는 기본(시안) 이미지 */
 const DEFAULT_POSTS: FeedPost[] = [
@@ -121,7 +121,7 @@ export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
 
   const officialButton = (
     <a
-      href="https://www.instagram.com/poonglim_official"
+      href={OFFICIAL_INSTAGRAM_URL}
       target="_blank"
       rel="noopener noreferrer"
       className="group flex w-full items-center justify-between gap-4 overflow-hidden rounded-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 px-4 py-3 transition-opacity hover:opacity-95 md:w-fit"
@@ -173,7 +173,7 @@ export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
                 href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-gray-100"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-[30px] bg-transparent"
                 style={{
                   width: MOBILE_ITEM_WIDTH,
                   aspectRatio: ASPECT_RATIO,
@@ -266,7 +266,7 @@ export function InstagramFeed({ posts: dbPosts = [] }: InstagramFeedProps) {
                 href={post.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100"
+                className="group relative flex flex-shrink-0 overflow-hidden rounded-2xl bg-transparent"
                 style={{
                   width: imageWidth,
                   aspectRatio: ASPECT_RATIO,

@@ -39,9 +39,12 @@ export async function action({ request }: Route.ActionArgs) {
       page_key:  pageKey,
       title:     (fd.get("title") as string) ?? "",
       subtitle:  (fd.get("subtitle") as string) || null,
+      title_en:  ((fd.get("title_en") as string) || "").trim() || null,
+      subtitle_en: ((fd.get("subtitle_en") as string) || "").trim() || null,
       image_url: (fd.get("image_url") as string) || null,
       link_url:  (fd.get("link_url") as string) || null,
       link_text: (fd.get("link_text") as string) || null,
+      link_text_en: ((fd.get("link_text_en") as string) || "").trim() || null,
       is_active: fd.get("is_active") !== "false",
     };
 
@@ -68,9 +71,12 @@ type DbBanner = {
   page_key: string;
   title: string;
   subtitle: string | null;
+  title_en: string | null;
+  subtitle_en: string | null;
   image_url: string | null;
   link_url: string | null;
   link_text: string | null;
+  link_text_en: string | null;
   is_active: boolean;
 };
 
@@ -112,7 +118,7 @@ function BannerForm({ pageKey, banner, savedKey }: {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">제목 *</Label>
+              <Label className="text-xs">제목 (국문) *</Label>
               <Input
                 name="title"
                 defaultValue={banner?.title ?? ""}
@@ -121,11 +127,27 @@ function BannerForm({ pageKey, banner, savedKey }: {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">부제목</Label>
+              <Label className="text-xs">부제목 (국문)</Label>
               <Input
                 name="subtitle"
                 defaultValue={banner?.subtitle ?? ""}
                 placeholder="예: 대한민국의 대표 계란 풍림푸드의 이야기"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">제목 (영문)</Label>
+              <Input
+                name="title_en"
+                defaultValue={banner?.title_en ?? ""}
+                placeholder="e.g. Egg Story"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">부제목 (영문)</Label>
+              <Input
+                name="subtitle_en"
+                defaultValue={banner?.subtitle_en ?? ""}
+                placeholder="e.g. Korea's leading egg brand"
               />
             </div>
             <div className="space-y-1.5">
@@ -137,11 +159,19 @@ function BannerForm({ pageKey, banner, savedKey }: {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">버튼 텍스트</Label>
+              <Label className="text-xs">버튼 텍스트 (국문)</Label>
               <Input
                 name="link_text"
                 defaultValue={banner?.link_text ?? ""}
                 placeholder="예: 더 알아보기"
+              />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs">버튼 텍스트 (영문)</Label>
+              <Input
+                name="link_text_en"
+                defaultValue={banner?.link_text_en ?? ""}
+                placeholder="e.g. Learn more"
               />
             </div>
           </div>

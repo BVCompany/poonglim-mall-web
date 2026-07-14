@@ -19,6 +19,7 @@ import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
   getActiveLibraryResources,
+  getArchiveCategoryNameEnMap,
   getSiteVisibleArchiveCategoryNames,
 } from "~/features/support/lib/queries.server";
 import {
@@ -40,15 +41,17 @@ export const meta: Route.MetaFunction = ({ data }) => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const t = await i18next.getFixedT(request);
-  const [pageBanner, dbResources, siteCategoryTabNames] = await Promise.all([
+  const [pageBanner, dbResources, siteCategoryTabNames, categoryNameEnMap] = await Promise.all([
     getPageBanner("resources").catch(() => null),
     getActiveLibraryResources().catch(() => []),
     getSiteVisibleArchiveCategoryNames().catch(() => []),
+    getArchiveCategoryNameEnMap().catch(() => ({}) as Record<string, string>),
   ]);
   return {
     pageBanner,
     dbResources,
     siteCategoryTabNames,
+    categoryNameEnMap,
     metaTitle: t("pages.resources.metaTitle"),
   };
 }
@@ -84,8 +87,9 @@ function buildResourceCategoryTabs(
 const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
-  const { t } = useTranslation();
-  const { pageBanner, dbResources, siteCategoryTabNames } = loaderData;
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
+  const { pageBanner, dbResources, siteCategoryTabNames, categoryNameEnMap } = loaderData;
   const sourceFiles = dbResources.map((r) => ({
     id: r.resource_id,
     category: r.category,
@@ -102,10 +106,12 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
       { value: RESOURCES_ALL_TAB, label: t("pages.resources.allTab") },
       ...values.map((v) => ({
         value: v,
-        label: resourceCategoryTabLabel(v, t),
+        label: isEn && categoryNameEnMap[v] ? categoryNameEnMap[v] : resourceCategoryTabLabel(v, t),
       })),
     ];
-  }, [siteCategoryTabNames, t]);
+  }, [siteCategoryTabNames, categoryNameEnMap, isEn, t]);
+  const catLabel = (name: string) =>
+    isEn && categoryNameEnMap[name] ? categoryNameEnMap[name] : resourceCategoryTabLabel(name, t);
   const [activeCategory, setActiveCategory] = useState<string>(RESOURCES_ALL_TAB);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -272,7 +278,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                           className="inline-flex min-w-0 flex-wrap items-center gap-2.5"
                         >
                           <span className={RESOURCE_META_BADGE_CLASS}>
-                            {file.category}
+                            {catLabel(file.category)}
                           </span>
                           <div className="flex h-[23px] min-w-[4.75rem] shrink-0 items-center justify-center whitespace-nowrap font-[family-name:var(--font-nanum)] text-xs font-normal uppercase leading-[16.8px] tabular-nums text-[#1F2121]">
                             {file.date}
@@ -325,7 +331,7 @@ export default function ResourcesScreen({ loaderData }: Route.ComponentProps) {
                           {file.title}
                         </span>
                         <span className={PC_META_BADGE_CLASS}>
-                          {file.category}
+                          {catLabel(file.category)}
                         </span>
                         <span className="w-20 shrink-0 text-center font-[NanumSquareRound,sans-serif] text-sm font-normal uppercase leading-[19.6px] text-[#1F2121]">
                           {file.date}

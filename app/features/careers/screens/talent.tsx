@@ -87,6 +87,7 @@ export default function CareersTalentScreen() {
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
       <Breadcrumb
         items={[
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
           { label: t("pages.careers.breadcrumb"), href: "/careers/positions" },
           { label: t("navigation.careers.talent") },
         ]}

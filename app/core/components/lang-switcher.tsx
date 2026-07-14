@@ -16,6 +16,7 @@ import { GlobeIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFetcher } from "react-router";
 
+import { cn } from "~/core/lib/utils";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+
+const LOCALES = ["ko", "en"] as const;
+type LocaleCode = (typeof LOCALES)[number];
+
+function useLocaleChange() {
+  const { i18n } = useTranslation();
+  const fetcher = useFetcher();
+
+  const handleLocaleChange = async (locale: LocaleCode) => {
+    i18n.changeLanguage(locale);
+    await fetcher.submit(null, {
+      method: "POST",
+      action: "/api/settings/locale?locale=" + locale,
+    });
+  };
+
+  const currentLocale: LocaleCode = i18n.language?.startsWith("en") ? "en" : "ko";
+
+  return { handleLocaleChange, currentLocale };
+}
 
 /**
  * LangSwitcher component for changing the application language
@@ -38,27 +59,9 @@ import {
  * @returns A dropdown menu component for switching languages
  */
 export default function LangSwitcher() {
-  // Get translation function and i18n instance
-  const { t, i18n } = useTranslation();
-  
-  // Get fetcher for making API requests
-  const fetcher = useFetcher();
-  
-  /**
-   * Handle language change by updating both client and server state
-   * @param locale - The language code to switch to (`en` or `ko`)
-   */
-  const handleLocaleChange = async (locale: string) => {
-    // Change language in i18n context (client-side)
-    i18n.changeLanguage(locale);
-    
-    // Persist language preference on the server
-    await fetcher.submit(null, {
-      method: "POST",
-      action: "/api/settings/locale?locale=" + locale,
-    });
-  };
-  
+  const { t } = useTranslation();
+  const { handleLocaleChange } = useLocaleChange();
+
   return (
     <DropdownMenu>
       {/* Dropdown trigger button with current language flag */}
@@ -82,5 +85,38 @@ export default function LangSwitcher() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** 모바일 햄버거 메뉴용 인라인 언어 전환 */
+export function LangSwitcherMobile() {
+  const { t } = useTranslation();
+  const { handleLocaleChange, currentLocale } = useLocaleChange();
+
+  return (
+    <div className="mt-auto border-t border-[#EAE3C9] pt-4">
+      <p className="mb-2 px-3 text-xs font-medium text-gray-500">
+        {t("navChrome.language")}
+      </p>
+      <div className="flex gap-2 px-3">
+        {LOCALES.map((locale) => (
+          <button
+            key={locale}
+            type="button"
+            onClick={() => handleLocaleChange(locale)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              currentLocale === locale
+                ? "bg-[#0E5A3A] text-white"
+                : "bg-[#EAE3C9]/60 text-[#1F2121] hover:bg-[#EAE3C9]",
+            )}
+            aria-pressed={currentLocale === locale}
+          >
+            {locale === "ko" ? "🇰🇷" : "🇬🇧"}
+            {locale === "ko" ? t("navigation.kr") : t("navigation.en")}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

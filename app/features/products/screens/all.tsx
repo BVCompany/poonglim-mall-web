@@ -41,7 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) {
   const { dbProducts, pageBanner, dbCategories } = loaderData;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = i18n.language?.startsWith("en");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,7 +70,7 @@ export default function ProductsAllScreen({ loaderData }: Route.ComponentProps) 
         { id: "all", name: t("pages.products.all.categoryAll"), count: totalCount },
         ...dbCategories.map((cat) => ({
           id: cat.slug,
-          name: cat.name,
+          name: isEn && cat.name_en ? cat.name_en : cat.name,
           count: dbProducts.filter((p) => inCategory(p.category, cat.slug)).length,
         })),
       ]
