@@ -8,6 +8,7 @@ import type { Route } from "./+types/grade-certificate-detail";
 import { SupportArticleDetailMobile } from "~/features/support/components/support-article-detail-mobile";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { adminContentToHtml } from "~/core/lib/content-html";
 import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
@@ -145,11 +146,6 @@ function formatDateTime(val: string | Date) {
 
 const nanum = "font-[family-name:var(--font-nanum)]";
 const pretendard = "font-[Pretendard,system-ui,sans-serif]";
-
-function certBodyHtml(content: string) {
-  if (/<[a-z][\s\S]*>/i.test(content)) return content;
-  return content.replace(/\n/g, "<br/>");
-}
 
 export default function GradeCertDetailScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
@@ -300,7 +296,7 @@ export default function GradeCertDetailScreen({ loaderData }: Route.ComponentPro
                 </div>
                 <div
                   className={articleClassPc}
-                  dangerouslySetInnerHTML={{ __html: certBodyHtml(cert.content) }}
+                  dangerouslySetInnerHTML={{ __html: adminContentToHtml(cert.content) }}
                 />
               </div>
             </div>

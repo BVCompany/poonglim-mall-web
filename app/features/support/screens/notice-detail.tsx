@@ -10,6 +10,7 @@ import { Link, redirect } from "react-router";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import i18next from "~/core/lib/i18next.server";
+import { adminContentToHtml } from "~/core/lib/content-html";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
@@ -179,6 +180,7 @@ export default function NoticeDetailScreen({
 }: Route.ComponentProps) {
   const { t } = useTranslation();
   const { notice, prev, next, pageBanner } = loaderData;
+  const bodyHtml = adminContentToHtml(notice.content);
 
   const articleClassMobile = cn(
     "prose prose-sm max-w-none text-[#1F2121]",
@@ -253,7 +255,7 @@ export default function NoticeDetailScreen({
               <div className="pt-2.5">
                 <div
                   className={articleClassMobile}
-                  dangerouslySetInnerHTML={{ __html: notice.content }}
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
                 />
               </div>
             </div>
@@ -379,7 +381,7 @@ export default function NoticeDetailScreen({
                 </div>
                 <div
                   className={articleClassMobile}
-                  dangerouslySetInnerHTML={{ __html: notice.content }}
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
                 />
               </div>
             </div>

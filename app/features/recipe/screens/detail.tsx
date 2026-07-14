@@ -252,7 +252,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
               {recipe.description && (
                 <>
                   <p
-                    className="mb-4 mt-3 md:hidden"
+                    className="mb-4 mt-3 whitespace-pre-line md:hidden"
                     style={{
                       color: "#003F2B",
                       fontSize: "16px",
@@ -264,7 +264,7 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                     {recipe.description}
                   </p>
                   <p
-                    className="mb-0 mt-3 hidden md:mb-0 md:mt-5 md:block"
+                    className="mb-0 mt-3 hidden whitespace-pre-line md:mb-0 md:mt-5 md:block"
                     style={{
                       color: "#003F2B",
                       fontSize: pc1920(14, 16),
@@ -381,9 +381,9 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                             lineHeight: "21px",
                           }}
                         >
-                          <span className="md:hidden">{ing.name}</span>
+                          <span className="whitespace-pre-line md:hidden">{ing.name}</span>
                           <span
-                            className="hidden md:inline"
+                            className="hidden whitespace-pre-line md:inline"
                             style={{ fontSize: pc1920(15, 18), lineHeight: pc1920(22.5, 27) }}
                           >
                             {ing.name}
@@ -399,9 +399,9 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                             lineHeight: "21px",
                           }}
                         >
-                          <span className="md:hidden">{ing.amount}</span>
+                          <span className="whitespace-pre-line md:hidden">{ing.amount}</span>
                           <span
-                            className="hidden md:inline"
+                            className="hidden whitespace-pre-line md:inline"
                             style={{ fontSize: pc1920(15, 18), lineHeight: pc1920(22.5, 27) }}
                           >
                             {ing.amount}
@@ -477,9 +477,9 @@ export default function RecipeDetailScreen({ loaderData }: Route.ComponentProps)
                             letterSpacing: "-0.015em",
                           }}
                         >
-                          <span className="md:hidden">{s.description}</span>
+                          <span className="whitespace-pre-line md:hidden">{s.description}</span>
                           <span
-                            className="hidden md:inline"
+                            className="hidden whitespace-pre-line md:inline"
                             style={{
                               fontSize: pc1920(15, 18),
                               lineHeight: pc1920(22.5, 27),

@@ -10,6 +10,7 @@ import {
 } from "../lib/queries.server";
 import { ArrowUpRight } from "lucide-react";
 import { Breadcrumb } from "~/core/components/breadcrumb";
+import { adminContentToHtml } from "~/core/lib/content-html";
 import i18next from "~/core/lib/i18next.server";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
@@ -234,7 +235,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
 
             {/* 설명 */}
             <p
-              className="leading-6"
+              className="whitespace-pre-line leading-6"
               style={{ color: "#003F2B", fontSize: "16px", fontFamily: "NanumSquareRound, sans-serif", fontWeight: 700, lineHeight: "24px" }}
             >
               {product.description}
@@ -363,7 +364,7 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
                           {spec.label}
                         </span>
                         <span
-                          className="min-w-0 text-right"
+                          className="min-w-0 whitespace-pre-line text-right"
                           style={{
                             flex: 1,
                             color: "#1F2121",
@@ -394,7 +395,9 @@ export default function ProductDetailScreen({ loaderData }: Route.ComponentProps
               </h2>
               <div
                 className="prose prose-sm max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{ __html: product.detail }}
+                dangerouslySetInnerHTML={{
+                  __html: adminContentToHtml(product.detail),
+                }}
               />
             </div>
           )}

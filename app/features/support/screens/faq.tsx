@@ -326,7 +326,7 @@ export default function FAQScreen({ loaderData }: Route.ComponentProps) {
                           <p
                             className={cn(
                               nanum,
-                              "min-w-0 flex-1 text-[15px] leading-[22.5px] font-normal text-[#1F2121]",
+                              "min-w-0 flex-1 whitespace-pre-line text-[15px] leading-[22.5px] font-normal text-[#1F2121]",
                               "md:text-xl md:leading-[30px] md:font-normal",
                             )}
                           >

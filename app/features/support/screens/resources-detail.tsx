@@ -11,6 +11,7 @@ import { PageBanner } from "~/core/components/page-banner";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { PageContentMax } from "~/core/components/page-content-max";
+import { adminContentToHtml } from "~/core/lib/content-html";
 import { pc1920 } from "~/core/lib/pc-fluid";
 import { getPageBanner } from "~/features/page-banners/lib/queries.server";
 import {
@@ -18,7 +19,6 @@ import {
   getLibraryResourceById,
   incrementLibraryResourceViewCount,
 } from "~/features/support/lib/queries.server";
-import { linkifyPlainTextToHtml } from "~/features/support/lib/linkify-plain-text";
 import i18next from "~/core/lib/i18next.server";
 
 type ResourceDetail = {
@@ -101,16 +101,10 @@ function formatDateTime(val: string | Date) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
-function resourceBodyHtml(content: string): string {
-  const t = content.trim();
-  if (t.startsWith("<")) return content;
-  return linkifyPlainTextToHtml(content);
-}
-
 export default function ResourcesDetailScreen({ loaderData }: Route.ComponentProps) {
   const { t } = useTranslation();
   const { resource, prev, next, pageBanner } = loaderData;
-  const bodyHtml = resourceBodyHtml(resource.content);
+  const bodyHtml = adminContentToHtml(resource.content);
 
   return (
     <div className={cn(SECTION_VIEWPORT_BLEED, "min-h-screen min-w-0 bg-[var(--site-chrome-header-bg,#FDFDF5)]")}>
