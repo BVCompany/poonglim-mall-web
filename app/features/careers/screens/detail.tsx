@@ -218,8 +218,9 @@ export default function CareerDetailScreen({ loaderData }: Route.ComponentProps)
     >
       <Breadcrumb
         items={[
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
           {
-            label: t("pages.careers.positions.breadcrumbCurrent"),
+            label: t("pages.careers.breadcrumb"),
             href: "/careers/positions",
           },
           { label: job.title },

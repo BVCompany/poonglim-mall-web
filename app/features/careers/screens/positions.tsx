@@ -809,8 +809,8 @@ export default function CareersPositionsScreen({
         subtitle={t("pages.careers.positions.bannerSubtitle")}
         breadcrumb={[
           { label: "Home", href: "/" },
-          { label: t("pages.careers.positions.breadcrumbCareers"), href: "/careers/positions" },
-          { label: t("pages.careers.positions.breadcrumbCurrent") },
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
+          { label: t("pages.careers.positions.breadcrumbCareers") },
         ]}
         dbBanner={pageBanner}
         hideBreadcrumbOnMobile

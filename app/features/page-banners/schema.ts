@@ -51,7 +51,7 @@ export const PAGE_KEY_LABELS: Record<string, string> = {
   location:            "오시는 길",
   history:             "연혁",
   certifications:      "품질 & 인증",
-  careers:             "채용",
+  careers:             "인재채용",
   // 홍보센터
   news:                "보도자료",
   event:               "이벤트",
