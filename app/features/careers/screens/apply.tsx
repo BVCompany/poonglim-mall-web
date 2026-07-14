@@ -715,6 +715,7 @@ export default function CareerApplyScreen() {
     >
       <Breadcrumb
         items={[
+          { label: t("navigation.mega.company"), href: "/brand/intro" },
           { label: t("pages.careers.breadcrumb"), href: "/careers/positions" },
           { label: t(`${applyNs}.breadcrumb`) },
         ]}
