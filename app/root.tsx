@@ -51,6 +51,8 @@ import { getAllSettings } from "./features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "./features/site-settings/schema";
 
 export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+  { rel: "shortcut icon", href: "/favicon.ico", type: "image/x-icon" },
   { rel: "icon", href: "/favicon.png", type: "image/png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
