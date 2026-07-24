@@ -1,0 +1,1 @@
+ALTER TABLE "admins" ADD COLUMN "active_session_id" text;

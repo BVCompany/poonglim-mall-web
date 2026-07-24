@@ -8,6 +8,7 @@
 import type { AdminLoginCredentials, AdminUser } from "../types/auth.types";
 import type { CrudOperation } from "./permissions";
 
+import { randomUUID } from "node:crypto";
 import { createCookieSessionStorage, redirect } from "react-router";
 
 import { hasPermission, menuPermission } from "./permissions";
@@ -83,6 +84,13 @@ export async function getAdminUser(
       .limit(1);
     const current = rows[0];
     if (!current) return null;
+    if (
+      !sessionUser.sessionId ||
+      !current.active_session_id ||
+      sessionUser.sessionId !== current.active_session_id
+    ) {
+      return null;
+    }
 
     return {
       id: String(current.admin_id),
@@ -90,6 +98,7 @@ export async function getAdminUser(
       email: current.email,
       role: current.role === "super" ? "super_admin" : "admin",
       permissions: current.permissions ?? [],
+      sessionId: current.active_session_id,
     };
   } catch {
     return null;
@@ -253,12 +262,28 @@ export async function loginAdmin(
       super: "super_admin",
       admin: "admin",
     };
+    const sessionId = randomUUID();
+    const updated = await db
+      .update(admins)
+      .set({ active_session_id: sessionId })
+      .where(eq(admins.admin_id, admin.admin_id))
+      .returning({
+        admin_id: admins.admin_id,
+        name: admins.name,
+        email: admins.email,
+        role: admins.role,
+        permissions: admins.permissions,
+      });
+    const loggedInAdmin = updated[0];
+    if (!loggedInAdmin) return null;
+
     return {
-      id: String(admin.admin_id),
-      name: admin.name,
-      email: admin.email,
-      role: roleMap[admin.role] ?? "admin",
-      permissions: (admin.permissions ?? []) as AdminUser["permissions"],
+      id: String(loggedInAdmin.admin_id),
+      name: loggedInAdmin.name,
+      email: loggedInAdmin.email,
+      role: roleMap[loggedInAdmin.role] ?? "admin",
+      permissions: (loggedInAdmin.permissions ?? []) as AdminUser["permissions"],
+      sessionId,
     };
   } catch {
     return null;
@@ -287,6 +312,26 @@ export async function createAdminSession(
  */
 export async function destroyAdminSession(request: Request) {
   const session = await getAdminSession(request);
+  const sessionUser = session.get("adminUser") as AdminUser | undefined;
+
+  if (sessionUser?.id && sessionUser.sessionId) {
+    try {
+      const db = (await import("~/core/db/drizzle-client.server")).default;
+      const { admins } = await import("../schema");
+      const { and, eq } = await import("drizzle-orm");
+      await db
+        .update(admins)
+        .set({ active_session_id: null })
+        .where(
+          and(
+            eq(admins.admin_id, Number(sessionUser.id)),
+            eq(admins.active_session_id, sessionUser.sessionId),
+          ),
+        );
+    } catch {
+      // 쿠키 제거는 항상 수행한다. DB 장애 시에도 로그아웃 요청을 막지 않는다.
+    }
+  }
 
   return redirect("/admin/login", {
     headers: {

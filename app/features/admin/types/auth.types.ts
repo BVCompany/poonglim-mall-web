@@ -19,6 +19,7 @@ export interface AdminUser {
   name: string;
   role: AdminRole;
   permissions?: string[];
+  sessionId?: string;
   created_at?: string;
 }
 

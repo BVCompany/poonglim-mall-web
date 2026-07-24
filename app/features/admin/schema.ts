@@ -34,6 +34,8 @@ export const admins = pgTable(
     // 허용 권한: "products","recipes","events","careers","banners","admins","inquiries"
     permissions: text().array().notNull().default([]),
     is_active: boolean().notNull().default(true),
+    // 가장 최근 로그인 세션만 유효하도록 검증하는 서버 발급 세션 식별자
+    active_session_id: text(),
     ...timestamps,
   },
   () => [
