@@ -9,7 +9,14 @@
  * - 관리자 CRUD는 서버에서 service_role로 처리 (RLS 우회)
  */
 import { sql } from "drizzle-orm";
-import { boolean, pgEnum, pgPolicy, pgTable, text } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  text,
+} from "drizzle-orm/pg-core";
 import { anonRole, authenticatedRole } from "drizzle-orm/supabase";
 
 import { makeIdentityColumn, timestamps } from "~/core/db/helpers";
@@ -45,3 +52,25 @@ export const admins = pgTable(
     }),
   ],
 );
+
+/**
+ * 관리자 변경 이력.
+ *
+ * 애플리케이션에서는 INSERT와 SELECT만 사용하며, DB 트리거가 UPDATE/DELETE를
+ * 거부한다. 관리자 계정이 비활성화된 뒤에도 행위자 정보가 보존되도록 이름과
+ * 이메일을 함께 스냅샷으로 저장한다.
+ */
+export const adminAuditLogs = pgTable("admin_audit_logs", {
+  ...makeIdentityColumn("audit_log_id"),
+  admin_id: text().notNull(),
+  admin_name: text().notNull(),
+  admin_email: text().notNull(),
+  menu: text().notNull(),
+  action: text().notNull(),
+  request_path: text().notNull(),
+  target_id: text(),
+  details: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+  ip_address: text(),
+  user_agent: text(),
+  created_at: timestamps.created_at,
+});

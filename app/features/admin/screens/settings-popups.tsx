@@ -3,30 +3,36 @@
  *
  * Allows admins to manage modal popups (view, create, edit, delete).
  */
+import type { Route } from "./+types/settings-popups";
 
+import { sql } from "drizzle-orm";
+import { Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/settings-popups";
-import { requireAdminAuth } from "../utils/auth.server";
+
+import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
+import { Input } from "~/core/components/ui/input";
+import db from "~/core/db/drizzle-client.server";
+import {
+  type Popup as PopupRow,
+  getAllPopups,
+} from "~/features/home/lib/queries.server";
+
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import {
   PopupAddModal,
   type PopupFormData,
 } from "../components/popup-add-modal";
-import { Button } from "~/core/components/ui/button";
-import { Input } from "~/core/components/ui/input";
-import { Badge } from "~/core/components/ui/badge";
-import { Edit, Trash2, Plus, Search, Eye } from "lucide-react";
-import {
-  getAllPopups,
-  type Popup as PopupRow,
-} from "~/features/home/lib/queries.server";
-import db from "~/core/db/drizzle-client.server";
-import { sql } from "drizzle-orm";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.POPUPS,
+  );
   const dbPopups = await getAllPopups().catch(() => []);
   return { adminUser, dbPopups };
 }
@@ -41,7 +47,7 @@ function parseSortOrder(raw: FormDataEntryValue | null): number {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.POPUPS, "popups");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -154,7 +160,6 @@ interface Popup {
   createdAt: string;
 }
 
-
 export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbPopups } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
@@ -167,23 +172,28 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
     [editingPopup],
   );
 
-  const popups: Popup[] = dbPopups.length > 0
-    ? dbPopups.map((p) => ({
-        id: String(p.popup_id),
-        title: p.title,
-        content: p.content ?? "",
-        sortOrder: p.sort_order ?? 0,
-        startDate: p.started_at ? new Date(p.started_at).toISOString().slice(0, 10) : "",
-        endDate: p.ended_at ? new Date(p.ended_at).toISOString().slice(0, 10) : "",
-        imageUrl: p.image_url ?? "",
-        linkUrl: p.link_url ?? "",
-        isActive: p.is_active,
-        createdAt: p.created_at.toISOString().slice(0, 10),
-      }))
-    : [];
+  const popups: Popup[] =
+    dbPopups.length > 0
+      ? dbPopups.map((p) => ({
+          id: String(p.popup_id),
+          title: p.title,
+          content: p.content ?? "",
+          sortOrder: p.sort_order ?? 0,
+          startDate: p.started_at
+            ? new Date(p.started_at).toISOString().slice(0, 10)
+            : "",
+          endDate: p.ended_at
+            ? new Date(p.ended_at).toISOString().slice(0, 10)
+            : "",
+          imageUrl: p.image_url ?? "",
+          linkUrl: p.link_url ?? "",
+          isActive: p.is_active,
+          createdAt: p.created_at.toISOString().slice(0, 10),
+        }))
+      : [];
 
   const filteredPopups = popups.filter((popup) =>
-    popup.title.toLowerCase().includes(searchQuery.toLowerCase())
+    popup.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handlePopupSubmit = (popupData: PopupFormData) => {
@@ -226,7 +236,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
       {/* Sidebar */}
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <AdminNavbar />
 
@@ -236,12 +246,10 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
             {/* Header */}
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="mb-2 text-3xl font-bold text-gray-900">
                   팝업 관리
                 </h1>
-                <p className="text-gray-600">
-                  사이트 모달 팝업을 관리합니다
-                </p>
+                <p className="text-gray-600">사이트 모달 팝업을 관리합니다</p>
               </div>
               <Button
                 className="gap-2 bg-[#204E3A] hover:bg-[#1a3f2e]"
@@ -258,7 +266,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
             {/* Search Bar */}
             <div className="mb-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="팝업 제목 검색..."
@@ -270,32 +278,32 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
             </div>
 
             {/* Popup List Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-hidden rounded-lg bg-white shadow">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="border-b bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         순서
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         제목
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         기간
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         상태
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         관리
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {filteredPopups.map((popup) => (
                       <tr key={popup.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {popup.sortOrder}
                         </td>
                         <td className="px-6 py-4">
@@ -303,7 +311,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
                             {popup.title}
                           </p>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {popup.startDate} ~ {popup.endDate}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -317,7 +325,7 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
                             {popup.isActive ? "활성" : "비활성"}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
@@ -345,10 +353,12 @@ export default function AdminPopupsPage({ loaderData }: Route.ComponentProps) {
 
               {/* Empty State */}
               {filteredPopups.length === 0 && (
-                <div className="text-center py-12">
+                <div className="py-12 text-center">
                   <Eye className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-4 text-lg font-medium text-gray-900">
-                    {searchQuery ? "검색 결과가 없습니다" : "등록된 팝업이 없습니다"}
+                    {searchQuery
+                      ? "검색 결과가 없습니다"
+                      : "등록된 팝업이 없습니다"}
                   </h3>
                   <p className="mt-2 text-sm text-gray-500">
                     {searchQuery

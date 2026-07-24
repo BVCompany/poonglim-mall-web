@@ -1,43 +1,56 @@
 /**
  * Admin Catalog Management Screen
  */
-
-import { useState, useEffect } from "react";
-import { useFetcher } from "react-router";
 import type { Route } from "./+types/media-catalog";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
-import { Button } from "~/core/components/ui/button";
-import { Input } from "~/core/components/ui/input";
+
+import { desc, eq } from "drizzle-orm";
+import { BookOpen, FileDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useFetcher } from "react-router";
+
+import { ImageUpload } from "~/core/components/image-upload";
 import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
 import { Card } from "~/core/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
+import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
 import { Textarea } from "~/core/components/ui/textarea";
-import { ImageUpload } from "~/core/components/image-upload";
+import db from "~/core/db/drizzle-client.server";
+import type { Catalog } from "~/features/media/lib/queries.server";
+import { catalogs } from "~/features/media/schema";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "~/core/components/ui/dialog";
-import { Plus, Search, Trash2, FileDown, BookOpen, Pencil } from "lucide-react";
-import {
+  type ListSortOrder,
   ListSortSelect,
   sortByCreatedDesc,
   toTimestamp,
-  type ListSortOrder,
 } from "../components/list-sort-control";
-import db from "~/core/db/drizzle-client.server";
-import { catalogs } from "~/features/media/schema";
-import type { Catalog } from "~/features/media/lib/queries.server";
-import { eq, desc } from "drizzle-orm";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
-  const dbCatalogs = await db.select().from(catalogs).orderBy(desc(catalogs.created_at)).catch(() => []);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.CATALOG,
+  );
+  const dbCatalogs = await db
+    .select()
+    .from(catalogs)
+    .orderBy(desc(catalogs.created_at))
+    .catch(() => []);
   return { adminUser, dbCatalogs };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.CATALOG, "catalog");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -78,14 +91,20 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "toggle") {
     const id = Number(fd.get("id"));
     const isActive = fd.get("isActive") === "true";
-    if (id) await db.update(catalogs).set({ is_active: !isActive }).where(eq(catalogs.catalog_id, id));
+    if (id)
+      await db
+        .update(catalogs)
+        .set({ is_active: !isActive })
+        .where(eq(catalogs.catalog_id, id));
     return { success: true };
   }
 
   return { success: false };
 }
 
-export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentProps) {
+export default function AdminMediaCatalogPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbCatalogs } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
@@ -125,7 +144,7 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
 
   const filtered = sortByCreatedDesc(
     dbCatalogs.filter((c) =>
-      c.title.toLowerCase().includes(searchQuery.toLowerCase())
+      c.title.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
     sortOrder,
     (c) => c.catalog_id,
@@ -176,18 +195,25 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <AdminNavbar />
 
         <div className="flex-1 overflow-auto p-8">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">카탈로그 관리</h1>
-              <p className="text-sm text-gray-500 mt-1">총 {dbCatalogs.length}건</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                카탈로그 관리
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                총 {dbCatalogs.length}건
+              </p>
             </div>
-            <Button onClick={openCreateCatalog} className="bg-[#204E3A] hover:bg-[#1a3f2e]">
-              <Plus className="w-4 h-4 mr-2" />
+            <Button
+              onClick={openCreateCatalog}
+              className="bg-[#204E3A] hover:bg-[#1a3f2e]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               카탈로그 등록
             </Button>
           </div>
@@ -195,7 +221,7 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
           {/* Search */}
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="제목 검색..."
                 value={searchQuery}
@@ -209,7 +235,7 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
           {/* Grid */}
           {filtered.length === 0 ? (
             <Card className="p-12 text-center text-gray-500">
-              <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+              <BookOpen className="mx-auto mb-3 h-10 w-10 text-gray-300" />
               <p>등록된 카탈로그가 없습니다.</p>
             </Card>
           ) : (
@@ -217,34 +243,44 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
               {filtered.map((item) => (
                 <Card key={item.catalog_id} className="overflow-hidden">
                   {/* Thumbnail */}
-                  <div className="aspect-[3/4] bg-gray-100 relative">
+                  <div className="relative aspect-[3/4] bg-gray-100">
                     {item.thumbnail_url ? (
-                      <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-12 h-12 text-gray-300" />
+                      <div className="flex h-full w-full items-center justify-center">
+                        <BookOpen className="h-12 w-12 text-gray-300" />
                       </div>
                     )}
                     {!item.is_active && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                         <Badge variant="secondary">비활성</Badge>
                       </div>
                     )}
                   </div>
                   <div className="p-3">
-                    <p className="font-medium text-sm text-gray-900 line-clamp-2 mb-1">{item.title}</p>
+                    <p className="mb-1 line-clamp-2 text-sm font-medium text-gray-900">
+                      {item.title}
+                    </p>
                     {item.file_size && (
                       <p className="text-xs text-gray-400">{item.file_size}</p>
                     )}
-                    <div className="flex flex-wrap gap-1.5 mt-3">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       <a
                         href={item.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 min-w-[100px]"
+                        className="min-w-[100px] flex-1"
                       >
-                        <Button size="sm" variant="outline" className="w-full text-xs">
-                          <FileDown className="w-3 h-3 mr-1" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs"
+                        >
+                          <FileDown className="mr-1 h-3 w-3" />
                           다운로드
                         </Button>
                       </a>
@@ -252,16 +288,18 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
                         size="sm"
                         variant="outline"
                         onClick={() => openEditCatalog(item)}
-                        className="text-xs px-2"
+                        className="px-2 text-xs"
                         aria-label="수정"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleToggle(item.catalog_id, item.is_active)}
-                        className="text-xs px-2"
+                        onClick={() =>
+                          handleToggle(item.catalog_id, item.is_active)
+                        }
+                        className="px-2 text-xs"
                       >
                         {item.is_active ? "숨김" : "표시"}
                       </Button>
@@ -269,9 +307,9 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
                         size="sm"
                         variant="outline"
                         onClick={() => handleDelete(item.catalog_id)}
-                        className="text-red-600 hover:bg-red-50 px-2"
+                        className="px-2 text-red-600 hover:bg-red-50"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -290,19 +328,31 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
           if (!open) setEditingItem(null);
         }}
       >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? "카탈로그 수정" : "카탈로그 등록"}</DialogTitle>
+            <DialogTitle>
+              {editingItem ? "카탈로그 수정" : "카탈로그 등록"}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSaveCatalog} className="space-y-4 mt-2">
+          <form onSubmit={handleSaveCatalog} className="mt-2 space-y-4">
             <div className="space-y-1.5">
               <Label>제목 *</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+              <Input
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                required
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label>설명</Label>
-              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+              <Textarea
+                value={form.description}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
+                rows={3}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -313,7 +363,9 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
                 placeholder="https://..."
                 required
               />
-              <p className="text-xs text-gray-400">Supabase Storage에 업로드 후 URL을 입력하세요</p>
+              <p className="text-xs text-gray-400">
+                Supabase Storage에 업로드 후 URL을 입력하세요
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -328,7 +380,9 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
               />
               <Input
                 value={form.thumbnail_url}
-                onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, thumbnail_url: e.target.value })
+                }
                 placeholder="또는 이미지 URL 직접 입력"
                 className="text-xs"
               />
@@ -336,11 +390,20 @@ export default function AdminMediaCatalogPage({ loaderData }: Route.ComponentPro
 
             <div className="space-y-1.5">
               <Label>파일 크기</Label>
-              <Input value={form.file_size} onChange={(e) => setForm({ ...form, file_size: e.target.value })} placeholder="예: 2.4MB" />
+              <Input
+                value={form.file_size}
+                onChange={(e) =>
+                  setForm({ ...form, file_size: e.target.value })
+                }
+                placeholder="예: 2.4MB"
+              />
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]">
+              <Button
+                type="submit"
+                className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
+              >
                 {editingItem ? "저장" : "등록"}
               </Button>
               <Button

@@ -3,24 +3,46 @@
  *
  * Allows admins to manage main page banners (view, create, edit, delete, reorder).
  */
+import type { Route } from "./+types/settings-banners";
 
+import { eq } from "drizzle-orm";
+import {
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Eye,
+  ImageOff,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/settings-banners";
-import { requireAdminAuth } from "../utils/auth.server";
+
+import { Button } from "~/core/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
+import db from "~/core/db/drizzle-client.server";
+import { getAllBanners } from "~/features/home/lib/queries.server";
+import { banners as bannersTable } from "~/features/home/schema";
+
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
-import { BannerAddModal, type BannerFormData } from "../components/banner-add-modal";
-import { Button } from "~/core/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "~/core/components/ui/dialog";
-import { ChevronUp, ChevronDown, Eye, Edit, Trash2, Plus, ImageOff, X } from "lucide-react";
-import { getAllBanners } from "~/features/home/lib/queries.server";
-import db from "~/core/db/drizzle-client.server";
-import { banners as bannersTable } from "~/features/home/schema";
-import { eq } from "drizzle-orm";
+import {
+  BannerAddModal,
+  type BannerFormData,
+} from "../components/banner-add-modal";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.BANNERS,
+  );
   const dbBanners = await getAllBanners().catch((e) => {
     console.error("[admin/banners] DB 조회 실패:", e);
     return [];
@@ -29,7 +51,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.BANNERS, "banners");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -58,24 +80,32 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "toggle") {
     const id = Number(fd.get("id"));
     const isActive = fd.get("isActive") === "true";
-    if (id) await db.update(bannersTable).set({ is_active: !isActive }).where(eq(bannersTable.banner_id, id));
+    if (id)
+      await db
+        .update(bannersTable)
+        .set({ is_active: !isActive })
+        .where(eq(bannersTable.banner_id, id));
     return { success: true };
   }
 
   if (intent === "update") {
     const id = Number(fd.get("id"));
     if (id) {
-      await db.update(bannersTable).set({
-        title: fd.get("title") as string,
-        subtitle: (fd.get("subtitle") as string) || null,
-        title_en: ((fd.get("titleEn") as string) || "").trim() || null,
-        subtitle_en: ((fd.get("subtitleEn") as string) || "").trim() || null,
-        image_url: fd.get("imageUrl") as string,
-        link_url: (fd.get("linkUrl") as string) || null,
-        button_text: (fd.get("buttonText") as string) || null,
-        button_text_en: ((fd.get("buttonTextEn") as string) || "").trim() || null,
-        is_active: fd.get("isActive") !== "false",
-      }).where(eq(bannersTable.banner_id, id));
+      await db
+        .update(bannersTable)
+        .set({
+          title: fd.get("title") as string,
+          subtitle: (fd.get("subtitle") as string) || null,
+          title_en: ((fd.get("titleEn") as string) || "").trim() || null,
+          subtitle_en: ((fd.get("subtitleEn") as string) || "").trim() || null,
+          image_url: fd.get("imageUrl") as string,
+          link_url: (fd.get("linkUrl") as string) || null,
+          button_text: (fd.get("buttonText") as string) || null,
+          button_text_en:
+            ((fd.get("buttonTextEn") as string) || "").trim() || null,
+          is_active: fd.get("isActive") !== "false",
+        })
+        .where(eq(bannersTable.banner_id, id));
     }
     return { success: true };
   }
@@ -83,7 +113,10 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "reorder") {
     const id = Number(fd.get("id"));
     const direction = fd.get("direction") as "up" | "down";
-    const allBanners = await db.select().from(bannersTable).orderBy(bannersTable.sort_order);
+    const allBanners = await db
+      .select()
+      .from(bannersTable)
+      .orderBy(bannersTable.sort_order);
     const idx = allBanners.findIndex((b) => b.banner_id === id);
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (idx >= 0 && swapIdx >= 0 && swapIdx < allBanners.length) {
@@ -91,8 +124,14 @@ export async function action({ request }: Route.ActionArgs) {
       const b = allBanners[swapIdx];
       const aOrder = a.sort_order ?? idx;
       const bOrder = b.sort_order ?? swapIdx;
-      await db.update(bannersTable).set({ sort_order: bOrder }).where(eq(bannersTable.banner_id, a.banner_id));
-      await db.update(bannersTable).set({ sort_order: aOrder }).where(eq(bannersTable.banner_id, b.banner_id));
+      await db
+        .update(bannersTable)
+        .set({ sort_order: bOrder })
+        .where(eq(bannersTable.banner_id, a.banner_id));
+      await db
+        .update(bannersTable)
+        .set({ sort_order: aOrder })
+        .where(eq(bannersTable.banner_id, b.banner_id));
     }
     return { success: true };
   }
@@ -115,51 +154,65 @@ interface Banner {
   createdAt: string;
 }
 
-
 /** 썸네일 셀 — 이미지 로드 실패 시 아이콘으로 대체 */
 function BannerThumbnail({ src, alt }: { src: string; alt: string }) {
   const [error, setError] = useState(false);
   if (!src || error) {
     return (
-      <div className="h-16 w-24 rounded bg-gray-100 flex items-center justify-center">
+      <div className="flex h-16 w-24 items-center justify-center rounded bg-gray-100">
         <ImageOff className="h-6 w-6 text-gray-300" />
       </div>
     );
   }
   return (
-    <div className="h-16 w-24 rounded overflow-hidden bg-gray-100">
-      <img src={src} alt={alt} className="h-full w-full object-cover" onError={() => setError(true)} />
+    <div className="h-16 w-24 overflow-hidden rounded bg-gray-100">
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={() => setError(true)}
+      />
     </div>
   );
 }
 
 /** 실제 메인 페이지 히어로 배너처럼 보이는 미리보기 모달 */
-function BannerPreviewModal({ banner, open, onClose }: { banner: Banner | null; open: boolean; onClose: () => void }) {
+function BannerPreviewModal({
+  banner,
+  open,
+  onClose,
+}: {
+  banner: Banner | null;
+  open: boolean;
+  onClose: () => void;
+}) {
   const [imgError, setImgError] = useState(false);
 
   if (!banner) return null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="!max-w-[95vw] !w-[95vw] p-0 overflow-hidden bg-transparent border-none shadow-none">
-        <DialogTitle className="sr-only">{banner.title} 배너 미리보기</DialogTitle>
+      <DialogContent className="!w-[95vw] !max-w-[95vw] overflow-hidden border-none bg-transparent p-0 shadow-none">
+        <DialogTitle className="sr-only">
+          {banner.title} 배너 미리보기
+        </DialogTitle>
 
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-50 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70 transition-colors"
+          className="absolute top-3 right-3 z-50 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* 배너 미리보기 — 실제 히어로 섹션 비율 재현 */}
-        <div className="relative w-full aspect-[1840/800] rounded-2xl overflow-hidden bg-gray-200">
+        <div className="relative aspect-[1840/800] w-full overflow-hidden rounded-2xl bg-gray-200">
           {/* 배경 이미지 */}
           {banner.imageUrl && !imgError ? (
             <img
               src={banner.imageUrl}
               alt={banner.title}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
               onError={() => setImgError(true)}
             />
           ) : (
@@ -172,7 +225,7 @@ function BannerPreviewModal({ banner, open, onClose }: { banner: Banner | null; 
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
           {/* 텍스트 영역 — 실제 히어로와 동일한 위치 */}
-          <div className="absolute bottom-8 left-10 flex flex-col gap-2 max-w-xl">
+          <div className="absolute bottom-8 left-10 flex max-w-xl flex-col gap-2">
             {/* 제목 (위 작은 글씨) */}
             {banner.title && (
               <p
@@ -185,7 +238,7 @@ function BannerPreviewModal({ banner, open, onClose }: { banner: Banner | null; 
             {/* 부제목 (굵고 큰 글씨) */}
             {(banner.subtitle || banner.buttonText) && (
               <h2
-                className="text-2xl font-bold text-[#204E3A] leading-snug"
+                className="text-2xl leading-snug font-bold text-[#204E3A]"
                 style={{ letterSpacing: "-0.04em" }}
               >
                 {banner.subtitle}
@@ -195,28 +248,43 @@ function BannerPreviewModal({ banner, open, onClose }: { banner: Banner | null; 
             )}
             {/* 링크 표시 */}
             {banner.linkUrl && (
-              <p className="text-xs text-[#204E3A]/70 mt-1">
+              <p className="mt-1 text-xs text-[#204E3A]/70">
                 🔗 {banner.linkUrl}
               </p>
             )}
           </div>
 
           {/* 슬라이드 카운터 배지 (참고용) */}
-          <div className="absolute bottom-8 left-10 mt-20" style={{ top: "auto", bottom: "1.5rem", left: "2.5rem" }}>
-          </div>
+          <div
+            className="absolute bottom-8 left-10 mt-20"
+            style={{ top: "auto", bottom: "1.5rem", left: "2.5rem" }}
+          ></div>
 
           {/* 미리보기 라벨 */}
-          <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+          <div className="absolute top-3 left-3 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
             미리보기
           </div>
         </div>
 
         {/* 배너 정보 요약 */}
-        <div className="bg-white rounded-b-xl px-5 py-3 flex items-center gap-6 text-sm text-gray-600 border-t">
-          <span><span className="font-medium text-gray-800">제목:</span> {banner.title || "—"}</span>
-          <span><span className="font-medium text-gray-800">부제목:</span> {banner.subtitle || "—"}</span>
-          {banner.linkUrl && <span><span className="font-medium text-gray-800">링크:</span> {banner.linkUrl}</span>}
-          <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${banner.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+        <div className="flex items-center gap-6 rounded-b-xl border-t bg-white px-5 py-3 text-sm text-gray-600">
+          <span>
+            <span className="font-medium text-gray-800">제목:</span>{" "}
+            {banner.title || "—"}
+          </span>
+          <span>
+            <span className="font-medium text-gray-800">부제목:</span>{" "}
+            {banner.subtitle || "—"}
+          </span>
+          {banner.linkUrl && (
+            <span>
+              <span className="font-medium text-gray-800">링크:</span>{" "}
+              {banner.linkUrl}
+            </span>
+          )}
+          <span
+            className={`ml-auto rounded-full px-2 py-0.5 text-xs font-medium ${banner.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+          >
             {banner.isActive ? "활성" : "비활성"}
           </span>
         </div>
@@ -232,27 +300,30 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
   const [previewTarget, setPreviewTarget] = useState<Banner | null>(null);
   const fetcher = useFetcher();
 
-  const banners: Banner[] = dbBanners.length > 0
-    ? dbBanners.map((b, idx) => ({
-        id: String(b.banner_id),
-        order: b.sort_order ?? idx + 1,
-        imageUrl: b.image_url,
-        title: b.title,
-        subtitle: b.subtitle ?? "",
-        titleEn: b.title_en ?? "",
-        subtitleEn: b.subtitle_en ?? "",
-        linkUrl: b.link_url ?? "",
-        buttonText: b.button_text ?? "",
-        buttonTextEn: b.button_text_en ?? "",
-        isActive: b.is_active,
-        createdAt: b.created_at.toISOString().slice(0, 10),
-      }))
-    : [];
+  const banners: Banner[] =
+    dbBanners.length > 0
+      ? dbBanners.map((b, idx) => ({
+          id: String(b.banner_id),
+          order: b.sort_order ?? idx + 1,
+          imageUrl: b.image_url,
+          title: b.title,
+          subtitle: b.subtitle ?? "",
+          titleEn: b.title_en ?? "",
+          subtitleEn: b.subtitle_en ?? "",
+          linkUrl: b.link_url ?? "",
+          buttonText: b.button_text ?? "",
+          buttonTextEn: b.button_text_en ?? "",
+          isActive: b.is_active,
+          createdAt: b.created_at.toISOString().slice(0, 10),
+        }))
+      : [];
 
   const handleAddBanner = (bannerData: BannerFormData) => {
     const fd = new FormData();
     fd.append("intent", "create");
-    Object.entries(bannerData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    Object.entries(bannerData).forEach(([k, v]) =>
+      fd.append(k, String(v ?? "")),
+    );
     fetcher.submit(fd, { method: "POST" });
     setIsAddModalOpen(false);
   };
@@ -262,7 +333,9 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
     const fd = new FormData();
     fd.append("intent", "update");
     fd.append("id", editTarget.id);
-    Object.entries(bannerData).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    Object.entries(bannerData).forEach(([k, v]) =>
+      fd.append(k, String(v ?? "")),
+    );
     fetcher.submit(fd, { method: "POST" });
     setEditTarget(null);
   };
@@ -310,14 +383,16 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <AdminNavbar />
 
         <div className="flex-1 overflow-auto">
           <div className="p-8">
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">메인 배너 관리</h1>
+                <h1 className="mb-2 text-3xl font-bold text-gray-900">
+                  메인 배너 관리
+                </h1>
                 <p className="text-gray-600">홈페이지 메인 배너를 관리하세요</p>
               </div>
               <Button
@@ -329,59 +404,88 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
               </Button>
             </div>
 
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b px-6 py-4">
                 <h2 className="font-semibold text-gray-900">배너 목록</h2>
-                <p className="text-sm text-gray-600 mt-1">현재 등록된 배너 ({banners.length}개)</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  현재 등록된 배너 ({banners.length}개)
+                </p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="border-b bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">순서</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">썸네일</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">링크</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        순서
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        썸네일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        제목
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        링크
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        등록일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        관리
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {banners.map((banner, index) => (
                       <tr key={banner.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-1 items-center">
+                          <div className="flex flex-col items-center gap-1">
                             <button
                               onClick={() => handleMoveUp(banner.id)}
                               disabled={index === 0}
-                              className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ChevronUp className="h-4 w-4" />
                             </button>
-                            <span className="text-sm font-medium text-gray-900">{banner.order}</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {banner.order}
+                            </span>
                             <button
                               onClick={() => handleMoveDown(banner.id)}
                               disabled={index === banners.length - 1}
-                              className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ChevronDown className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <BannerThumbnail src={banner.imageUrl} alt={banner.title} />
+                          <BannerThumbnail
+                            src={banner.imageUrl}
+                            alt={banner.title}
+                          />
                         </td>
                         <td className="px-6 py-4">
                           <div className="max-w-xs">
-                            <p className="text-sm font-medium text-gray-900 truncate">{banner.title}</p>
-                            <p className="text-xs text-gray-500 truncate mt-1">{banner.subtitle}</p>
+                            <p className="truncate text-sm font-medium text-gray-900">
+                              {banner.title}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-gray-500">
+                              {banner.subtitle}
+                            </p>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{banner.linkUrl || "—"}</div>
-                          <div className="text-xs text-gray-500 mt-1">{banner.buttonText}</div>
+                          <div className="text-sm text-gray-900">
+                            {banner.linkUrl || "—"}
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500">
+                            {banner.buttonText}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
@@ -395,15 +499,17 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                banner.isActive ? "translate-x-6" : "translate-x-1"
+                                banner.isActive
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
                               }`}
                             />
                           </button>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {banner.createdAt}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
@@ -441,10 +547,14 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
               </div>
 
               {banners.length === 0 && (
-                <div className="text-center py-12">
+                <div className="py-12 text-center">
                   <Eye className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">등록된 배너가 없습니다</h3>
-                  <p className="mt-2 text-sm text-gray-500">새 배너를 추가하여 메인 페이지를 꾸며보세요</p>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">
+                    등록된 배너가 없습니다
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    새 배너를 추가하여 메인 페이지를 꾸며보세요
+                  </p>
                 </div>
               )}
             </div>
@@ -465,17 +575,21 @@ export default function AdminBannersPage({ loaderData }: Route.ComponentProps) {
         onOpenChange={(o) => !o && setEditTarget(null)}
         onSubmit={handleUpdateBanner}
         editId={editTarget?.id}
-        initialData={editTarget ? {
-          title: editTarget.title,
-          subtitle: editTarget.subtitle,
-          titleEn: editTarget.titleEn,
-          subtitleEn: editTarget.subtitleEn,
-          imageUrl: editTarget.imageUrl,
-          linkUrl: editTarget.linkUrl,
-          buttonText: editTarget.buttonText,
-          buttonTextEn: editTarget.buttonTextEn,
-          isActive: editTarget.isActive,
-        } : undefined}
+        initialData={
+          editTarget
+            ? {
+                title: editTarget.title,
+                subtitle: editTarget.subtitle,
+                titleEn: editTarget.titleEn,
+                subtitleEn: editTarget.subtitleEn,
+                imageUrl: editTarget.imageUrl,
+                linkUrl: editTarget.linkUrl,
+                buttonText: editTarget.buttonText,
+                buttonTextEn: editTarget.buttonTextEn,
+                isActive: editTarget.isActive,
+              }
+            : undefined
+        }
       />
 
       {/* 배너 미리보기 모달 */}

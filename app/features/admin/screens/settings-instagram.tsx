@@ -4,7 +4,9 @@
  * 메인 인스타그램 섹션에 직접 노출할 이미지를 관리(등록/수정/삭제/순서/활성)합니다.
  * 메타(인스타) 연동과 별개로, 연동 전/대체용으로 직접 등록한 이미지를 노출합니다.
  */
+import type { Route } from "./+types/settings-instagram";
 
+import { eq } from "drizzle-orm";
 import {
   ChevronDown,
   ChevronUp,
@@ -18,23 +20,23 @@ import { useFetcher } from "react-router";
 
 import { Button } from "~/core/components/ui/button";
 import db from "~/core/db/drizzle-client.server";
-import {
-  getAllInstagramPosts,
-} from "~/features/home/lib/queries.server";
+import { getAllInstagramPosts } from "~/features/home/lib/queries.server";
 import { instagramPosts as instagramPostsTable } from "~/features/home/schema";
-import { eq } from "drizzle-orm";
 
-import type { Route } from "./+types/settings-instagram";
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import {
   InstagramPostAddModal,
   type InstagramPostFormData,
 } from "../components/instagram-post-add-modal";
-import { requireAdminAuth } from "../utils/auth.server";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.INSTAGRAM,
+  );
   const dbPosts = await getAllInstagramPosts().catch((e) => {
     console.error("[admin/instagram] DB 조회 실패:", e);
     return [];
@@ -43,7 +45,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.INSTAGRAM, "instagram");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -229,9 +231,9 @@ export default function AdminInstagramPage({
                   인스타그램 섹션 관리
                 </h1>
                 <p className="text-gray-600">
-                  메인 인스타그램 섹션에 직접 노출할 이미지를 관리하세요.
-                  등록된 이미지가 있으면 메인에 우선 노출되며, 없으면 기본
-                  이미지가 표시됩니다.
+                  메인 인스타그램 섹션에 직접 노출할 이미지를 관리하세요. 등록된
+                  이미지가 있으면 메인에 우선 노출되며, 없으면 기본 이미지가
+                  표시됩니다.
                 </p>
               </div>
               <Button
@@ -255,25 +257,25 @@ export default function AdminInstagramPage({
                 <table className="w-full">
                   <thead className="border-b bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         순서
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         이미지
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         링크
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         메모
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         상태
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         등록일
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         관리
                       </th>
                     </tr>
@@ -281,7 +283,7 @@ export default function AdminInstagramPage({
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {posts.map((post, index) => (
                       <tr key={post.id} className="hover:bg-gray-50">
-                        <td className="whitespace-nowrap px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col items-center gap-1">
                             <button
                               onClick={() => move(post.id, "up")}
@@ -302,7 +304,7 @@ export default function AdminInstagramPage({
                             </button>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <InstaThumbnail
                             src={post.imageUrl}
                             alt={post.caption || "instagram"}
@@ -322,7 +324,7 @@ export default function AdminInstagramPage({
                             {post.caption || "—"}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             type="button"
                             role="switch"
@@ -334,15 +336,17 @@ export default function AdminInstagramPage({
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                post.isActive ? "translate-x-6" : "translate-x-1"
+                                post.isActive
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
                               }`}
                             />
                           </button>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {post.createdAt}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"

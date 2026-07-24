@@ -2,54 +2,72 @@
  * Admin Page Banner Management
  * 각 페이지 상단 배너를 관리하는 화면
  */
+import type { Route } from "./+types/settings-page-banners";
+
+import { eq } from "drizzle-orm";
+import { CheckCircle2, ImageOff } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/settings-page-banners";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
+
+import { ImageUpload } from "~/core/components/image-upload";
 import { Button } from "~/core/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/core/components/ui/card";
 import { Input } from "~/core/components/ui/input";
 import { Label } from "~/core/components/ui/label";
-import { ImageUpload } from "~/core/components/image-upload";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/core/components/ui/card";
-import { CheckCircle2, ImageOff } from "lucide-react";
-import { getAllPageBanners } from "~/features/page-banners/lib/queries.server";
-import { pageBanners, PAGE_KEY_LABELS } from "~/features/page-banners/schema";
 import db from "~/core/db/drizzle-client.server";
-import { eq } from "drizzle-orm";
+import { getAllPageBanners } from "~/features/page-banners/lib/queries.server";
+import { PAGE_KEY_LABELS, pageBanners } from "~/features/page-banners/schema";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.PAGE_BANNERS,
+  );
   const dbBanners = await getAllPageBanners().catch(() => []);
   return { adminUser, dbBanners };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.PAGE_BANNERS, "page_banners");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
   if (intent === "upsert") {
-    const pageKey   = fd.get("page_key") as string;
-    const existing  = await db.select().from(pageBanners)
-      .where(eq(pageBanners.page_key, pageKey)).limit(1);
+    const pageKey = fd.get("page_key") as string;
+    const existing = await db
+      .select()
+      .from(pageBanners)
+      .where(eq(pageBanners.page_key, pageKey))
+      .limit(1);
 
     const values = {
-      page_key:  pageKey,
-      title:     (fd.get("title") as string) ?? "",
-      subtitle:  (fd.get("subtitle") as string) || null,
-      title_en:  ((fd.get("title_en") as string) || "").trim() || null,
+      page_key: pageKey,
+      title: (fd.get("title") as string) ?? "",
+      subtitle: (fd.get("subtitle") as string) || null,
+      title_en: ((fd.get("title_en") as string) || "").trim() || null,
       subtitle_en: ((fd.get("subtitle_en") as string) || "").trim() || null,
       image_url: (fd.get("image_url") as string) || null,
-      link_url:  (fd.get("link_url") as string) || null,
+      link_url: (fd.get("link_url") as string) || null,
       link_text: (fd.get("link_text") as string) || null,
       link_text_en: ((fd.get("link_text_en") as string) || "").trim() || null,
       is_active: fd.get("is_active") !== "false",
     };
 
     if (existing.length > 0) {
-      await db.update(pageBanners).set(values)
+      await db
+        .update(pageBanners)
+        .set(values)
         .where(eq(pageBanners.page_key, pageKey));
     } else {
       await db.insert(pageBanners).values(values);
@@ -82,14 +100,19 @@ type DbBanner = {
 
 const PAGE_KEYS = Object.keys(PAGE_KEY_LABELS);
 
-function BannerForm({ pageKey, banner, savedKey }: {
+function BannerForm({
+  pageKey,
+  banner,
+  savedKey,
+}: {
   pageKey: string;
   banner?: DbBanner;
   savedKey: string | null;
 }) {
   const fetcher = useFetcher();
   const isSaving = fetcher.state === "submitting";
-  const isSaved = !isSaving && fetcher.data?.success && fetcher.data?.page_key === pageKey;
+  const isSaved =
+    !isSaving && fetcher.data?.success && fetcher.data?.page_key === pageKey;
 
   const [imageUrl, setImageUrl] = useState(banner?.image_url ?? "");
 
@@ -98,13 +121,21 @@ function BannerForm({ pageKey, banner, savedKey }: {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base">{PAGE_KEY_LABELS[pageKey]}</CardTitle>
-            <CardDescription className="text-xs mt-0.5">/{pageKey} 페이지 상단 배너</CardDescription>
+            <CardTitle className="text-base">
+              {PAGE_KEY_LABELS[pageKey]}
+            </CardTitle>
+            <CardDescription className="mt-0.5 text-xs">
+              /{pageKey} 페이지 상단 배너
+            </CardDescription>
           </div>
           {banner && (
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              banner.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-            }`}>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                banner.is_active
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
               {banner.is_active ? "활성" : "비활성"}
             </span>
           )}
@@ -166,7 +197,7 @@ function BannerForm({ pageKey, banner, savedKey }: {
                 placeholder="예: 더 알아보기"
               />
             </div>
-            <div className="space-y-1.5 col-span-2">
+            <div className="col-span-2 space-y-1.5">
               <Label className="text-xs">버튼 텍스트 (영문)</Label>
               <Input
                 name="link_text_en"
@@ -179,13 +210,17 @@ function BannerForm({ pageKey, banner, savedKey }: {
           {/* 배경 이미지 */}
           <div className="space-y-2">
             <Label className="text-xs">배경 이미지</Label>
-            <div className="flex gap-4 items-start">
+            <div className="flex items-start gap-4">
               {/* 썸네일 */}
-              <div className="w-32 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 flex items-center justify-center border">
+              <div className="flex h-20 w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100">
                 {imageUrl ? (
-                  <img src={imageUrl} alt="배너 미리보기" className="w-full h-full object-cover" />
+                  <img
+                    src={imageUrl}
+                    alt="배너 미리보기"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <ImageOff className="w-6 h-6 text-gray-300" />
+                  <ImageOff className="h-6 w-6 text-gray-300" />
                 )}
               </div>
               <div className="flex-1 space-y-2">
@@ -236,7 +271,7 @@ function BannerForm({ pageKey, banner, savedKey }: {
             </div>
             {isSaved && (
               <div className="flex items-center gap-1.5 text-sm text-emerald-600">
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="h-4 w-4" />
                 저장되었습니다.
               </div>
             )}
@@ -247,11 +282,13 @@ function BannerForm({ pageKey, banner, savedKey }: {
   );
 }
 
-export default function AdminPageBannersPage({ loaderData }: Route.ComponentProps) {
+export default function AdminPageBannersPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbBanners } = loaderData;
 
   const bannerMap = Object.fromEntries(
-    dbBanners.map((b) => [b.page_key, b as DbBanner])
+    dbBanners.map((b) => [b.page_key, b as DbBanner]),
   );
 
   return (
@@ -261,9 +298,12 @@ export default function AdminPageBannersPage({ loaderData }: Route.ComponentProp
         <AdminNavbar />
         <div className="flex-1 overflow-auto p-6 md:p-8">
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">페이지 배너 관리</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              페이지 배너 관리
+            </h1>
             <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-gray-600">
-              각 페이지 상단에 표시되는 배너를 관리합니다. 저장하지 않은 페이지는 배너가 표시되지 않습니다.
+              각 페이지 상단에 표시되는 배너를 관리합니다. 저장하지 않은
+              페이지는 배너가 표시되지 않습니다.
             </p>
           </div>
 

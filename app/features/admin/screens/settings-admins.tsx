@@ -1,35 +1,46 @@
 /**
  * Admin User Management Page
- * 
+ *
  * Allows super admins to manage admin accounts and permissions.
  */
+import type { Route } from "./+types/settings-admins";
 
+import { Edit, Plus, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/settings-admins";
-import { requireAdminAuth } from "../utils/auth.server";
+
+import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
+
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import {
+  type AdminRole,
   AdminUserAddModal,
   type AdminUserFormData,
-  type AdminRole,
-  type AdminPermission,
 } from "../components/admin-user-add-modal";
-import { Button } from "~/core/components/ui/button";
-import { Badge } from "~/core/components/ui/badge";
-import { Edit, Trash2, Plus, UserPlus } from "lucide-react";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireSuperAdmin } from "../utils/auth.server";
+import { getPermissionLabel } from "../utils/permissions";
 
 /**
  * Loader: Require admin authentication
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireSuperAdmin(request);
   const db = (await import("~/core/db/drizzle-client.server")).default;
   const { admins } = await import("~/features/admin/schema");
   const { eq } = await import("drizzle-orm");
   const dbAdmins = await db
-    .select({ admin_id: admins.admin_id, name: admins.name, email: admins.email, role: admins.role, permissions: admins.permissions, is_active: admins.is_active, created_at: admins.created_at })
+    .select({
+      admin_id: admins.admin_id,
+      name: admins.name,
+      email: admins.email,
+      role: admins.role,
+      permissions: admins.permissions,
+      is_active: admins.is_active,
+      created_at: admins.created_at,
+    })
     .from(admins)
     .where(eq(admins.is_active, true))
     .catch(() => []);
@@ -37,8 +48,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const currentAdmin = await requireAdminAuth(request);
-  if (currentAdmin.role !== "super_admin") return { error: "권한이 없습니다." };
+  await requireSuperAdmin(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.ADMINS, "admins");
 
   const db = (await import("~/core/db/drizzle-client.server")).default;
   const { admins } = await import("~/features/admin/schema");
@@ -51,21 +62,55 @@ export async function action({ request }: Route.ActionArgs) {
     const password = fd.get("password") as string;
     const hash = await bcrypt.hash(password, 10);
     const roleRaw = fd.get("role") as string;
-    const dbRole: "super" | "admin" = roleRaw === "super" || roleRaw === "super_admin" ? "super" : "admin";
+    const dbRole: "super" | "admin" =
+      roleRaw === "super" || roleRaw === "super_admin" ? "super" : "admin";
     await db.insert(admins).values({
       name: fd.get("name") as string,
       email: fd.get("email") as string,
       password_hash: hash,
       role: dbRole,
-      permissions: fd.get("permissions") ? (fd.get("permissions") as string).split(",") : [],
+      permissions: fd.get("permissions")
+        ? (fd.get("permissions") as string).split(",")
+        : [],
       is_active: true,
     });
     return { success: true };
   }
 
+  if (intent === "update") {
+    const id = Number(fd.get("id"));
+    const roleRaw = fd.get("role") as string;
+    const dbRole: "super" | "admin" =
+      roleRaw === "super" || roleRaw === "super_admin" ? "super" : "admin";
+    const password = (fd.get("password") as string | null)?.trim();
+    const values: {
+      name: string;
+      email: string;
+      role: "super" | "admin";
+      permissions: string[];
+      password_hash?: string;
+    } = {
+      name: fd.get("name") as string,
+      email: fd.get("email") as string,
+      role: dbRole,
+      permissions: fd.get("permissions")
+        ? (fd.get("permissions") as string).split(",")
+        : [],
+    };
+    if (password) {
+      values.password_hash = await bcrypt.hash(password, 10);
+    }
+    if (id) await db.update(admins).set(values).where(eq(admins.admin_id, id));
+    return { success: true };
+  }
+
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.update(admins).set({ is_active: false }).where(eq(admins.admin_id, id));
+    if (id)
+      await db
+        .update(admins)
+        .set({ is_active: false })
+        .where(eq(admins.admin_id, id));
     return { success: true };
   }
 
@@ -77,28 +122,29 @@ interface AdminUser {
   name: string;
   email: string;
   role: AdminRole;
-  permissions: AdminPermission[];
+  permissions: string[];
   createdAt: string;
 }
-
 
 export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
   const { adminUser, dbAdmins } = loaderData;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const fetcher = useFetcher();
 
   const dbRoleToAdminRole = (r: string): AdminRole =>
     r === "super" ? "super" : "general";
-  const admins: AdminUser[] = dbAdmins.length > 0
-    ? dbAdmins.map((a) => ({
-        id: String(a.admin_id),
-        name: a.name,
-        email: a.email,
-        role: dbRoleToAdminRole(a.role),
-        permissions: (a.permissions ?? []) as AdminPermission[],
-        createdAt: a.created_at.toISOString().slice(0, 10),
-      }))
-    : [];
+  const admins: AdminUser[] =
+    dbAdmins.length > 0
+      ? dbAdmins.map((a) => ({
+          id: String(a.admin_id),
+          name: a.name,
+          email: a.email,
+          role: dbRoleToAdminRole(a.role),
+          permissions: a.permissions ?? [],
+          createdAt: a.created_at.toISOString().slice(0, 10),
+        }))
+      : [];
 
   const handleAddAdmin = (adminData: AdminUserFormData) => {
     const fd = new FormData();
@@ -112,8 +158,18 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
     setIsAddModalOpen(false);
   };
 
-  const handleEdit = (id: string) => {
-    console.log("Edit admin:", id);
+  const handleEditAdmin = (adminData: AdminUserFormData) => {
+    if (!editingAdmin) return;
+    const fd = new FormData();
+    fd.append("intent", "update");
+    fd.append("id", editingAdmin.id);
+    fd.append("name", adminData.name);
+    fd.append("email", adminData.email);
+    fd.append("password", adminData.password ?? "");
+    fd.append("role", adminData.role);
+    fd.append("permissions", adminData.permissions.join(","));
+    fetcher.submit(fd, { method: "POST" });
+    setEditingAdmin(null);
   };
 
   const handleDelete = (id: string) => {
@@ -128,24 +184,12 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
     return role === "super" ? "슈퍼 관리자" : "일반 관리자";
   };
 
-  const getPermissionLabel = (permission: AdminPermission) => {
-    const labels: Record<AdminPermission, string> = {
-      products: "제품 관리",
-      recipes: "레시피 관리",
-      events: "이벤트/공지 관리",
-      careers: "채용 공고 관리",
-      banners: "배너 관리",
-      admins: "관리자 관리",
-    };
-    return labels[permission];
-  };
-
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <AdminNavbar />
 
@@ -155,7 +199,7 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
             {/* Header */}
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="mb-2 text-3xl font-bold text-gray-900">
                   관리자 계정 관리
                 </h1>
                 <p className="text-gray-600">
@@ -172,45 +216,45 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
             </div>
 
             {/* Admin List */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b px-6 py-4">
                 <h2 className="font-semibold text-gray-900">관리자 목록</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="mt-1 text-sm text-gray-600">
                   현재 등록된 관리자 계정 ({admins.length}명)
                 </p>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="border-b bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         이름
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         이메일
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         역할
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         권한
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         등록일
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         관리
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {admins.map((admin) => (
                       <tr key={admin.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
                           {admin.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {admin.email}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -225,26 +269,26 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
                           </Badge>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-2 max-w-sm">
+                          <div className="flex max-w-sm flex-wrap gap-2">
                             {admin.permissions.map((permission) => (
                               <span
                                 key={permission}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded"
+                                className="inline-flex items-center rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
                               >
                                 {getPermissionLabel(permission)}
                               </span>
                             ))}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                           {admin.createdAt}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEdit(admin.id)}
+                              onClick={() => setEditingAdmin(admin)}
                               className="h-8 w-8"
                             >
                               <Edit className="h-4 w-4" />
@@ -267,7 +311,7 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
 
               {/* Empty State */}
               {admins.length === 0 && (
-                <div className="text-center py-12">
+                <div className="py-12 text-center">
                   <UserPlus className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-4 text-lg font-medium text-gray-900">
                     등록된 관리자가 없습니다
@@ -288,7 +332,25 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
         onOpenChange={setIsAddModalOpen}
         onSubmit={handleAddAdmin}
       />
+      <AdminUserAddModal
+        open={Boolean(editingAdmin)}
+        onOpenChange={(open) => {
+          if (!open) setEditingAdmin(null);
+        }}
+        onSubmit={handleEditAdmin}
+        initialData={
+          editingAdmin
+            ? {
+                name: editingAdmin.name,
+                email: editingAdmin.email,
+                password: "",
+                role: editingAdmin.role,
+                permissions: editingAdmin.permissions,
+              }
+            : undefined
+        }
+        mode="edit"
+      />
     </div>
   );
 }
-

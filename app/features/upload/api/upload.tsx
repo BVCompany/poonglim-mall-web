@@ -12,7 +12,8 @@
  */
 import { data } from "react-router";
 import type { Route } from "./+types/upload";
-import { requireAdminAuth } from "~/features/admin/utils/auth.server";
+import { ADMIN_PERMISSIONS } from "~/features/admin/types/auth.types";
+import { requireAdminMutation } from "~/features/admin/utils/auth.server";
 import { uploadFromFormData, type StorageBucket } from "~/core/lib/storage.server";
 
 const ALLOWED_BUCKETS: StorageBucket[] = ["products", "media", "documents"];
@@ -24,13 +25,11 @@ const MAX_SIZES: Record<StorageBucket, number> = {
 };
 
 export async function action({ request }: Route.ActionArgs) {
-  // 관리자 인증 확인
-  await requireAdminAuth(request);
-
   if (request.method !== "POST") {
     return data({ error: "Method not allowed" }, { status: 405 });
   }
 
+  const auditRequest = request.clone();
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -41,6 +40,21 @@ export async function action({ request }: Route.ActionArgs) {
   const bucket = (formData.get("bucket") as StorageBucket) ?? "media";
   const folder = (formData.get("folder") as string) ?? "";
   const file = formData.get("file");
+
+  const folderPermissions: Record<string, string> = {
+    certifications: ADMIN_PERMISSIONS.CERTIFICATIONS,
+    "grade-certificates": ADMIN_PERMISSIONS.GRADE_CERTIFICATES,
+    "library-resources": ADMIN_PERMISSIONS.RESOURCES,
+    "library-resource-covers": ADMIN_PERMISSIONS.RESOURCES,
+  };
+  const permission = folderPermissions[folder];
+  if (!permission) {
+    return data({ error: "허용되지 않은 업로드 경로입니다." }, { status: 403 });
+  }
+  await requireAdminMutation(auditRequest, permission, `upload:${folder}`, [
+    "create",
+    "update",
+  ]);
 
   if (!ALLOWED_BUCKETS.includes(bucket)) {
     return data({ error: `Invalid bucket: ${bucket}` }, { status: 400 });

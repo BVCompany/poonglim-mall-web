@@ -2,37 +2,46 @@
  * Admin FAQ Management Screen
  * FAQ 관리 화면
  */
+import type { FaqFormData } from "../components/faq-add-modal";
+import type { Route } from "./+types/faqs";
+
+import { eq } from "drizzle-orm";
+import { Edit, Eye, EyeOff, Plus, Search, Trash2 } from "lucide-react";
 import { randomUUID } from "node:crypto";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/faqs";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
+
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
-import { Plus, Search, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
-import { faqs } from "~/features/support/schema";
-import { eq } from "drizzle-orm";
 import { getAllFaqs } from "~/features/support/lib/queries.server";
+import { faqs } from "~/features/support/schema";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
 import { FaqAddModal } from "../components/faq-add-modal";
-import type { FaqFormData } from "../components/faq-add-modal";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.FAQS,
+  );
   const dbFaqs = await getAllFaqs().catch(() => []);
   return { adminUser, dbFaqs };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.FAQS, "faqs");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
   if (intent === "create") {
     const locale =
-      ((fd.get("locale") as string) || "ko").toLowerCase() === "en" ? "en" : "ko";
+      ((fd.get("locale") as string) || "ko").toLowerCase() === "en"
+        ? "en"
+        : "ko";
     await db.insert(faqs).values({
       translation_group_id: randomUUID(),
       locale,
@@ -48,14 +57,18 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "update") {
     const id = Number(fd.get("id"));
     if (id) {
-      await db.update(faqs).set({
-        category: (fd.get("category") as FaqFormData["category"]) ?? "general",
-        question: fd.get("question") as string,
-        answer: fd.get("answer") as string,
-        sort_order: Number(fd.get("sort_order") ?? 0),
-        is_active: fd.get("is_active") === "true",
-        updated_at: new Date(),
-      }).where(eq(faqs.faq_id, id));
+      await db
+        .update(faqs)
+        .set({
+          category:
+            (fd.get("category") as FaqFormData["category"]) ?? "general",
+          question: fd.get("question") as string,
+          answer: fd.get("answer") as string,
+          sort_order: Number(fd.get("sort_order") ?? 0),
+          is_active: fd.get("is_active") === "true",
+          updated_at: new Date(),
+        })
+        .where(eq(faqs.faq_id, id));
     }
     return { success: true };
   }
@@ -63,9 +76,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) {
-      const [row] = await db.select().from(faqs).where(eq(faqs.faq_id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(faqs)
+        .where(eq(faqs.faq_id, id))
+        .limit(1);
       if (row) {
-        await db.delete(faqs).where(eq(faqs.translation_group_id, row.translation_group_id));
+        await db
+          .delete(faqs)
+          .where(eq(faqs.translation_group_id, row.translation_group_id));
       }
     }
     return { success: true };
@@ -75,7 +94,11 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const current = fd.get("is_active") === "true";
     if (id) {
-      const [row] = await db.select().from(faqs).where(eq(faqs.faq_id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(faqs)
+        .where(eq(faqs.faq_id, id))
+        .limit(1);
       if (row) {
         await db
           .update(faqs)
@@ -91,19 +114,19 @@ export async function action({ request }: Route.ActionArgs) {
 
 /* ── 카테고리 라벨 ── */
 const CAT_LABEL: Record<string, string> = {
-  product:  "제품문의",
+  product: "제품문의",
   delivery: "주문/배송",
-  b2b:      "B2B",
-  quality:  "품질/안전",
-  general:  "기타",
+  b2b: "B2B",
+  quality: "품질/안전",
+  general: "기타",
 };
 
 const CAT_STYLE: Record<string, string> = {
-  product:  "bg-[#003F2B] text-white",
+  product: "bg-[#003F2B] text-white",
   delivery: "bg-[#EAE3C9] text-[#003F2B]",
-  b2b:      "bg-[#ffd55d] text-gray-800",
-  quality:  "bg-blue-50 text-blue-700",
-  general:  "bg-gray-100 text-gray-600",
+  b2b: "bg-[#ffd55d] text-gray-800",
+  quality: "bg-blue-50 text-blue-700",
+  general: "bg-gray-100 text-gray-600",
 };
 
 /* ── 더미 데이터 ── */
@@ -118,9 +141,10 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
 
   const sourceFaqs = dbFaqs;
 
-  const filtered = sourceFaqs.filter((f) =>
-    f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.answer.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filtered = sourceFaqs.filter(
+    (f) =>
+      f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.answer.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleOpenEdit = (id: number) => {
@@ -137,7 +161,11 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
     setEditingId(id);
   };
 
-  const submitFaq = (data: FaqFormData, intent: "create" | "update", id?: number) => {
+  const submitFaq = (
+    data: FaqFormData,
+    intent: "create" | "update",
+    id?: number,
+  ) => {
     const fd = new FormData();
     fd.append("intent", intent);
     if (id) fd.append("id", String(id));
@@ -172,116 +200,130 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminNavbar />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
-            {/* 헤더 */}
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">FAQ 관리</h1>
-                <p className="mt-1 text-sm text-gray-500">전체 {filtered.length}건</p>
-              </div>
-              <Button
-                onClick={() => setAddOpen(true)}
-                className="flex shrink-0 items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
-              >
-                <Plus className="h-4 w-4" />
-                새 FAQ 등록
-              </Button>
+          {/* 헤더 */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">FAQ 관리</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                전체 {filtered.length}건
+              </p>
             </div>
+            <Button
+              onClick={() => setAddOpen(true)}
+              className="flex shrink-0 items-center gap-2 bg-[#204E3A] text-white hover:bg-[#204E3A]/90"
+            >
+              <Plus className="h-4 w-4" />새 FAQ 등록
+            </Button>
+          </div>
 
-            {/* 검색 */}
-            <div className="mb-4 flex w-full max-w-xl items-center gap-2 lg:max-w-2xl">
-              <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="질문/답변 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+          {/* 검색 */}
+          <div className="mb-4 flex w-full max-w-xl items-center gap-2 lg:max-w-2xl">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="질문/답변 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
+          </div>
 
-            {/* 테이블 */}
-            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-              <table className="w-full min-w-[720px]">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
-                    <th className="px-5 py-3 text-center">순서</th>
-                    <th className="px-5 py-3 text-left">카테고리</th>
-                    <th className="px-5 py-3 text-left">질문</th>
-                    <th className="px-5 py-3 text-left">답변 (요약)</th>
-                    <th className="px-5 py-3 text-center">공개</th>
-                    <th className="px-5 py-3 text-center">관리</th>
+          {/* 테이블 */}
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full min-w-[720px]">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
+                  <th className="px-5 py-3 text-center">순서</th>
+                  <th className="px-5 py-3 text-left">카테고리</th>
+                  <th className="px-5 py-3 text-left">질문</th>
+                  <th className="px-5 py-3 text-left">답변 (요약)</th>
+                  <th className="px-5 py-3 text-center">공개</th>
+                  <th className="px-5 py-3 text-center">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="py-12 text-center text-sm text-gray-400"
+                    >
+                      등록된 FAQ가 없습니다.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-sm text-gray-400">
-                        등록된 FAQ가 없습니다.
+                ) : (
+                  filtered.map((faq, idx) => (
+                    <tr
+                      key={faq.faq_id}
+                      className="border-b border-gray-50 text-sm transition-colors hover:bg-gray-50"
+                      style={
+                        idx === filtered.length - 1
+                          ? { borderBottom: "none" }
+                          : {}
+                      }
+                    >
+                      <td className="px-5 py-3 text-center text-gray-400">
+                        {faq.sort_order}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${CAT_STYLE[faq.category] ?? "bg-gray-100 text-gray-600"}`}
+                        >
+                          {CAT_LABEL[faq.category] ?? faq.category}
+                        </span>
+                      </td>
+                      <td className="max-w-xl min-w-0 px-5 py-3">
+                        <span className="line-clamp-2 font-medium text-gray-800">
+                          {faq.question}
+                        </span>
+                      </td>
+                      <td className="max-w-2xl min-w-0 px-5 py-3">
+                        <span className="line-clamp-2 text-gray-500">
+                          {faq.answer}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <button
+                          onClick={() =>
+                            handleToggleActive(faq.faq_id, faq.is_active)
+                          }
+                          className="transition-colors"
+                          title={faq.is_active ? "비활성화" : "활성화"}
+                        >
+                          {faq.is_active ? (
+                            <Eye className="h-4 w-4 text-[#02633E]" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-gray-300" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenEdit(faq.faq_id)}
+                            className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(faq.faq_id)}
+                            className="h-7 w-7 p-0 text-gray-500 hover:text-red-600"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
-                  ) : (
-                    filtered.map((faq, idx) => (
-                      <tr
-                        key={faq.faq_id}
-                        className="border-b border-gray-50 text-sm transition-colors hover:bg-gray-50"
-                        style={idx === filtered.length - 1 ? { borderBottom: "none" } : {}}
-                      >
-                        <td className="px-5 py-3 text-center text-gray-400">{faq.sort_order}</td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${CAT_STYLE[faq.category] ?? "bg-gray-100 text-gray-600"}`}
-                          >
-                            {CAT_LABEL[faq.category] ?? faq.category}
-                          </span>
-                        </td>
-                        <td className="min-w-0 max-w-xl px-5 py-3">
-                          <span className="line-clamp-2 font-medium text-gray-800">
-                            {faq.question}
-                          </span>
-                        </td>
-                        <td className="min-w-0 max-w-2xl px-5 py-3">
-                          <span className="line-clamp-2 text-gray-500">{faq.answer}</span>
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <button
-                            onClick={() => handleToggleActive(faq.faq_id, faq.is_active)}
-                            className="transition-colors"
-                            title={faq.is_active ? "비활성화" : "활성화"}
-                          >
-                            {faq.is_active ? (
-                              <Eye className="h-4 w-4 text-[#02633E]" />
-                            ) : (
-                              <EyeOff className="h-4 w-4 text-gray-300" />
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenEdit(faq.faq_id)}
-                              className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(faq.faq_id)}
-                              className="h-7 w-7 p-0 text-gray-500 hover:text-red-600"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </main>
       </div>
 
@@ -289,15 +331,23 @@ export default function AdminFaqsScreen({ loaderData }: Route.ComponentProps) {
       <FaqAddModal
         open={addOpen}
         onOpenChange={setAddOpen}
-        onSubmit={(data) => { submitFaq(data, "create"); setAddOpen(false); }}
+        onSubmit={(data) => {
+          submitFaq(data, "create");
+          setAddOpen(false);
+        }}
       />
 
       {/* 수정 모달 */}
       {editingId !== undefined && (
         <FaqAddModal
           open={editingId !== undefined}
-          onOpenChange={(o) => { if (!o) setEditingId(undefined); }}
-          onSubmit={(data) => { submitFaq(data, "update", editingId); setEditingId(undefined); }}
+          onOpenChange={(o) => {
+            if (!o) setEditingId(undefined);
+          }}
+          onSubmit={(data) => {
+            submitFaq(data, "update", editingId);
+            setEditingId(undefined);
+          }}
           editId={editingId}
           initialData={editingData}
         />

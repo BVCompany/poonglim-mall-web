@@ -3,40 +3,54 @@
  *
  * 이벤트·공지 통합 목록 관리 (DB 비어 있을 때 예시 더미 표시)
  */
+import type { EventCategory } from "../types/event.types";
+import type { Route } from "./+types/events";
 
+import { eq } from "drizzle-orm";
+import {
+  CalendarDays,
+  ImageIcon,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { randomUUID } from "node:crypto";
 import { useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/events";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
-import { EventAddModal, type EventFormData } from "../components/event-add-modal";
-import type { EventCategory } from "../types/event.types";
+
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
+import db from "~/core/db/drizzle-client.server";
+import { cn } from "~/core/lib/utils";
 import {
+  type Event,
+  getAllEventsForAdmin,
+} from "~/features/event/lib/queries.server";
+import { events } from "~/features/event/schema";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import {
+  EventAddModal,
+  type EventFormData,
+} from "../components/event-add-modal";
+import {
+  type ListSortOrder,
   ListSortSelect,
   sortByCreatedDesc,
   toTimestamp,
-  type ListSortOrder,
 } from "../components/list-sort-control";
-import { Plus, Search, Pencil, Trash2, CalendarDays, ImageIcon } from "lucide-react";
-import { cn } from "~/core/lib/utils";
-import {
-  getAllEventsForAdmin,
-  type Event,
-} from "~/features/event/lib/queries.server";
-import db from "~/core/db/drizzle-client.server";
-import { events } from "~/features/event/schema";
-import { eq } from "drizzle-orm";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 function parseEventBadge(
   raw: FormDataEntryValue | null,
 ): "hot" | "new" | "ending_soon" | "important" | null {
   const s = String(raw ?? "").trim();
   if (!s) return null;
-  if (s === "hot" || s === "new" || s === "ending_soon" || s === "important") return s;
+  if (s === "hot" || s === "new" || s === "ending_soon" || s === "important")
+    return s;
   return null;
 }
 
@@ -67,20 +81,25 @@ function mapEventToForm(e: Event): EventFormData {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.EVENTS,
+  );
   const dbEvents = await getAllEventsForAdmin().catch(() => []);
   return { adminUser, dbEvents };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.EVENTS, "events");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
   if (intent === "create") {
     const typeRaw = fd.get("type") as string;
     const locale =
-      ((fd.get("locale") as string) || "ko").toLowerCase() === "en" ? "en" : "ko";
+      ((fd.get("locale") as string) || "ko").toLowerCase() === "en"
+        ? "en"
+        : "ko";
     await db.insert(events).values({
       translation_group_id: randomUUID(),
       locale,
@@ -93,8 +112,12 @@ export async function action({ request }: Route.ActionArgs) {
       location: (fd.get("location") as string)?.trim() || null,
       contact: (fd.get("contact") as string)?.trim() || null,
       is_active: fd.get("isActive") === "true",
-      started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
-      ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
+      started_at: fd.get("startDate")
+        ? new Date(fd.get("startDate") as string)
+        : null,
+      ended_at: fd.get("endDate")
+        ? new Date(fd.get("endDate") as string)
+        : null,
     });
     return { success: true };
   }
@@ -115,8 +138,12 @@ export async function action({ request }: Route.ActionArgs) {
         location: (fd.get("location") as string)?.trim() || null,
         contact: (fd.get("contact") as string)?.trim() || null,
         is_active: fd.get("isActive") === "true",
-        started_at: fd.get("startDate") ? new Date(fd.get("startDate") as string) : null,
-        ended_at: fd.get("endDate") ? new Date(fd.get("endDate") as string) : null,
+        started_at: fd.get("startDate")
+          ? new Date(fd.get("startDate") as string)
+          : null,
+        ended_at: fd.get("endDate")
+          ? new Date(fd.get("endDate") as string)
+          : null,
       })
       .where(eq(events.event_id, id));
     return { success: true };
@@ -125,9 +152,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) {
-      const [row] = await db.select().from(events).where(eq(events.event_id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(events)
+        .where(eq(events.event_id, id))
+        .limit(1);
       if (row) {
-        await db.delete(events).where(eq(events.translation_group_id, row.translation_group_id));
+        await db
+          .delete(events)
+          .where(eq(events.translation_group_id, row.translation_group_id));
       }
     }
     return { success: true };
@@ -137,7 +170,11 @@ export async function action({ request }: Route.ActionArgs) {
     const id = Number(fd.get("id"));
     const isActive = fd.get("isActive") === "true";
     if (id) {
-      const [row] = await db.select().from(events).where(eq(events.event_id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(events)
+        .where(eq(events.event_id, id))
+        .limit(1);
       if (row) {
         await db
           .update(events)
@@ -191,10 +228,7 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
     setEditingEvent(null);
   };
 
-  const sourceEvents = useMemo(
-    () => dbEvents,
-    [dbEvents],
-  );
+  const sourceEvents = useMemo(() => dbEvents, [dbEvents]);
 
   const filtered = sortByCreatedDesc(
     sourceEvents.filter((e) =>
@@ -235,7 +269,9 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
 
   const handleDelete = (id: number) => {
     if (isDemoEventRow(id)) {
-      window.alert("예시 더미 데이터는 삭제할 수 없습니다. 실제 데이터를 등록하면 더미 목록은 표시되지 않습니다.");
+      window.alert(
+        "예시 더미 데이터는 삭제할 수 없습니다. 실제 데이터를 등록하면 더미 목록은 표시되지 않습니다.",
+      );
       return;
     }
     if (!confirm("정말 삭제하시겠습니까?")) return;
@@ -266,14 +302,16 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">이벤트/공지 관리</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                이벤트/공지 관리
+              </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
                 이벤트와 공지사항을 추가, 수정, 삭제할 수 있습니다
               </p>
               {dbEvents.length === 0 ? (
                 <p className="mt-2 text-xs text-amber-800/90">
-                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 항목을 추가하면 실제 데이터만
-                  보입니다.
+                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 항목을
+                  추가하면 실제 데이터만 보입니다.
                 </p>
               ) : null}
             </div>
@@ -291,7 +329,7 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
 
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
                 placeholder="제목으로 검색..."
@@ -306,7 +344,9 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
           <div className="flex flex-col gap-4">
             {filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm">
-                {searchQuery.trim() ? "검색 결과가 없습니다." : "표시할 이벤트·공지가 없습니다."}
+                {searchQuery.trim()
+                  ? "검색 결과가 없습니다."
+                  : "표시할 이벤트·공지가 없습니다."}
               </div>
             ) : (
               filtered.map((event) => {
@@ -334,7 +374,9 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
 
                       <div className="min-w-0 flex-1">
                         <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-semibold text-gray-900">{event.title}</h3>
+                          <h3 className="text-base font-semibold text-gray-900">
+                            {event.title}
+                          </h3>
                           <span
                             className={cn(
                               "shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold",
@@ -355,7 +397,9 @@ export default function AdminEvents({ loaderData }: Route.ComponentProps) {
                           </span>
                         </div>
                         {event.summary ? (
-                          <p className="mb-2 line-clamp-2 text-sm text-gray-600">{event.summary}</p>
+                          <p className="mb-2 line-clamp-2 text-sm text-gray-600">
+                            {event.summary}
+                          </p>
                         ) : null}
                         {period ? (
                           <div className="flex items-center gap-1.5 text-xs text-gray-500">

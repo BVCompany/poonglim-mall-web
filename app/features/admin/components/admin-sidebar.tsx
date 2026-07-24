@@ -4,8 +4,6 @@
  * Sidebar navigation component for admin panel.
  * Includes collapsible menu items and user info.
  */
-import type { AdminUser } from "../types/auth.types";
-
 import {
   ChevronDown,
   FileText,
@@ -23,6 +21,12 @@ import { Form, Link, useLocation } from "react-router";
 import { Button } from "~/core/components/ui/button";
 import { cn } from "~/core/lib/utils";
 
+import { ADMIN_PERMISSIONS, type AdminUser } from "../types/auth.types";
+import {
+  hasPermission,
+  menuPermission,
+} from "../utils/permissions";
+
 interface AdminSidebarProps {
   adminUser: AdminUser;
 }
@@ -31,10 +35,13 @@ interface MenuItem {
   id: string;
   title: string;
   icon: React.ElementType;
+  permission?: string;
   href?: string;
   children?: {
     title: string;
     href: string;
+    permission?: string;
+    superOnly?: boolean;
   }[];
 }
 
@@ -50,8 +57,8 @@ const menuItems: MenuItem[] = [
     title: "제품 관리",
     icon: Package,
     children: [
-      { title: "제품 목록", href: "/admin/products" },
-      { title: "카테고리 관리", href: "/admin/product-categories" },
+      { title: "제품 목록", href: "/admin/products", permission: ADMIN_PERMISSIONS.PRODUCTS },
+      { title: "카테고리 관리", href: "/admin/product-categories", permission: ADMIN_PERMISSIONS.PRODUCT_CATEGORIES },
     ],
   },
   {
@@ -59,15 +66,16 @@ const menuItems: MenuItem[] = [
     title: "게시물 관리",
     icon: FileText,
     children: [
-      { title: "공지사항", href: "/admin/notices" },
-      { title: "등급판정서", href: "/admin/grade-certificates" },
-      { title: "FAQ", href: "/admin/faqs" },
-      { title: "품질 & 인증", href: "/admin/certifications" },
-      { title: "이벤트/공지", href: "/admin/events" },
-      { title: "레시피 목록", href: "/admin/recipes" },
-      { title: "뉴스/보도자료", href: "/admin/media/news" },
-      { title: "카탈로그", href: "/admin/media/catalog" },
-      { title: "자료실", href: "/admin/support/resources" },
+      { title: "공지사항", href: "/admin/notices", permission: ADMIN_PERMISSIONS.NOTICES },
+      { title: "등급판정서", href: "/admin/grade-certificates", permission: ADMIN_PERMISSIONS.GRADE_CERTIFICATES },
+      { title: "FAQ", href: "/admin/faqs", permission: ADMIN_PERMISSIONS.FAQS },
+      { title: "품질 & 인증", href: "/admin/certifications", permission: ADMIN_PERMISSIONS.CERTIFICATIONS },
+      { title: "이벤트/공지", href: "/admin/events", permission: ADMIN_PERMISSIONS.EVENTS },
+      { title: "레시피 목록", href: "/admin/recipes", permission: ADMIN_PERMISSIONS.RECIPES },
+      { title: "레시피 카테고리", href: "/admin/recipe-categories", permission: ADMIN_PERMISSIONS.RECIPE_CATEGORIES },
+      { title: "뉴스/보도자료", href: "/admin/media/news", permission: ADMIN_PERMISSIONS.NEWS },
+      { title: "카탈로그", href: "/admin/media/catalog", permission: ADMIN_PERMISSIONS.CATALOG },
+      { title: "자료실", href: "/admin/support/resources", permission: ADMIN_PERMISSIONS.RESOURCES },
     ],
   },
   {
@@ -75,8 +83,8 @@ const menuItems: MenuItem[] = [
     title: "채용 관리",
     icon: Users,
     children: [
-      { title: "채용 공고", href: "/admin/careers" },
-      { title: "지원서 관리", href: "/admin/applications" },
+      { title: "채용 공고", href: "/admin/careers", permission: ADMIN_PERMISSIONS.CAREERS },
+      { title: "지원서 관리", href: "/admin/applications", permission: ADMIN_PERMISSIONS.APPLICATIONS },
     ],
   },
   {
@@ -84,8 +92,8 @@ const menuItems: MenuItem[] = [
     title: "고객 문의",
     icon: MessageSquare,
     children: [
-      { title: "상담 문의", href: "/admin/inquiries/consulting" },
-      { title: "견학 신청", href: "/admin/inquiries/tour" },
+      { title: "상담 문의", href: "/admin/inquiries/consulting", permission: ADMIN_PERMISSIONS.CONSULTING_INQUIRIES },
+      { title: "견학 신청", href: "/admin/inquiries/tour", permission: ADMIN_PERMISSIONS.FACTORY_TOURS },
     ],
   },
   {
@@ -93,10 +101,10 @@ const menuItems: MenuItem[] = [
     title: "배너 관리",
     icon: Image,
     children: [
-      { title: "메인 배너", href: "/admin/settings/banners" },
-      { title: "페이지 배너", href: "/admin/settings/page-banners" },
-      { title: "홈 섹션 관리", href: "/admin/settings/site" },
-      { title: "인스타그램 섹션", href: "/admin/settings/instagram" },
+      { title: "메인 배너", href: "/admin/settings/banners", permission: ADMIN_PERMISSIONS.BANNERS },
+      { title: "페이지 배너", href: "/admin/settings/page-banners", permission: ADMIN_PERMISSIONS.PAGE_BANNERS },
+      { title: "홈 섹션 관리", href: "/admin/settings/site", permission: ADMIN_PERMISSIONS.SITE_HOME },
+      { title: "인스타그램 섹션", href: "/admin/settings/instagram", permission: ADMIN_PERMISSIONS.INSTAGRAM },
     ],
   },
   {
@@ -104,9 +112,16 @@ const menuItems: MenuItem[] = [
     title: "설정",
     icon: Settings,
     children: [
-      { title: "팝업 관리", href: "/admin/settings/popups" },
-      { title: "사이트 설정", href: "/admin/settings/seo" },
-      { title: "관리자 관리", href: "/admin/settings/admins" },
+      {
+        title: "팝업 관리",
+        href: "/admin/settings/popups",
+        permission: ADMIN_PERMISSIONS.POPUPS,
+      },
+      {
+        title: "사이트 설정",
+        href: "/admin/settings/seo",
+        permission: ADMIN_PERMISSIONS.SEO,
+      },
     ],
   },
 ];
@@ -117,6 +132,29 @@ function pathMatchesHref(pathname: string, href: string): boolean {
 
 export function AdminSidebar({ adminUser }: AdminSidebarProps) {
   const location = useLocation();
+  const visibleMenuItems = menuItems
+    .map((item) => {
+      if (
+        item.permission &&
+        !hasPermission(adminUser, menuPermission(item.permission, "read"))
+      ) {
+        return null;
+      }
+      if (!item.children) return item;
+
+      const children = item.children.filter(
+        (child) =>
+          (!child.superOnly || adminUser.role === "super_admin") &&
+          (!child.permission ||
+            hasPermission(
+              adminUser,
+              menuPermission(child.permission, "read"),
+            )),
+      );
+      if (children.length === 0) return null;
+      return { ...item, children };
+    })
+    .filter((item): item is MenuItem => Boolean(item));
   /** 현재 경로와 무관하게 펼쳐 둔 섹션(활성 섹션은 항상 펼침) */
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
@@ -125,7 +163,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
   }, [location.pathname]);
 
   const toggleMenu = (menuId: string) => {
-    const item = menuItems.find((m) => m.id === menuId);
+    const item = visibleMenuItems.find((m) => m.id === menuId);
     if (item && isMenuActive(item)) {
       return;
     }
@@ -173,7 +211,7 @@ export function AdminSidebar({ adminUser }: AdminSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isItemActive = isMenuActive(item);
           const menuExpanded = isExpanded(item);

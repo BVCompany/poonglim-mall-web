@@ -1,13 +1,11 @@
 /**
  * Admin User Add Modal Component
- * 
+ *
  * Modal for adding new admin users in admin panel.
  */
+import { useEffect, useState } from "react";
 
-import { useState, useEffect } from "react";
 import { Button } from "~/core/components/ui/button";
-import { Input } from "~/core/components/ui/input";
-import { Label } from "~/core/components/ui/label";
 import { Checkbox } from "~/core/components/ui/checkbox";
 import {
   Dialog,
@@ -15,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/core/components/ui/dialog";
+import { Input } from "~/core/components/ui/input";
+import { Label } from "~/core/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -23,55 +23,57 @@ import {
   SelectValue,
 } from "~/core/components/ui/select";
 
+import {
+  ADMIN_MENU_OPTIONS,
+  CRUD_OPERATIONS,
+  CRUD_OPERATION_LABELS,
+  expandPermissionsForEditing,
+} from "../utils/permissions";
+
 interface AdminUserAddModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (admin: AdminUserFormData) => void;
+  initialData?: Partial<AdminUserFormData>;
+  mode?: "create" | "edit";
 }
 
 export type AdminRole = "super" | "general";
-
-export type AdminPermission = 
-  | "products"
-  | "recipes"
-  | "events"
-  | "careers"
-  | "banners"
-  | "admins";
 
 export interface AdminUserFormData {
   name: string;
   email: string;
   password: string;
   role: AdminRole;
-  permissions: AdminPermission[];
+  permissions: string[];
 }
 
 export function AdminUserAddModal({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
+  mode = "create",
 }: AdminUserAddModalProps) {
   const [formData, setFormData] = useState<AdminUserFormData>({
-    name: "",
-    email: "",
-    password: "",
-    role: "general",
-    permissions: [],
+    name: initialData?.name ?? "",
+    email: initialData?.email ?? "",
+    password: initialData?.password ?? "",
+    role: initialData?.role ?? "general",
+    permissions: expandPermissionsForEditing(initialData?.permissions ?? []),
   });
 
-  // Reset form when modal closes
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "general",
-        permissions: [],
+        name: initialData?.name ?? "",
+        email: initialData?.email ?? "",
+        password: initialData?.password ?? "",
+        role: initialData?.role ?? "general",
+        permissions: expandPermissionsForEditing(initialData?.permissions ?? []),
       });
     }
-  }, [open]);
+  }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +85,7 @@ export function AdminUserAddModal({
     onOpenChange(false);
   };
 
-  const togglePermission = (permission: AdminPermission) => {
+  const togglePermission = (permission: string) => {
     if (formData.permissions.includes(permission)) {
       setFormData({
         ...formData,
@@ -101,25 +103,18 @@ export function AdminUserAddModal({
     return role === "super" ? "슈퍼 관리자" : "일반 관리자";
   };
 
-  const permissionOptions: { value: AdminPermission; label: string }[] = [
-    { value: "products", label: "제품 관리" },
-    { value: "recipes", label: "레시피 관리" },
-    { value: "events", label: "이벤트/공지 관리" },
-    { value: "careers", label: "채용 공고 관리" },
-    { value: "banners", label: "배너 관리" },
-    { value: "admins", label: "관리자 관리" },
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">새 관리자 추가</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {mode === "edit" ? "관리자 권한 수정" : "새 관리자 추가"}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <p className="text-sm text-gray-600">
-            관리자 정보를 입력하고 권한을 설정하세요
+            관리자 정보를 입력하고 메뉴 권한을 설정하세요
           </p>
 
           {/* Name & Email */}
@@ -161,8 +156,12 @@ export function AdminUserAddModal({
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
-              placeholder="비밀번호를 입력하세요"
-              required
+              placeholder={
+                mode === "edit"
+                  ? "변경할 경우에만 입력하세요"
+                  : "비밀번호를 입력하세요"
+              }
+              required={mode === "create"}
             />
           </div>
 
@@ -190,20 +189,32 @@ export function AdminUserAddModal({
           {/* Permissions */}
           <div className="space-y-3">
             <Label>메뉴 권한</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {permissionOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={option.value}
-                    checked={formData.permissions.includes(option.value)}
-                    onCheckedChange={() => togglePermission(option.value)}
-                  />
-                  <label
-                    htmlFor={option.value}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {option.label}
-                  </label>
+            <div className="overflow-hidden rounded-md border">
+              <div className="grid grid-cols-[minmax(160px,1fr)_repeat(4,72px)] bg-gray-50 px-3 py-2 text-center text-xs font-medium text-gray-600">
+                <span className="text-left">메뉴</span>
+                {CRUD_OPERATIONS.map((operation) => (
+                  <span key={operation}>{CRUD_OPERATION_LABELS[operation]}</span>
+                ))}
+              </div>
+              {ADMIN_MENU_OPTIONS.map((menu) => (
+                <div
+                  key={menu.value}
+                  className="grid grid-cols-[minmax(160px,1fr)_repeat(4,72px)] items-center border-t px-3 py-2"
+                >
+                  <span className="text-sm font-medium">{menu.label}</span>
+                  {CRUD_OPERATIONS.map((operation) => {
+                    const permission = `${menu.value}.${operation}`;
+                    return (
+                      <div key={permission} className="flex justify-center">
+                        <Checkbox
+                          id={permission}
+                          aria-label={`${menu.label} ${CRUD_OPERATION_LABELS[operation]}`}
+                          checked={formData.permissions.includes(permission)}
+                          onCheckedChange={() => togglePermission(permission)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -223,7 +234,7 @@ export function AdminUserAddModal({
               type="submit"
               className="flex-1 bg-[#204E3A] hover:bg-[#1a3f2e]"
             >
-              추가
+              {mode === "edit" ? "수정" : "추가"}
             </Button>
           </div>
         </form>
@@ -231,4 +242,3 @@ export function AdminUserAddModal({
     </Dialog>
   );
 }
-

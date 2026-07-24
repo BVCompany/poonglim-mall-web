@@ -1,24 +1,37 @@
 /**
  * Admin — 고객지원 자료실 (library_resources)
  */
+import type { Route } from "./+types/support-resources";
+
+import { count, desc, eq, sql } from "drizzle-orm";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FolderOpen,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/support-resources";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
-import { Button } from "~/core/components/ui/button";
-import { Input } from "~/core/components/ui/input";
-import { Label } from "~/core/components/ui/label";
-import { Textarea } from "~/core/components/ui/textarea";
-import { Checkbox } from "~/core/components/ui/checkbox";
+
 import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
+import { Checkbox } from "~/core/components/ui/checkbox";
+import { DateTimePicker } from "~/core/components/ui/datetime-picker";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "~/core/components/ui/dialog";
+import { Input } from "~/core/components/ui/input";
+import { Label } from "~/core/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -26,40 +39,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/core/components/ui/select";
-import {
-  Plus,
-  Search,
-  Trash2,
-  Pencil,
-  FolderOpen,
-  Settings,
-  Download,
-  UploadCloud,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Textarea } from "~/core/components/ui/textarea";
 import db from "~/core/db/drizzle-client.server";
-import { archiveCategories, libraryResources } from "~/features/support/schema";
-import { count, eq, desc, sql } from "drizzle-orm";
-import type { LibraryResource } from "~/features/support/lib/queries.server";
-import { getArchiveCategoriesOrdered } from "~/features/support/lib/queries.server";
-import { ArchiveCategoryManageModal } from "../components/archive-category-manage-modal";
-import {
-  ListSortSelect,
-  sortByCreatedDesc,
-  toTimestamp,
-  type ListSortOrder,
-} from "../components/list-sort-control";
-import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
-import { cn } from "~/core/lib/utils";
 import {
   parseDatetimeLocalToDate,
   toDatetimeLocalValue,
 } from "~/core/lib/datetime-local";
-import { DateTimePicker } from "~/core/components/ui/datetime-picker";
+import { cn } from "~/core/lib/utils";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
+import type { LibraryResource } from "~/features/support/lib/queries.server";
+import { getArchiveCategoriesOrdered } from "~/features/support/lib/queries.server";
+import { archiveCategories, libraryResources } from "~/features/support/schema";
 
-const FALLBACK_RESOURCE_CATEGORIES = ["카탈로그", "회사소개", "인증서", "기타"] as const;
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import { ArchiveCategoryManageModal } from "../components/archive-category-manage-modal";
+import {
+  type ListSortOrder,
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+} from "../components/list-sort-control";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
+
+const FALLBACK_RESOURCE_CATEGORIES = [
+  "카탈로그",
+  "회사소개",
+  "인증서",
+  "기타",
+] as const;
 const PROTECTED_ARCHIVE_CATEGORY = "기타";
 
 const PAGE_SIZE = 10;
@@ -67,10 +76,13 @@ const PAGE_SIZE = 10;
 const DOC_INPUT_ACCEPT =
   ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,application/pdf,application/zip,application/x-zip-compressed";
 
-const COVER_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+const COVER_INPUT_ACCEPT =
+  "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 function parsePublishedAtFromForm(fd: FormData): Date {
-  return parseDatetimeLocalToDate(((fd.get("published_at") as string) ?? "").trim());
+  return parseDatetimeLocalToDate(
+    ((fd.get("published_at") as string) ?? "").trim(),
+  );
 }
 
 function formatFileSize(bytes: number): string {
@@ -86,7 +98,10 @@ function extFromFileName(name: string): string {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.RESOURCES,
+  );
   const [rows, dbArchiveCategories] = await Promise.all([
     db
       .select()
@@ -99,7 +114,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.RESOURCES, "resources");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
   const readBool = (k: string) => fd.get(k) === "true";
@@ -148,7 +163,10 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(libraryResources).where(eq(libraryResources.resource_id, id));
+    if (id)
+      await db
+        .delete(libraryResources)
+        .where(eq(libraryResources.resource_id, id));
     return { success: true as const };
   }
 
@@ -156,13 +174,18 @@ export async function action({ request }: Route.ActionArgs) {
     const name = ((fd.get("name") as string) ?? "").trim();
     const nameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
-    if (!name) return { success: false as const, error: "category_validation" as const };
+    if (!name)
+      return { success: false as const, error: "category_validation" as const };
     const [mx] = await db
-      .select({ v: sql<number>`COALESCE(MAX(${archiveCategories.sort_order}), -1)` })
+      .select({
+        v: sql<number>`COALESCE(MAX(${archiveCategories.sort_order}), -1)`,
+      })
       .from(archiveCategories);
     const nextOrder = Number(mx?.v ?? -1) + 1;
     try {
-      await db.insert(archiveCategories).values({ name, name_en: nameEn, color, sort_order: nextOrder });
+      await db
+        .insert(archiveCategories)
+        .values({ name, name_en: nameEn, color, sort_order: nextOrder });
     } catch {
       return { success: false as const, error: "category_duplicate" as const };
     }
@@ -174,14 +197,19 @@ export async function action({ request }: Route.ActionArgs) {
     const newName = ((fd.get("name") as string) ?? "").trim();
     const newNameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
-    if (!id || !newName) return { success: false as const, error: "category_validation" as const };
+    if (!id || !newName)
+      return { success: false as const, error: "category_validation" as const };
     const [row] = await db
       .select()
       .from(archiveCategories)
       .where(eq(archiveCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
-    if (row.name === PROTECTED_ARCHIVE_CATEGORY && newName !== PROTECTED_ARCHIVE_CATEGORY) {
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
+    if (
+      row.name === PROTECTED_ARCHIVE_CATEGORY &&
+      newName !== PROTECTED_ARCHIVE_CATEGORY
+    ) {
       return { success: false as const, error: "category_protected" as const };
     }
     if (newName !== row.name) {
@@ -191,7 +219,10 @@ export async function action({ request }: Route.ActionArgs) {
         .where(eq(archiveCategories.name, newName))
         .limit(1);
       if (dup && dup.category_id !== id) {
-        return { success: false as const, error: "category_duplicate" as const };
+        return {
+          success: false as const,
+          error: "category_duplicate" as const,
+        };
       }
       await db.transaction(async (tx) => {
         await tx
@@ -200,7 +231,12 @@ export async function action({ request }: Route.ActionArgs) {
           .where(eq(libraryResources.category, row.name));
         await tx
           .update(archiveCategories)
-          .set({ name: newName, name_en: newNameEn, color, updated_at: new Date() })
+          .set({
+            name: newName,
+            name_en: newNameEn,
+            color,
+            updated_at: new Date(),
+          })
           .where(eq(archiveCategories.category_id, id));
       });
     } else {
@@ -215,7 +251,8 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "category_set_visibility") {
     const id = Number(fd.get("id"));
     const vis = fd.get("is_visible_on_site") === "true";
-    if (!id) return { success: false as const, error: "category_validation" as const };
+    if (!id)
+      return { success: false as const, error: "category_validation" as const };
     await db
       .update(archiveCategories)
       .set({ is_visible_on_site: vis, updated_at: new Date() })
@@ -225,13 +262,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "category_delete") {
     const id = Number(fd.get("id"));
-    if (!id) return { success: false as const, error: "category_validation" as const };
+    if (!id)
+      return { success: false as const, error: "category_validation" as const };
     const [row] = await db
       .select()
       .from(archiveCategories)
       .where(eq(archiveCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
     if (row.name === PROTECTED_ARCHIVE_CATEGORY) {
       return { success: false as const, error: "category_protected" as const };
     }
@@ -239,8 +278,11 @@ export async function action({ request }: Route.ActionArgs) {
       .select({ n: count() })
       .from(libraryResources)
       .where(eq(libraryResources.category, row.name));
-    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
-    await db.delete(archiveCategories).where(eq(archiveCategories.category_id, id));
+    if (Number(n) > 0)
+      return { success: false as const, error: "category_in_use" as const };
+    await db
+      .delete(archiveCategories)
+      .where(eq(archiveCategories.category_id, id));
     return { success: true as const, intent: "category" as const };
   }
 
@@ -322,7 +364,12 @@ function LibraryFileDropzone({
 }: {
   fileUrl: string;
   fileName: string;
-  onUploaded: (url: string, name: string, sizeLabel: string, ext: string) => void;
+  onUploaded: (
+    url: string,
+    name: string,
+    sizeLabel: string,
+    ext: string,
+  ) => void;
   disabled?: boolean;
 }) {
   const inputId = useId();
@@ -330,25 +377,37 @@ function LibraryFileDropzone({
   const [err, setErr] = useState("");
   const [drag, setDrag] = useState(false);
 
-  const upload = useCallback(async (file: File) => {
-    setState("uploading");
-    setErr("");
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("bucket", "documents");
-    fd.append("folder", "library-resources");
-    try {
-      const res = await fetch("/admin/api/upload", { method: "POST", body: fd });
-      const json = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || json.error) throw new Error(json.error ?? "업로드에 실패했습니다.");
-      const url = json.url!;
-      onUploaded(url, file.name, formatFileSize(file.size), extFromFileName(file.name));
-      setState("idle");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "업로드 오류");
-      setState("error");
-    }
-  }, [onUploaded]);
+  const upload = useCallback(
+    async (file: File) => {
+      setState("uploading");
+      setErr("");
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("bucket", "documents");
+      fd.append("folder", "library-resources");
+      try {
+        const res = await fetch("/admin/api/upload", {
+          method: "POST",
+          body: fd,
+        });
+        const json = (await res.json()) as { url?: string; error?: string };
+        if (!res.ok || json.error)
+          throw new Error(json.error ?? "업로드에 실패했습니다.");
+        const url = json.url!;
+        onUploaded(
+          url,
+          file.name,
+          formatFileSize(file.size),
+          extFromFileName(file.name),
+        );
+        setState("idle");
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "업로드 오류");
+        setState("error");
+      }
+    },
+    [onUploaded],
+  );
 
   const onPick = (files: FileList | null) => {
     const f = files?.[0];
@@ -361,8 +420,12 @@ function LibraryFileDropzone({
         htmlFor={inputId}
         className={cn(
           "relative flex min-h-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 transition-colors",
-          drag ? "border-[#02633E] bg-[#02633E]/5" : "border-gray-200 bg-gray-50",
-          disabled || state === "uploading" ? "pointer-events-none opacity-60" : "hover:border-[#02633E]/50",
+          drag
+            ? "border-[#02633E] bg-[#02633E]/5"
+            : "border-gray-200 bg-gray-50",
+          disabled || state === "uploading"
+            ? "pointer-events-none opacity-60"
+            : "hover:border-[#02633E]/50",
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -383,8 +446,12 @@ function LibraryFileDropzone({
         ) : (
           <>
             <UploadCloud className="h-8 w-8 text-gray-400" />
-            <p className="text-center text-sm font-medium text-gray-700">클릭하여 파일 업로드</p>
-            <p className="text-center text-xs text-gray-500">또는 파일을 여기로 드래그하세요</p>
+            <p className="text-center text-sm font-medium text-gray-700">
+              클릭하여 파일 업로드
+            </p>
+            <p className="text-center text-xs text-gray-500">
+              또는 파일을 여기로 드래그하세요
+            </p>
           </>
         )}
       </label>
@@ -401,10 +468,13 @@ function LibraryFileDropzone({
       />
       {fileUrl && fileName ? (
         <p className="text-xs text-gray-600">
-          선택된 파일: <span className="font-medium text-gray-900">{fileName}</span>
+          선택된 파일:{" "}
+          <span className="font-medium text-gray-900">{fileName}</span>
         </p>
       ) : null}
-      {state === "error" && err ? <p className="text-xs text-red-500">{err}</p> : null}
+      {state === "error" && err ? (
+        <p className="text-xs text-red-500">{err}</p>
+      ) : null}
     </div>
   );
 }
@@ -432,9 +502,13 @@ function LibraryCoverImageDropzone({
       fd.append("bucket", "documents");
       fd.append("folder", "library-resource-covers");
       try {
-        const res = await fetch("/admin/api/upload", { method: "POST", body: fd });
+        const res = await fetch("/admin/api/upload", {
+          method: "POST",
+          body: fd,
+        });
         const json = (await res.json()) as { url?: string; error?: string };
-        if (!res.ok || json.error) throw new Error(json.error ?? "업로드에 실패했습니다.");
+        if (!res.ok || json.error)
+          throw new Error(json.error ?? "업로드에 실패했습니다.");
         onUploaded(json.url!);
         setState("idle");
       } catch (e) {
@@ -456,8 +530,12 @@ function LibraryCoverImageDropzone({
         htmlFor={inputId}
         className={cn(
           "relative flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-4 transition-colors",
-          drag ? "border-[#02633E] bg-[#02633E]/5" : "border-gray-200 bg-gray-50",
-          disabled || state === "uploading" ? "pointer-events-none opacity-60" : "hover:border-[#02633E]/50",
+          drag
+            ? "border-[#02633E] bg-[#02633E]/5"
+            : "border-gray-200 bg-gray-50",
+          disabled || state === "uploading"
+            ? "pointer-events-none opacity-60"
+            : "hover:border-[#02633E]/50",
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -478,8 +556,12 @@ function LibraryCoverImageDropzone({
         ) : (
           <>
             <UploadCloud className="h-6 w-6 text-gray-400" />
-            <p className="text-center text-xs font-medium text-gray-700">목록 썸네일 (JPG, PNG, WEBP)</p>
-            <p className="text-center text-[11px] text-gray-500">클릭 또는 드래그</p>
+            <p className="text-center text-xs font-medium text-gray-700">
+              목록 썸네일 (JPG, PNG, WEBP)
+            </p>
+            <p className="text-center text-[11px] text-gray-500">
+              클릭 또는 드래그
+            </p>
           </>
         )}
       </label>
@@ -496,7 +578,11 @@ function LibraryCoverImageDropzone({
       />
       {imageUrl ? (
         <div className="flex items-center gap-3">
-          <img src={imageUrl} alt="" className="h-16 w-16 rounded-lg object-cover ring-1 ring-gray-200" />
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-16 w-16 rounded-lg object-cover ring-1 ring-gray-200"
+          />
           <Button
             type="button"
             variant="outline"
@@ -512,12 +598,16 @@ function LibraryCoverImageDropzone({
           </Button>
         </div>
       ) : null}
-      {state === "error" && err ? <p className="text-xs text-red-500">{err}</p> : null}
+      {state === "error" && err ? (
+        <p className="text-xs text-red-500">{err}</p>
+      ) : null}
     </div>
   );
 }
 
-export default function AdminSupportResourcesPage({ loaderData }: Route.ComponentProps) {
+export default function AdminSupportResourcesPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, rows, dbArchiveCategories } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
@@ -527,8 +617,12 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [editing, setEditing] = useState<LibraryResource | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm());
-  const resourceFetcher = useFetcher<typeof action>({ key: "admin-support-resources-item" });
-  const categoryFetcher = useFetcher<typeof action>({ key: "admin-support-resources-archive" });
+  const resourceFetcher = useFetcher<typeof action>({
+    key: "admin-support-resources-item",
+  });
+  const categoryFetcher = useFetcher<typeof action>({
+    key: "admin-support-resources-archive",
+  });
 
   const baseRows = rows;
 
@@ -574,7 +668,10 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     if (resourceFetcher.state !== "idle" || !resourceFetcher.data) return;
     const parsed = findActionPayload(resourceFetcher.data);
     if (!parsed || !parsed.success) return;
-    if (parsed.intent === "resource_create" || parsed.intent === "resource_update") {
+    if (
+      parsed.intent === "resource_create" ||
+      parsed.intent === "resource_update"
+    ) {
       setDialogOpen(false);
       setEditing(null);
     }
@@ -584,11 +681,15 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     if (categoryFetcher.state !== "idle" || !categoryFetcher.data) return;
     const parsed = findActionPayload(categoryFetcher.data);
     if (parsed?.error === "category_protected") {
-      window.alert(`「${PROTECTED_ARCHIVE_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
+      window.alert(
+        `「${PROTECTED_ARCHIVE_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`,
+      );
       return;
     }
     if (parsed?.error === "category_in_use") {
-      window.alert("이 카테고리를 사용 중인 자료가 있어 삭제할 수 없습니다. 먼저 해당 자료의 카테고리를 변경하세요.");
+      window.alert(
+        "이 카테고리를 사용 중인 자료가 있어 삭제할 수 없습니다. 먼저 해당 자료의 카테고리를 변경하세요.",
+      );
       return;
     }
     if (parsed?.error === "category_duplicate") {
@@ -608,7 +709,10 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     }
   }, [categoryFetcher.state, categoryFetcher.data]);
 
-  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+  const submitCategoryAction = (
+    intent: string,
+    fields: Record<string, string>,
+  ) => {
     const fd = new FormData();
     fd.append("intent", intent);
     for (const [k, v] of Object.entries(fields)) fd.append(k, v);
@@ -638,7 +742,10 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageRows = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   useEffect(() => {
     if (page !== safePage) setPage(safePage);
@@ -656,7 +763,8 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.file_url.trim() || !form.file_name.trim()) return;
+    if (!form.title.trim() || !form.file_url.trim() || !form.file_name.trim())
+      return;
     const fd = new FormData();
     fd.append("intent", editing ? "update" : "create");
     if (editing) fd.append("id", String(editing.resource_id));
@@ -682,7 +790,12 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
     void resourceFetcher.submit(fd, { method: "POST", flushSync: true });
   };
 
-  const onFileUploaded = (url: string, name: string, sizeLabel: string, ext: string) => {
+  const onFileUploaded = (
+    url: string,
+    name: string,
+    sizeLabel: string,
+    ext: string,
+  ) => {
     setForm((f) => ({
       ...f,
       file_url: url,
@@ -700,14 +813,17 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
         <div className="flex-1 overflow-auto p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">자료실 관리</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                자료실 관리
+              </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
-                카탈로그, 인증서, 회사소개 자료 등 고객지원 자료실에 노출되는 파일과 설명을 관리합니다.
+                카탈로그, 인증서, 회사소개 자료 등 고객지원 자료실에 노출되는
+                파일과 설명을 관리합니다.
               </p>
               {rows.length === 0 ? (
                 <p className="mt-2 text-xs text-amber-800/90">
-                  등록된 자료가 없을 때는 예시 더미 목록이 표시됩니다. 자료를 추가하면 더미는 사라지고 실제
-                  데이터만 보입니다.
+                  등록된 자료가 없을 때는 예시 더미 목록이 표시됩니다. 자료를
+                  추가하면 더미는 사라지고 실제 데이터만 보입니다.
                 </p>
               ) : null}
             </div>
@@ -764,7 +880,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
 
             <div className="flex w-full items-center gap-2 lg:max-w-md">
               <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   className="border-[#02633E]/25 pl-9"
                   placeholder="검색어를 입력하세요"
@@ -787,16 +903,28 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1000px] table-fixed text-left text-sm">
                     <thead>
-                      <tr className="border-b border-gray-100 bg-gray-50/80 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        <th className="w-14 shrink-0 px-4 py-3 whitespace-nowrap">번호</th>
+                      <tr className="border-b border-gray-100 bg-gray-50/80 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                        <th className="w-14 shrink-0 px-4 py-3 whitespace-nowrap">
+                          번호
+                        </th>
                         <th className="min-w-0 px-4 py-3">
                           <span className="block min-w-[280px]">제목</span>
                         </th>
-                        <th className="w-[118px] shrink-0 px-4 py-3 whitespace-nowrap">카테고리</th>
-                        <th className="w-28 shrink-0 px-4 py-3 whitespace-nowrap">등록일</th>
-                        <th className="w-[4.5rem] shrink-0 px-4 py-3 whitespace-nowrap text-right">조회수</th>
-                        <th className="w-14 shrink-0 px-4 py-3 text-center whitespace-nowrap">파일</th>
-                        <th className="w-[5.5rem] shrink-0 px-4 py-3 text-center whitespace-nowrap">관리</th>
+                        <th className="w-[118px] shrink-0 px-4 py-3 whitespace-nowrap">
+                          카테고리
+                        </th>
+                        <th className="w-28 shrink-0 px-4 py-3 whitespace-nowrap">
+                          등록일
+                        </th>
+                        <th className="w-[4.5rem] shrink-0 px-4 py-3 text-right whitespace-nowrap">
+                          조회수
+                        </th>
+                        <th className="w-14 shrink-0 px-4 py-3 text-center whitespace-nowrap">
+                          파일
+                        </th>
+                        <th className="w-[5.5rem] shrink-0 px-4 py-3 text-center whitespace-nowrap">
+                          관리
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -808,24 +936,35 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                             key={r.resource_id}
                             className="border-b border-gray-50 transition-colors hover:bg-gray-50/50"
                           >
-                            <td className="px-4 py-3 text-gray-500 tabular-nums">{no}</td>
+                            <td className="px-4 py-3 text-gray-500 tabular-nums">
+                              {no}
+                            </td>
                             <td className="min-w-0 px-4 py-3">
-                              <span className="block break-words font-medium text-gray-900">{r.title}</span>
+                              <span className="block font-medium break-words text-gray-900">
+                                {r.title}
+                              </span>
                               {!r.is_active && (
-                                <span className="ml-2 text-xs text-amber-600">(비노출)</span>
+                                <span className="ml-2 text-xs text-amber-600">
+                                  (비노출)
+                                </span>
                               )}
                             </td>
                             <td className="px-4 py-3">
                               <span
                                 className={cn(
                                   "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                                  newsCategoryBadgeClass(categoryColorByName.get(r.category) ?? "slate"),
+                                  newsCategoryBadgeClass(
+                                    categoryColorByName.get(r.category) ??
+                                      "slate",
+                                  ),
                                 )}
                               >
                                 {r.category}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-gray-600 tabular-nums">{dateStr}</td>
+                            <td className="px-4 py-3 text-gray-600 tabular-nums">
+                              {dateStr}
+                            </td>
                             <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
                               {r.view_count.toLocaleString("ko-KR")}
                             </td>
@@ -855,7 +994,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:border-[#02633E]/45 hover:bg-[#FDFDF5] hover:shadow-md text-gray-500 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:border-[#02633E]/45 hover:bg-[#FDFDF5] hover:text-gray-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
                                   title="수정"
                                   onClick={() => openEdit(r)}
                                 >
@@ -865,7 +1004,7 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:border-red-300 hover:bg-red-50/60 hover:shadow-md text-gray-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="rounded-lg border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:border-red-300 hover:bg-red-50/60 hover:text-red-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
                                   title="삭제"
                                   onClick={() => handleDelete(r.resource_id)}
                                 >
@@ -902,9 +1041,13 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                       if (totalPages > maxBtns) {
                         start = Math.max(1, safePage - 3);
                         end = Math.min(totalPages, start + maxBtns - 1);
-                        if (end - start < maxBtns - 1) start = Math.max(1, end - maxBtns + 1);
+                        if (end - start < maxBtns - 1)
+                          start = Math.max(1, end - maxBtns + 1);
                       }
-                      return Array.from({ length: end - start + 1 }, (_, i) => start + i).map((n) => (
+                      return Array.from(
+                        { length: end - start + 1 },
+                        (_, i) => start + i,
+                      ).map((n) => (
                         <button
                           key={n}
                           type="button"
@@ -965,7 +1108,9 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-800">카테고리</Label>
+              <Label className="text-sm font-medium text-gray-800">
+                카테고리
+              </Label>
               <Select
                 value={form.category}
                 onValueChange={(v) => setForm({ ...form, category: v })}
@@ -995,7 +1140,9 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-gray-800">게시 일시</Label>
+              <Label className="text-sm font-medium text-gray-800">
+                게시 일시
+              </Label>
               <DateTimePicker
                 value={form.published_at_local}
                 onChange={(v) => setForm({ ...form, published_at_local: v })}
@@ -1006,30 +1153,51 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
                 <p className="font-medium text-gray-800">안내</p>
                 <ul className="mt-1.5 list-inside list-disc space-y-1">
                   <li>
-                    버튼을 누르면 <strong className="font-semibold text-gray-800">캘린더</strong>에서 날짜를 고르고,{" "}
-                    <strong className="font-semibold text-gray-800">시·분 드롭다운</strong>(0–23시, 0–59분)에서 고릅니다.
+                    버튼을 누르면{" "}
+                    <strong className="font-semibold text-gray-800">
+                      캘린더
+                    </strong>
+                    에서 날짜를 고르고,{" "}
+                    <strong className="font-semibold text-gray-800">
+                      시·분 드롭다운
+                    </strong>
+                    (0–23시, 0–59분)에서 고릅니다.
                   </li>
                   <li>
-                    <strong className="font-semibold text-gray-800">지금</strong>은 현재 이 기기 시각으로 맞춥니다.{" "}
-                    <strong className="font-semibold text-gray-800">삭제</strong> 후 저장하면 서버에서 현재 시각으로 처리될 수 있습니다.
+                    <strong className="font-semibold text-gray-800">
+                      지금
+                    </strong>
+                    은 현재 이 기기 시각으로 맞춥니다.{" "}
+                    <strong className="font-semibold text-gray-800">
+                      삭제
+                    </strong>{" "}
+                    후 저장하면 서버에서 현재 시각으로 처리될 수 있습니다.
                   </li>
-                  <li>과거·미래 일시 모두 설정 가능합니다(예약 게시 시점 등).</li>
+                  <li>
+                    과거·미래 일시 모두 설정 가능합니다(예약 게시 시점 등).
+                  </li>
                 </ul>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-800">목록 썸네일 (선택)</Label>
+              <Label className="text-sm font-medium text-gray-800">
+                목록 썸네일 (선택)
+              </Label>
               <LibraryCoverImageDropzone
                 imageUrl={form.cover_image_url}
-                onUploaded={(url) => setForm((f) => ({ ...f, cover_image_url: url }))}
+                onUploaded={(url) =>
+                  setForm((f) => ({ ...f, cover_image_url: url }))
+                }
                 disabled={resourceFetcher.state !== "idle"}
               />
             </div>
 
             <div className="space-y-2">
               <div>
-                <Label className="text-sm font-medium text-gray-800">첨부파일</Label>
+                <Label className="text-sm font-medium text-gray-800">
+                  첨부파일
+                </Label>
                 <p className="mt-1 text-xs text-gray-500">
                   PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ZIP 형식 · 최대 50MB
                 </p>
@@ -1046,9 +1214,14 @@ export default function AdminSupportResourcesPage({ loaderData }: Route.Componen
               <Checkbox
                 id="resource-active"
                 checked={form.is_active}
-                onCheckedChange={(v) => setForm({ ...form, is_active: v === true })}
+                onCheckedChange={(v) =>
+                  setForm({ ...form, is_active: v === true })
+                }
               />
-              <Label htmlFor="resource-active" className="cursor-pointer text-sm font-normal text-gray-800">
+              <Label
+                htmlFor="resource-active"
+                className="cursor-pointer text-sm font-normal text-gray-800"
+              >
                 사이트 자료실에 노출
               </Label>
             </div>

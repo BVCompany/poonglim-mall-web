@@ -1,53 +1,57 @@
 /**
  * Admin Recipes Management Screen
  */
+import type { AdminRecipe } from "../types/recipe.types";
+import type { Route } from "./+types/recipes";
+
+import { and, count, eq, ne, sql } from "drizzle-orm";
+import {
+  Clock,
+  ImageIcon,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { randomUUID } from "node:crypto";
 import { useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/recipes";
-import { requireAdminAuth } from "../utils/auth.server";
+
+import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
+import { Input } from "~/core/components/ui/input";
+import db from "~/core/db/drizzle-client.server";
+import { cn } from "~/core/lib/utils";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
+import { getAllRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
+import { toRecipeCategorySlug } from "~/features/recipe-categories/lib/slug";
+import { recipeCategories } from "~/features/recipe-categories/schema";
+import { getAllRecipesForAdmin } from "~/features/recipe/lib/queries.server";
+import { recipes } from "~/features/recipe/schema";
+
 import { AdminNavbar } from "../components/admin-navbar";
 import { AdminSidebar } from "../components/admin-sidebar";
 import {
+  type ListSortOrder,
+  ListSortSelect,
+  sortByCreatedDesc,
+  toTimestamp,
+} from "../components/list-sort-control";
+import {
+  type IngredientRow,
   RecipeAddModal,
   type RecipeFormData,
-  type IngredientRow,
   type StepRow,
   ingredientsRowsToText,
   stepRowsToText,
   textToIngredientRows,
   textToStepRows,
 } from "../components/recipe-add-modal";
-import {
-  ListSortSelect,
-  sortByCreatedDesc,
-  toTimestamp,
-  type ListSortOrder,
-} from "../components/list-sort-control";
-import { Badge } from "~/core/components/ui/badge";
-import { Button } from "~/core/components/ui/button";
-import { Input } from "~/core/components/ui/input";
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Clock,
-  Users,
-  Settings,
-  ImageIcon,
-} from "lucide-react";
-import type { AdminRecipe } from "../types/recipe.types";
-import { getAllRecipesForAdmin } from "~/features/recipe/lib/queries.server";
-import { getAllRecipeCategories } from "~/features/recipe-categories/lib/queries.server";
-import { toRecipeCategorySlug } from "~/features/recipe-categories/lib/slug";
-import { recipeCategories } from "~/features/recipe-categories/schema";
-import db from "~/core/db/drizzle-client.server";
-import { recipes } from "~/features/recipe/schema";
-import { and, count, eq, ne, sql } from "drizzle-orm";
-import { cn } from "~/core/lib/utils";
 import { RecipeCategoryManageModal } from "../components/recipe-category-manage-modal";
-import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 const PROTECTED_RECIPE_CATEGORY_SLUG = "easy";
 
@@ -55,16 +59,24 @@ const TG_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.RECIPES,
+  );
   const [dbRecipes, dbCategoriesRaw] = await Promise.all([
     getAllRecipesForAdmin().catch(() => []),
     getAllRecipeCategories().catch(() => []),
   ]);
-  return { adminUser, dbRecipes, dbCategories: dbCategoriesRaw, usingDemoCategories: false };
+  return {
+    adminUser,
+    dbRecipes,
+    dbCategories: dbCategoriesRaw,
+    usingDemoCategories: false,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.RECIPES, "recipes");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -75,7 +87,9 @@ export async function action({ request }: Route.ActionArgs) {
     const locale = localeRaw === "en" ? "en" : "ko";
     const groupFromForm = (fd.get("translation_group_id") as string)?.trim();
     const translation_group_id =
-      groupFromForm && TG_UUID_RE.test(groupFromForm) ? groupFromForm : randomUUID();
+      groupFromForm && TG_UUID_RE.test(groupFromForm)
+        ? groupFromForm
+        : randomUUID();
 
     await db.insert(recipes).values({
       translation_group_id,
@@ -103,16 +117,30 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "create_translation") {
     const baseId = Number(fd.get("base_id"));
     const targetLocale =
-      ((fd.get("target_locale") as string) || "en").toLowerCase() === "en" ? "en" : "ko";
-    if (!baseId) return { success: false as const, error: "translation" as const };
-    const [base] = await db.select().from(recipes).where(eq(recipes.recipe_id, baseId)).limit(1);
-    if (!base) return { success: false as const, error: "translation" as const };
+      ((fd.get("target_locale") as string) || "en").toLowerCase() === "en"
+        ? "en"
+        : "ko";
+    if (!baseId)
+      return { success: false as const, error: "translation" as const };
+    const [base] = await db
+      .select()
+      .from(recipes)
+      .where(eq(recipes.recipe_id, baseId))
+      .limit(1);
+    if (!base)
+      return { success: false as const, error: "translation" as const };
     const [exists] = await db
       .select({ id: recipes.recipe_id })
       .from(recipes)
-      .where(and(eq(recipes.translation_group_id, base.translation_group_id), eq(recipes.locale, targetLocale)))
+      .where(
+        and(
+          eq(recipes.translation_group_id, base.translation_group_id),
+          eq(recipes.locale, targetLocale),
+        ),
+      )
       .limit(1);
-    if (exists) return { success: false as const, error: "translation_exists" as const };
+    if (exists)
+      return { success: false as const, error: "translation_exists" as const };
     await db.insert(recipes).values({
       translation_group_id: base.translation_group_id,
       locale: targetLocale,
@@ -141,7 +169,11 @@ export async function action({ request }: Route.ActionArgs) {
     const ingredientsJson = fd.get("ingredients") as string;
     const stepsJson = fd.get("steps") as string;
 
-    const [editing] = await db.select().from(recipes).where(eq(recipes.recipe_id, id)).limit(1);
+    const [editing] = await db
+      .select()
+      .from(recipes)
+      .where(eq(recipes.recipe_id, id))
+      .limit(1);
     if (!editing) return { success: false };
 
     const categoryVal = (fd.get("category") as string) || "easy";
@@ -182,7 +214,12 @@ export async function action({ request }: Route.ActionArgs) {
         thumbnail_url: thumb,
         updated_at: new Date(),
       })
-      .where(and(eq(recipes.translation_group_id, editing.translation_group_id), ne(recipes.recipe_id, id)));
+      .where(
+        and(
+          eq(recipes.translation_group_id, editing.translation_group_id),
+          ne(recipes.recipe_id, id),
+        ),
+      );
 
     return { success: true };
   }
@@ -190,9 +227,15 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "delete") {
     const id = Number(fd.get("id"));
     if (id) {
-      const [row] = await db.select().from(recipes).where(eq(recipes.recipe_id, id)).limit(1);
+      const [row] = await db
+        .select()
+        .from(recipes)
+        .where(eq(recipes.recipe_id, id))
+        .limit(1);
       if (row) {
-        await db.delete(recipes).where(eq(recipes.translation_group_id, row.translation_group_id));
+        await db
+          .delete(recipes)
+          .where(eq(recipes.translation_group_id, row.translation_group_id));
       }
     }
     return { success: true };
@@ -204,15 +247,19 @@ export async function action({ request }: Route.ActionArgs) {
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
     const slug =
       ((fd.get("slug") as string) ?? "").trim() || toRecipeCategorySlug(name);
-    if (!name || !slug) return { success: false as const, error: "category_validation" as const };
+    if (!name || !slug)
+      return { success: false as const, error: "category_validation" as const };
     const [dup] = await db
       .select()
       .from(recipeCategories)
       .where(eq(recipeCategories.slug, slug))
       .limit(1);
-    if (dup) return { success: false as const, error: "category_duplicate" as const };
+    if (dup)
+      return { success: false as const, error: "category_duplicate" as const };
     const [mx] = await db
-      .select({ v: sql<number>`COALESCE(MAX(${recipeCategories.sort_order}), -1)` })
+      .select({
+        v: sql<number>`COALESCE(MAX(${recipeCategories.sort_order}), -1)`,
+      })
       .from(recipeCategories);
     const nextOrder = Number(mx?.v ?? -1) + 1;
     try {
@@ -244,7 +291,8 @@ export async function action({ request }: Route.ActionArgs) {
       .from(recipeCategories)
       .where(eq(recipeCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
     if (row.slug === PROTECTED_RECIPE_CATEGORY_SLUG && newSlug !== row.slug) {
       return { success: false as const, error: "category_protected" as const };
     }
@@ -255,7 +303,10 @@ export async function action({ request }: Route.ActionArgs) {
         .where(eq(recipeCategories.slug, newSlug))
         .limit(1);
       if (dup && dup.category_id !== id) {
-        return { success: false as const, error: "category_duplicate" as const };
+        return {
+          success: false as const,
+          error: "category_duplicate" as const,
+        };
       }
       await db.transaction(async (tx) => {
         await tx
@@ -264,13 +315,24 @@ export async function action({ request }: Route.ActionArgs) {
           .where(eq(recipes.category, row.slug));
         await tx
           .update(recipeCategories)
-          .set({ name: newName, name_en: newNameEn, slug: newSlug, color, updated_at: new Date() })
+          .set({
+            name: newName,
+            name_en: newNameEn,
+            slug: newSlug,
+            color,
+            updated_at: new Date(),
+          })
           .where(eq(recipeCategories.category_id, id));
       });
     } else {
       await db
         .update(recipeCategories)
-        .set({ name: newName, name_en: newNameEn, color, updated_at: new Date() })
+        .set({
+          name: newName,
+          name_en: newNameEn,
+          color,
+          updated_at: new Date(),
+        })
         .where(eq(recipeCategories.category_id, id));
     }
     return { success: true as const, intent: "category" as const };
@@ -278,13 +340,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "category_delete") {
     const id = Number(fd.get("id"));
-    if (!id) return { success: false as const, error: "category_validation" as const };
+    if (!id)
+      return { success: false as const, error: "category_validation" as const };
     const [row] = await db
       .select()
       .from(recipeCategories)
       .where(eq(recipeCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
     if (row.slug === PROTECTED_RECIPE_CATEGORY_SLUG) {
       return { success: false as const, error: "category_protected" as const };
     }
@@ -292,8 +356,11 @@ export async function action({ request }: Route.ActionArgs) {
       .select({ n: count() })
       .from(recipes)
       .where(eq(recipes.category, row.slug));
-    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
-    await db.delete(recipeCategories).where(eq(recipeCategories.category_id, id));
+    if (Number(n) > 0)
+      return { success: false as const, error: "category_in_use" as const };
+    await db
+      .delete(recipeCategories)
+      .where(eq(recipeCategories.category_id, id));
     return { success: true as const, intent: "category" as const };
   }
 
@@ -313,14 +380,18 @@ function makeCategoryLabel(dbCategories: { slug: string; name: string }[]) {
 }
 
 function getDifficultyLabel(diff: string): string {
-  const map: Record<string, string> = { easy: "쉬움", medium: "보통", hard: "어려움" };
+  const map: Record<string, string> = {
+    easy: "쉬움",
+    medium: "보통",
+    hard: "어려움",
+  };
   return map[diff] ?? diff;
 }
 
 function formPayloadFromRecipeData(recipeData: RecipeFormData) {
-  const validIngredients = textToIngredientRows(recipeData.ingredientsText).filter((r) =>
-    r.name.trim(),
-  );
+  const validIngredients = textToIngredientRows(
+    recipeData.ingredientsText,
+  ).filter((r) => r.name.trim());
   const validSteps = textToStepRows(recipeData.stepsText)
     .filter((s) => s.description.trim())
     .map((s, i) => ({ step: i + 1, description: s.description }));
@@ -340,14 +411,17 @@ function formPayloadFromRecipeData(recipeData: RecipeFormData) {
 }
 
 export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
-  const { adminUser, dbRecipes, dbCategories, usingDemoCategories } = loaderData;
+  const { adminUser, dbRecipes, dbCategories, usingDemoCategories } =
+    loaderData;
   const getCategoryLabel = makeCategoryLabel(dbCategories);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<ListSortOrder>("newest");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>(undefined);
-  const [editingData, setEditingData] = useState<RecipeFormData | undefined>(undefined);
+  const [editingData, setEditingData] = useState<RecipeFormData | undefined>(
+    undefined,
+  );
   const fetcher = useFetcher<typeof action>();
 
   const categoryColorBySlug = useMemo(() => {
@@ -364,11 +438,15 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
       return;
     }
     if ("error" in d && d.error === "category_protected") {
-      window.alert("기본 카테고리(가정용)는 삭제하거나 슬러그를 바꿀 수 없습니다.");
+      window.alert(
+        "기본 카테고리(가정용)는 삭제하거나 슬러그를 바꿀 수 없습니다.",
+      );
       return;
     }
     if ("error" in d && d.error === "category_in_use") {
-      window.alert("이 카테고리를 사용 중인 레시피가 있어 삭제할 수 없습니다. 먼저 해당 레시피의 카테고리를 변경하세요.");
+      window.alert(
+        "이 카테고리를 사용 중인 레시피가 있어 삭제할 수 없습니다. 먼저 해당 레시피의 카테고리를 변경하세요.",
+      );
       return;
     }
     if ("error" in d && d.error === "category_duplicate") {
@@ -383,12 +461,20 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
       window.alert("카테고리를 찾을 수 없습니다.");
       return;
     }
-    if ("success" in d && d.success && "intent" in d && d.intent === "category") {
+    if (
+      "success" in d &&
+      d.success &&
+      "intent" in d &&
+      d.intent === "category"
+    ) {
       setCategoryManageOpen(false);
     }
   }, [fetcher.state, fetcher.data]);
 
-  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+  const submitCategoryAction = (
+    intent: string,
+    fields: Record<string, string>,
+  ) => {
     const fd = new FormData();
     fd.append("intent", intent);
     for (const [k, v] of Object.entries(fields)) fd.append(k, v);
@@ -400,7 +486,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
   const sourceRecipes: AdminRecipe[] = useMemo(
     () =>
       dbRecipes.length > 0
-        ?       dbRecipes.map((r) => ({
+        ? dbRecipes.map((r) => ({
             id: String(r.recipe_id),
             recipe_id: r.recipe_id,
             translation_group_id: r.translation_group_id,
@@ -461,7 +547,8 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
     try {
       if (raw.ingredients) {
         const parsed = JSON.parse(raw.ingredients) as unknown;
-        if (Array.isArray(parsed) && parsed.length > 0) ingredients = parsed as IngredientRow[];
+        if (Array.isArray(parsed) && parsed.length > 0)
+          ingredients = parsed as IngredientRow[];
       }
     } catch {
       /* ignore */
@@ -470,7 +557,9 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
       if (raw.steps) {
         const parsed = JSON.parse(raw.steps) as unknown;
         if (Array.isArray(parsed) && parsed.length > 0)
-          steps = parsed.map((s: { description: string }) => ({ description: s.description }));
+          steps = parsed.map((s: { description: string }) => ({
+            description: s.description,
+          }));
       }
     } catch {
       /* ignore */
@@ -526,20 +615,23 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900">레시피 관리</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                레시피 관리
+              </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
                 레시피를 추가, 수정, 삭제할 수 있습니다
               </p>
               {usingMockData ? (
                 <p className="mt-2 text-xs text-amber-800/90">
-                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 레시피를 추가하면 실제 데이터만
-                  보입니다.
+                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다.
+                  레시피를 추가하면 실제 데이터만 보입니다.
                 </p>
               ) : null}
               {usingDemoCategories ? (
                 <p className="mt-2 text-xs text-amber-800/90">
-                  DB에 레시피 카테고리가 없을 때는 예시 카테고리(가정용·카페 등)가 표시됩니다. 마이그레이션을
-                  적용하거나 카테고리 관리에서 항목을 추가하면 실제 데이터로 바뀝니다.
+                  DB에 레시피 카테고리가 없을 때는 예시 카테고리(가정용·카페
+                  등)가 표시됩니다. 마이그레이션을 적용하거나 카테고리 관리에서
+                  항목을 추가하면 실제 데이터로 바뀝니다.
                 </p>
               ) : null}
             </div>
@@ -554,7 +646,7 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
 
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
                 placeholder="레시피명으로 검색..."
@@ -578,7 +670,9 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
           <div className="flex flex-col gap-4">
             {filteredRecipes.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm">
-                {searchQuery.trim() ? "검색 결과가 없습니다." : "등록된 레시피가 없습니다."}
+                {searchQuery.trim()
+                  ? "검색 결과가 없습니다."
+                  : "등록된 레시피가 없습니다."}
               </div>
             ) : (
               filteredRecipes.map((recipe) => (
@@ -603,11 +697,13 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
 
                     <div className="min-w-0 flex-1">
                       <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold text-gray-900">{recipe.title}</h3>
+                        <h3 className="text-base font-semibold text-gray-900">
+                          {recipe.title}
+                        </h3>
                         {"locale" in recipe && recipe.locale ? (
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-semibold uppercase text-gray-700"
+                            className="text-[10px] font-semibold text-gray-700 uppercase"
                           >
                             {recipe.locale}
                           </Badge>
@@ -615,7 +711,10 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                         <span
                           className={cn(
                             "inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
-                            newsCategoryBadgeClass(categoryColorBySlug.get(recipe.category) ?? "slate"),
+                            newsCategoryBadgeClass(
+                              categoryColorBySlug.get(recipe.category) ??
+                                "slate",
+                            ),
                           )}
                         >
                           {getCategoryLabel(recipe.category)}
@@ -626,7 +725,9 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                       </div>
 
                       {recipe.description ? (
-                        <p className="mb-2 line-clamp-2 text-sm text-gray-600">{recipe.description}</p>
+                        <p className="mb-2 line-clamp-2 text-sm text-gray-600">
+                          {recipe.description}
+                        </p>
                       ) : null}
 
                       <div className="mb-2 flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -668,7 +769,8 @@ export default function AdminRecipes({ loaderData }: Route.ComponentProps) {
                     "translation_group_id" in recipe &&
                     !dbRecipes.some(
                       (r) =>
-                        r.translation_group_id === recipe.translation_group_id && r.locale === "en",
+                        r.translation_group_id ===
+                          recipe.translation_group_id && r.locale === "en",
                     ) ? (
                       <Button
                         type="button"

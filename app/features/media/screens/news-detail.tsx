@@ -17,6 +17,7 @@ import { Link, redirect } from "react-router";
 import { PageBanner } from "~/core/components/page-banner";
 import { PageContentMax } from "~/core/components/page-content-max";
 import i18next from "~/core/lib/i18next.server";
+import { adminContentToHtml } from "~/core/lib/content-html";
 import { SECTION_VIEWPORT_BLEED } from "~/core/lib/section-viewport-bleed";
 import { cn } from "~/core/lib/utils";
 import { normalizeContentLocale } from "~/core/db/content-locale.server";
@@ -249,9 +250,9 @@ export default function NewsDetailScreen({ loaderData }: Route.ComponentProps) {
   const badge = badgeForType(article.type, t);
   const displayAt = article.published_at ?? article.created_at;
   const bodyGalleryUrls = parseNewsBodyImageUrls(article.body_image_urls);
-  const html =
-    article.content?.trim() ||
-    (article.summary ? `<p>${article.summary}</p>` : "<p></p>");
+  const html = adminContentToHtml(
+    article.content?.trim() ? article.content : (article.summary ?? ""),
+  );
 
   async function handleShare() {
     const url = typeof window !== "undefined" ? window.location.href : "";

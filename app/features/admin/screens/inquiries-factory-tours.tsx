@@ -1,36 +1,46 @@
 /**
  * Admin Factory Tour Applications Management Page
- * 
+ *
  * Allows admins to view and manage factory tour applications.
  */
+import type { Route } from "./+types/inquiries-factory-tours";
 
+import { CheckCircle, Eye, Search, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/inquiries-factory-tours";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
-import { Input } from "~/core/components/ui/input";
-import { Button } from "~/core/components/ui/button";
+
 import { Badge } from "~/core/components/ui/badge";
+import { Button } from "~/core/components/ui/button";
 import { Card } from "~/core/components/ui/card";
+import { Input } from "~/core/components/ui/input";
 import { Textarea } from "~/core/components/ui/textarea";
-import { Search, Eye, CheckCircle, XCircle } from "lucide-react";
 import {
   getFactoryTourSettings,
   upsertSetting,
 } from "~/features/site-settings/lib/queries.server";
 import { SETTING_KEYS } from "~/features/site-settings/schema";
 
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
+
 /**
  * Loader: Require admin authentication
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.FACTORY_TOURS,
+  );
   const { default: db } = await import("~/core/db/drizzle-client.server");
   const { factoryTourApplications } = await import("~/features/brand/schema");
   const { desc } = await import("drizzle-orm");
-  const dbTours = await db.select().from(factoryTourApplications).orderBy(desc(factoryTourApplications.created_at)).catch(() => []);
+  const dbTours = await db
+    .select()
+    .from(factoryTourApplications)
+    .orderBy(desc(factoryTourApplications.created_at))
+    .catch(() => []);
   const tourSettings = await getFactoryTourSettings().catch(() => ({
     enabled: true,
     disabledMessage: "",
@@ -39,7 +49,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.FACTORY_TOURS, "factory_tours");
   const { default: db } = await import("~/core/db/drizzle-client.server");
   const { factoryTourApplications } = await import("~/features/brand/schema");
   const { eq } = await import("drizzle-orm");
@@ -49,15 +59,32 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "saveTourSettings") {
     const enabled = fd.get("enabled") === "true";
     const disabledMessage = (fd.get("disabledMessage") as string) ?? "";
-    await upsertSetting(SETTING_KEYS.FACTORY_TOUR_ENABLED, enabled ? "true" : "false");
-    await upsertSetting(SETTING_KEYS.FACTORY_TOUR_DISABLED_MESSAGE, disabledMessage);
+    await upsertSetting(
+      SETTING_KEYS.FACTORY_TOUR_ENABLED,
+      enabled ? "true" : "false",
+    );
+    await upsertSetting(
+      SETTING_KEYS.FACTORY_TOUR_DISABLED_MESSAGE,
+      disabledMessage,
+    );
     return { success: true };
   }
 
   const id = Number(fd.get("id"));
-  if (intent === "approve" && id) await db.update(factoryTourApplications).set({ status: "approved" }).where(eq(factoryTourApplications.tour_id, id));
-  if (intent === "reject" && id) await db.update(factoryTourApplications).set({ status: "rejected" }).where(eq(factoryTourApplications.tour_id, id));
-  if (intent === "delete" && id) await db.delete(factoryTourApplications).where(eq(factoryTourApplications.tour_id, id));
+  if (intent === "approve" && id)
+    await db
+      .update(factoryTourApplications)
+      .set({ status: "approved" })
+      .where(eq(factoryTourApplications.tour_id, id));
+  if (intent === "reject" && id)
+    await db
+      .update(factoryTourApplications)
+      .set({ status: "rejected" })
+      .where(eq(factoryTourApplications.tour_id, id));
+  if (intent === "delete" && id)
+    await db
+      .delete(factoryTourApplications)
+      .where(eq(factoryTourApplications.tour_id, id));
   return { success: true };
 }
 
@@ -74,8 +101,9 @@ interface TourApplication {
   status: "승인대기" | "승인완료" | "거절";
 }
 
-
-export default function AdminFactoryToursPage({ loaderData }: Route.ComponentProps) {
+export default function AdminFactoryToursPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbTours, tourSettings } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
   const [tourEnabled, setTourEnabled] = useState(tourSettings.enabled);
@@ -95,32 +123,38 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
     settingsFetcher.submit(fd, { method: "POST" });
   };
 
-  const applications: TourApplication[] = dbTours.length > 0
-    ? dbTours.map((t) => ({
-        id: String(t.tour_id),
-        applicantName: t.applicant_name,
-        organization: t.organization ?? null,
-        phone: t.phone,
-        participants: t.participants,
-        purpose: t.purpose,
-        message: t.message ?? null,
-        requestedDate: new Date(t.requested_date).toLocaleString("ko-KR"),
-        appliedDate: t.created_at.toLocaleString("ko-KR"),
-        status: (t.status === "approved" ? "승인완료" : t.status === "rejected" ? "거절" : "승인대기") as TourApplication["status"],
-      }))
-    : [];
+  const applications: TourApplication[] =
+    dbTours.length > 0
+      ? dbTours.map((t) => ({
+          id: String(t.tour_id),
+          applicantName: t.applicant_name,
+          organization: t.organization ?? null,
+          phone: t.phone,
+          participants: t.participants,
+          purpose: t.purpose,
+          message: t.message ?? null,
+          requestedDate: new Date(t.requested_date).toLocaleString("ko-KR"),
+          appliedDate: t.created_at.toLocaleString("ko-KR"),
+          status: (t.status === "approved"
+            ? "승인완료"
+            : t.status === "rejected"
+              ? "거절"
+              : "승인대기") as TourApplication["status"],
+        }))
+      : [];
 
-  const filteredApplications = applications.filter((app) =>
-    app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.phone.includes(searchQuery) ||
-    app.purpose.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredApplications = applications.filter(
+    (app) =>
+      app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.phone.includes(searchQuery) ||
+      app.purpose.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const getStatusBadge = (status: TourApplication["status"]) => {
     const statusConfig = {
-      "승인대기": { className: "bg-orange-500 text-white", label: "승인대기" },
-      "승인완료": { className: "bg-[#204E3A] text-white", label: "승인완료" },
-      "거절": { className: "bg-red-500 text-white", label: "거절" },
+      승인대기: { className: "bg-orange-500 text-white", label: "승인대기" },
+      승인완료: { className: "bg-[#204E3A] text-white", label: "승인완료" },
+      거절: { className: "bg-red-500 text-white", label: "거절" },
     };
     return statusConfig[status];
   };
@@ -149,7 +183,7 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
       {/* Sidebar */}
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <AdminNavbar />
 
@@ -158,7 +192,7 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="mb-2 text-3xl font-bold text-gray-900">
                 견학 신청 관리
               </h1>
               <p className="text-gray-600">
@@ -174,9 +208,9 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
                     견학 신청서 접수
                   </h2>
                   <p className="mt-1 text-sm text-gray-600">
-                    공장 견학 운영 시기에 맞춰 신청서 작성을 켜고 끌 수 있습니다.
-                    꺼두면 견학 페이지의 신청 섹션이 흐리게 처리되고 안내 문구가
-                    표시됩니다.
+                    공장 견학 운영 시기에 맞춰 신청서 작성을 켜고 끌 수
+                    있습니다. 꺼두면 견학 페이지의 신청 섹션이 흐리게 처리되고
+                    안내 문구가 표시됩니다.
                   </p>
                 </div>
                 <button
@@ -240,7 +274,9 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
                     {savingSettings ? "저장 중..." : "안내 문구 저장"}
                   </Button>
                   {settingsFetcher.data?.success && !savingSettings && (
-                    <span className="text-sm text-green-600">저장되었습니다.</span>
+                    <span className="text-sm text-green-600">
+                      저장되었습니다.
+                    </span>
                   )}
                 </div>
               </div>
@@ -249,7 +285,7 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
             {/* Search Bar */}
             <div className="mb-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="기관명 또는 신청자를 검색..."
@@ -266,13 +302,14 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
                 const statusConfig = getStatusBadge(app.status);
                 return (
                   <Card key={app.id} className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="mb-4 flex items-start justify-between">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        <h3 className="mb-1 text-xl font-bold text-gray-900">
                           {app.purpose.split(" ")[0]}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          신청일시: {app.appliedDate} · 방문 예정: {app.requestedDate}
+                          신청일시: {app.appliedDate} · 방문 예정:{" "}
+                          {app.requestedDate}
                         </p>
                       </div>
                       <Badge className={statusConfig.className}>
@@ -280,31 +317,37 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="mb-4 grid grid-cols-4 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">담당자명</p>
-                        <p className="font-medium text-gray-900">{app.applicantName}</p>
+                        <p className="mb-1 text-sm text-gray-600">담당자명</p>
+                        <p className="font-medium text-gray-900">
+                          {app.applicantName}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">단체명</p>
-                        <p className="font-medium text-gray-900">{app.organization ?? "-"}</p>
+                        <p className="mb-1 text-sm text-gray-600">단체명</p>
+                        <p className="font-medium text-gray-900">
+                          {app.organization ?? "-"}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">연락처</p>
+                        <p className="mb-1 text-sm text-gray-600">연락처</p>
                         <p className="font-medium text-gray-900">{app.phone}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">방문 인원</p>
-                        <p className="font-medium text-gray-900">{app.participants}명</p>
+                        <p className="mb-1 text-sm text-gray-600">방문 인원</p>
+                        <p className="font-medium text-gray-900">
+                          {app.participants}명
+                        </p>
                       </div>
                     </div>
                     <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-1">신청 내용</p>
+                      <p className="mb-1 text-sm text-gray-600">신청 내용</p>
                       <p className="font-medium text-gray-900">{app.purpose}</p>
                     </div>
                     {app.message && (
                       <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3">
-                        <p className="text-sm text-gray-600 mb-1">문의사항</p>
+                        <p className="mb-1 text-sm text-gray-600">문의사항</p>
                         <p className="text-sm text-gray-800">{app.message}</p>
                       </div>
                     )}
@@ -348,7 +391,7 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
 
             {/* Empty State */}
             {filteredApplications.length === 0 && (
-              <div className="text-center py-12">
+              <div className="py-12 text-center">
                 <Search className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900">
                   검색 결과가 없습니다
@@ -366,4 +409,3 @@ export default function AdminFactoryToursPage({ loaderData }: Route.ComponentPro
     </div>
   );
 }
-

@@ -1,36 +1,61 @@
 /**
  * Admin Job Applications Management Page
- * 
+ *
  * Allows admins to view and manage job applications.
  */
-
-import { useState, useMemo } from "react";
-import { useFetcher } from "react-router";
+import type { AdminJobApplication } from "../types/career.types";
 import type { Route } from "./+types/applications";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
+
+import {
+  Calendar,
+  Eye,
+  FileText,
+  Mail,
+  MapPin,
+  Phone,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Eye, Trash2, X, FileText, Phone, Mail, MapPin, Calendar } from "lucide-react";
-import { Input } from "~/core/components/ui/input";
+import { useFetcher } from "react-router";
+
 import { Badge } from "~/core/components/ui/badge";
 import { Button } from "~/core/components/ui/button";
-import { Separator } from "~/core/components/ui/separator";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "~/core/components/ui/dialog";
+import { Input } from "~/core/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "~/core/components/ui/select";
-import type { AdminJobApplication } from "../types/career.types";
+import { Separator } from "~/core/components/ui/separator";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 /**
  * Loader: Require admin authentication
  */
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.APPLICATIONS,
+  );
   const { default: db } = await import("~/core/db/drizzle-client.server");
-  const { jobApplications, jobPostings } = await import("~/features/careers/schema");
+  const { jobApplications, jobPostings } = await import(
+    "~/features/careers/schema"
+  );
   const { desc, eq } = await import("drizzle-orm");
   const dbApplications = await db
     .select({ app: jobApplications, job: jobPostings })
@@ -42,7 +67,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.APPLICATIONS, "applications");
   const { default: db } = await import("~/core/db/drizzle-client.server");
   const { jobApplications } = await import("~/features/careers/schema");
   const { eq } = await import("drizzle-orm");
@@ -51,18 +76,34 @@ export async function action({ request }: Route.ActionArgs) {
   const id = Number(fd.get("id"));
 
   if (intent === "status" && id) {
-    const status = fd.get("status") as "submitted" | "reviewing" | "accepted" | "rejected";
-    await db.update(jobApplications).set({ status }).where(eq(jobApplications.application_id, id));
+    const status = fd.get("status") as
+      | "submitted"
+      | "reviewing"
+      | "accepted"
+      | "rejected";
+    await db
+      .update(jobApplications)
+      .set({ status })
+      .where(eq(jobApplications.application_id, id));
   }
   if (intent === "delete" && id) {
-    await db.delete(jobApplications).where(eq(jobApplications.application_id, id));
+    await db
+      .delete(jobApplications)
+      .where(eq(jobApplications.application_id, id));
   }
   return { success: true };
 }
 
-type DbApp = { app: typeof import("~/features/careers/schema").jobApplications.$inferSelect; job: typeof import("~/features/careers/schema").jobPostings.$inferSelect | null };
+type DbApp = {
+  app: typeof import("~/features/careers/schema").jobApplications.$inferSelect;
+  job:
+    | typeof import("~/features/careers/schema").jobPostings.$inferSelect
+    | null;
+};
 
-export default function AdminApplicationsPage({ loaderData }: Route.ComponentProps) {
+export default function AdminApplicationsPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbApplications } = loaderData;
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,17 +118,24 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
       ({ app, job }) =>
         app.applicant_name.toLowerCase().includes(q) ||
         app.email.toLowerCase().includes(q) ||
-        (job?.title ?? "").toLowerCase().includes(q)
+        (job?.title ?? "").toLowerCase().includes(q),
     );
   }, [dbApplications, searchQuery]);
 
-  const stats = useMemo(() => ({
-    total: dbApplications.length,
-    submitted: dbApplications.filter(({ app }) => app.status === "submitted").length,
-    reviewing: dbApplications.filter(({ app }) => app.status === "reviewing").length,
-    accepted: dbApplications.filter(({ app }) => app.status === "accepted").length,
-    rejected: dbApplications.filter(({ app }) => app.status === "rejected").length,
-  }), [dbApplications]);
+  const stats = useMemo(
+    () => ({
+      total: dbApplications.length,
+      submitted: dbApplications.filter(({ app }) => app.status === "submitted")
+        .length,
+      reviewing: dbApplications.filter(({ app }) => app.status === "reviewing")
+        .length,
+      accepted: dbApplications.filter(({ app }) => app.status === "accepted")
+        .length,
+      rejected: dbApplications.filter(({ app }) => app.status === "rejected")
+        .length,
+    }),
+    [dbApplications],
+  );
 
   const handleStatusChange = (id: number, status: string) => {
     const fd = new FormData();
@@ -107,7 +155,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
   };
 
   const getStatusBadgeVariant = (
-    status: string
+    status: string,
   ): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case "reviewing":
@@ -184,7 +232,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
       {/* Sidebar */}
       <AdminSidebar adminUser={adminUser} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <AdminNavbar />
 
@@ -193,143 +241,182 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {t("admin.applications.title")}
-        </h1>
-        <p className="mt-2 text-gray-600">
-          {t("admin.applications.description")}
-        </p>
-      </div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {t("admin.applications.title")}
+              </h1>
+              <p className="mt-2 text-gray-600">
+                {t("admin.applications.description")}
+              </p>
+            </div>
 
-      {/* Statistics Cards */}
-      <div className="mb-8 grid gap-4 md:grid-cols-5">
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-medium text-gray-600">전체</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">{stats.total}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-medium text-gray-600">접수완료</div>
-          <div className="mt-1 text-2xl font-bold text-gray-600">{stats.submitted}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-medium text-gray-600">서류검토중</div>
-          <div className="mt-1 text-2xl font-bold text-orange-600">{stats.reviewing}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-medium text-gray-600">합격</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">{stats.accepted}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-medium text-gray-600">불합격</div>
-          <div className="mt-1 text-2xl font-bold text-red-600">{stats.rejected}</div>
-        </div>
-      </div>
+            {/* Statistics Cards */}
+            <div className="mb-8 grid gap-4 md:grid-cols-5">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-medium text-gray-600">전체</div>
+                <div className="mt-1 text-2xl font-bold text-gray-900">
+                  {stats.total}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-medium text-gray-600">
+                  접수완료
+                </div>
+                <div className="mt-1 text-2xl font-bold text-gray-600">
+                  {stats.submitted}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-medium text-gray-600">
+                  서류검토중
+                </div>
+                <div className="mt-1 text-2xl font-bold text-orange-600">
+                  {stats.reviewing}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-medium text-gray-600">합격</div>
+                <div className="mt-1 text-2xl font-bold text-green-600">
+                  {stats.accepted}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="text-xs font-medium text-gray-600">불합격</div>
+                <div className="mt-1 text-2xl font-bold text-red-600">
+                  {stats.rejected}
+                </div>
+              </div>
+            </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="text"
-            placeholder={t("admin.applications.searchPlaceholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder={t("admin.applications.searchPlaceholder")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
 
-      {/* Applications Table */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">접수일</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">이름</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">지원 공고</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">이메일</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">연락처</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">상태</th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">액션</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {filteredApplications.map(({ app, job }) => (
-                <tr key={app.application_id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {app.created_at.toLocaleDateString("ko-KR")}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                    {app.applicant_name}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {job?.title ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {app.email}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    {app.phone}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <Badge variant={getStatusBadgeVariant(app.status)}>
-                      {getStatusLabel(app.status)}
-                    </Badge>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedApp({ app, job })}
-                      >
-                        <Eye className="h-4 w-4 text-gray-600" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(app.application_id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            {/* Applications Table */}
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        접수일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        이름
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        지원 공고
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        이메일
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        연락처
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        액션
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {filteredApplications.map(({ app, job }) => (
+                      <tr key={app.application_id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                          {app.created_at.toLocaleDateString("ko-KR")}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
+                          {app.applicant_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                          {job?.title ?? "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                          {app.email}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                          {app.phone}
+                        </td>
+                        <td className="px-6 py-4 text-sm whitespace-nowrap">
+                          <Badge variant={getStatusBadgeVariant(app.status)}>
+                            {getStatusLabel(app.status)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm whitespace-nowrap">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedApp({ app, job })}
+                            >
+                              <Eye className="h-4 w-4 text-gray-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(app.application_id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-      {/* Empty State */}
-      {filteredApplications.length === 0 && (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 bg-white p-12 text-center">
-          <Search className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">지원서가 없습니다</h3>
-          <p className="mt-2 text-sm text-gray-500">
-            {searchQuery ? "검색 결과가 없습니다." : "접수된 지원서가 없습니다."}
-          </p>
-        </div>
-      )}
+            {/* Empty State */}
+            {filteredApplications.length === 0 && (
+              <div className="rounded-lg border-2 border-dashed border-gray-300 bg-white p-12 text-center">
+                <Search className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-4 text-lg font-medium text-gray-900">
+                  지원서가 없습니다
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  {searchQuery
+                    ? "검색 결과가 없습니다."
+                    : "접수된 지원서가 없습니다."}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Detail Modal */}
-      <Dialog open={!!selectedApp} onOpenChange={(o) => !o && setSelectedApp(null)}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <Dialog
+        open={!!selectedApp}
+        onOpenChange={(o) => !o && setSelectedApp(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>지원서 상세</DialogTitle>
           </DialogHeader>
           {selectedApp && (
-            <div className="space-y-5 mt-2">
+            <div className="mt-2 space-y-5">
               {/* 공고 정보 */}
               <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs text-gray-500 mb-1">지원 공고</p>
-                <p className="font-semibold text-gray-900">{selectedApp.job?.title ?? "알 수 없음"}</p>
+                <p className="mb-1 text-xs text-gray-500">지원 공고</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedApp.job?.title ?? "알 수 없음"}
+                </p>
                 {selectedApp.job && (
-                  <p className="text-sm text-gray-500">{selectedApp.job.department} · {selectedApp.job.location}</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedApp.job.department} · {selectedApp.job.location}
+                  </p>
                 )}
               </div>
 
@@ -340,24 +427,26 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                 <h3 className="font-semibold text-gray-900">지원자 정보</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-gray-700">
-                    <FileText className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{selectedApp.app.applicant_name}</span>
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">
+                      {selectedApp.app.applicant_name}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <Calendar className="h-4 w-4 text-gray-400" />
                     <span>{selectedApp.app.birth_date ?? "미입력"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Mail className="w-4 h-4 text-gray-400" />
+                    <Mail className="h-4 w-4 text-gray-400" />
                     <span>{selectedApp.app.email}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4 text-gray-400" />
+                    <Phone className="h-4 w-4 text-gray-400" />
                     <span>{selectedApp.app.phone}</span>
                   </div>
                   {selectedApp.app.address && (
-                    <div className="flex items-center gap-2 text-gray-600 col-span-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
+                    <div className="col-span-2 flex items-center gap-2 text-gray-600">
+                      <MapPin className="h-4 w-4 text-gray-400" />
                       <span>{selectedApp.app.address}</span>
                     </div>
                   )}
@@ -403,7 +492,9 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                       <p>
                         <span className="text-gray-500">경력 구분</span>
                         <br />
-                        {getExperienceKindLabel(selectedApp.app.experience_kind)}
+                        {getExperienceKindLabel(
+                          selectedApp.app.experience_kind,
+                        )}
                       </p>
                       <p>
                         <span className="text-gray-500">병역</span>
@@ -434,7 +525,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                   <Separator />
                   <div className="space-y-2">
                     <h3 className="font-semibold text-gray-900">지원 동기</h3>
-                    <p className="text-sm text-gray-600 whitespace-pre-line bg-gray-50 rounded-lg p-3">
+                    <p className="rounded-lg bg-gray-50 p-3 text-sm whitespace-pre-line text-gray-600">
                       {selectedApp.app.cover_letter}
                     </p>
                   </div>
@@ -450,7 +541,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                       href={selectedApp.app.resume_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary underline break-all"
+                      className="text-primary text-sm break-all underline"
                     >
                       열기 / 다운로드
                     </a>
@@ -462,12 +553,14 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                 <>
                   <Separator />
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900">자기소개서 파일</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      자기소개서 파일
+                    </h3>
                     <a
                       href={selectedApp.app.self_intro_file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary underline break-all"
+                      className="text-primary text-sm break-all underline"
                     >
                       열기 / 다운로드
                     </a>
@@ -484,7 +577,7 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                       href={selectedApp.app.portfolio_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-primary underline break-all"
+                      className="text-primary text-sm break-all underline"
                     >
                       {selectedApp.app.portfolio_url}
                     </a>
@@ -496,10 +589,14 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
 
               {/* 상태 변경 */}
               <div className="flex items-center gap-3">
-                <p className="text-sm font-medium text-gray-700 flex-shrink-0">상태 변경:</p>
+                <p className="flex-shrink-0 text-sm font-medium text-gray-700">
+                  상태 변경:
+                </p>
                 <Select
                   value={selectedApp.app.status}
-                  onValueChange={(v) => handleStatusChange(selectedApp.app.application_id, v)}
+                  onValueChange={(v) =>
+                    handleStatusChange(selectedApp.app.application_id, v)
+                  }
                 >
                   <SelectTrigger className="flex-1">
                     <SelectValue />
@@ -520,15 +617,20 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
                   onClick={() => handleDelete(selectedApp.app.application_id)}
                   className="flex-1"
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
+                  <Trash2 className="mr-1 h-4 w-4" />
                   삭제
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setSelectedApp(null)} className="flex-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedApp(null)}
+                  className="flex-1"
+                >
                   닫기
                 </Button>
               </div>
 
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-center text-xs text-gray-400">
                 접수일시: {selectedApp.app.created_at.toLocaleString("ko-KR")}
               </p>
             </div>
@@ -538,4 +640,3 @@ export default function AdminApplicationsPage({ loaderData }: Route.ComponentPro
     </div>
   );
 }
-

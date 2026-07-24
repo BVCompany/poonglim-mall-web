@@ -2,13 +2,20 @@
  * Admin Consulting Inquiries Management Page
  * 문의하기 내역 관리 (contacts 테이블 사용)
  */
+import type { Route } from "./+types/inquiries-consulting";
+
+import {
+  Building2,
+  CheckCircle,
+  Eye,
+  Mail,
+  Phone,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/inquiries-consulting";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
-import { Input } from "~/core/components/ui/input";
+
 import { Button } from "~/core/components/ui/button";
 import {
   Dialog,
@@ -16,21 +23,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/core/components/ui/dialog";
-import { Search, Eye, CheckCircle, Trash2, Phone, Mail, Building2 } from "lucide-react";
+import { Input } from "~/core/components/ui/input";
 import {
+  deleteContact,
   getAllContacts,
   updateContactStatus,
-  deleteContact,
 } from "~/features/support/lib/queries.server";
 
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
+
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.CONSULTING_INQUIRIES,
+  );
   const dbContacts = await getAllContacts().catch(() => []);
   return { adminUser, dbContacts };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.CONSULTING_INQUIRIES, "consulting_inquiries");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -72,12 +87,16 @@ const STATUS_COLOR: Record<string, string> = {
   completed: "bg-green-100 text-green-800 border-green-200",
 };
 
-export default function AdminConsultingInquiriesPage({ loaderData }: Route.ComponentProps) {
+export default function AdminConsultingInquiriesPage({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbContacts } = loaderData;
   const fetcher = useFetcher();
 
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "pending" | "completed"
+  >("all");
   const [selected, setSelected] = useState<Contact | null>(null);
 
   const contacts = dbContacts as Contact[];
@@ -95,7 +114,11 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
   });
 
   const formatDate = (d: Date | string) =>
-    new Date(d).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+    new Date(d).toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -106,7 +129,9 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
           {/* 헤더 */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">상담 문의 관리</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                상담 문의 관리
+              </h1>
               <p className="mt-1 text-sm text-gray-500">
                 총 {contacts.length}건 · 대기중{" "}
                 {contacts.filter((c) => c.status === "pending").length}건
@@ -117,13 +142,30 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
           {/* 통계 카드 */}
           <div className="mb-6 grid grid-cols-3 gap-4">
             {[
-              { label: "전체 문의", value: contacts.length, color: "text-gray-900" },
-              { label: "대기중", value: contacts.filter((c) => c.status === "pending").length, color: "text-orange-500" },
-              { label: "처리완료", value: contacts.filter((c) => c.status === "completed").length, color: "text-emerald-600" },
+              {
+                label: "전체 문의",
+                value: contacts.length,
+                color: "text-gray-900",
+              },
+              {
+                label: "대기중",
+                value: contacts.filter((c) => c.status === "pending").length,
+                color: "text-orange-500",
+              },
+              {
+                label: "처리완료",
+                value: contacts.filter((c) => c.status === "completed").length,
+                color: "text-emerald-600",
+              },
             ].map((s) => (
-              <div key={s.label} className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
+              <div
+                key={s.label}
+                className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+              >
                 <p className="text-sm text-gray-500">{s.label}</p>
-                <p className={`mt-1 text-4xl font-bold ${s.color}`}>{s.value}</p>
+                <p className={`mt-1 text-4xl font-bold ${s.color}`}>
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
@@ -137,14 +179,14 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   filterStatus === s
                     ? "bg-[#02633E] text-white"
-                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                 }`}
               >
                 {s === "all" ? "전체" : STATUS_LABEL[s]}
               </button>
             ))}
             <div className="relative ml-auto">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -156,14 +198,14 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
 
           {/* 테이블 */}
           {filtered.length === 0 ? (
-            <div className="rounded-xl bg-white py-20 text-center text-gray-400 shadow-sm border border-gray-100">
+            <div className="rounded-xl border border-gray-100 bg-white py-20 text-center text-gray-400 shadow-sm">
               접수된 문의가 없습니다.
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <tr className="border-b bg-gray-50 text-left text-xs font-medium tracking-wide text-gray-500 uppercase">
                     <th className="px-4 py-3">번호</th>
                     <th className="px-4 py-3">문의유형</th>
                     <th className="px-4 py-3">이름</th>
@@ -178,15 +220,19 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                   {filtered.map((c, idx) => (
                     <tr
                       key={c.contact_id}
-                      className="border-b last:border-0 transition-colors hover:bg-gray-50"
+                      className="border-b transition-colors last:border-0 hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 text-gray-400">{filtered.length - idx}</td>
+                      <td className="px-4 py-3 text-gray-400">
+                        {filtered.length - idx}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
                           {c.inquiry_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {c.name}
+                      </td>
                       <td className="px-4 py-3 text-gray-500">
                         <div>{c.phone ?? "-"}</div>
                         <div className="text-xs text-gray-400">{c.email}</div>
@@ -206,7 +252,9 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                           {STATUS_LABEL[c.status]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(c.created_at)}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {formatDate(c.created_at)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
@@ -219,31 +267,62 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                           </Button>
                           {c.status === "pending" ? (
                             <fetcher.Form method="post">
-                              <input type="hidden" name="intent" value="complete" />
-                              <input type="hidden" name="id" value={c.contact_id} />
-                              <Button variant="ghost" size="icon" type="submit" title="처리완료">
+                              <input
+                                type="hidden"
+                                name="intent"
+                                value="complete"
+                              />
+                              <input
+                                type="hidden"
+                                name="id"
+                                value={c.contact_id}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="submit"
+                                title="처리완료"
+                              >
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                               </Button>
                             </fetcher.Form>
                           ) : (
                             <fetcher.Form method="post">
-                              <input type="hidden" name="intent" value="pending" />
-                              <input type="hidden" name="id" value={c.contact_id} />
-                              <Button variant="ghost" size="icon" type="submit" title="대기중으로 변경">
+                              <input
+                                type="hidden"
+                                name="intent"
+                                value="pending"
+                              />
+                              <input
+                                type="hidden"
+                                name="id"
+                                value={c.contact_id}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="submit"
+                                title="대기중으로 변경"
+                              >
                                 <CheckCircle className="h-4 w-4 text-gray-400" />
                               </Button>
                             </fetcher.Form>
                           )}
                           <fetcher.Form method="post">
                             <input type="hidden" name="intent" value="delete" />
-                            <input type="hidden" name="id" value={c.contact_id} />
+                            <input
+                              type="hidden"
+                              name="id"
+                              value={c.contact_id}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
                               type="submit"
                               title="삭제"
                               onClick={(e) => {
-                                if (!confirm("이 문의를 삭제하시겠습니까?")) e.preventDefault();
+                                if (!confirm("이 문의를 삭제하시겠습니까?"))
+                                  e.preventDefault();
                               }}
                             >
                               <Trash2 className="h-4 w-4 text-red-400" />
@@ -277,10 +356,14 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                 <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
                   {selected.inquiry_type}
                 </span>
-                <span className="ml-auto text-gray-400">{formatDate(selected.created_at)}</span>
+                <span className="ml-auto text-gray-400">
+                  {formatDate(selected.created_at)}
+                </span>
               </div>
 
-              <h2 className="text-lg font-bold text-gray-900">{selected.title}</h2>
+              <h2 className="text-lg font-bold text-gray-900">
+                {selected.title}
+              </h2>
 
               <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4">
                 <div className="flex items-center gap-2 text-gray-600">
@@ -308,14 +391,20 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
               </div>
 
               <div className="rounded-xl border border-gray-100 bg-white p-4">
-                <p className="whitespace-pre-wrap leading-relaxed text-gray-700">{selected.content}</p>
+                <p className="leading-relaxed whitespace-pre-wrap text-gray-700">
+                  {selected.content}
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 {selected.status === "pending" ? (
                   <fetcher.Form method="post">
                     <input type="hidden" name="intent" value="complete" />
-                    <input type="hidden" name="id" value={selected.contact_id} />
+                    <input
+                      type="hidden"
+                      name="id"
+                      value={selected.contact_id}
+                    />
                     <Button
                       type="submit"
                       className="bg-[#02633E] text-white hover:bg-[#024d31]"
@@ -328,7 +417,11 @@ export default function AdminConsultingInquiriesPage({ loaderData }: Route.Compo
                 ) : (
                   <fetcher.Form method="post">
                     <input type="hidden" name="intent" value="pending" />
-                    <input type="hidden" name="id" value={selected.contact_id} />
+                    <input
+                      type="hidden"
+                      name="id"
+                      value={selected.contact_id}
+                    />
                     <Button
                       type="submit"
                       variant="outline"

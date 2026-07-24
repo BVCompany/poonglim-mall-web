@@ -44,59 +44,41 @@ export interface AdminSession {
  * Admin permissions
  */
 export const ADMIN_PERMISSIONS = {
-  // Content Management
-  MANAGE_PRODUCTS: "manage_products",
-  MANAGE_RECIPES: "manage_recipes",
-  MANAGE_EVENTS: "manage_events",
-  MANAGE_NEWS: "manage_news",
-  MANAGE_BLOG: "manage_blog",
-
-  // User Management
-  MANAGE_INQUIRIES: "manage_inquiries",
-  MANAGE_APPLICATIONS: "manage_applications",
-
-  // System Management
-  MANAGE_ADMINS: "manage_admins",
-  VIEW_ANALYTICS: "view_analytics",
-  MANAGE_SETTINGS: "manage_settings",
+  DASHBOARD: "dashboard",
+  PRODUCTS: "products",
+  PRODUCT_CATEGORIES: "product_categories",
+  NOTICES: "notices",
+  GRADE_CERTIFICATES: "grade_certificates",
+  FAQS: "faqs",
+  CERTIFICATIONS: "certifications",
+  EVENTS: "events",
+  RECIPES: "recipes",
+  RECIPE_CATEGORIES: "recipe_categories",
+  NEWS: "news",
+  CATALOG: "catalog",
+  RESOURCES: "resources",
+  CAREERS: "careers",
+  APPLICATIONS: "applications",
+  CONSULTING_INQUIRIES: "consulting_inquiries",
+  FACTORY_TOURS: "factory_tours",
+  BANNERS: "banners",
+  PAGE_BANNERS: "page_banners",
+  SITE_HOME: "site_home",
+  INSTAGRAM: "instagram",
+  POPUPS: "popups",
+  SEO: "seo",
+  ADMINS: "admins",
+  AUDIT_LOGS: "audit_logs",
 } as const;
+
+export type AdminPermission =
+  (typeof ADMIN_PERMISSIONS)[keyof typeof ADMIN_PERMISSIONS];
 
 /**
  * Role-based permissions mapping
  */
 export const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
   super_admin: Object.values(ADMIN_PERMISSIONS),
-  admin: [
-    ADMIN_PERMISSIONS.MANAGE_PRODUCTS,
-    ADMIN_PERMISSIONS.MANAGE_RECIPES,
-    ADMIN_PERMISSIONS.MANAGE_EVENTS,
-    ADMIN_PERMISSIONS.MANAGE_NEWS,
-    ADMIN_PERMISSIONS.MANAGE_BLOG,
-    ADMIN_PERMISSIONS.MANAGE_INQUIRIES,
-    ADMIN_PERMISSIONS.MANAGE_APPLICATIONS,
-    ADMIN_PERMISSIONS.VIEW_ANALYTICS,
-  ],
-  editor: [
-    ADMIN_PERMISSIONS.MANAGE_PRODUCTS,
-    ADMIN_PERMISSIONS.MANAGE_RECIPES,
-    ADMIN_PERMISSIONS.MANAGE_EVENTS,
-    ADMIN_PERMISSIONS.MANAGE_NEWS,
-    ADMIN_PERMISSIONS.MANAGE_BLOG,
-  ],
-};
-
-/**
- * Temporary admin credentials for development
- * TODO: Remove when Supabase authentication is implemented
- */
-export const TEMP_ADMIN_CREDENTIALS = {
-  email: "admin@poonglim.com",
-  password: "poonglim2024",
-  user: {
-    id: "temp-admin-001",
-    email: "admin@poonglim.com",
-    name: "관리자",
-    role: "super_admin" as AdminRole,
-    permissions: Object.values(ADMIN_PERMISSIONS),
-  },
+  admin: [],
+  editor: [],
 };

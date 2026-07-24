@@ -2,37 +2,57 @@
  * Admin Grade Certificates Management Screen
  * 등급판정서 관리 화면
  */
+import type { GradeCertFormData } from "../components/grade-cert-add-modal";
+import type { Route } from "./+types/grade-certificates";
+
+import { count, eq, sql } from "drizzle-orm";
+import {
+  Paperclip,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Route } from "./+types/grade-certificates";
-import { requireAdminAuth } from "../utils/auth.server";
-import { AdminNavbar } from "../components/admin-navbar";
-import { AdminSidebar } from "../components/admin-sidebar";
+
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
-import { Plus, Search, Pencil, Trash2, Paperclip, Settings } from "lucide-react";
 import db from "~/core/db/drizzle-client.server";
-import { gradeCertificates, gradeCertCategories } from "~/features/support/schema";
-import { count, eq, sql } from "drizzle-orm";
-import { getAllGradeCerts, getGradeCertCategoriesOrdered } from "~/features/support/lib/queries.server";
+import { cn } from "~/core/lib/utils";
+import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
+import {
+  getAllGradeCerts,
+  getGradeCertCategoriesOrdered,
+} from "~/features/support/lib/queries.server";
 import type { GradeCertificate } from "~/features/support/lib/queries.server";
+import {
+  gradeCertCategories,
+  gradeCertificates,
+} from "~/features/support/schema";
+
+import { AdminNavbar } from "../components/admin-navbar";
+import { AdminSidebar } from "../components/admin-sidebar";
 import { GradeCertAddModal } from "../components/grade-cert-add-modal";
-import type { GradeCertFormData } from "../components/grade-cert-add-modal";
 import { GradeCertCategoryManageModal } from "../components/grade-cert-category-manage-modal";
 import {
+  type ListSortOrder,
   ListSortSelect,
   sortByCreatedDesc,
   toTimestamp,
-  type ListSortOrder,
 } from "../components/list-sort-control";
-import { newsCategoryBadgeClass } from "~/features/media/lib/news-category-badges";
-import { cn } from "~/core/lib/utils";
+import { ADMIN_PERMISSIONS } from "../types/auth.types";
+import { requireAdminMutation, requireAdminPermission } from "../utils/auth.server";
 
 const FALLBACK_GRADE_CERT_TYPES = ["액란", "포장란", "기타"] as const;
 const PROTECTED_GRADE_CERT_CATEGORY = "기타";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const adminUser = await requireAdminAuth(request);
+  const adminUser = await requireAdminPermission(
+    request,
+    ADMIN_PERMISSIONS.GRADE_CERTIFICATES,
+  );
   const [dbCerts, dbGradeCertCategories] = await Promise.all([
     getAllGradeCerts().catch(() => []),
     getGradeCertCategoriesOrdered(),
@@ -41,7 +61,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAdminAuth(request);
+  await requireAdminMutation(request, ADMIN_PERMISSIONS.GRADE_CERTIFICATES, "grade_certificates");
   const fd = await request.formData();
   const intent = fd.get("intent") as string;
 
@@ -81,7 +101,10 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "delete") {
     const id = Number(fd.get("id"));
-    if (id) await db.delete(gradeCertificates).where(eq(gradeCertificates.cert_id, id));
+    if (id)
+      await db
+        .delete(gradeCertificates)
+        .where(eq(gradeCertificates.cert_id, id));
     return { success: true };
   }
 
@@ -101,13 +124,18 @@ export async function action({ request }: Route.ActionArgs) {
     const name = ((fd.get("name") as string) ?? "").trim();
     const nameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
-    if (!name) return { success: false as const, error: "category_validation" as const };
+    if (!name)
+      return { success: false as const, error: "category_validation" as const };
     const [mx] = await db
-      .select({ v: sql<number>`COALESCE(MAX(${gradeCertCategories.sort_order}), -1)` })
+      .select({
+        v: sql<number>`COALESCE(MAX(${gradeCertCategories.sort_order}), -1)`,
+      })
       .from(gradeCertCategories);
     const nextOrder = Number(mx?.v ?? -1) + 1;
     try {
-      await db.insert(gradeCertCategories).values({ name, name_en: nameEn, color, sort_order: nextOrder });
+      await db
+        .insert(gradeCertCategories)
+        .values({ name, name_en: nameEn, color, sort_order: nextOrder });
     } catch {
       return { success: false as const, error: "category_duplicate" as const };
     }
@@ -119,14 +147,19 @@ export async function action({ request }: Route.ActionArgs) {
     const newName = ((fd.get("name") as string) ?? "").trim();
     const newNameEn = ((fd.get("name_en") as string) ?? "").trim() || null;
     const color = ((fd.get("color") as string) ?? "").trim() || "sky";
-    if (!id || !newName) return { success: false as const, error: "category_validation" as const };
+    if (!id || !newName)
+      return { success: false as const, error: "category_validation" as const };
     const [row] = await db
       .select()
       .from(gradeCertCategories)
       .where(eq(gradeCertCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
-    if (row.name === PROTECTED_GRADE_CERT_CATEGORY && newName !== PROTECTED_GRADE_CERT_CATEGORY) {
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
+    if (
+      row.name === PROTECTED_GRADE_CERT_CATEGORY &&
+      newName !== PROTECTED_GRADE_CERT_CATEGORY
+    ) {
       return { success: false as const, error: "category_protected" as const };
     }
     if (newName !== row.name) {
@@ -136,7 +169,10 @@ export async function action({ request }: Route.ActionArgs) {
         .where(eq(gradeCertCategories.name, newName))
         .limit(1);
       if (dup && dup.category_id !== id) {
-        return { success: false as const, error: "category_duplicate" as const };
+        return {
+          success: false as const,
+          error: "category_duplicate" as const,
+        };
       }
       await db.transaction(async (tx) => {
         await tx
@@ -145,7 +181,12 @@ export async function action({ request }: Route.ActionArgs) {
           .where(eq(gradeCertificates.cert_type, row.name));
         await tx
           .update(gradeCertCategories)
-          .set({ name: newName, name_en: newNameEn, color, updated_at: new Date() })
+          .set({
+            name: newName,
+            name_en: newNameEn,
+            color,
+            updated_at: new Date(),
+          })
           .where(eq(gradeCertCategories.category_id, id));
       });
     } else {
@@ -159,13 +200,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "category_delete") {
     const id = Number(fd.get("id"));
-    if (!id) return { success: false as const, error: "category_validation" as const };
+    if (!id)
+      return { success: false as const, error: "category_validation" as const };
     const [row] = await db
       .select()
       .from(gradeCertCategories)
       .where(eq(gradeCertCategories.category_id, id))
       .limit(1);
-    if (!row) return { success: false as const, error: "category_not_found" as const };
+    if (!row)
+      return { success: false as const, error: "category_not_found" as const };
     if (row.name === PROTECTED_GRADE_CERT_CATEGORY) {
       return { success: false as const, error: "category_protected" as const };
     }
@@ -173,8 +216,11 @@ export async function action({ request }: Route.ActionArgs) {
       .select({ n: count() })
       .from(gradeCertificates)
       .where(eq(gradeCertificates.cert_type, row.name));
-    if (Number(n) > 0) return { success: false as const, error: "category_in_use" as const };
-    await db.delete(gradeCertCategories).where(eq(gradeCertCategories.category_id, id));
+    if (Number(n) > 0)
+      return { success: false as const, error: "category_in_use" as const };
+    await db
+      .delete(gradeCertCategories)
+      .where(eq(gradeCertCategories.category_id, id));
     return { success: true as const, intent: "category" as const };
   }
 
@@ -197,7 +243,9 @@ function isNewCert(createdAt: Date | string) {
 
 type CertRow = GradeCertificate;
 
-export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentProps) {
+export default function AdminGradeCertsScreen({
+  loaderData,
+}: Route.ComponentProps) {
   const { adminUser, dbCerts, dbGradeCertCategories } = loaderData;
   const fetcher = useFetcher<typeof action>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,12 +255,11 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
   const [categoryManageOpen, setCategoryManageOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | undefined>();
-  const [editingData, setEditingData] = useState<GradeCertFormData | undefined>();
+  const [editingData, setEditingData] = useState<
+    GradeCertFormData | undefined
+  >();
 
-  const sourceCerts = useMemo(
-    () => dbCerts as CertRow[],
-    [dbCerts],
-  );
+  const sourceCerts = useMemo(() => dbCerts as CertRow[], [dbCerts]);
 
   const certTypeNamesFromRows = useMemo(() => {
     const set = new Set<string>();
@@ -243,11 +290,15 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
     if (fetcher.state !== "idle" || !fetcher.data) return;
     const d = fetcher.data;
     if ("error" in d && d.error === "category_protected") {
-      window.alert(`「${PROTECTED_GRADE_CERT_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`);
+      window.alert(
+        `「${PROTECTED_GRADE_CERT_CATEGORY}」 카테고리는 삭제하거나 이름을 바꿀 수 없습니다.`,
+      );
       return;
     }
     if ("error" in d && d.error === "category_in_use") {
-      window.alert("이 카테고리를 사용 중인 등급판정서가 있어 삭제할 수 없습니다. 먼저 해당 문서의 카테고리를 변경하세요.");
+      window.alert(
+        "이 카테고리를 사용 중인 등급판정서가 있어 삭제할 수 없습니다. 먼저 해당 문서의 카테고리를 변경하세요.",
+      );
       return;
     }
     if ("error" in d && d.error === "category_duplicate") {
@@ -262,12 +313,20 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
       window.alert("카테고리를 찾을 수 없습니다.");
       return;
     }
-    if ("success" in d && d.success && "intent" in d && d.intent === "category") {
+    if (
+      "success" in d &&
+      d.success &&
+      "intent" in d &&
+      d.intent === "category"
+    ) {
       setCategoryManageOpen(false);
     }
   }, [fetcher.state, fetcher.data]);
 
-  const submitCategoryAction = (intent: string, fields: Record<string, string>) => {
+  const submitCategoryAction = (
+    intent: string,
+    fields: Record<string, string>,
+  ) => {
     const fd = new FormData();
     fd.append("intent", intent);
     for (const [k, v] of Object.entries(fields)) fd.append(k, v);
@@ -329,7 +388,11 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
     setEditingId(id);
   };
 
-  const submitCert = (data: GradeCertFormData, intent: "create" | "update", id?: number) => {
+  const submitCert = (
+    data: GradeCertFormData,
+    intent: "create" | "update",
+    id?: number,
+  ) => {
     const fd = new FormData();
     fd.append("intent", intent);
     if (id) fd.append("id", String(id));
@@ -362,231 +425,245 @@ export default function AdminGradeCertsScreen({ loaderData }: Route.ComponentPro
         <AdminNavbar />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">등급판정서 관리</h1>
-                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
-                  계란 등급판정 결과를 관리합니다
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                등급판정서 관리
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-gray-600">
+                계란 등급판정 결과를 관리합니다
+              </p>
+              {dbCerts.length === 0 ? (
+                <p className="mt-2 text-xs text-amber-800/90">
+                  등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 항목을
+                  추가하면 실제 데이터만 보입니다.
                 </p>
-                {dbCerts.length === 0 ? (
-                  <p className="mt-2 text-xs text-amber-800/90">
-                    등록된 데이터가 없을 때는 예시 더미 목록이 표시됩니다. 항목을 추가하면 실제 데이터만
-                    보입니다.
-                  </p>
-                ) : null}
+              ) : null}
+            </div>
+            <Button
+              onClick={() => setAddOpen(true)}
+              className="shrink-0 bg-[#02633E] text-white hover:bg-[#014d30]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              등급판정서 추가
+            </Button>
+          </div>
+
+          {/* 통계 카드 */}
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              { label: "전체 등급판정서", value: stats.total },
+              { label: "이전 자료", value: stats.archive },
+              { label: "액란", value: stats.liquid },
+              { label: "포장란", value: stats.shell },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
+              >
+                <p className="text-xs font-medium text-gray-500">
+                  {card.label}
+                </p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">
+                  {card.value}
+                </p>
               </div>
-              <Button
-                onClick={() => setAddOpen(true)}
-                className="shrink-0 bg-[#02633E] text-white hover:bg-[#014d30]"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                등급판정서 추가
-              </Button>
-            </div>
+            ))}
+          </div>
 
-            {/* 통계 카드 */}
-            <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                { label: "전체 등급판정서", value: stats.total },
-                { label: "이전 자료", value: stats.archive },
-                { label: "액란", value: stats.liquid },
-                { label: "포장란", value: stats.shell },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
-                >
-                  <p className="text-xs font-medium text-gray-500">{card.label}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{card.value}</p>
-                </div>
-              ))}
-            </div>
+          {/* 메인 탭 */}
+          <div className="mb-4 flex rounded-xl border border-gray-200 bg-gray-100/90 p-1">
+            <button
+              type="button"
+              onClick={() => setListTab("current")}
+              className={cn(
+                "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors",
+                listTab === "current"
+                  ? "bg-[#02633E] text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900",
+              )}
+            >
+              등급판정서
+            </button>
+            <button
+              type="button"
+              onClick={() => setListTab("archive")}
+              className={cn(
+                "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors",
+                listTab === "archive"
+                  ? "bg-[#02633E] text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900",
+              )}
+            >
+              등급판정서 (2022.11 이전)
+            </button>
+          </div>
 
-            {/* 메인 탭 */}
-            <div className="mb-4 flex rounded-xl border border-gray-200 bg-gray-100/90 p-1">
+          {/* 필터 + 검색 */}
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setListTab("current")}
+                onClick={() => setCategoryChip("")}
                 className={cn(
-                  "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors",
-                  listTab === "current"
+                  "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                  categoryChip === ""
                     ? "bg-[#02633E] text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900",
+                    : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
                 )}
               >
-                등급판정서
+                전체보기
               </button>
-              <button
-                type="button"
-                onClick={() => setListTab("archive")}
-                className={cn(
-                  "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors",
-                  listTab === "archive"
-                    ? "bg-[#02633E] text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900",
-                )}
-              >
-                등급판정서 (2022.11 이전)
-              </button>
-            </div>
-
-            {/* 필터 + 검색 */}
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {categorySelectOptions.map((c) => (
                 <button
+                  key={c}
                   type="button"
-                  onClick={() => setCategoryChip("")}
+                  onClick={() => setCategoryChip(c)}
                   className={cn(
                     "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
-                    categoryChip === ""
+                    categoryChip === c
                       ? "bg-[#02633E] text-white shadow-sm"
                       : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
                   )}
                 >
-                  전체보기
+                  {c}
                 </button>
-                {categorySelectOptions.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCategoryChip(c)}
-                    className={cn(
-                      "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
-                      categoryChip === c
-                        ? "bg-[#02633E] text-white shadow-sm"
-                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
-                    )}
-                  >
-                    {c}
-                  </button>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 border-[#02633E]/30 text-[#02633E]"
-                  title="카테고리 관리"
-                  onClick={() => setCategoryManageOpen(true)}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex w-full items-center gap-2 lg:max-w-md">
-                <div className="relative min-w-0 flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    className="border-[#02633E]/25 pl-9"
-                    placeholder="검색어를 입력해주세요"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <ListSortSelect value={sortOrder} onChange={setSortOrder} />
-              </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0 border-[#02633E]/30 text-[#02633E]"
+                title="카테고리 관리"
+                onClick={() => setCategoryManageOpen(true)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
+            <div className="flex w-full items-center gap-2 lg:max-w-md">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  className="border-[#02633E]/25 pl-9"
+                  placeholder="검색어를 입력해주세요"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <ListSortSelect value={sortOrder} onChange={setSortOrder} />
+            </div>
+          </div>
 
-            {/* 테이블 */}
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px] table-fixed text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/90 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      <th className="w-14 px-4 py-3">번호</th>
-                      <th className="px-4 py-3" style={{ width: "44%" }}>
-                        제목
-                      </th>
-                      <th className="w-[100px] px-4 py-3">카테고리</th>
-                      <th className="w-[112px] px-4 py-3">등록일</th>
-                      <th className="w-20 px-4 py-3 text-center">조회수</th>
-                      <th className="w-16 px-4 py-3 text-center">파일</th>
-                      <th className="w-[100px] px-4 py-3 text-center">관리</th>
+          {/* 테이블 */}
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[960px] table-fixed text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/90 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                    <th className="w-14 px-4 py-3">번호</th>
+                    <th className="px-4 py-3" style={{ width: "44%" }}>
+                      제목
+                    </th>
+                    <th className="w-[100px] px-4 py-3">카테고리</th>
+                    <th className="w-[112px] px-4 py-3">등록일</th>
+                    <th className="w-20 px-4 py-3 text-center">조회수</th>
+                    <th className="w-16 px-4 py-3 text-center">파일</th>
+                    <th className="w-[100px] px-4 py-3 text-center">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="py-14 text-center text-sm text-gray-500"
+                      >
+                        등록된 등급판정서가 없습니다.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-14 text-center text-sm text-gray-500">
-                          등록된 등급판정서가 없습니다.
-                        </td>
-                      </tr>
-                    ) : (
-                      filtered.map((cert, idx) => {
-                        const rowNo = filtered.length - idx;
-                        const fileCount = cert.file_name || cert.file_url ? 1 : 0;
-                        return (
-                          <tr
-                            key={cert.cert_id}
-                            className="border-b border-gray-100 text-gray-800 last:border-b-0 hover:bg-gray-50/80"
-                          >
-                            <td className="px-4 py-3.5 tabular-nums text-gray-500">{rowNo}</td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <span className="min-w-0 flex-1 truncate font-medium text-gray-900">
-                                  {cert.title}
-                                </span>
-                                {isNewCert(cert.created_at) ? (
-                                  <span className="shrink-0 rounded bg-[#02633E] px-1 py-0.5 text-[10px] font-bold leading-none text-white">
-                                    N
-                                  </span>
-                                ) : null}
-                                {fileCount > 0 ? (
-                                  <Paperclip
-                                    className="h-3.5 w-3.5 shrink-0 text-gray-400"
-                                    aria-hidden
-                                  />
-                                ) : null}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <span
-                                className={cn(
-                                  "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                                  newsCategoryBadgeClass(categoryColorByName.get(cert.cert_type) ?? "slate"),
-                                )}
-                              >
-                                {cert.cert_type}
+                  ) : (
+                    filtered.map((cert, idx) => {
+                      const rowNo = filtered.length - idx;
+                      const fileCount = cert.file_name || cert.file_url ? 1 : 0;
+                      return (
+                        <tr
+                          key={cert.cert_id}
+                          className="border-b border-gray-100 text-gray-800 last:border-b-0 hover:bg-gray-50/80"
+                        >
+                          <td className="px-4 py-3.5 text-gray-500 tabular-nums">
+                            {rowNo}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="min-w-0 flex-1 truncate font-medium text-gray-900">
+                                {cert.title}
                               </span>
-                            </td>
-                            <td className="px-4 py-3.5 tabular-nums text-gray-600">
-                              {formatDate(cert.created_at)}
-                            </td>
-                            <td className="px-4 py-3.5 text-center tabular-nums text-gray-600">
-                              {cert.view_count}
-                            </td>
-                            <td className="px-4 py-3.5 text-center tabular-nums text-gray-600">
-                              {fileCount}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-[#02633E]"
-                                  onClick={() => handleOpenEdit(cert.cert_id)}
-                                  title="수정"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-red-600"
-                                  onClick={() => handleDelete(cert.cert_id)}
-                                  title="삭제"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                              {isNewCert(cert.created_at) ? (
+                                <span className="shrink-0 rounded bg-[#02633E] px-1 py-0.5 text-[10px] leading-none font-bold text-white">
+                                  N
+                                </span>
+                              ) : null}
+                              {fileCount > 0 ? (
+                                <Paperclip
+                                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                                newsCategoryBadgeClass(
+                                  categoryColorByName.get(cert.cert_type) ??
+                                    "slate",
+                                ),
+                              )}
+                            >
+                              {cert.cert_type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-600 tabular-nums">
+                            {formatDate(cert.created_at)}
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-gray-600 tabular-nums">
+                            {cert.view_count}
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-gray-600 tabular-nums">
+                            {fileCount}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-[#02633E]"
+                                onClick={() => handleOpenEdit(cert.cert_id)}
+                                title="수정"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 border-gray-200 text-gray-600 shadow-sm hover:bg-white hover:text-red-600"
+                                onClick={() => handleDelete(cert.cert_id)}
+                                title="삭제"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
+          </div>
         </main>
       </div>
 
