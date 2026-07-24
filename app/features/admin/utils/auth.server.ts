@@ -17,9 +17,13 @@ import { hasPermission, menuPermission } from "./permissions";
  */
 const SESSION_SECRET =
   process.env.SESSION_SECRET ??
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  process.env.DATABASE_URL ??
   (process.env.NODE_ENV === "production"
     ? (() => {
-        throw new Error("SESSION_SECRET is required in production");
+        throw new Error(
+          "SESSION_SECRET or another server-only secret is required in production",
+        );
       })()
     : "development-only-admin-secret");
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
