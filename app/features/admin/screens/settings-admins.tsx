@@ -5,7 +5,7 @@
  */
 import type { Route } from "./+types/settings-admins";
 
-import { Edit, Plus, Trash2, UserPlus } from "lucide-react";
+import { Edit, RotateCcw, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useFetcher } from "react-router";
 
@@ -30,7 +30,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireSuperAdmin(request);
   const db = (await import("~/core/db/drizzle-client.server")).default;
   const { admins } = await import("~/features/admin/schema");
-  const { eq } = await import("drizzle-orm");
   const dbAdmins = await db
     .select({
       admin_id: admins.admin_id,
@@ -42,7 +41,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       created_at: admins.created_at,
     })
     .from(admins)
-    .where(eq(admins.is_active, true))
     .catch(() => []);
   return { adminUser, dbAdmins };
 }
@@ -109,7 +107,17 @@ export async function action({ request }: Route.ActionArgs) {
     if (id)
       await db
         .update(admins)
-        .set({ is_active: false })
+        .set({ is_active: false, active_session_id: null })
+        .where(eq(admins.admin_id, id));
+    return { success: true };
+  }
+
+  if (intent === "activate") {
+    const id = Number(fd.get("id"));
+    if (id)
+      await db
+        .update(admins)
+        .set({ is_active: true })
         .where(eq(admins.admin_id, id));
     return { success: true };
   }
@@ -123,6 +131,7 @@ interface AdminUser {
   email: string;
   role: AdminRole;
   permissions: string[];
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -142,6 +151,7 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
           email: a.email,
           role: dbRoleToAdminRole(a.role),
           permissions: a.permissions ?? [],
+          isActive: a.is_active,
           createdAt: a.created_at.toISOString().slice(0, 10),
         }))
       : [];
@@ -176,6 +186,13 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
     if (!confirm("정말 비활성화하시겠습니까?")) return;
     const fd = new FormData();
     fd.append("intent", "delete");
+    fd.append("id", id);
+    fetcher.submit(fd, { method: "POST" });
+  };
+
+  const handleActivate = (id: string) => {
+    const fd = new FormData();
+    fd.append("intent", "activate");
     fd.append("id", id);
     fetcher.submit(fd, { method: "POST" });
   };
@@ -238,6 +255,9 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
                         역할
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                         권한
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
@@ -268,6 +288,17 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
                             {getRoleLabel(admin.role)}
                           </Badge>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={
+                              admin.isActive
+                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-red-100 text-red-700 hover:bg-red-100"
+                            }
+                          >
+                            {admin.isActive ? "활성" : "비활성"}
+                          </Badge>
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex max-w-sm flex-wrap gap-2">
                             {admin.permissions.map((permission) => (
@@ -293,14 +324,27 @@ export default function AdminUsersPage({ loaderData }: Route.ComponentProps) {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(admin.id)}
-                              className="h-8 w-8 text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {admin.isActive ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(admin.id)}
+                                className="h-8 w-8 text-red-600 hover:text-red-700"
+                                title="관리자 비활성화"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleActivate(admin.id)}
+                                className="h-8 w-8 text-emerald-600 hover:text-emerald-700"
+                                title="관리자 재활성화"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

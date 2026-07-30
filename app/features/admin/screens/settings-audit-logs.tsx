@@ -1,7 +1,7 @@
 import type { Route } from "./+types/settings-audit-logs";
 
-import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
-import { Form } from "react-router";
+import { and, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
+import { Form, Link } from "react-router";
 
 import { Button } from "~/core/components/ui/button";
 import { Input } from "~/core/components/ui/input";
@@ -12,6 +12,8 @@ import { adminAuditLogs } from "../schema";
 import { requireSuperAdmin } from "../utils/auth.server";
 import { getPermissionLabel } from "../utils/permissions";
 
+const PAGE_SIZE = 20;
+
 export async function loader({ request }: Route.LoaderArgs) {
   const adminUser = await requireSuperAdmin(request);
   const url = new URL(request.url);
@@ -20,6 +22,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const action = url.searchParams.get("action")?.trim() ?? "";
   const from = url.searchParams.get("from")?.trim() ?? "";
   const to = url.searchParams.get("to")?.trim() ?? "";
+  const requestedPage = Math.max(
+    1,
+    Number.parseInt(url.searchParams.get("page") ?? "1", 10) || 1,
+  );
   const conditions = [];
 
   if (admin) conditions.push(ilike(adminAuditLogs.admin_email, `%${admin}%`));
@@ -29,14 +35,27 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (to) conditions.push(lte(adminAuditLogs.created_at, new Date(`${to}T23:59:59.999`)));
 
   const db = (await import("~/core/db/drizzle-client.server")).default;
+  const whereClause = conditions.length ? and(...conditions) : undefined;
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(adminAuditLogs)
+    .where(whereClause);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
   const logs = await db
     .select()
     .from(adminAuditLogs)
-    .where(conditions.length ? and(...conditions) : undefined)
+    .where(whereClause)
     .orderBy(desc(adminAuditLogs.created_at))
-    .limit(500);
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
 
-  return { adminUser, logs, filters: { admin, menu, action, from, to } };
+  return {
+    adminUser,
+    logs,
+    filters: { admin, menu, action, from, to },
+    pagination: { page, total, totalPages },
+  };
 }
 
 function formatDetails(details: Record<string, unknown>): string {
@@ -44,7 +63,17 @@ function formatDetails(details: Record<string, unknown>): string {
 }
 
 export default function AdminAuditLogsPage({ loaderData }: Route.ComponentProps) {
-  const { adminUser, logs, filters } = loaderData;
+  const { adminUser, logs, filters, pagination } = loaderData;
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams();
+    if (filters.admin) params.set("admin", filters.admin);
+    if (filters.menu) params.set("menu", filters.menu);
+    if (filters.action) params.set("action", filters.action);
+    if (filters.from) params.set("from", filters.from);
+    if (filters.to) params.set("to", filters.to);
+    params.set("page", String(page));
+    return `?${params.toString()}`;
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -110,6 +139,39 @@ export default function AdminAuditLogsPage({ loaderData }: Route.ComponentProps)
             {logs.length === 0 && (
               <div className="py-12 text-center text-sm text-gray-500">변경 이력이 없습니다.</div>
             )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+            <span>
+              전체 {pagination.total.toLocaleString("ko-KR")}건 · {pagination.page}/
+              {pagination.totalPages}페이지
+            </span>
+            <div className="flex items-center gap-2">
+              {pagination.page > 1 ? (
+                <Link
+                  to={pageHref(pagination.page - 1)}
+                  className="rounded-md border bg-white px-4 py-2 hover:bg-gray-50"
+                >
+                  이전
+                </Link>
+              ) : (
+                <span className="cursor-not-allowed rounded-md border bg-gray-100 px-4 py-2 text-gray-400">
+                  이전
+                </span>
+              )}
+              {pagination.page < pagination.totalPages ? (
+                <Link
+                  to={pageHref(pagination.page + 1)}
+                  className="rounded-md border bg-white px-4 py-2 hover:bg-gray-50"
+                >
+                  다음
+                </Link>
+              ) : (
+                <span className="cursor-not-allowed rounded-md border bg-gray-100 px-4 py-2 text-gray-400">
+                  다음
+                </span>
+              )}
+            </div>
           </div>
         </main>
       </div>
