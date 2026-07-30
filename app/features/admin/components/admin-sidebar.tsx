@@ -122,6 +122,18 @@ const menuItems: MenuItem[] = [
         href: "/admin/settings/seo",
         permission: ADMIN_PERMISSIONS.SEO,
       },
+      {
+        title: "관리자 관리",
+        href: "/admin/settings/admins",
+        permission: ADMIN_PERMISSIONS.ADMINS,
+        superOnly: true,
+      },
+      {
+        title: "변경 이력",
+        href: "/admin/settings/audit-logs",
+        permission: ADMIN_PERMISSIONS.AUDIT_LOGS,
+        superOnly: true,
+      },
     ],
   },
 ];
