@@ -65,6 +65,31 @@ export async function getAllContacts() {
   return db.select().from(contacts).orderBy(desc(contacts.created_at));
 }
 
+/** 관리자 대시보드: 최근 문의 */
+export async function getRecentContacts(limit = 5) {
+  return db
+    .select({
+      contact_id: contacts.contact_id,
+      inquiry_type: contacts.inquiry_type,
+      name: contacts.name,
+      title: contacts.title,
+      status: contacts.status,
+      created_at: contacts.created_at,
+    })
+    .from(contacts)
+    .orderBy(desc(contacts.created_at))
+    .limit(limit);
+}
+
+/** 관리자 대시보드: 미답변(대기중) 문의 건수 */
+export async function getPendingContactCount() {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(contacts)
+    .where(eq(contacts.status, "pending"));
+  return row?.total ?? 0;
+}
+
 /** 문의 상태 변경 */
 export async function updateContactStatus(id: number, status: "pending" | "completed") {
   await db.update(contacts).set({ status }).where(eq(contacts.contact_id, id));

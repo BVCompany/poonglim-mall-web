@@ -341,62 +341,64 @@ export default function AdminConsultingInquiriesPage({
 
       {/* 상세보기 모달 */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl">
+          <DialogHeader className="shrink-0">
             <DialogTitle>문의 상세</DialogTitle>
           </DialogHeader>
           {selected && (
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[selected.status]}`}
-                >
-                  {STATUS_LABEL[selected.status]}
-                </span>
-                <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
-                  {selected.inquiry_type}
-                </span>
-                <span className="ml-auto text-gray-400">
-                  {formatDate(selected.created_at)}
-                </span>
-              </div>
-
-              <h2 className="text-lg font-bold text-gray-900">
-                {selected.title}
-              </h2>
-
-              <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <span className="font-medium text-gray-700">이름:</span>
-                  {selected.name}
+            <>
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[selected.status]}`}
+                  >
+                    {STATUS_LABEL[selected.status]}
+                  </span>
+                  <span className="rounded-full bg-[#F0EEDD] px-2 py-0.5 text-xs font-medium text-gray-700">
+                    {selected.inquiry_type}
+                  </span>
+                  <span className="ml-auto text-gray-400">
+                    {formatDate(selected.created_at)}
+                  </span>
                 </div>
-                {selected.phone && (
+
+                <h2 className="text-lg font-bold text-gray-900">
+                  {selected.title}
+                </h2>
+
+                <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4">
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    {selected.phone}
+                    <span className="font-medium text-gray-700">이름:</span>
+                    {selected.name}
                   </div>
-                )}
-                {selected.email && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Mail className="h-4 w-4 shrink-0" />
-                    {selected.email}
-                  </div>
-                )}
-                {selected.company && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Building2 className="h-4 w-4 shrink-0" />
-                    {selected.company}
-                  </div>
-                )}
+                  {selected.phone && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      {selected.phone}
+                    </div>
+                  )}
+                  {selected.email && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      {selected.email}
+                    </div>
+                  )}
+                  {selected.company && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Building2 className="h-4 w-4 shrink-0" />
+                      {selected.company}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-4">
+                  <p className="leading-relaxed whitespace-pre-wrap break-words text-gray-700">
+                    {selected.content}
+                  </p>
+                </div>
               </div>
 
-              <div className="rounded-xl border border-gray-100 bg-white p-4">
-                <p className="leading-relaxed whitespace-pre-wrap text-gray-700">
-                  {selected.content}
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex shrink-0 justify-end gap-2 border-t border-gray-100 pt-4">
                 {selected.status === "pending" ? (
                   <fetcher.Form method="post">
                     <input type="hidden" name="intent" value="complete" />
@@ -435,7 +437,7 @@ export default function AdminConsultingInquiriesPage({
                   닫기
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

@@ -12,6 +12,12 @@ import { useFetcher } from "react-router";
 import { Badge } from "~/core/components/ui/badge";
 import { Button } from "~/core/components/ui/button";
 import { Card } from "~/core/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/core/components/ui/dialog";
 import { Input } from "~/core/components/ui/input";
 import { Textarea } from "~/core/components/ui/textarea";
 import {
@@ -93,6 +99,7 @@ interface TourApplication {
   applicantName: string;
   organization: string | null;
   phone: string;
+  email: string | null;
   participants: number;
   purpose: string;
   message: string | null;
@@ -106,6 +113,7 @@ export default function AdminFactoryToursPage({
 }: Route.ComponentProps) {
   const { adminUser, dbTours, tourSettings } = loaderData;
   const [searchQuery, setSearchQuery] = useState("");
+  const [selected, setSelected] = useState<TourApplication | null>(null);
   const [tourEnabled, setTourEnabled] = useState(tourSettings.enabled);
   const [disabledMessage, setDisabledMessage] = useState(
     tourSettings.disabledMessage ?? "",
@@ -130,6 +138,7 @@ export default function AdminFactoryToursPage({
           applicantName: t.applicant_name,
           organization: t.organization ?? null,
           phone: t.phone,
+          email: t.email ?? null,
           participants: t.participants,
           purpose: t.purpose,
           message: t.message ?? null,
@@ -159,16 +168,12 @@ export default function AdminFactoryToursPage({
     return statusConfig[status];
   };
 
-  const handleView = (id: string) => {
-    console.log("View application:", id);
-    alert(`견학 신청 상세보기: ${id}`);
-  };
-
   const handleApprove = (id: string) => {
     const fd = new FormData();
     fd.append("intent", "approve");
     fd.append("id", id);
     fetcher.submit(fd, { method: "POST" });
+    setSelected(null);
   };
 
   const handleReject = (id: string) => {
@@ -176,6 +181,7 @@ export default function AdminFactoryToursPage({
     fd.append("intent", "reject");
     fd.append("id", id);
     fetcher.submit(fd, { method: "POST" });
+    setSelected(null);
   };
 
   return (
@@ -356,7 +362,7 @@ export default function AdminFactoryToursPage({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleView(app.id)}
+                        onClick={() => setSelected(app)}
                         className="gap-2"
                       >
                         <Eye className="h-4 w-4" />
@@ -406,6 +412,101 @@ export default function AdminFactoryToursPage({
           </div>
         </div>
       </div>
+
+      {/* 상세보기 모달 */}
+      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>견학 신청 상세</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <>
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusBadge(selected.status).className}>
+                    {getStatusBadge(selected.status).label}
+                  </Badge>
+                  <span className="ml-auto text-gray-400">
+                    신청일시: {selected.appliedDate}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-4 text-gray-600">
+                  <div>
+                    <span className="font-medium text-gray-700">담당자명: </span>
+                    {selected.applicantName}
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">단체명: </span>
+                    {selected.organization ?? "-"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">연락처: </span>
+                    {selected.phone}
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">이메일: </span>
+                    {selected.email ?? "-"}
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">방문 인원: </span>
+                    {selected.participants}명
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">방문 예정: </span>
+                    {selected.requestedDate}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-4">
+                  <p className="mb-1 text-xs font-medium text-gray-500">
+                    신청 내용
+                  </p>
+                  <p className="leading-relaxed whitespace-pre-wrap break-words text-gray-700">
+                    {selected.purpose}
+                  </p>
+                </div>
+
+                {selected.message && (
+                  <div className="rounded-xl border border-gray-100 bg-white p-4">
+                    <p className="mb-1 text-xs font-medium text-gray-500">
+                      문의사항
+                    </p>
+                    <p className="leading-relaxed whitespace-pre-wrap break-words text-gray-700">
+                      {selected.message}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 justify-end gap-2 border-t border-gray-100 pt-4">
+                {selected.status === "승인대기" && (
+                  <>
+                    <Button
+                      onClick={() => handleApprove(selected.id)}
+                      className="gap-2 bg-[#204E3A] hover:bg-[#1a3f2e]"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      승인
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleReject(selected.id)}
+                      className="gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      거절
+                    </Button>
+                  </>
+                )}
+                <Button variant="outline" onClick={() => setSelected(null)}>
+                  닫기
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
